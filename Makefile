@@ -77,7 +77,7 @@ docker-dc:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh make dc
 
 docker-cdi:
-	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make cdi'
+	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
 
 # Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
 emu run:

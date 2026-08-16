@@ -12,6 +12,12 @@ if [ ! -f "$ELF" ]; then
     echo "make cdi: missing $ELF (run: source \$KOS_BASE/environ.sh && make dc)" >&2
     exit 2
 fi
+# Docker mounts data at /dink; local.mk often has a host path that is empty here.
+if [ -z "$DATA" ] || [ ! -d "$DATA" ]; then
+    if [ -d /dink ]; then
+        DATA=/dink
+    fi
+fi
 if [ -z "$DATA" ] || [ ! -d "$DATA" ]; then
     echo "make cdi: set DINK_DATA to the inner dink/ tree (has Dink.dat)" >&2
     exit 2
