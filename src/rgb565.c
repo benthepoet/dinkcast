@@ -14,10 +14,13 @@ int rgb565_from_bitmap(const struct Bitmap *bm, uint16_t **out, int *npx)
     if (bm->w <= 0 || bm->h <= 0) {
         return -1;
     }
-    n = bm->w * bm->h;
-    if ((size_t)n * 2u > (size_t)DINK_BMP_MAX_RGB565) {
+    if (bm->w > 4096 || bm->h > 4096) {
         return -1;
     }
+    if ((uint64_t)bm->w * (uint64_t)bm->h * 2ull > (uint64_t)DINK_BMP_MAX_RGB565) {
+        return -1;
+    }
+    n = bm->w * bm->h;
     p = (uint16_t *)malloc((size_t)n * sizeof(uint16_t));
     if (p == NULL) {
         return -1;

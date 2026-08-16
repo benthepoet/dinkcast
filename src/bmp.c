@@ -47,10 +47,10 @@ static int load_body(const uint8_t *data, size_t n, struct Bitmap *out)
     }
     topdown = (h < 0);
     abs_h = topdown ? -h : h;
-    if (abs_h <= 0) {
+    if (abs_h <= 0 || w > 4096 || abs_h > 4096) {
         return -1;
     }
-    if ((size_t)w * (size_t)abs_h * 2u > (size_t)DINK_BMP_MAX_RGB565) {
+    if ((uint64_t)w * (uint64_t)abs_h * 2ull > (uint64_t)DINK_BMP_MAX_RGB565) {
         return -1;
     }
     out->w = w;

@@ -135,6 +135,24 @@ int main(void)
     bitmap_free(&bm);
     free(raw);
 
+    /* 65536×65536 header must not wrap the size cap (SH-4 size_t is 32-bit). */
+    {
+        uint8_t huge[54];
+        memset(huge, 0, sizeof(huge));
+        huge[0] = 'B';
+        huge[1] = 'M';
+        wr_u32(huge + 10, 54);
+        wr_u32(huge + 14, 40);
+        wr_u32(huge + 18, 65536);
+        wr_u32(huge + 22, 65536);
+        wr_u16(huge + 26, 1);
+        wr_u16(huge + 28, 24);
+        if (bitmap_load_mem(huge, sizeof(huge), &bm) == 0) {
+            fprintf(stderr, "FAIL wrap 65536\n");
+            return 1;
+        }
+    }
+
     printf("OK test_bmp\n");
     return 0;
 }
