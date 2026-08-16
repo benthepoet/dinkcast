@@ -18,25 +18,25 @@ Do **not** commit the toolchain or game data.
 
 Use a **maintained** image (wiki: [Docker images](https://dreamcast.wiki/Docker_images) — e.g. [kos-builds](https://github.com/orgs/kos-builds/packages?repo_name=KallistiOS) or a recent `maishuji/dc-kos-image`). **Do not** use `nold360/kallistios-sdk` (Debian Jessie, stale).
 
-Sketch (adjust image name to whatever tag you pull):
+Default image: `maishuji/dc-kos-image:15.2.1-dev-08feb26-gdb-kp08feb26` (override `KOS_DOCKER_IMAGE`).
+
+CachyOS: the **daemon** must be running and your user must reach the socket:
 
 ```bash
-# Cachy: docker or podman
-sudo pacman -S --needed docker
-# or: sudo pacman -S --needed podman
-
-docker pull ghcr.io/kos-builds/kallistiOS:latest   # confirm tag on the packages page
-
-docker run --rm -it \
-  -v "$HOME/Source/dinkcast:/src" \
-  -v "$HOME/Source/freedink-data-1.08.20190120/dink:/dink:ro" \
-  -e DINK_DATA=/dink \
-  -w /src \
-  IMAGE_NAME \
-  bash -lc 'source $KOS_BASE/environ.sh && make dc && make cdi'
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker "$USER"
+newgrp docker          # or log out and back in
 ```
 
-Then on the host: `make emu` (Flycast is not inside the SDK image).
+Then from this repo (`local.mk` already has `DINK_DATA`):
+
+```bash
+make docker-cdi        # ELF + CDI in build/
+make emu
+```
+
+`make docker-dc` is ELF only. Flycast stays on the host.
 
 **Stay native** if you already finished dc-chain, or you want `dcload` / serial without extra USB/device mapping.
 

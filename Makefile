@@ -10,7 +10,7 @@ EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 
-.PHONY: all host check data-check title-preview dc cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi docker-dc docker-cdi emu run clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -71,6 +71,13 @@ dc:
 # Selfboot CDI: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
 cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
+
+# KallistiOS via Docker (see docs/TOOLCHAIN.md). Needs a running daemon.
+docker-dc:
+	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh make dc
+
+docker-cdi:
+	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make cdi'
 
 # Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
 emu run:
