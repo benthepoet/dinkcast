@@ -58,7 +58,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Item | Status |
 |---|---|
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
-| GitHub `mergePullRequest` on PAT | 403 — land via local squash + push |
+| GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. 4.1 still needs a merge-gate “go”. |
 

@@ -8,6 +8,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Do not bake host `DINK_DATA` into the SH-4 compile.** `-DDINK_DATA_DEFAULT=\"/home/...\"` breaks `kos-cc` (stray `\` / unclosed quote) and is meaningless on the DC. Probe `/pc/dink`, `/cd/*`, `getenv` only.
 - **`local.mk` wins over container env.** Host path is invisible inside Docker. Use `make -e cdi` and/or fall back to `/dink` (the mount). Prefer `DINK_DATA ?=` in `local.mk`.
 - **`make docker-cdi` must live on `master`.** A target only on a docs branch is `No rule to make target`.
+- **Fine-grained `github_pat_` can open PRs and push branches but still 403 `mergePullRequest`.** That is a token permission, not a broken PR. Human merges in the GitHub UI. Never “finish” a PR by rewriting `master`.
 - **REIOS ≠ a BIOS.** Flycast without `dc_boot.bin` in `~/.local/share/flycast/` often never runs `1ST_READ.BIN`. Flycast's own log is not KOS `printf` (SCIF).
 
 ## Disc and `/cd`

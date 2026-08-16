@@ -36,7 +36,8 @@ Post `visual-gate: waiting @human (V#)` on the PR after merge. Clear it only wit
 - Branch names: `bite/3.4-title-quad`, `fix/vram-leak-screen-swap`, `chore/makefile-host`. One concern per branch.
 - Rebase on `master` before requesting review. No merge commits on feature branches unless the PR is explicitly integrating a stack.
 - Commits: imperative, scoped (`dinkc: yield on say_stop`). Do not mix a formatter sweep with a parser change.
-- Land only via PR merge to `master` after the review bar below is green.
+- Land only via **GitHub PR merge** to `master` after the review bar is green (`gh pr merge` or the Merge button). **Do not** squash, cherry-pick, or fast-forward onto `master` locally and push to “close” a PR.
+- If `gh pr merge` returns **403** (`mergePullRequest` / “Resource not accessible by personal access token”), **stop**. Comment on the PR that the human must merge in the UI. Do not push `master`.
 - Do not force-push `master`. Force-push a feature branch only to replace a rebase you own, and only before others have based work on it.
 
 ```
