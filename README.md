@@ -33,6 +33,8 @@ make host
 
 `make dc` is supposed to fail until Bite 0.2 (`KOS_BASE` + `src/`).
 
+**Emulator:** [Flycast](https://github.com/flyinghead/flycast) (`make emu` / `make run`). Install a `flycast` binary or Flatpak `org.flycast.Flycast`. Override with `FLYCAST=` or `EMU=`. There is no CDI/ELF until Bite 0.2, so `make emu` exits 2 today. Real hardware + `dcload` is still the ship check.
+
 ## Remote
 
 No `origin` is configured:

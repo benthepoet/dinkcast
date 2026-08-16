@@ -123,4 +123,5 @@ Land: only the orchestrator merges (or explicitly delegates merge on the PR: `me
 
 - `make host` — plan + AGENTS structural checks (and later host unit tests).
 - `make dc` — ELF; requires `KOS_BASE` after Bite 0.2.
+- `make emu` / `make run` — Flycast on `build/dinkcast.cdi` (or `.elf`). Name the emulator and image if you claim a visual check.
 - Do not claim DC boot works unless you ran the ELF (hardware or emulator) and say which.

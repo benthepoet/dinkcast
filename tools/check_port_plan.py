@@ -46,6 +46,7 @@ def main() -> int:
         "good enough on sh-4" in low and "not" in low and "tuned" in low,
     )
     need("60 FPS target with 30 floor", "60 fps" in low and "30 fps is the floor" in low)
+    need("Flycast default emulator", "flycast" in low and "make emu" in low)
 
     i_title = low.find("first visual milestone")
     i_walk = low.find("bite 9.2")

@@ -2,7 +2,8 @@
 
 **Target:** Sega Dreamcast (retail, 16 MB main RAM)  
 **Source game:** Dink Smallwood (Robinson Technologies, v1.07 / v1.08 behavior via GNU FreeDink)  
-**Homebrew stack:** KallistiOS (KOS) + `dc-chain` (SH-4 GCC) + `dc-tool`/`dcload` / selfboot CDI; early video on lxdream or redream  
+**Homebrew stack:** KallistiOS (KOS) + `dc-chain` (SH-4 GCC) + `dc-tool`/`dcload` / selfboot CDI.  
+**Emulator (binding):** **Flycast** is the default for automated and day-to-day video checks (`make emu`). It is active, scriptable, and loads `.cdi` / often `.elf`. Real hardware + `dcload` remains the ship check. lxdream is unmaintained; redream is optional and not wired into the Makefile.
 **This document is the port specification.** It does not implement the ELF.
 
 **How to use this file:** do the numbered bites in order. A bite is done only when its **Done when** is true on hardware or emulator *and* its **Host check** (if any) passes. Do not start gameplay before **Bite 3.4** (title quad on screen).

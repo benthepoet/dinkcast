@@ -29,6 +29,7 @@ def main() -> int:
     need("implementer != adversarial", "implementer and adversarial" in low)
     need("orchestrator != adversarial", "orchestrator and adversarial" in low)
     need("gpl", "gpl-3.0-or-later" in low)
+    need("make emu Flycast", "make emu" in low and "flycast" in low)
 
     if missing:
         print("FAIL:", "; ".join(missing))
