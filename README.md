@@ -5,6 +5,7 @@ Dink Smallwood on the Sega Dreamcast (KallistiOS).
 This repository is the engine and porting plan. It does **not** ship proprietary game media. Point the build at official freeware Dink and/or GNU FreeDink data with `DINK_DATA`.
 
 - Port spec: [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md)
+- **Progress:** [PROGRESS.md](PROGRESS.md)
 - Contributor / agent workflow: [AGENTS.md](AGENTS.md)
 
 ## License
