@@ -4,9 +4,9 @@ TARGET = build/dinkcast.elf
 OBJS = src/main.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/title.o
 
 KOS_CFLAGS += -Isrc
-ifneq ($(DINK_DATA),)
-KOS_CFLAGS += -DDINK_DATA_DEFAULT=\"$(DINK_DATA)\"
-endif
+# Do not -DDINK_DATA_DEFAULT from local.mk: that path is a host tree
+# (slashes/quotes break kos-cc) and does not exist on the Dreamcast.
+# Runtime probe is /pc/dink, /cd/dink, then getenv("DINK_DATA").
 
 all: $(TARGET)
 
