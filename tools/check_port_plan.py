@@ -47,6 +47,7 @@ def main() -> int:
     )
     need("60 FPS target with 30 floor", "60 fps" in low and "30 fps is the floor" in low)
     need("Flycast default emulator", "flycast" in low and "make emu" in low)
+    need("controller-only play", "controller only" in low and "deferred" in low)
 
     i_title = low.find("first visual milestone")
     i_walk = low.find("bite 9.2")
