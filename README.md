@@ -21,19 +21,24 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-Spec + workflow + license. No Dreamcast ELF yet.
+Bite **0.1** skeleton + Bite **0.2** color-field source (`src/main.c`). ELF needs KallistiOS.
 
 **First screenshot (do not skip):** plan **Bite 3.4** — official title still at 640×480.
 
-**First implementation PR after kickoff:** **Bite 0.1** (repo/`Makefile` already has `make host`; 0.1 is the remaining skeleton). Then **0.2** color field (`KOS_BASE`). Workflow: [AGENTS.md](AGENTS.md) — feature branch, named orchestrator, reviews on the PR.
+## Dreamcast toolchain
+
+1. Install [dc-chain](https://github.com/KallistiOS/KallistiOS) / `sh-elf-gcc` and KallistiOS.
+2. `source $KOS_BASE/environ.sh`
+3. `make dc` → `build/dinkcast.elf`
+4. `make emu` once a `.cdi` exists (or point Flycast at the ELF).
+
+Without `KOS_BASE`, `make dc` exits 2. Serial should print `dinkcast boot ok`; screen is `#5A3A1A` at 640×480.
 
 ## Checks
 
 ```bash
 make host
 ```
-
-`make dc` is supposed to fail until Bite 0.2 (`KOS_BASE` + `src/`).
 
 **Emulator:** [Flycast](https://github.com/flyinghead/flycast) (`make emu` / `make run`). Install a `flycast` binary or Flatpak `org.flycast.Flycast`. Override with `FLYCAST=` or `EMU=`. There is no CDI/ELF until Bite 0.2, so `make emu` exits 2 today. Real hardware + `dcload` is still the ship check.
 
