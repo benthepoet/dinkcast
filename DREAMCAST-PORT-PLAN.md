@@ -18,6 +18,17 @@
 
 **Frame rate (binding decision):** **60 FPS / 60 Hz logic** is the target (VGA and 480p-class). DinkC `wait`, walk speed, and `dink.ini` delays are converted against that tick so they match FreeDink. **30 FPS is the floor**, not the design: if a busy indoor or 480i cannot hold 60, drop *presentation* to 30 but keep **one 60 Hz simulation step** (or two ticks per displayed frame) — do not retune the whole game to 30 or walk/talk will desync. 96 tiles + a few dozen quads is not a 30 Hz problem on PowerVR2; if you miss 60, profile upload/disc/CPU blit, not “the DC cannot do 60.”
 
+**Screen-to-screen delay (binding):** Flycast will look instant (host disk). **Real CDI/CD-ROM** is seek-bound, not SH-4. Keep the **current tileset** (and neighbor screens if they fit §1.2) resident so most edge walks are parse + a few sprites, **not** a loading screen.
+
+| Case | Hardware target | Treat as bug if |
+|---|---|---|
+| Same tileset, few new seqs | **0.2–0.6 s** | Every hedge shows “Loading…” |
+| New tileset / biome | **0.5–2 s** | |
+| Cold first visit, several BMPs + `.ff` | **≤ 4 s** | **> 3 s** on a normal neighbor walk |
+| Track change (one ADPCM stream) | **+0.3–1 s** | Music seek during every screen |
+
+A full-screen load is for **title → first map** and a **tileset miss** only. Worse than that is pack order or over-evict (GOTCHAS).
+
 **DinkC performance (binding decision):** FreeDink’s interpreter is **good enough on SH-4**. Do **not** write a custom “tuned” DinkC VM, JIT, or new language for speed. Stock scripts are tiny, mostly asleep on `wait` / `say_stop`. Frame time will be BMP decode, PVR upload, hardness, and GD-ROM — not dispatch. Port/graft FreeDink’s DinkC (strip SDL, bind to our sprites). Parse each `story/*.c` **once**; table-dispatch commands; cap ops/~2 ms per frame so a busy loop cannot lock the machine. Revisit a new interpreter only with a profile that names script dispatch as the spike (not expected on freeware Dink).
 
 ---
@@ -517,13 +528,15 @@ Depends on Bite 13 for the menu.
 
 #### Bite 14.2 — Swap screen
 
-- Evict tiles + unused seqs. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 599 − margin, match FreeDink).
+- Evict **unused** tilesets/seqs only. Keep the tileset if the neighbor still uses it. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 599 − margin, match FreeDink).
+- Do not stream a new music file on every edge unless `dink.dat` MIDI id changed.
 
 #### Bite 14.3 — Leak check
 
 - `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB**.
+- Log `swap_ms` on hardware; same-tileset neighbor must stay in the § screen-delay table.
 
-**Done when:** Walk start screen into a real neighbor; tiles + Dink; counters stable.
+**Done when:** Walk start screen into a real neighbor; tiles + Dink; counters stable; delay matches the binding table (Flycast may be ~0).
 
 ---
 
@@ -598,7 +611,7 @@ Chase/hurt brains: copy FreeDink one type at a time. Log `brain unimplemented: N
 
 #### Bite 18.2 — CDI layout
 
-- `mkisofs` order: `dink.dat`, `map.dat`, `hard.dat`, `dink.ini`, `tiles/`, current `story/`, `graphics/` last. 2048-byte sectors.
+- `mkdcdisc -d` the **`dink` tree** (basename `dink` → `/cd/dink`). Place `dink.dat`, `map.dat`, `hard.dat`, `dink.ini`, `tiles/` seek-near each other; `graphics/` after. 2048-byte sectors. A seek storm between every screen is a layout bug.
 
 #### Bite 18.3 — 320×240 fallback
 

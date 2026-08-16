@@ -20,6 +20,7 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 - Video: 640×480 RGB565. Sprites/tiles = **PowerVR textured quads**, not CPU blit.
 - Play input: Maple **controller only**.
 - 60 Hz logic; 30 FPS is the floor, not the design.
+- Screen swap: cache tilesets. Same-set **0.2–0.6 s** on CD; new set **0.5–2 s**. Every-screen “Loading…” is a pack/evict bug (plan + GOTCHAS). Flycast will look instant.
 - Data: `DINK_DATA` is the inner `dink/` tree (has `Dink.dat`). Never commit game blobs.
 - SH-4 ELF must not contain host paths. Runtime roots: `/pc/dink`, `/cd/dink`, `/cd/DINK`, `/cd`.
 - `printf` is SCIF serial. Flycast's log is **not** that. On-screen status = `bfont` / HUD.
