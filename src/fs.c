@@ -130,6 +130,12 @@ int dink_fs_init(void)
     if (dink_fs_try_root("/cd") == 0) {
         return 0;
     }
+    /* Older CDIs staged as -d build/iso → /cd/iso/dink. */
+    if (dink_fs_try_root("/cd/iso") == 0 ||
+        dink_fs_try_root("/cd/iso/dink") == 0 ||
+        dink_fs_try_root("/cd/iso/DINK") == 0) {
+        return 0;
+    }
     snprintf(parent, sizeof(parent), "%s", g_cd);
     slash = strrchr(parent, '/');
     if (slash != NULL && slash != parent) {

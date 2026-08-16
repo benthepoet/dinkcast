@@ -39,16 +39,12 @@ if [ -z "$MKDCDISC" ]; then
     fi
 fi
 
-ISO="$ROOT/build/iso"
-rm -rf "$ISO"
-mkdir -p "$ISO"
-# Disc path /cd/dink/... — must be a directory named dink, not the tarball root.
-ln -sfn "$DATA" "$ISO/dink"
-
+# mkdcdisc -d DIR puts a folder named basename(DIR) on the disc.
+# Staging as build/iso produced /cd/iso (Flycast listing). Pass the
+# data tree itself so the folder is "dink" → /cd/dink.
 mkdir -p "$(dirname "$OUT")"
-# -d adds the staging dir; flags match current mkdcdisc (elf + extra files).
 set -x
-"$MKDCDISC" -e "$ELF" -o "$OUT" -d "$ISO" -n DINKCAST
+"$MKDCDISC" -e "$ELF" -o "$OUT" -d "$DATA" -n DINKCAST
 set +x
 ls -l "$OUT"
-echo "OK $OUT (data -> /cd/dink)"
+echo "OK $OUT (data -> /cd/$(basename "$DATA"))"
