@@ -29,7 +29,9 @@
 
 A full-screen load is for **title → first map** and a **tileset miss** only. Worse than that is pack order or over-evict (GOTCHAS).
 
-**DinkC performance (binding decision):** FreeDink’s interpreter is **good enough on SH-4**. Do **not** write a custom “tuned” DinkC VM, JIT, or new language for speed. Stock scripts are tiny, mostly asleep on `wait` / `say_stop`. Frame time will be BMP decode, PVR upload, hardness, and GD-ROM — not dispatch. Port/graft FreeDink’s DinkC (strip SDL, bind to our sprites). Parse each `story/*.c` **once**; table-dispatch commands; cap ops/~2 ms per frame so a busy loop cannot lock the machine. Revisit a new interpreter only with a profile that names script dispatch as the spike (not expected on freeware Dink).
+**DinkC performance (binding decision):** FreeDink’s interpreter is **good enough on SH-4**. The SH-4 is fast enough to run stock DinkC **reliably on throughput**. Do **not** write a custom “tuned” DinkC VM, JIT, or new language for speed. Scripts are tiny and mostly asleep on `wait` / `say_stop`. Frame time will be BMP decode, PVR upload, hardness, and GD-ROM — not dispatch.
+
+**Reliability ≠ MHz.** Wrong `freeze` nesting, `say_stop` vs screen `main`, or missing commands look like a “slow CPU.” They are not. Hosting rules: graft FreeDink; parse each `story/*.c` **once**; table-dispatch; cap ~2 ms / a few thousand ops per frame so a busy loop cannot lock the machine. A hitch blamed on DinkC is **disc or upload** until a profile says otherwise. Revisit a new VM only with a measurement that names dispatch as the spike (not expected on freeware Dink).
 
 ---
 

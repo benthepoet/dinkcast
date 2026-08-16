@@ -30,6 +30,11 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **A loading screen on every edge is a bug.** Keep the current tileset in VRAM. Same-tileset walk: **0.2–0.6 s** on CD. New tileset: **0.5–2 s**. **> 3 s** on a normal neighbor = over-evict or disc order. Title → first map may show “Loading…”.
 - **Do not reopen music** unless the screen’s MIDI id changed; that adds another seek.
 
+## DinkC
+
+- **SH-4 is fast enough.** Do not invent a VM or JIT “because 200 MHz.” Graft FreeDink; parse once; table-dispatch; cap ops per frame. Busy loops are a script bug (same as PC).
+- **A hitch is not proof scripts are hot.** Profile GD-ROM and texture upload first. Reliability is `wait` / `say_stop` fibers and command coverage, not clock rate.
+
 ## Data
 
 - **GNU `freedink-data` tarball root is not `DINK_DATA`.** Use the inner `dink/` (`Dink.dat`, `Tiles/`, `Story/`).
