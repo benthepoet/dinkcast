@@ -4,6 +4,8 @@ Instructions for humans and agents working in this repo.
 
 **Port spec:** [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md) is the source of truth for bites, budgets, DinkC, 60 FPS, and legal/data rules. Do not fork those decisions here. If implementation and the plan disagree, change the plan in the same PR or follow the plan.
 
+**Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed. Every bite/fix PR must update it (master table + bite status) in the **same PR**. Do not treat a green `make host` as “tracked.”
+
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
 **Kickoff order:** (1) add `origin`, push `master`. (2) Orchestrator opens `bite/0.1-…` (then 0.2, 1.x, … 3.4 title). (3) Use `.github/PULL_REQUEST_TEMPLATE.md`. (4) `make host` must stay green on `master`.

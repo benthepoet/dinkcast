@@ -27,6 +27,7 @@ tools/test_fs_join: tools/test_fs_join.c src/fs.c src/fs.h
 check:
 	$(PYTHON) tools/check_port_plan.py
 	$(PYTHON) tools/check_agents.py
+	$(PYTHON) tools/check_progress.py
 	$(PYTHON) tests/test_run_emu.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py

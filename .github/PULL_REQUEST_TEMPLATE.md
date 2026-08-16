@@ -10,6 +10,7 @@
 ## Bite / intent
 
 - Plan bite(s):
+- [PROGRESS.md](../PROGRESS.md) updated?
 - Out of plan? Why:
 
 ## How to test

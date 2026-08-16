@@ -31,6 +31,7 @@ def main() -> int:
     need("gpl", "gpl-3.0-or-later" in low)
     need("make emu Flycast", "make emu" in low and "flycast" in low)
     need("human gate after merge", "after a pr is" in low and "merged" in low and "until the human" in low)
+    need("PROGRESS.md required", "progress.md" in low)
 
     if missing:
         print("FAIL:", "; ".join(missing))
