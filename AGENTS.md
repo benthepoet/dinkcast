@@ -63,7 +63,7 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 
 **On the PR the orchestrator writes:** `orchestrator: @who` — bite id, required reviews for this diff, and later `bar: green` / `bar: blocked (why)` before merge.
 
-The orchestrator may be a human maintainer or a dedicated agent. One person may Orchestrate PR A and Implement PR B, not both on the same PR (docs-only exception above).
+**Default orchestrator is a dedicated subagent**, not the human requester and not the implementer. Spawn it for every PR. The human may override in writing on that PR. One agent may Orchestrate PR A and Implement PR B, not both on the same PR (docs-only exception above).
 
 | Role | Job | Must write on the PR |
 |---|---|---|
