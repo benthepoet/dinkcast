@@ -28,7 +28,7 @@ int main(void)
 {
     char buf[DINK_FS_PATH_MAX];
     char tmp[] = "/tmp/dinkcast-fs-XXXXXX";
-    char pc[256], cd[256], fb[256], p[512];
+    char pc[256], cd[256], fb[256], p[768];
     FILE *fp;
 
     if (dink_fs_join(buf, sizeof(buf), "/cd/dink", "story/foo.c") != 0) {
@@ -75,6 +75,8 @@ int main(void)
     if (mkdir(cd, 0755) != 0) {
         die("mkdir cd");
     }
+    snprintf(p, sizeof(p), "%s/Dink.dat", cd);
+    write_file(p, "cd");
     dink_fs_set_probe_roots(pc, cd, fb);
     if (dink_fs_init() != 0 || strcmp(dink_fs_root(), cd) != 0) {
         die("probe cd before fallback");
@@ -83,6 +85,8 @@ int main(void)
     if (mkdir(pc, 0755) != 0) {
         die("mkdir pc");
     }
+    snprintf(p, sizeof(p), "%s/Dink.dat", pc);
+    write_file(p, "pc");
     dink_fs_set_probe_roots(pc, cd, fb);
     if (dink_fs_init() != 0 || strcmp(dink_fs_root(), pc) != 0) {
         die("probe pc first");
@@ -119,6 +123,37 @@ int main(void)
             die("join allowed ..");
         }
         (void)secret;
+    }
+
+    /* ISO-style: data under DINK/ not dink/ */
+    {
+        char cdroot[DINK_FS_PATH_MAX];
+        char dinkdir[DINK_FS_PATH_MAX];
+        char dat[DINK_FS_PATH_MAX];
+        char fake[DINK_FS_PATH_MAX];
+
+        if (snprintf(cdroot, sizeof(cdroot), "%s/CDROOT", tmp) >= (int)sizeof(cdroot) ||
+            snprintf(dinkdir, sizeof(dinkdir), "%s/DINK", cdroot) >= (int)sizeof(dinkdir) ||
+            snprintf(dat, sizeof(dat), "%s/Dink.dat", dinkdir) >= (int)sizeof(dat) ||
+            snprintf(fake, sizeof(fake), "%s/dink", cdroot) >= (int)sizeof(fake)) {
+            die("path too long");
+        }
+        if (mkdir(cdroot, 0755) != 0) {
+            die("mkdir CDROOT");
+        }
+        if (mkdir(dinkdir, 0755) != 0) {
+            die("mkdir DINK");
+        }
+        write_file(dat, "iso");
+        dink_fs_set_probe_roots("/no-pc", fake, "");
+        if (dink_fs_init() != 0) {
+            die("init uppercase DINK via parent of g_cd");
+        }
+        fp = dink_fopen("dink.dat", "rb");
+        if (fp == NULL) {
+            die("fopen dink.dat under /CDROOT/DINK");
+        }
+        fclose(fp);
     }
 
     printf("OK test_fs_join\n");

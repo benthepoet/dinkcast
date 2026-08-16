@@ -17,6 +17,8 @@ static const char *g_pc = "/pc/dink";
 static const char *g_cd = "/cd/dink";
 static const char *g_fallback = DINK_DATA_DEFAULT;
 
+static int dink_fs_try_root(const char *path);
+
 static void slashes(char *s)
 {
     for (; *s; s++) {
@@ -29,14 +31,21 @@ static void slashes(char *s)
 int dink_fs_exists_dir(const char *path)
 {
     struct stat st;
+    DIR *d;
 
     if (path == NULL || path[0] == '\0') {
         return 0;
     }
-    if (stat(path, &st) != 0) {
-        return 0;
+    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+        return 1;
     }
-    return S_ISDIR(st.st_mode) ? 1 : 0;
+    /* KOS ISO9660 often fails S_ISDIR; opendir is the real check. */
+    d = opendir(path);
+    if (d != NULL) {
+        closedir(d);
+        return 1;
+    }
+    return 0;
 }
 
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel)
@@ -107,23 +116,36 @@ void dink_fs_set_probe_roots(const char *pc, const char *cd, const char *fallbac
 int dink_fs_init(void)
 {
     const char *env;
+    char parent[DINK_FS_PATH_MAX];
+    char *slash;
 
     g_root[0] = '\0';
-    if (dink_fs_exists_dir(g_pc)) {
-        snprintf(g_root, sizeof(g_root), "%s", g_pc);
+    if (dink_fs_try_root(g_pc) == 0 || dink_fs_try_root("/pc/DINK") == 0) {
         return 0;
     }
-    if (dink_fs_exists_dir(g_cd)) {
-        snprintf(g_root, sizeof(g_root), "%s", g_cd);
+    if (dink_fs_try_root(g_cd) == 0 || dink_fs_try_root("/cd/DINK") == 0) {
         return 0;
+    }
+    /* ISO9660: files may sit at /cd or /cd/DINK, not /cd/dink. */
+    if (dink_fs_try_root("/cd") == 0) {
+        return 0;
+    }
+    snprintf(parent, sizeof(parent), "%s", g_cd);
+    slash = strrchr(parent, '/');
+    if (slash != NULL && slash != parent) {
+        *slash = '\0';
+        if (dink_fs_try_root(parent) == 0) {
+            return 0;
+        }
     }
     env = getenv("DINK_DATA");
-    if (env != NULL && dink_fs_exists_dir(env)) {
-        snprintf(g_root, sizeof(g_root), "%s", env);
+    if (env != NULL && dink_fs_try_root(env) == 0) {
         return 0;
     }
-    if (dink_fs_exists_dir(g_fallback)) {
-        snprintf(g_root, sizeof(g_root), "%s", g_fallback);
+    if (dink_fs_try_root(g_fallback) == 0) {
+        return 0;
+    }
+    if (dink_fs_try_root("/dink") == 0 || dink_fs_try_root("/DINK") == 0) {
         return 0;
     }
     return -1;
@@ -271,4 +293,31 @@ FILE *dink_fopen(const char *rel, const char *mode)
     } while (tok != NULL);
 
     return fopen(cur, mode);
+}
+
+/* Accept path if dink.dat is here or in a child named dink (any case). */
+static int dink_fs_try_root(const char *path)
+{
+    FILE *fp;
+    char child[DINK_FS_PATH_MAX];
+
+    if (path == NULL || path[0] == '\0' || !dink_fs_exists_dir(path)) {
+        return -1;
+    }
+    snprintf(g_root, sizeof(g_root), "%s", path);
+    fp = dink_fopen("dink.dat", "rb");
+    if (fp != NULL) {
+        fclose(fp);
+        return 0;
+    }
+    if (resolve_comp(path, "dink", child, sizeof(child)) == 0) {
+        snprintf(g_root, sizeof(g_root), "%s", child);
+        fp = dink_fopen("dink.dat", "rb");
+        if (fp != NULL) {
+            fclose(fp);
+            return 0;
+        }
+    }
+    g_root[0] = '\0';
+    return -1;
 }

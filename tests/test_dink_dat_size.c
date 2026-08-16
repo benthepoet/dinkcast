@@ -26,11 +26,8 @@ int main(void)
     }
     unsetenv("DINK_DATA");
     dink_fs_set_probe_roots("/no", "/no", tmp);
-    if (dink_fs_init() != 0) {
-        die("init");
-    }
-    if (dink_dat_size(&sz) == 0) {
-        die("missing should fail");
+    if (dink_fs_init() == 0) {
+        die("empty tree must not be a data root");
     }
     snprintf(p, sizeof(p), "%s/Dink.dat", tmp);
     f = fopen(p, "wb");
@@ -39,6 +36,9 @@ int main(void)
     }
     fwrite("Smallwood", 1, 9, f);
     fclose(f);
+    if (dink_fs_init() != 0) {
+        die("init");
+    }
     if (dink_dat_size(&sz) != 0 || sz != 9) {
         die("size");
     }

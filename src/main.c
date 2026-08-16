@@ -37,8 +37,8 @@ int main(int argc, char **argv)
     printf("dink_fs_root %s\n", dink_fs_root());
 
     if (dink_dat_size(&dat_sz) != 0) {
-        vid_clear(0xC0, 0x00, 0x00);
-        printf("missing dink.dat\n");
+        vid_clear(0xC0, 0x00, 0x80);
+        printf("missing dink.dat (root=%s)\n", dink_fs_root());
         for (;;) {
             vid_waitvbl();
         }
