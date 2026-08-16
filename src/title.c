@@ -133,11 +133,12 @@ int title_present_pvr(const struct TitleStill *t)
         free(pad);
         return -1;
     }
+    /* pvr_txr_load_ex always twiddles; do not mark the poly NONTWIDDLED. */
     pvr_txr_load_ex(pad, tex, tw, th, PVR_TXRLOAD_16BPP);
     free(pad);
 
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED,
-                     tw, th, tex, PVR_FILTER_NONE);
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, tw, th, tex,
+                     PVR_FILTER_NONE);
     pvr_poly_compile(&hdr, &cxt);
     u = (float)t->w / (float)tw;
     v = (float)t->h / (float)th;
