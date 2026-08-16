@@ -1,0 +1,707 @@
+# Dink Smallwood → Sega Dreamcast Port Plan (granular)
+
+**Target:** Sega Dreamcast (retail, 16 MB main RAM)  
+**Source game:** Dink Smallwood (Robinson Technologies, v1.07 / v1.08 behavior via GNU FreeDink)  
+**Homebrew stack:** KallistiOS (KOS) + `dc-chain` (SH-4 GCC) + `dc-tool`/`dcload` / selfboot CDI; early video on lxdream or redream  
+**This document is the port specification.** It does not implement the ELF.
+
+**How to use this file:** do the numbered bites in order. A bite is done only when its **Done when** is true on hardware or emulator *and* its **Host check** (if any) passes. Do not start gameplay before **Bite 3.4** (title quad on screen).
+
+**Canon for layouts:** GNU FreeDink headers (`dinkvar.h`, `screen.h`, `hardness.h`, `dinkini.c`) plus *The Ultimate Dink File Format FAQ* (Dink Network). When this plan and a checked-out FreeDink tag disagree on a field width, **FreeDink wins** — patch this plan, do not invent a third layout.
+
+**Frame rate (binding decision):** **60 FPS / 60 Hz logic** is the target (VGA and 480p-class). DinkC `wait`, walk speed, and `dink.ini` delays are converted against that tick so they match FreeDink. **30 FPS is the floor**, not the design: if a busy indoor or 480i cannot hold 60, drop *presentation* to 30 but keep **one 60 Hz simulation step** (or two ticks per displayed frame) — do not retune the whole game to 30 or walk/talk will desync. 96 tiles + a few dozen quads is not a 30 Hz problem on PowerVR2; if you miss 60, profile upload/disc/CPU blit, not “the DC cannot do 60.”
+
+**DinkC performance (binding decision):** FreeDink’s interpreter is **good enough on SH-4**. Do **not** write a custom “tuned” DinkC VM, JIT, or new language for speed. Stock scripts are tiny, mostly asleep on `wait` / `say_stop`. Frame time will be BMP decode, PVR upload, hardness, and GD-ROM — not dispatch. Port/graft FreeDink’s DinkC (strip SDL, bind to our sprites). Parse each `story/*.c` **once**; table-dispatch commands; cap ops/~2 ms per frame so a busy loop cannot lock the machine. Revisit a new interpreter only with a profile that names script dispatch as the spike (not expected on freeware Dink).
+
+---
+
+## 0. Legal and data source
+
+**Assumed legal source**
+
+- Engine reference: **GNU FreeDink** (GPL). Behavior bible, not an SDL binary on SH-4.
+- Game data: **official freeware Dink** and/or **FreeDink data**. The original game data is **required**. Required files at `DINK_DATA`:
+
+  | File / dir | Role |
+  |---|---|
+  | `dink.dat` | 768-cell world table (which `map.dat` slot, MIDI id, indoor) |
+  | `map.dat` | Fixed-size screen records (tiles + editor sprites + screen script) |
+  | `hard.dat` | Tile hardness bitmaps |
+  | `dink.ini` | Sequence load table (paths, delays, hardboxes, centers) |
+  | `tiles/ts*.bmp` | Tileset sheets (50×50 cells) |
+  | `graphics/**` | Sprite frames (BMP and/or `.ff` packs) |
+  | `story/*.c` | Unmodified DinkC |
+  | `sound/` | WAV SFX + MIDI (MIDI is **not** played raw on AICA) |
+
+**Rules**
+
+- Do not commit RTSoft/GNU blobs unless that exact file’s license allows it. Build with `DINK_DATA=/path/to/dink`.
+- MIDI → ADPCM is an **offline pack** step. Do not claim converted tracks live in-repo.
+- Still-proprietary FreeDink replacement sounds stay out of the tree.
+
+---
+
+## 1. Dreamcast hard constraints
+
+Not “optimize later.”
+
+| Resource | Hardware | Port budget |
+|---|---|---|
+| Main RAM | 16 MB SDRAM, SH-4 ~200 MHz | After KOS/libc/stack: **~12–13 MB**. Engine + caches **≤ 10 MB**. |
+| VRAM | 8 MB PowerVR2 | 640×480 RGB565 ×2 ≈ **1 228 800 B**. Textures **≤ 6.5 MB**. |
+| Sound RAM | **2 MB AICA** | Resident SFX **≤ 512 KB**. One music ring **256–512 KB**. Voices **≤ 16**. |
+| CPU | SH-4 | No x86. Sprite math: int or SH-4 FPU. No thread-per-sprite. |
+| GPU | PowerVR2 **textured quads** | No SDL blit path as renderer. |
+| Disc | GD-ROM / CDI / `dcload` hostfs | Stream per screen. Never preload the whole tree. |
+| Input | Maple controller | See §1.3. |
+| Video | **640×480** RGB (VGA or 480i) | Optional **320×240** only as a named fallback (Bite 18.3). |
+
+### 1.1 Coordinate system (do not invent another)
+
+| Quantity | Value | Notes |
+|---|---|---|
+| Tile size | **50×50** px | Original. Never 32/64 as the *logical* size. |
+| Screen tiles | **12 × 8 = 96** | Indices in this plan are **1-based** in file structs if FreeDink is; keep a comment at the parser. |
+| Playfield | **600×400** | 12×50 by 8×50. |
+| Status bar | **640×80** under the playfield | Original 640×480 = 400 play + 80 HUD. Playfield is **centered horizontally** with 20 px left/right gutter (`offset_x = 20`, `offset_y = 0`) unless FreeDink’s current tag uses a different origin — match FreeDink. |
+| World | **32 × 24 = 768** screens | Screen number `n` is 1..768. Neighbor: `n-1` west, `n+1` east, `n-32` north, `n+32` south (confirm against FreeDink `update_play_input` / map walk). |
+| Sprite 1 | Always **Dink** | Editor sprites in `map.dat` occupy slots 2..100 typically (`MAX_SPRITES_EDITOR` 100, slot 0 unused). Runtime sprites go up to FreeDink `MAX_SPRITES_AT_ONCE` (300) — **do not allocate 300 fat textures**; allocate 300 *metadata* slots, textures only for live seqs. |
+
+### 1.2 Memory map (engine)
+
+Keep a `mem_log()` that prints these counters every screen load.
+
+| Pool | Cap | Lives in | Contents |
+|---|---|---|---|
+| `bmp_decode` | 1.5 MB | Main | Transient BMP unpack; **free before next big load** |
+| `dink_dat` | ≤ 64 KB | Main | Parsed world table (768 × a few ints) |
+| `cur_screen` | ≤ 64 KB | Main | One `editor_screen` + derived tile ids |
+| `hard_cache` | ≤ 256 KB | Main | Current screen 600×400 hardness **or** 96 tile-hard refs + sprite boxes |
+| `seq_meta` | ≤ 256 KB | Main | `dink.ini` parsed table (paths, delays, boxes) — **not** pixels |
+| `tile_tex` | ≤ 512 KB | VRAM | Current tileset atlas |
+| `sprite_tex` | ≤ 4 MB | VRAM | Current screen + Dink seqs |
+| `title_tex` | ≤ 600 KB | VRAM | Title still; **freed** when leaving title |
+| `sfx_bank` | ≤ 512 KB | AICA | Boot SFX |
+| `bgm_ring` | 256–512 KB | AICA | One stream |
+| HUD atlas | ≤ 128 KB | VRAM | Life/mana/gold/font |
+
+### 1.3 Controller map
+
+| Maple | Dink |
+|---|---|
+| D-pad | Walk (brains / player) |
+| A | Talk / confirm / advance `say` |
+| B | Hit / cancel |
+| X | Magic (once Bite 15.x exists; ignore until then) |
+| Y | Inventory (once Bite 16.x exists) |
+| Start | Pause / leave title |
+| L/R | Unused in v1 (do not bind map-cheat) |
+
+Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick (FreeDink frame delay is ms-ish — convert: `frames = max(1, delay_ms * 60 / 1000)` and then **diff against FreeDink** on one walk cycle).
+
+### 1.4 Texture rules
+
+- Upload **RGB565** or **VQ**. No RGBA8888 resident textures.
+- Twiddle if KOS/`pvr_txr_load_ex` requires it for that format.
+- 50 is not a power of two: **atlas** into 512×512 (50×50 cells + 1 px gutter) **or** pad each tile to 64×64. Pick one in Bite 6.1 and do not mix.
+- Evict on screen change: previous `tile_tex` + seqs not referenced by the new screen or by Dink.
+
+---
+
+## 2. Work bites
+
+### Phase A — Boot to original title still (first screenshot)
+
+#### Bite 0.1 — Repo skeleton (no KOS calls required to exist yet)
+
+- Create layout in §3. `README.md` documents `KOS_BASE`, `dc-chain`, `DINK_DATA`.
+- `Makefile` has two targets from day one: `host` (gcc, tools + unit tests) and `dc` (`kos-cc` → `dinkcast.elf`).
+
+**Done when:** `make host` builds something; `make dc` is present even if it fails without KOS.
+
+#### Bite 0.2 — Color field
+
+- `vid_set_mode(DM_640x480, PM_RGB565)`.
+- Clear to `#5A3A1A`. Infinite `thd_sleep` / pvr wait.
+- Serial: `dinkcast boot ok`.
+
+**Done when:** 640×480 solid field on DC or emulator.
+
+#### Bite 1.1 — Path resolver
+
+- `dink_fs_init()`: try `/pc/dink` (`dcload`), then `/cd/dink`, then compile-time `DINK_DATA`.
+- `dink_fopen(rel)` joins root + relative, ISO9660-safe (`8.3` fallback: also try uppercased names).
+
+**Host check:** `tools/test_fs_join` on Linux.
+
+**Done when:** Serial prints resolved root.
+
+#### Bite 1.2 — Existence probe
+
+- Open `dink.dat`, `fseek` end, print size.
+- Missing file → **red screen** + `missing dink.dat` on serial. No hang.
+
+**Done when:** `found dink.dat N bytes` with N matching the host `stat`.
+
+#### Bite 2.1 — BMP header only
+
+- Support **BITMAPINFOHEADER**, uncompressed **8-bit paletted** and **24-bit**. Reject RLE/32-bit/OS2-v1 if not needed (log and fail).
+- Fill `struct Bitmap { int w,h,stride; int bpp; uint8_t *pixels; uint8_t pal[256*3]; }`.
+- Hard cap: `w*h*2 > 1 500 000` → error (RGB565-sized bound).
+
+**Host check:** `tools/bmp_info path` prints `w h bpp first_pixel`.
+
+**Done when:** Host tool matches ImageMagick/`file` on one 8-bit and one 24-bit Dink BMP.
+
+#### Bite 2.2 — BMP on DC
+
+- Load one small known BMP from `DINK_DATA` (e.g. a 50×50 tile) into main RAM, print `w h`, **free**.
+
+**Done when:** Serial numbers match host.
+
+#### Bite 3.1 — Identify the official title file
+
+- Do **not** invent a logo.
+- Procedure: run FreeDink once or read its title state; record the **exact relative path** of the first full-screen title still (common: a `graphics/` title/start BMP). Write that path in `src/title_path.h` as a string constant *after* inspecting `DINK_DATA` — if several frames exist, use **frame 1** of the title sequence.
+- If the BMP is larger than 640×480, document an offline `tools/bmp_to_rgb565` resize/clip to 640×480 **preserving aspect** (letterbox). Do not stretch.
+
+**Done when:** `title_path.h` names a file that exists in stock data and is visually the classic title.
+
+#### Bite 3.2 — CPU RGB565 convert
+
+- 8-bit: palette index → RGB565 (`(r>>3)<<11 | (g>>2)<<5 | (b>>3)`).
+- 24-bit: BGR BMP order → RGB565.
+- Output buffer `w*h*2`, then **free** the paletted source.
+
+**Host check:** hash first 64 px of a fixture BMP.
+
+#### Bite 3.3 — PVR upload
+
+- Pad width/height to next power of two **only for the texture allocation**; UVs sample the real 640×480 (or native) subrect.
+- Comment next to upload: `640*480*2 = 614400` title + `640*480*2*2` framebuffers.
+
+**Done when:** `pvr_mem_available()` after upload still > 4 MB. Texture handle non-null.
+
+#### Bite 3.4 — **First visual milestone: title quad**
+
+- One textured quad, letterboxed if needed, Bite 0.2 clear color in bars.
+- `pvr_wait_ready` / scene / list / finish / swap every frame.
+
+**Done when:** Original Dink Smallwood title still is stable on **640×480 RGB**. Screenshot is the progress artifact. **No gameplay before this.**
+
+#### Bite 4.1 — Maple poll
+
+- Read controller port 0. Ignore missing controller (stay on title).
+
+#### Bite 4.2 — Leave title
+
+- Start or A → `GAME_STATE_LOADING` (solid color or “loading” using the same font-less clear).
+- **Free `title_tex`** here so VRAM is back.
+
+**Done when:** Title → placeholder; serial `leave_title`; VRAM up after free.
+
+---
+
+### Phase B — Official map data, one screen of tiles
+
+#### Bite 5.1 — `dink.dat` parser (host-first)
+
+Parse original layout (verify vs FreeDink / FAQ; typical shape):
+
+```
+offset 0:     char ident[24];        /* often "Smallwood" + pad */
+then:         int32 loc[769];        /* 0 = empty screen; else map.dat slot */
+              int32 music[769];      /* MIDI id */
+              int32 indoor[769];     /* indoor flag */
+```
+
+Use **explicit little-endian** readers (`read_i32le`). Never `fread` a packed struct on SH-4 without a static assert on size vs file.
+
+- Store `struct World { int32_t loc[769], music[769], indoor[769]; }`.
+- RAM: 769×12 ≈ 9 KB.
+
+**Host check:** `tools/dump_world` prints count of non-zero `loc` and `loc[1]`, `music[1]`.
+
+**Done when:** Numbers match a hex dump of the same `dink.dat`.
+
+#### Bite 5.2 — `map.dat` record size lock
+
+- Compute `record_size` from FreeDink `sizeof(struct editor_screen)` **as serialized**, not as the compiler’s in-memory size.
+- `tools/map_recsize` prints `file_size / record_size` and asserts remainder 0 (or documents trailer).
+
+**Done when:** Record count is consistent with used `loc[]` max.
+
+#### Bite 5.3 — One screen tile plane
+
+- Load screen index `loc[S]` (start with the **stock start screen** — FreeDink new-game `&player_map`, usually a Stonebrook-area id; record the number in `src/start_map.h` after reading data).
+- Parse **96 tiles**: tileset id + local tile index as FreeDink stores (often `tile.num` encodes sheet*128 + cell — **copy FreeDink’s decode**, do not guess).
+- Print 8 lines of 12 integers.
+
+**Host check:** `tools/dump_screen S` matches WinDinkEdit / FreeDink editor for that screen.
+
+**Done when:** Same dump on DC serial.
+
+#### Bite 5.4 — Editor sprites (data only)
+
+- Parse up to 100 editor sprites: `active, x, y, seq, frame, brain, script[13 or 21]`.
+- Print actives: `sprite i seq= frame= xy= script=`.
+
+**Done when:** Count of actives matches the PC editor for that screen.
+
+#### Bite 6.1 — Tileset atlas policy (pick and freeze)
+
+- Policy A: one 512×512 RGB565 atlas, 50×50 cells, 1 px gutter.  
+  or Policy B: 64×64 padded tiles, N textures.  
+- **Choose A** unless a tileset BMP will not fit; write the choice in `src/tiles.h`.
+- Budget: **≤ 512 KB** VRAM for the current sheet(s) this screen needs. A screen can reference more than one `ts*.bmp` — load **only those**, evict the rest.
+
+#### Bite 6.2 — Decode `tiles/tsNN.bmp`
+
+- 8-bit sheets. Index 0 (or magenta — match FreeDink) is **transparent** for *sprites*, not for ground tiles.
+
+**Host check:** cell (0,0) RGB of `ts01.bmp` matches a known crop.
+
+#### Bite 6.3 — Upload atlas + 96 quads
+
+- Draw playfield at (§1.1) origin. Each tile = one quad, UV into atlas.
+- Empty tile index 0 = skip or black (match FreeDink).
+
+**Done when:** **Second visual milestone** — stock start screen tiles, 600×400 in the 640×480 frame, original 50×50 cells. No Dink yet.
+
+#### Bite 6.4 — Evict
+
+- API `tiles_evict()`. Next load must not leak (`pvr_mem_available` ± 4 KB).
+
+**Done when:** Load screen A, evict, load A again; VRAM delta 0.
+
+---
+
+### Phase C — Hardness, Dink sprite, walk
+
+#### Bite 7.1 — `hard.dat` parser
+
+- FreeDink: hardness tiles are a stream of 50×50 (or 51×51 — **verify**) uint8 grids, indexed by tile hardness id.
+- `hard_lookup(tileset, cell) → grid`.
+
+**Host check:** dump hardness id for start screen tile (0,0).
+
+#### Bite 7.2 — Screen hardness stamp
+
+- Build a 600×400 (or 12×8 coarse) walk mask by stamping each tile’s hard grid.
+- Sprite hardness later (7.3).
+
+#### Bite 7.3 — Sprite hardboxes (static)
+
+- From `dink.ini` hardbox per frame (Bite 8.1). Stamp into the mask at editor sprite `x,y` minus center.
+
+#### Bite 7.4 — Debug overlay
+
+- `DINK_DEBUG_HARD`: magenta 50% on blocked pixels (or 2×2 blocks). Off by default.
+
+**Done when:** Overlay matches PC editor hardness on the start screen.
+
+#### Bite 8.1 — `dink.ini` parse
+
+Commands (names as in file):
+
+| Directive | Meaning |
+|---|---|
+| `load_sequence` / `load_sequence_now` | `path`, `seq_id`, delay, center x/y, hardbox l/r/t/b |
+| `SET_SPRITE_INFO` | per-frame center / box |
+| `SET_FRAME_FRAME` | frame alias |
+| `SET_FRAME_DELAY` | per-frame delay |
+
+- Fill `struct Seq { char path_prefix[128]; int delay; int cx,cy; struct Frame frames[MAX_FRAMES]; } seqs[MAX_SEQUENCES];`
+- `MAX_SEQUENCES` = FreeDink’s (1000-ish). **Metadata only.** Paths stay relative.
+
+**Host check:** `tools/dump_ini 1` prints seq 1 prefix + frame count.
+
+#### Bite 8.2 — Frame path resolve
+
+- `prefix + frameindex + ".bmp"` and/or `.ff` pack. Implement **BMP first**; `.ff` is Bite 8.5 if start-screen Dink frames are BMP.
+
+#### Bite 8.3 — Load Dink idle/walk only
+
+- Sequences for Dink walk/idle (ids from `dink.ini` / FreeDink `base_walk` defaults — typically walk seqs in the 1–12 band; **copy the ids FreeDink assigns to player**).
+- VRAM **≤ 256 KB** for the current facing.
+
+#### Bite 8.4 — Draw sprite 1
+
+- Quad at `x - cx + offset_x`, `y - cy + offset_y`.
+- New-game position: FreeDink start `x,y` on `&player_map` (record in `start_map.h`).
+
+**Done when:** Official idle frame on the start screen at the official spawn.
+
+#### Bite 8.5 — `.ff` reader (only if needed)
+
+- If any required Dink frame is `.ff`, implement the FreeDink FF container (palette + frames). Host dump first.
+
+#### Bite 9.1 — Input → facing
+
+- D-pad sets `dir` 2/4/6/8 (Dink dirs: 1 unused, 2=down? — **use FreeDink’s 1–9 keypad dirs**: 2 down, 4 left, 6 right, 8 up).
+
+#### Bite 9.2 — Move + hardness
+
+- Speed: FreeDink player speed (default 3 px/tick unless scripted). Slide along walls: try X then Y separately (match FreeDink).
+
+#### Bite 9.3 — Walk animation
+
+- Advance frame using seq delay. Switch seq on dir change. Idle seq when no pad.
+
+**Done when:** Walk the start screen; walls match PC. No talk/hit yet.
+
+---
+
+### Phase D — Talk / hit hooks, then DinkC in waves
+
+DinkC is the long pole **for completeness**, not for CPU. **Use FreeDink’s interpreter** (graft + bind). Do not design a faster dialect. Hosting rules: parse once, function table, per-frame op cap. See the binding decision at the top of this document.
+
+Ship commands in **waves**. Unimplemented command = `DINKC unimplemented: name` + **no-op**. Never skip the file.
+
+#### Bite 10.1 — Talk probe (engine)
+
+- A pressed: from Dink center, step along `dir` up to FreeDink talk range; pick nearest sprite with a non-empty `script` and `brain` that allows talk.
+- Freeze player (`spr[1].freeze++` semantics: match FreeDink nest count).
+
+#### Bite 10.2 — Hit probe (engine)
+
+- B: play current `base_attack` seq (fists until Bite 15).
+- On frames with a hitbox (ini), overlap other sprites → queue `hit`.
+
+#### Bite 10.3 — Hook table (stub)
+
+```
+void script_on_main(int script_id);
+void script_on_talk(int sprite);
+void script_on_hit(int sprite);
+```
+
+Stubs log `talk sprite=N script=foo`.
+
+**Done when:** On a stock NPC screen, A logs talk; B plays hit anim and logs hit. Scripts need not run yet.
+
+---
+
+#### Bite 11.0 — DinkC files on disc
+
+- `story/NAME.c` from sprite/screen script field (no extension in `map.dat`; add `.c`).
+- ISO9660: also try `STORY/NAME.C`.
+- Load whole file into a **32 KB** cap buffer (stock scripts are small; larger → log and fail that script only).
+
+#### Bite 11.1 — Lexer
+
+- Tokens: ident, number, `"string"`, `&name`, operators `+ - * / = == != < > <= >= && ||`, `( ) { } , ;`.
+- Comments: `//` to EOL. Ignore `/* */` if FreeDink does not; if it does, match.
+- Host: lex `story/start.c` (or whatever the start screen uses), print token count.
+
+#### Bite 11.2 — Parser → bytecode or AST
+
+- Procedures: `void name(void)` { … }.
+- Stmts: expr; `if` / `else`; `while` if present in stock (FreeDink has limited control flow — **match FreeDink**, not ANSI C).
+- **No** general C. No structs, no pointers.
+
+**Host check:** parse all `story/*.c` in `DINK_DATA`; report fail list. Target: **0 parse errors** on stock freeware scripts (unknown *commands* are still valid calls).
+
+#### Bite 11.3 — VM with yield
+
+DinkC is **concurrent**. Each attached script is a fiber:
+
+| Yielding call | Behavior |
+|---|---|
+| `wait(ms)` | Sleep, resume later |
+| `say_stop` / `say_stop_npc` | Wait for A |
+| `move_stop` | Wait until at dest |
+| `choice` | Wait for menu |
+
+- `struct Script { ip; locals[256]; wait_until; sprite; state; }`.
+- **Max 20 live scripts** (start conservative; FreeDink allows more — raise when a stock screen needs it).
+- 60 Hz: tick all runnable scripts, budget **2 ms** SH-4; overflow → log.
+
+**Host check:** script `void main(void) { wait(1); }` completes in a fake 60 Hz loop.
+
+#### Bite 11.4 — Variables
+
+- `&name` globals persist (hash + 100 FreeDink engine vars: `&life`, `&exp`, `&strength`, `&defense`, `&magic`, `&gold`, `&player_map`, `&player_map_x` if any, `&level`, `&enemy_sprite`, `&current_sprite`, … — **copy the engine-var list from FreeDink**, do not invent names).
+- Locals per script.
+- `int &x;` in 1.08: match FreeDink 1.08 mode.
+
+#### Bite 11.5 — Wave 1 commands (opening village)
+
+Implement **exactly** these first (signatures as DinkC Reference / FreeDink):
+
+`say`, `say_stop`, `say_stop_npc`, `wait`, `freeze`, `unfreeze`, `sp_active`, `sp_x`, `sp_y`, `sp_dir`, `sp_seq`, `sp_frame`, `sp_brain`, `sp_script`, `sp_base_walk`, `sp_base_idle`, `sp_base_attack`, `sp_speed`, `sp_timing`, `sp_pseq`, `sp_pframe`, `move`, `move_stop`, `create_sprite`, `sp_kill`, `playsound` (stub until 12), `debug`, `kill_this_task`, `script_attach`, `external`, `set_callback_random` (may no-op if unused on start screens).
+
+Wire `say*` to a **serial + later Bite 13 box**.
+
+**Done when:** unmodified start-screen `main()` runs; a stock `talk()` that only `say_stop`s works with A advancing (box can be ugly).
+
+#### Bite 11.6 — Attach on screen enter
+
+- Screen script from `map.dat` / `dink.dat` → `main()`.
+- Each editor sprite with `script` → instance attached to that sprite → `main()`.
+
+#### Bite 11.7 — Wave 2 (choices + items prelude)
+
+`choice_start`, `choice_end`, numbered choice lines, `stop`, `wait_for_button`, `sp_touch_damage`, `sp_hitpoints`, `sp_defense`, `hurt`, `add_item`, `add_magic`, `add_exp`, `playsound` (real), `initfont`/`get_next_sprite` as needed.
+
+Depends on Bite 13 for the menu.
+
+#### Bite 11.8 — Wave 3 (combat / magic / map)
+
+`arm_weapon`, `arm_magic`, `kill_shadow`, `sp_attack_wait`, `sp_range`, `sp_target`, `compare_weapon`, `compare_magic`, `preload_seq`, `sp_custom`, `sp_editor_num`, `draw_status`, `update_status`, `stopcd`/`playmidi` (midi → our stream id table), `fade_up`/`fade_down`, `fill_screen`, `load_screen` / screen change helpers FreeDink uses internally vs DinkC.
+
+#### Bite 11.9 — Command coverage log
+
+- Every dispatch through one table. Startup can `DINKC_DUMP_FNS=1` to print implemented vs called-but-missing after a play session.
+- Opening-hours gate: walk Stonebrook, talk to 3 stock NPCs, no `unimplemented` that aborts a quest.
+
+---
+
+### Phase E — Text, audio, transitions
+
+#### Bite 12.1 — Host WAV → AICA
+
+- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB).
+- Document command line. Output not committed.
+
+#### Bite 12.2 — SFX bank
+
+- Map FreeDink sound numbers used by hit/talk blip (from `sound/` + `playsound` ids).
+- Load ≤ 512 KB at boot. Log AICA free.
+
+#### Bite 12.3 — `playsound` bind
+
+- Wave 1 stub becomes real. Voice steal oldest if > 16.
+
+#### Bite 12.4 — One streamed loop
+
+- Offline convert **one** title or town track (MIDI rendered on host → ADPCM).
+- 32–64 KB disc chunks. One ring 256–512 KB.
+- Title **may** start this; Bite 3.4 must still work with audio compiled out.
+
+**Done when:** Hit plays an SFX; title or screen 1 loops one track; AICA total ≤ 2 MB.
+
+#### Bite 13.1 — Font
+
+- Original Dink font graphic (FreeDink `LiberationSans` is **not** the 1998 look; prefer the stock bitmap font if present in data). Atlas ≤ 64 KB.
+
+#### Bite 13.2 — Say box
+
+- Bottom or sprite-anchored box (match FreeDink placement). Glyphs, word wrap at playfield width − pad.
+- A or B advances `say_stop`.
+
+#### Bite 13.3 — Choice menu
+
+- D-pad + A. Return index to VM as FreeDink does (`&result` / choice return — **match FreeDink**).
+
+**Done when:** A real `talk()` with choices is playable from unmodified `.c`.
+
+#### Bite 14.1 — Edge walk
+
+- x < 0 → west, etc. Only if `loc[neighbor] != 0`; else clamp.
+
+#### Bite 14.2 — Swap screen
+
+- Evict tiles + unused seqs. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 599 − margin, match FreeDink).
+
+#### Bite 14.3 — Leak check
+
+- `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB**.
+
+**Done when:** Walk start screen into a real neighbor; tiles + Dink; counters stable.
+
+---
+
+### Phase F — Combat, inventory, save
+
+#### Bite 15.1 — Brains (engine, not DinkC)
+
+Implement as FreeDink `brain` switch, **only** types needed for opening combat:
+
+| brain | Role |
+|---|---|
+| 0 | none |
+| 1 | player (already) |
+| 3, 4, 13, … | duck/pig/pillbug — add when that enemy appears |
+| 9 | bounce |
+| 10 | repeat anim |
+| 11 | one-shot then kill |
+| 12 | text sprite |
+
+Chase/hurt brains: copy FreeDink one type at a time. Log `brain unimplemented: N`.
+
+#### Bite 15.2 — Damage
+
+- `hurt()` and hit probe write `&life` / enemy hp. Death → `die()` script + brain 11.
+
+#### Bite 15.3 — Weapons
+
+- `add_item` / inventory slot / `arm_weapon` changes `base_attack` seq (sword, bow). Fists default.
+- Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one.
+
+#### Bite 15.4 — Magic
+
+- X: if `&magic` ≥ cost and a spell armed → run magic script / seq. Mana from original rules.
+
+**Done when:** Stock early enemy can be killed with fists; arm sword via script or inventory; cast **one** stock spell from original magic script.
+
+#### Bite 16.1 — Touch / pickup
+
+- Brain/touch: overlap Dink → `add_item` / kill sprite.
+
+#### Bite 16.2 — Inventory UI
+
+- Y toggles. Grid of **same item ids** as PC. A arms weapon/magic. Do not invent items.
+
+#### Bite 16.3 — HUD
+
+- Life, mana, gold, exp from original status BMPs. Atlas ≤ 128 KB. `draw_status` from DinkC becomes real.
+
+**Done when:** Pick up a stock item, open inventory, arm it, HUD and attack seq change.
+
+#### Bite 17.1 — Save blob
+
+- Pack: version u32, `&` engine globals, custom globals used, inventory slots, `&player_map`, x, y, weapon/magic armed. **< 8 KB**.
+
+#### Bite 17.2 — VMU
+
+- Maple VMU port 1 / first VMU. Icon (32×32, simple). Fail softly if no VMU.
+
+#### Bite 17.3 — Load
+
+- Validate version. Restore. `load_screen`.
+
+**Done when:** Save, reset ELF, load, same screen + items. No HD instant-save.
+
+---
+
+### Phase G — Disc and frame budget
+
+#### Bite 18.1 — 60 / 30 FPS log
+
+- `frame_ms` on start screen and one indoor. Target 60; **floor 30** on real hardware.
+
+#### Bite 18.2 — CDI layout
+
+- `mkisofs` order: `dink.dat`, `map.dat`, `hard.dat`, `dink.ini`, `tiles/`, current `story/`, `graphics/` last. 2048-byte sectors.
+
+#### Bite 18.3 — 320×240 fallback
+
+- Same logic, half-res PVR. Compile or runtime flag `DINK_VID_240`. Documented, not default.
+
+**Done when:** Start + busy indoor ≥ 30 FPS; all §1.2 counters under cap.
+
+---
+
+## 3. On-disk layout (planned; not the port)
+
+```
+dinkcast/
+  DREAMCAST-PORT-PLAN.md
+  README.md
+  Makefile                 # host + dc
+  src/
+    main.c                 # state machine: title / load / play / inv / save
+    mem.c                  # mem_log, pool caps
+    fs.c
+    bmp.c
+    pvr_blit.c             # quad helper
+    title.c                # Bites 3.x
+    le.c                   # read_i32le
+    dinkdat.c
+    mapdat.c
+    harddat.c
+    tiles.c
+    dinkini.c
+    ff.c                   # only if Bite 8.5
+    sprite.c
+    input.c
+    player.c
+    brains.c
+    dinkc_lex.c
+    dinkc_parse.c
+    dinkc_vm.c
+    dinkc_fns.c            # command table
+    text.c
+    audio.c
+    inventory.c
+    combat.c
+    hud.c
+    save_vmu.c
+    title_path.h           # filled after data inspect
+    start_map.h
+  tools/
+    check_port_plan.py
+    bmp_info.c
+    dump_world.c
+    dump_screen.c
+    dump_ini.c
+    map_recsize.c
+    wav_to_adpcm.c
+    bmp_to_rgb565.c
+  tests/
+    test_le.c
+    test_bmp.c
+    test_dinkc_wait.c      # host VM
+  data/                    # .gitkeep + README — no game blobs
+```
+
+---
+
+## 4. Deferred (named)
+
+| Item | Status |
+|---|---|
+| Dink HD extras, huge D-Mods, DFArc, WinDinkEdit | Deferred |
+| Community D-Mod loader | Deferred |
+| Pixel-perfect 1.08 bugs | Deferred; FreeDink 1.08 *mode* is the target |
+| MIDI→ADPCM of **every** track | Deferred; 12.4 is one loop + SFX bank |
+| VGA vs TV overscan polish | Deferred |
+| Online multiplayer | Deferred |
+| New language instead of DinkC | **Not done** |
+| Custom high-perf DinkC VM / JIT “because SH-4” | **Not done** — FreeDink’s interpreter is enough; see binding decision |
+| ELF in the same effort as this plan | Planning only |
+
+---
+
+## 5. Dependency graph
+
+```
+0.1–0.2 → 1.1–1.2 → 2.1–2.2 → 3.1–3.4 TITLE → 4.1–4.2
+                          ↘ 12.1–12.4 audio (after 3.4; optional on title)
+5.1–5.4 → 6.1–6.4 tiles → 7.1–7.4 hard
+                ↘ 8.1–8.4 (8.5 if FF) → 9.1–9.3 walk
+                         → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
+                         → 13.1–13.3 text → 11.7 wave 2
+                         → 14.1–14.3 transitions
+                         → 15.1–15.4 + 11.8 wave 3
+                         → 16.1–16.3 inventory
+                         → 17.1–17.3 VMU
+                         → 18.1–18.3 harden
+```
+
+**Earliest screenshot:** 3.4 — official title, 640×480.  
+**Second screenshot:** 6.3 — official tiles.  
+**Third:** 8.4 — Dink idle.  
+**Feels like Dink:** 11.5 + 13.2.  
+**Playable slice:** 14–16 on the opening map.
+
+---
+
+## 6. Why the Dreamcast can handle this
+
+Dink is a 1990s 2D tile+sprite game. 96 tiles + a few dozen sprites is far below PowerVR2 quad throughput. Binding limits are **RAM and GD-ROM seeks**, not GPU. Stream per screen, atlas tiles, ADPCM audio, run **unmodified DinkC**. The campaign is data plus scripts; the port is an engine, not a remake.
+
+---
+
+## 7. Implementation notes (granular pitfalls)
+
+1. **Endian / alignment:** SH-4 can trap on misaligned 32-bit. Parse with byte readers.
+2. **ISO9660 names:** 8.3 and case. Keep a resolve cache.
+3. **1-based arrays:** Original C used `sprite[1..100]`. Off-by-one will desync editors.
+4. **`wait` + talk:** Nested `say_stop` inside `talk` while screen `main` is waiting — fibers, not a single stack.
+5. **`freeze` nesting:** Unbalanced freeze is a classic DinkC bug; match FreeDink’s counter.
+6. **Transparent index:** Confirm per BMP (0 vs magenta) against FreeDink blit.
+7. **Do not** port SDL_Surface. CPU blit into a framebuffer will miss 60 FPS and waste the PVR.
+8. **Title before map:** If you draw tiles before 3.4, you are off-plan.
+9. **Do not rewrite DinkC for speed.** Graft FreeDink. If a frame is slow, profile textures/disc first.

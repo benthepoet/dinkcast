@@ -1,0 +1,33 @@
+# Build
+/build/
+/out/
+*.o
+*.d
+*.elf
+*.bin
+*.cdi
+*.iso
+*.lst
+*.map
+dinkcast
+
+# Toolchain / local
+.kosenv
+compile_commands.json
+
+# Game data (supply via DINK_DATA; do not commit unless license-cleared)
+/data/**
+!/data/.gitkeep
+!/data/README.md
+
+# Editor / OS
+*~
+*.swp
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
