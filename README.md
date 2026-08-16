@@ -28,12 +28,15 @@ Bite **0.1** skeleton + Bite **0.2** color-field source (`src/main.c`). ELF need
 
 ## Dreamcast toolchain
 
-1. Install [dc-chain](https://github.com/KallistiOS/KallistiOS) / `sh-elf-gcc` and KallistiOS.
-2. `source $KOS_BASE/environ.sh`
-3. `make dc` → `build/dinkcast.elf`
-4. `make emu` once a `.cdi` exists (or point Flycast at the ELF).
+Full steps: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md).
 
-Without `KOS_BASE`, `make dc` exits 2.
+```bash
+make docker-cdi   # ELF + CDI via KOS Docker image (needs dockerd)
+make emu
+```
+
+Without Docker, `source $KOS_BASE/environ.sh && make dc && make cdi`.
+Without `KOS_BASE` or Docker, `make dc` exits 2.
 
 ```bash
 make title-preview   # needs DINK_DATA; writes build/title_preview.ppm

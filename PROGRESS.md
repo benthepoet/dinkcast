@@ -15,7 +15,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Orchestrator is a dedicated subagent | [#2](https://github.com/benthepoet/dinkcast/pull/2) `ecf0a2d` |
 | 2026-08-16 | **1.1** path resolver (case + 8.3, reject `..`) | [#3](https://github.com/benthepoet/dinkcast/pull/3) `c6610f0` |
 | 2026-08-16 | **PROGRESS.md** work log | [#4](https://github.com/benthepoet/dinkcast/pull/4) `dcb58a8` |
-| 2026-08-16 | **1.2–3.4** probe, BMP, official title still (host preview) | this PR |
+| 2026-08-16 | **1.2–3.4** probe, BMP, official title still (host preview) | [#5](https://github.com/benthepoet/dinkcast/pull/5) `9fbad28` |
+| 2026-08-16 | `make docker-cdi` / toolchain docs | [#6](https://github.com/benthepoet/dinkcast/pull/6) |
 
 ## Bites
 
@@ -53,6 +54,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 |---|---|
 | `KOS_BASE` / dc-chain on a builder | missing — Flycast title not run here |
 | GitHub `mergePullRequest` on PAT | 403 — land via local squash + push |
+| KallistiOS / `.cdi` | `make docker-cdi` — see [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md) |
 | Human gate | stop after **3.4** for requester screenshot review |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
