@@ -12,6 +12,36 @@ A working disc needs three pieces:
 
 Do **not** commit the toolchain or game data.
 
+## Docker vs native (CachyOS)
+
+**Docker is easier for the first `.cdi`.** Native dc-chain is a multi-hour SH-4 GCC build. A current KOS image skips that: pull, mount this repo + `DINK_DATA`, `make dc` / pack a CDI inside the container, run **Flycast on the host**.
+
+Use a **maintained** image (wiki: [Docker images](https://dreamcast.wiki/Docker_images) — e.g. [kos-builds](https://github.com/orgs/kos-builds/packages?repo_name=KallistiOS) or a recent `maishuji/dc-kos-image`). **Do not** use `nold360/kallistios-sdk` (Debian Jessie, stale).
+
+Sketch (adjust image name to whatever tag you pull):
+
+```bash
+# Cachy: docker or podman
+sudo pacman -S --needed docker
+# or: sudo pacman -S --needed podman
+
+docker pull ghcr.io/kos-builds/kallistiOS:latest   # confirm tag on the packages page
+
+docker run --rm -it \
+  -v "$HOME/Source/dinkcast:/src" \
+  -v "$HOME/Source/freedink-data-1.08.20190120/dink:/dink:ro" \
+  -e DINK_DATA=/dink \
+  -w /src \
+  IMAGE_NAME \
+  bash -lc 'source $KOS_BASE/environ.sh && make dc && make cdi'
+```
+
+Then on the host: `make emu` (Flycast is not inside the SDK image).
+
+**Stay native** if you already finished dc-chain, or you want `dcload` / serial without extra USB/device mapping.
+
+Tradeoff: the image’s KOS version may be newer or older than `v2.2.x`. If `Makefile.dc` / `vid_clear` / PVR flags fail, pin a tag or fall back to native `v2.2.x`.
+
 ## 1. Dependencies
 
 ### CachyOS / Arch (`pacman`)
