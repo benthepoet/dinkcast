@@ -2,11 +2,15 @@
 
 **Target:** Sega Dreamcast (retail, 16 MB main RAM)  
 **Source game:** Dink Smallwood (Robinson Technologies, v1.07 / v1.08 behavior via GNU FreeDink)  
-**Homebrew stack:** KallistiOS (KOS) + `dc-chain` (SH-4 GCC) + `dc-tool`/`dcload` / selfboot CDI.  
-**Emulator (binding):** **Flycast** is the default for automated and day-to-day video checks (`make emu`). It is active, scriptable, and loads `.cdi` / often `.elf`. Real hardware + `dcload` remains the ship check. lxdream is unmaintained; redream is optional and not wired into the Makefile.
-**This document is the port specification.** It does not implement the ELF.
+**Homebrew stack:** KallistiOS via **`make docker-cdi`** (default) or native `dc-chain` + `source $KOS_BASE/environ.sh && make dc`. Pack with `mkdcdisc`. Iterate in **Flycast** (`make emu`) with a **real `dc_boot.bin`**. `dcload` / burned disc remains the ship check.
 
-**How to use this file:** do the numbered bites in order. A bite is done only when its **Done when** is true on hardware or emulator *and* its **Host check** (if any) passes. Do not start gameplay before **Bite 3.4** (title quad on screen).
+**Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
+
+**Where we are:** Phase A (**Bites 0.1–3.4**) is **done** — official `tiles/Splash.bmp` on Flycast (2026-08-16). **Next:** Bite **4.1** Maple poll on the title. Gameplay still starts only after 4.x; tiles are Bite 6.
+
+**Companions (do not fork facts):** landed work → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
+
+**How to use this file:** remaining bites in order. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR.
 
 **Canon for layouts:** GNU FreeDink headers (`dinkvar.h`, `screen.h`, `hardness.h`, `dinkini.c`) plus *The Ultimate Dink File Format FAQ* (Dink Network). When this plan and a checked-out FreeDink tag disagree on a field width, **FreeDink wins** — patch this plan, do not invent a third layout.
 
@@ -38,7 +42,8 @@
 
 **Rules**
 
-- Do not commit RTSoft/GNU blobs unless that exact file’s license allows it. Build with `DINK_DATA=/path/to/dink`.
+- Do not commit RTSoft/GNU blobs unless that exact file’s license allows it. `DINK_DATA` is the **inner `dink/`** of GNU `freedink-data` (has `Dink.dat`), **outside** this repo. Mixed-case names (`Dink.dat`, `Tiles/`) are normal.
+- Never compile a host `DINK_DATA` path into the SH-4 binary. Disc layout: folder **`dink`** at ISO root → `/cd/dink` (see GOTCHAS).
 - MIDI → ADPCM is an **offline pack** step. Do not claim converted tracks live in-repo.
 - Still-proprietary FreeDink replacement sounds stay out of the tree.
 
@@ -83,7 +88,7 @@ Keep a `mem_log()` that prints these counters every screen load.
 | `seq_meta` | ≤ 256 KB | Main | `dink.ini` parsed table (paths, delays, boxes) — **not** pixels |
 | `tile_tex` | ≤ 512 KB | VRAM | Current tileset atlas |
 | `sprite_tex` | ≤ 4 MB | VRAM | Current screen + Dink seqs |
-| `title_tex` | ≤ 600 KB | VRAM | Title still; **freed** when leaving title |
+| `title_tex` | ≤ **1 MiB** | VRAM | 1024×512 RGB565 pad of 640×480 still; **freed** on leave-title (4.2) |
 | `sfx_bank` | ≤ 512 KB | AICA | Boot SFX |
 | `bgm_ring` | 256–512 KB | AICA | One stream |
 | HUD atlas | ≤ 128 KB | VRAM | Life/mana/gold/font |
@@ -105,15 +110,16 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 ### 1.4 Texture rules
 
 - Upload **RGB565** or **VQ**. No RGBA8888 resident textures.
-- Twiddle if KOS/`pvr_txr_load_ex` requires it for that format.
-- 50 is not a power of two: **atlas** into 512×512 (50×50 cells + 1 px gutter) **or** pad each tile to 64×64. Pick one in Bite 6.1 and do not mix.
+- **`pvr_txr_load_ex` always twiddles.** Draw twiddled `PVR_TXRFMT_RGB565`. Do not set `PVR_TXRFMT_NONTWIDDLED` unless the load was linear (it was not).
+- Pad non-POT images (640×480 → 1024×512). UVs = `w/tw`, `h/th`.
+- 50 is not a power of two: **atlas** into 512×512 (50×50 cells + 1 px gutter) **or** pad each tile to 64×64. Pick one in Bite 6.1 and do not mix. Same twiddle rule as the title.
 - Evict on screen change: previous `tile_tex` + seqs not referenced by the new screen or by Dink.
 
 ---
 
 ## 2. Work bites
 
-### Phase A — Boot to original title still (first screenshot)
+### Phase A — Boot to official title still — **DONE** (Flycast, real BIOS)
 
 #### Bite 0.1 — Repo skeleton (no KOS calls required to exist yet)
 
@@ -121,7 +127,8 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 - `Makefile` has two targets from day one: `host` (gcc, tools + unit tests) and `dc` (`kos-cc` → `dinkcast.elf`).
 - **Bootstrap already in-tree:** `make host` runs `tools/check_port_plan.py` and `tools/check_agents.py`; `make dc` exits 2 until 0.2. Remaining 0.1 work is empty `src/` stubs listed in §3 as you need them — do not skip to tiles.
 
-**Done when:** `make host` is green on the PR; `make dc` exists and fails clearly without KOS.
+**Done when:** `make host` is green on the PR; `make dc` exists and fails clearly without KOS.  
+**Status: done** (`make host`, `Makefile.dc`, Docker image).
 
 #### Bite 0.2 — Color field
 
@@ -129,9 +136,10 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 - Clear to `#5A3A1A`. Infinite `thd_sleep` / pvr wait.
 - Serial: `dinkcast boot ok`.
 
-**Done when:** 640×480 solid field on DC or emulator.
+**Done when:** 640×480 solid field on DC or emulator.  
+**Status: done** (brown boot / HUD; title replaces it on success).
 
-#### Bite 1.1 — Path resolver
+#### Bite 1.1 — Path resolver **(done)**
 
 - `dink_fs_init()`: try `/pc/dink` (`dcload`), then `/cd/dink`, then compile-time `DINK_DATA`.
 - `dink_fopen(rel)` joins root + relative, ISO9660-safe (`8.3` fallback: also try uppercased names).
@@ -140,14 +148,14 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 
 **Done when:** Serial prints resolved root.
 
-#### Bite 1.2 — Existence probe
+#### Bite 1.2 — Existence probe **(done)**
 
 - Open `dink.dat`, `fseek` end, print size.
 - Missing file → **red screen** + `missing dink.dat` on serial. No hang.
 
 **Done when:** `found dink.dat N bytes` with N matching the host `stat`.
 
-#### Bite 2.1 — BMP header only
+#### Bite 2.1 — BMP header only **(done)**
 
 - Support **BITMAPINFOHEADER**, uncompressed **8-bit paletted** and **24-bit**. Reject RLE/32-bit/OS2-v1 if not needed (log and fail).
 - Fill `struct Bitmap { int w,h,stride; int bpp; uint8_t *pixels; uint8_t pal[256*3]; }`.
@@ -157,21 +165,20 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 
 **Done when:** Host tool matches ImageMagick/`file` on one 8-bit and one 24-bit Dink BMP.
 
-#### Bite 2.2 — BMP on DC
+#### Bite 2.2 — BMP on DC **(done)**
 
 - Load one small known BMP from `DINK_DATA` (e.g. a 50×50 tile) into main RAM, print `w h`, **free**.
 
 **Done when:** Serial numbers match host.
 
-#### Bite 3.1 — Identify the official title file
+#### Bite 3.1 — Identify the official title file **(done)**
 
 - Do **not** invent a logo.
-- Procedure: run FreeDink once or read its title state; record the **exact relative path** of the first full-screen title still (common: a `graphics/` title/start BMP). Write that path in `src/title_path.h` as a string constant *after* inspecting `DINK_DATA` — if several frames exist, use **frame 1** of the title sequence.
-- If the BMP is larger than 640×480, document an offline `tools/bmp_to_rgb565` resize/clip to 640×480 **preserving aspect** (letterbox). Do not stretch.
+- **Locked path:** `tiles/Splash.bmp` (also `Tiles/Splash.bmp`) — GNU freedink-data **640×480 8-bit** load still (“Loading…” seascape). That is the first showable official full-screen graphic.
+- The start-menu **Dink Smallwood wordmark** is sequence **196** (`graphics/startme/options/dinkL-`) inside a **`.ff` pack**, not a lone BMP. That is **Bite 8.5 + a later title-menu pass**, not a redo of 3.4.
+- Path constant: `src/title_path.h` → `tiles/Splash.bmp`.
 
-**Done when:** `title_path.h` names a file that exists in stock data and is visually the classic title.
-
-#### Bite 3.2 — CPU RGB565 convert
+#### Bite 3.2 — CPU RGB565 convert **(done)**
 
 - 8-bit: palette index → RGB565 (`(r>>3)<<11 | (g>>2)<<5 | (b>>3)`).
 - 24-bit: BGR BMP order → RGB565.
@@ -179,30 +186,34 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 
 **Host check:** hash first 64 px of a fixture BMP.
 
-#### Bite 3.3 — PVR upload
+#### Bite 3.3 — PVR upload **(done)**
 
-- Pad width/height to next power of two **only for the texture allocation**; UVs sample the real 640×480 (or native) subrect.
-- Comment next to upload: `640*480*2 = 614400` title + `640*480*2*2` framebuffers.
+- Pad 640×480 → **1024×512** RGB565 (~1 MiB). UVs `640/1024`, `480/512`.
+- `pvr_txr_load_ex(..., PVR_TXRLOAD_16BPP)` then `PVR_TXRFMT_RGB565` **twiddled**. Comment: source still is 614400 B; padded tex is 1 MiB; framebuffers ~1.2 MiB.
 
-**Done when:** `pvr_mem_available()` after upload still > 4 MB. Texture handle non-null.
+**Done when:** splash is not striped; texture handle non-null.
 
-#### Bite 3.4 — **First visual milestone: title quad**
+#### Bite 3.4 — **First visual milestone: title quad** **(done)**
 
-- One textured quad, letterboxed if needed, Bite 0.2 clear color in bars.
+- One textured quad of `tiles/Splash.bmp` at 640×480.
 - `pvr_wait_ready` / scene / list / finish / swap every frame.
+- Boot: wait GD-ROM; on failure, **bfont HUD** + `/cd` listing (not Flycast’s log).
 
-**Done when:** Original Dink Smallwood title still is stable on **640×480 RGB**. Screenshot is the progress artifact. **No gameplay before this.**
+**Done when:** Official splash is stable on **640×480 RGB** in Flycast (real BIOS) or hardware. **Verified 2026-08-16.** Do not start map tiles until 4.x is in and 6.x is the next visual.
 
-#### Bite 4.1 — Maple poll
+#### Bite 4.1 — Maple poll **(next)**
 
 - Read controller port 0. Ignore missing controller (stay on title).
+- Do not tear down the title PVR loop until 4.2. Poll inside the present loop.
+- Controllers: see §1.3. No keyboard.
 
 #### Bite 4.2 — Leave title
 
-- Start or A → `GAME_STATE_LOADING` (solid color or “loading” using the same font-less clear).
-- **Free `title_tex`** here so VRAM is back.
+- Start or A → `GAME_STATE_LOADING` (solid color or “loading…” via bfont).
+- **`pvr_mem_free` the title texture** so VRAM is back (title_tex ≤ 1 MiB).
+- Keep `dink_fs` root; next loads use the same `/cd/dink`.
 
-**Done when:** Title → placeholder; serial `leave_title`; VRAM up after free.
+**Done when:** Title → placeholder; HUD or serial `leave_title`; VRAM up after free. Then Bite 5 (map parse), not a new title graphic.
 
 ---
 
@@ -610,14 +621,14 @@ dinkcast/
     fs.c
     bmp.c
     pvr_blit.c             # quad helper
-    title.c                # Bites 3.x
+    title.c                # 3.4 present + 4.x maple
     le.c                   # read_i32le
     dinkdat.c
     mapdat.c
     harddat.c
     tiles.c
     dinkini.c
-    ff.c                   # only if Bite 8.5
+    ff.c                   # 8.5; also start-menu seq 196
     sprite.c
     input.c
     player.c
@@ -632,9 +643,11 @@ dinkcast/
     combat.c
     hud.c
     save_vmu.c
-    title_path.h           # filled after data inspect
+    title_path.h           # tiles/Splash.bmp
     start_map.h
   tools/
+    docker_kos.sh
+    make_cdi.sh
     check_port_plan.py
     bmp_info.c
     dump_world.c
@@ -664,7 +677,8 @@ dinkcast/
 | Online multiplayer | Deferred |
 | New language instead of DinkC | **Not done** |
 | Custom high-perf DinkC VM / JIT “because SH-4” | **Not done** — FreeDink’s interpreter is enough; see binding decision |
-| ELF in the same effort as this plan | Planning only |
+| Start-menu wordmark (seq 196 `.ff`) as the 3.4 still | **Not done** — Splash.bmp is 3.4; wordmark after 8.5 |
+| Native dc-chain required to develop | **Not done** — Docker KOS is enough |
 
 ---
 
@@ -684,7 +698,7 @@ dinkcast/
                          → 18.1–18.3 harden
 ```
 
-**Earliest screenshot:** 3.4 — official title, 640×480.  
+**Earliest screenshot:** 3.4 — official splash, 640×480 — **have**.  
 **Second screenshot:** 6.3 — official tiles.  
 **Third:** 8.4 — Dink idle.  
 **Feels like Dink:** 11.5 + 13.2.  
@@ -698,14 +712,15 @@ Dink is a 1990s 2D tile+sprite game. 96 tiles + a few dozen sprites is far below
 
 ---
 
-## 7. Implementation notes (granular pitfalls)
+## 7. Implementation notes (Dink-specific)
 
-1. **Endian / alignment:** SH-4 can trap on misaligned 32-bit. Parse with byte readers.
-2. **ISO9660 names:** 8.3 and case. Keep a resolve cache.
-3. **1-based arrays:** Original C used `sprite[1..100]`. Off-by-one will desync editors.
-4. **`wait` + talk:** Nested `say_stop` inside `talk` while screen `main` is waiting — fibers, not a single stack.
-5. **`freeze` nesting:** Unbalanced freeze is a classic DinkC bug; match FreeDink’s counter.
-6. **Transparent index:** Confirm per BMP (0 vs magenta) against FreeDink blit.
-7. **Do not** port SDL_Surface. CPU blit into a framebuffer will miss 60 FPS and waste the PVR.
-8. **Title before map:** If you draw tiles before 3.4, you are off-plan.
-9. **Do not rewrite DinkC for speed.** Graft FreeDink. If a frame is slow, profile textures/disc first.
+CDI / Docker / PVR / `/cd` classes of failure live in [docs/GOTCHAS.md](docs/GOTCHAS.md). Do not copy them here.
+
+1. **Endian / alignment:** SH-4 can trap on misaligned 32-bit. Parse with `src/le.c`.
+2. **1-based arrays:** Original C used `sprite[1..100]`. Off-by-one will desync editors.
+3. **`wait` + talk:** Nested `say_stop` inside `talk` while screen `main` is waiting — fibers, not a single stack.
+4. **`freeze` nesting:** Unbalanced freeze is a classic DinkC bug; match FreeDink’s counter.
+5. **Transparent index:** Confirm per BMP (0 vs magenta) against FreeDink blit.
+6. **Do not** port SDL_Surface. CPU blit into a framebuffer will miss 60 FPS and waste the PVR.
+7. **Do not rewrite DinkC for speed.** Graft FreeDink. If a frame is slow, profile textures/disc first.
+8. **Next visual after 3.4** is 6.3 (tiles), after 4.x + 5.x. Do not skip 4.1.
