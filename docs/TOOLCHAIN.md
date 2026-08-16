@@ -1,6 +1,8 @@
 # KallistiOS and a bootable `.cdi`
 
-Follow [dreamcast.wiki — Getting Started](https://dreamcast.wiki/Getting_Started_with_Dreamcast_development). This file is the Dinkcast-specific subset for **Linux**.
+Follow [dreamcast.wiki — Getting Started](https://dreamcast.wiki/Getting_Started_with_Dreamcast_development). This file is the Dinkcast-specific subset.
+
+**This machine is CachyOS** (Arch-based, `pacman`). Use §1 CachyOS. Debian is only a fallback.
 
 A working disc needs three pieces:
 
@@ -10,7 +12,26 @@ A working disc needs three pieces:
 
 Do **not** commit the toolchain or game data.
 
-## 1. Dependencies (Debian/Ubuntu)
+## 1. Dependencies
+
+### CachyOS / Arch (`pacman`)
+
+There is **no** useful official or Cachy repo package that replaces dc-chain. You still compile SH-4 GCC. Host `gcc` from CachyOS is only used to *build* that cross-compiler.
+
+```bash
+sudo pacman -S --needed \
+  base-devel gawk patch bzip2 tar make gmp mpfr libmpc gettext wget \
+  libelf texinfo bison flex sed git diffutils curl libjpeg-turbo libpng \
+  python meson ninja cmake pkgconf libisofs ruby-rake which gcc
+```
+
+`base-devel` pulls the usual compile tools. `libisofs` + `meson` are for **mkdcdisc**. `ruby-rake` matches the wiki; we do not need it for Bite 3.4.
+
+Optional: `paru -S --needed` if you prefer the AUR helper; these packages are in extra/community, not AUR.
+
+Set `makejobs` in `Makefile.cfg` to `nproc` (Cachy boxes are usually fine at full width; drop to `1` only if the chain errors).
+
+### Debian/Ubuntu (if you are not on Cachy)
 
 ```bash
 sudo apt-get update
@@ -19,8 +40,6 @@ sudo apt install gawk patch bzip2 tar make libgmp-dev libmpfr-dev libmpc-dev \
   curl libjpeg-dev libpng-dev python3 pkg-config cmake libisofs-dev meson \
   ninja-build rake
 ```
-
-Arch / Fedora: same wiki page.
 
 ## 2. Tree
 
