@@ -19,6 +19,8 @@ def main() -> int:
             missing.append(s)
     if "done" not in low:
         missing.append("done status")
+    if "feasibility" not in low or "overall" not in low:
+        missing.append("feasibility snapshot")
     if missing:
         print("FAIL PROGRESS.md missing:", ", ".join(missing))
         return 1

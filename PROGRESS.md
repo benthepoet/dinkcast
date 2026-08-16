@@ -20,6 +20,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | **3.4 verified in Flycast** (real BIOS, official Splash.bmp) | requester screenshot; `c43f761` twiddle fix |
 | 2026-08-16 | Dreamcast KOS skill + gotcha log | `.grok/skills/dreamcast-kos`, [docs/GOTCHAS.md](docs/GOTCHAS.md) |
 | 2026-08-16 | Screen-to-screen delay targets (CD vs Flycast) | plan binding + GOTCHAS |
+| 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
 
 ## Bites
 
@@ -61,3 +62,35 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. 4.1 still needs a merge-gate “go”. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
+
+## Feasibility (ongoing)
+
+Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the snapshot **and** append a log row when a visual gate lands, a class of risk dies or appears, or the human asks to reassess. Do not rewrite old log rows.
+
+**Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
+
+### Current (2026-08-16)
+
+| | | |
+|---|---|---|
+| **Overall** | **~85%** | Playable opening-hours campaign on retail 16/8/2 MB |
+| **Next picture (V2 tiles)** | **~90%** | Same blit path as splash |
+| **Hardest remaining** | DinkC Wave 1 + fibers | No `story/*.c` on DC yet |
+| **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
+
+| Slice | Confidence | Why |
+|---|---|---|
+| Title / CDI / Flycast + BIOS | ~98% | V1 accepted |
+| Tiles + Dink idle (V2–V3) | ~90% | Same BMP → twiddled quad |
+| Walk + hardness (V4) | ~85% | Data/input, not GPU |
+| Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
+| Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
+| Full campaign + every MIDI | ~55–65% | Long tail |
+| Real hardware / AICA / VMU | unknown | Not run |
+
+### Log
+
+| When | Overall | What moved it |
+|---|---|---|
+| 2026-08-16 (plan only) | ~80% campaign / ~95% title | Paper: DC can do 2D Dink; DinkC is the pole |
+| 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |

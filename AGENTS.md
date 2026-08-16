@@ -6,7 +6,7 @@ Instructions for humans and agents working in this repo.
 
 **Dreamcast skill:** [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md). Learned failures live in [docs/GOTCHAS.md](docs/GOTCHAS.md) — read before FS/CDI/PVR/Docker work; append a class-of-mistake bullet when we learn one.
 
-**Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed. Every bite/fix PR must update it (master table + bite status) in the **same PR**. Do not treat a green `make host` as “tracked.”
+**Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed **and** the living **feasibility** snapshot. Every bite/fix PR must update the bite table in the **same PR**. After a **visual gate**, a retired/new risk class, or a human “reassess,” update **Feasibility** (current table + a new log row). Do not treat a green `make host` as “tracked.”
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 

@@ -8,7 +8,7 @@
 
 **Where we are:** Phase A (**Bites 0.1–3.4**) is **done** — official `tiles/Splash.bmp` on Flycast (2026-08-16). **Next:** Bite **4.1** Maple poll on the title. Gameplay still starts only after 4.x; tiles are Bite 6.
 
-**Companions (do not fork facts):** landed work → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
+**Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
 **How to use this file:** remaining bites in order. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR.
 
