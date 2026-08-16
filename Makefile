@@ -10,7 +10,7 @@ EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 
-.PHONY: all host check data-check title-preview dc emu run clean
+.PHONY: all host check data-check title-preview dc cdi emu run clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -67,6 +67,10 @@ dc:
 		exit 2; \
 	fi
 	$(MAKE) -f Makefile.dc
+
+# Selfboot CDI: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
+cdi:
+	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
 
 # Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
 emu run:

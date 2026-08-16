@@ -53,6 +53,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 |---|---|
 | `KOS_BASE` / dc-chain on a builder | missing — Flycast title not run here |
 | GitHub `mergePullRequest` on PAT | 403 — land via local squash + push |
+| KallistiOS / `.cdi` | install per [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md); `make dc` + `make cdi` |
 | Human gate | stop after **3.4** for requester screenshot review |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
