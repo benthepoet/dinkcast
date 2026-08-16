@@ -23,7 +23,7 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 - Screen swap: cache tilesets. Same-set **0.2–0.6 s** on CD; new set **0.5–2 s**. Every-screen “Loading…” is a pack/evict bug (plan + GOTCHAS). Flycast will look instant.
 - Data: `DINK_DATA` is the inner `dink/` tree (has `Dink.dat`). Never commit game blobs.
 - SH-4 ELF must not contain host paths. Runtime roots: `/pc/dink`, `/cd/dink`, `/cd/DINK`, `/cd`.
-- `printf` is SCIF serial. Flycast's log is **not** that. On-screen status = `bfont` / HUD.
+- `printf` is SCIF serial. `make emu` enables Flycast `Debug.SerialConsoleEnabled` so those lines appear in the **same terminal**. HUD still required if you launch Flycast from the GUI without that flag.
 
 ## Build
 

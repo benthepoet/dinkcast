@@ -35,6 +35,19 @@ def find_flycast() -> list[str] | None:
     return None
 
 
+# Flycast: -config section:key=value (virtual; not written to emu.cfg).
+# Debug.SerialConsoleEnabled prints SH-4 SCIF (KOS printf) to the terminal.
+FLYCAST_SERIAL = ["-config", "config:Debug.SerialConsoleEnabled=yes"]
+
+
+def flycast_cmd(base: list[str], image: Path) -> list[str]:
+    """Argv for Flycast with SCIF serial on stdout (KOS printf)."""
+    name = Path(base[0]).name.lower()
+    if "flycast" in name or (len(base) >= 3 and "flycast" in base[2].lower()):
+        return base + FLYCAST_SERIAL + [str(image)]
+    return base + [str(image)]
+
+
 def resolve_emu(emu: str) -> list[str] | None:
     if emu in ("flycast", "default", ""):
         return find_flycast()
@@ -77,7 +90,7 @@ def main() -> int:
         )
         return 2
 
-    full = cmd + [str(ip.resolve())]
+    full = flycast_cmd(cmd, ip.resolve())
     print("make emu:", " ".join(full))
     os.execvp(full[0], full)
 
