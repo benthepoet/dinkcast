@@ -12,6 +12,10 @@
 dinkcast
 tests/test_boot_const
 tools/test_fs_join
+tools/bmp_info
+tools/title_preview
+tests/test_bmp
+tests/test_dink_dat_size
 
 # Toolchain / local
 .kosenv

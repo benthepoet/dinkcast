@@ -14,22 +14,24 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | **0.1** skeleton + **0.2** color-field source | [#1](https://github.com/benthepoet/dinkcast/pull/1) `875ffdd` |
 | 2026-08-16 | Orchestrator is a dedicated subagent | [#2](https://github.com/benthepoet/dinkcast/pull/2) `ecf0a2d` |
 | 2026-08-16 | **1.1** path resolver (case + 8.3, reject `..`) | [#3](https://github.com/benthepoet/dinkcast/pull/3) `c6610f0` |
+| 2026-08-16 | **PROGRESS.md** work log | [#4](https://github.com/benthepoet/dinkcast/pull/4) `dcb58a8` |
+| 2026-08-16 | **1.2–3.4** probe, BMP, official title still (host preview) | this PR |
 
 ## Bites
 
 | Bite | Title | Status | Notes |
 |---|---|---|---|
 | 0.1 | Repo skeleton | done | `make host` / `make dc` without KOS exits 2 |
-| 0.2 | Color field 640×480 `#5A3A1A` | source | `src/main.c`; no ELF without KallistiOS |
+| 0.2 | Color field 640×480 `#5A3A1A` | source | Still used if data missing |
 | 1.1 | Path resolver | done | `src/fs.c`; `tools/test_fs_join` |
-| 1.2 | Existence probe `dink.dat` | next | |
-| 2.1 | BMP header (host) | pending | |
-| 2.2 | BMP on DC | pending | |
-| 3.1 | Identify official title file | pending | |
-| 3.2 | CPU RGB565 | pending | |
-| 3.3 | PVR upload | pending | |
-| 3.4 | **Title quad (first screenshot)** | pending | Do not skip |
-| 4.1–4.2 | Start / leave title | pending | |
+| 1.2 | Existence probe `dink.dat` | done | `dink_dat_size`; red screen if missing |
+| 2.1 | BMP header (host) | done | 8-bit + 24-bit; `tests/test_bmp` |
+| 2.2 | BMP on DC | source | same loader; DC uses it for title |
+| 3.1 | Identify official title file | done | `tiles/Splash.bmp` (640×480 8-bit) |
+| 3.2 | CPU RGB565 | done | `src/rgb565.c` |
+| 3.3 | PVR upload | source | `title_present_pvr` (needs KOS) |
+| 3.4 | **Title quad (first screenshot)** | source | Host: `make title-preview` → `build/title_preview.ppm` |
+| 4.1–4.2 | Start / leave title | next | |
 | 5.1–5.4 | `dink.dat` / `map.dat` | pending | |
 | 6.1–6.4 | Tiles + evict | pending | |
 | 7.1–7.4 | Hardness | pending | |
@@ -49,8 +51,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 
 | Item | Status |
 |---|---|
-| `KOS_BASE` / dc-chain on a builder | missing — 0.2 visual and `make emu` image |
+| `KOS_BASE` / dc-chain on a builder | missing — Flycast title not run here |
 | GitHub `mergePullRequest` on PAT | 403 — land via local squash + push |
-| Human gate | after each merge, wait for requester |
+| Human gate | stop after **3.4** for requester screenshot review |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.

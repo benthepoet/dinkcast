@@ -33,7 +33,13 @@ Bite **0.1** skeleton + Bite **0.2** color-field source (`src/main.c`). ELF need
 3. `make dc` → `build/dinkcast.elf`
 4. `make emu` once a `.cdi` exists (or point Flycast at the ELF).
 
-Without `KOS_BASE`, `make dc` exits 2. Serial should print `dinkcast boot ok`; screen is `#5A3A1A` at 640×480.
+Without `KOS_BASE`, `make dc` exits 2.
+
+```bash
+make title-preview   # needs DINK_DATA; writes build/title_preview.ppm
+```
+
+That is Bite **3.4** on the host: official `tiles/Splash.bmp` (640×480). DC/Flycast still needs KallistiOS.
 
 ## Checks
 
