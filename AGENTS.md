@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Kickoff order:** (1) add `origin`, push `master`. (2) Orchestrator opens `bite/0.1-…` (then 0.2, 1.x, … 3.4 title). (3) Use `.github/PULL_REQUEST_TEMPLATE.md`. (4) `make host` must stay green on `master`.
+**Now:** V1 (3.4 splash) accepted. Next implementer bite after human **go** is **4.1**. Next visual gate is **V2 (6.3)**. `make host` stays green. Use the PR template.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -31,7 +31,7 @@ Post `visual-gate: waiting @human (V#)` on the PR after merge. Clear it only wit
 
 ## Git workflow
 
-- **Primary branch:** `master`. It must stay buildable (`make host`; `make dc` when `KOS_BASE` is set).
+- **Primary branch:** `master`. It must stay buildable (`make host`; `make docker-cdi` when Docker is up).
 - **No direct work on `master`.** Every change is a **feature branch + pull request**.
 - Branch names: `bite/3.4-title-quad`, `fix/vram-leak-screen-swap`, `chore/makefile-host`. One concern per branch.
 - Rebase on `master` before requesting review. No merge commits on feature branches unless the PR is explicitly integrating a stack.
@@ -88,7 +88,7 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 |---|---|---|
 | **Orchestrator** | Sequence work, assign reviews, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
 | **Implementer** | Code the bite. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
-| **Spec reviewer** | Diff vs [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md): title-before-gameplay, original data formats, no new DinkC dialect, 60 Hz logic, FreeDink interpreter graft. | Approve or list plan violations |
+| **Spec reviewer** | Diff vs [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md): visual gates, original data formats, no new DinkC dialect, 60 Hz, FreeDink graft, GOTCHAS. | Approve or list plan violations |
 | **Adversarial reviewer** | Try to break it. Wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Assume the happy path is a lie. | Attack list + repro or “attempted X, held” |
 | **Memory reviewer** | Every alloc has a free/evict. Screen change and leave-title must not leak. Check BMP decode buffers, PVR textures, script file buffers, AICA handles. Compare to plan caps. | Leak findings or `mem: no new unpaired alloc` |
 | **Performance reviewer** | 60 FPS target, 30 floor. Flag CPU blit, per-frame re-lex of DinkC, preload-the-world, RGBA8888 textures, extra GD-ROM seeks. Do **not** ask for a custom DinkC JIT. | Perf notes or `perf: no 60 Hz regress suspected` |
@@ -156,6 +156,6 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
 ## Checks
 
 - `make host` — plan + AGENTS structural checks (and later host unit tests).
-- `make dc` — ELF; requires `KOS_BASE` after Bite 0.2.
-- `make emu` / `make run` — Flycast on `build/dinkcast.cdi` (or `.elf`). Name the emulator and image if you claim a visual check.
+- `make docker-cdi` — ELF + CDI (preferred). Native `make dc` if `KOS_BASE` is set.
+- `make emu` — Flycast + real BIOS on `build/dinkcast.cdi`. Name BIOS vs REIOS if you claim a visual check.
 - Do not claim DC boot works unless you ran the ELF (hardware or emulator) and say which.

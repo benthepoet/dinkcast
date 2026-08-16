@@ -5,8 +5,10 @@ Dink Smallwood on the Sega Dreamcast (KallistiOS).
 This repository is the engine and porting plan. It does **not** ship proprietary game media. Point the build at official freeware Dink and/or GNU FreeDink data with `DINK_DATA`.
 
 - Port spec: [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md)
-- **Progress:** [PROGRESS.md](PROGRESS.md)
-- Contributor / agent workflow: [AGENTS.md](AGENTS.md)
+- **Progress + feasibility:** [PROGRESS.md](PROGRESS.md)
+- Workflow: [AGENTS.md](AGENTS.md)
+- Gotchas: [docs/GOTCHAS.md](docs/GOTCHAS.md)
+- Toolchain: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
 
 ## License
 
@@ -22,9 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-Bite **0.1** skeleton + Bite **0.2** color-field source (`src/main.c`). ELF needs KallistiOS.
-
-**First screenshot (do not skip):** plan **Bite 3.4** — official title still at 640×480.
+**V1 accepted:** official `tiles/Splash.bmp` on Flycast with a real BIOS (`make docker-cdi` + `make emu`). Next engine bite is **4.1** (Maple on the title). Next *picture* gate is **V2 (6.3 tiles)**.
 
 ## Dreamcast toolchain
 
@@ -42,7 +42,7 @@ Without `KOS_BASE` or Docker, `make dc` exits 2.
 make title-preview   # needs DINK_DATA; writes build/title_preview.ppm
 ```
 
-That is Bite **3.4** on the host: official `tiles/Splash.bmp` (640×480). DC/Flycast still needs KallistiOS.
+Host still: `make title-preview` → `build/title_preview.ppm`.
 
 ## Checks
 
@@ -50,13 +50,4 @@ That is Bite **3.4** on the host: official `tiles/Splash.bmp` (640×480). DC/Fly
 make host
 ```
 
-**Emulator:** [Flycast](https://github.com/flyinghead/flycast) (`make emu` / `make run`). Install a `flycast` binary or Flatpak `org.flycast.Flycast`. Override with `FLYCAST=` or `EMU=`. There is no CDI/ELF until Bite 0.2, so `make emu` exits 2 today. Real hardware + `dcload` is still the ship check.
-
-## Remote
-
-No `origin` is configured:
-
-```bash
-git remote add origin git@HOST:USER/dinkcast.git
-git push -u origin master
-```
+**Emulator:** Flycast + **`dc_boot.bin`** in `~/.local/share/flycast/`. `make emu` opens `build/dinkcast.cdi`. REIOS often will not boot this CDI. Real hardware + `dcload` is still the ship check.

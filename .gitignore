@@ -22,6 +22,9 @@ tests/test_dink_dat_size
 local.mk
 compile_commands.json
 
+# Local screenshots (optional evidence; do not commit splash BMPs)
+/artifacts/
+
 # Game data (supply via DINK_DATA; do not commit unless license-cleared)
 /data/**
 !/data/.gitkeep

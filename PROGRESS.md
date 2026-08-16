@@ -2,7 +2,7 @@
 
 Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md). Update **this file in the same PR** as the work.
 
-**Statuses:** `done` — on master and host-checked (or DC-checked if the bite requires it). `source` — code on master; DC/Flycast not verified (no `KOS_BASE` yet). `next` — first unfinished bite. `open` — PR not merged. `pending` — not started.
+**Statuses:** `done` — on master and verified the way the bite requires (host and/or Flycast). `source` — code on master, not seen on DC/Flycast. `next` — first unfinished bite. `pending` — not started.
 
 ## On master
 
@@ -21,13 +21,14 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Dreamcast KOS skill + gotcha log | `.grok/skills/dreamcast-kos`, [docs/GOTCHAS.md](docs/GOTCHAS.md) |
 | 2026-08-16 | Screen-to-screen delay targets (CD vs Flycast) | plan binding + GOTCHAS |
 | 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
+| 2026-08-16 | Alignment pass (docs agree: V1 done, next 4.1) | README/AGENTS/plan/PROGRESS |
 
 ## Bites
 
 | Bite | Title | Status | Notes |
 |---|---|---|---|
 | 0.1 | Repo skeleton | done | `make host` / `make dc` without KOS exits 2 |
-| 0.2 | Color field 640×480 `#5A3A1A` | source | Still used if data missing |
+| 0.2 | Color field 640×480 `#5A3A1A` | done | Brown boot / HUD if data missing |
 | 1.1 | Path resolver | done | `src/fs.c`; `tools/test_fs_join` |
 | 1.2 | Existence probe `dink.dat` | done | `dink_dat_size`; red screen if missing |
 | 2.1 | BMP header (host) | done | 8-bit + 24-bit; `tests/test_bmp` |
