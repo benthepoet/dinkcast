@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Drive tools/run_emu.py: no image and missing file must fail clearly."""
+"""Drive tools/run_emu.py: no image fails; Flycast argv enables SCIF serial."""
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,18 @@ def main() -> int:
     missing = run(["--emu", "flycast", "--image", str(ROOT / "no-such.cdi")])
     if missing.returncode != 2 or "not found" not in missing.stderr:
         print("FAIL missing image:", missing.returncode, missing.stderr)
+        return 1
+    spec = importlib.util.spec_from_file_location("run_emu", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    argv = mod.flycast_cmd(["/usr/bin/flycast"], Path("/tmp/x.cdi"))
+    joined = " ".join(argv)
+    if "Debug.SerialConsoleEnabled=yes" not in joined:
+        print("FAIL serial flag missing:", argv)
+        return 1
+    if str(Path("/tmp/x.cdi")) not in argv:
+        print("FAIL image missing:", argv)
         return 1
     print("OK", SCRIPT)
     return 0
