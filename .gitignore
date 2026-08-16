@@ -11,6 +11,7 @@
 *.map
 dinkcast
 tests/test_boot_const
+tools/test_fs_join
 
 # Toolchain / local
 .kosenv

@@ -8,6 +8,8 @@ Instructions for humans and agents working in this repo.
 
 **Kickoff order:** (1) add `origin`, push `master`. (2) Orchestrator opens `bite/0.1-…` (then 0.2, 1.x, … 3.4 title). (3) Use `.github/PULL_REQUEST_TEMPLATE.md`. (4) `make host` must stay green on `master`.
 
+**Human gate:** After a PR is **merged** to `master`, **stop**. Do not open the next bite, spawn the next implementer, or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
+
 ---
 
 ## Git workflow

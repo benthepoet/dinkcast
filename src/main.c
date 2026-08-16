@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "boot.h"
+#include "fs.h"
 
 #ifdef _arch_dreamcast
 #include <kos.h>
@@ -18,6 +19,11 @@ int main(int argc, char **argv)
     vid_set_mode(DM_640x480, PM_RGB565);
     vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
     printf("%s\n", DINK_BOOT_MSG);
+    if (dink_fs_init() == 0) {
+        printf("dink_fs_root %s\n", dink_fs_root());
+    } else {
+        printf("dink_fs_root unresolved\n");
+    }
     fflush(stdout);
 
     for (;;) {
