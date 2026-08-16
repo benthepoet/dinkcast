@@ -14,7 +14,7 @@ def main() -> int:
         return 1
     low = PROG.read_text(encoding="utf-8").lower()
     missing = []
-    for s in ("0.1", "0.2", "1.1", "1.2", "3.4", "#1", "#3", "next"):
+    for s in ("0.1", "0.2", "1.1", "1.2", "3.1", "3.4", "splash", "#1", "#3", "next"):
         if s.lower() not in low:
             missing.append(s)
     if "done" not in low:

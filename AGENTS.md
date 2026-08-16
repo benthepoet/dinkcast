@@ -12,6 +12,8 @@ Instructions for humans and agents working in this repo.
 
 **Human gate:** After a PR is **merged** to `master`, **stop**. Do not open the next bite, spawn the next implementer, or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
+**Exception (active):** requester authorized non-stop work through **Bite 3.4** (title quad). Stop again after 3.4 is on `master` and a host title preview exists for review.
+
 ---
 
 ## Git workflow

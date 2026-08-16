@@ -15,6 +15,8 @@ def main() -> int:
         ("vid_clear", "vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B)" in text),
         ("serial", "DINK_BOOT_MSG" in text),
         ("fs root", "dink_fs_root" in text),
+        ("probe", "found dink.dat" in text and "missing dink.dat" in text),
+        ("title", "title_present_pvr" in text or "title_load" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]
