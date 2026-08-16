@@ -17,6 +17,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | **PROGRESS.md** work log | [#4](https://github.com/benthepoet/dinkcast/pull/4) `dcb58a8` |
 | 2026-08-16 | **1.2–3.4** probe, BMP, official title still (host preview) | [#5](https://github.com/benthepoet/dinkcast/pull/5) `9fbad28` |
 | 2026-08-16 | `make docker-cdi` / toolchain docs | [#6](https://github.com/benthepoet/dinkcast/pull/6) |
+| 2026-08-16 | **3.4 verified in Flycast** (real BIOS, official Splash.bmp) | requester screenshot; `c43f761` twiddle fix |
 
 ## Bites
 
@@ -27,11 +28,11 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 1.1 | Path resolver | done | `src/fs.c`; `tools/test_fs_join` |
 | 1.2 | Existence probe `dink.dat` | done | `dink_dat_size`; red screen if missing |
 | 2.1 | BMP header (host) | done | 8-bit + 24-bit; `tests/test_bmp` |
-| 2.2 | BMP on DC | source | same loader; DC uses it for title |
+| 2.2 | BMP on DC | done | same loader; title still on Flycast |
 | 3.1 | Identify official title file | done | `tiles/Splash.bmp` (640×480 8-bit) |
 | 3.2 | CPU RGB565 | done | `src/rgb565.c` |
-| 3.3 | PVR upload | source | `title_present_pvr` (needs KOS) |
-| 3.4 | **Title quad (first screenshot)** | source | Host: `make title-preview` → `build/title_preview.ppm` |
+| 3.3 | PVR upload | done | twiddled RGB565 (not NONTWIDDLED) |
+| 3.4 | **Title quad (first screenshot)** | done | Flycast + real BIOS; `tiles/Splash.bmp` |
 | 4.1–4.2 | Start / leave title | next | |
 | 5.1–5.4 | `dink.dat` / `map.dat` | pending | |
 | 6.1–6.4 | Tiles + evict | pending | |
@@ -52,9 +53,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 
 | Item | Status |
 |---|---|
-| `KOS_BASE` / dc-chain on a builder | missing — Flycast title not run here |
+| Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `mergePullRequest` on PAT | 403 — land via local squash + push |
-| KallistiOS / `.cdi` | `make docker-cdi` — see [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md) |
-| Human gate | stop after **3.4** for requester screenshot review |
+| KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
+| Human gate | **3.4 accepted.** Wait before 4.1 (Start / leave title) |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
