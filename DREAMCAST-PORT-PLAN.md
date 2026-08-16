@@ -698,10 +698,7 @@ dinkcast/
                          → 18.1–18.3 harden
 ```
 
-**Earliest screenshot:** 3.4 — official splash, 640×480 — **have**.  
-**Second screenshot:** 6.3 — official tiles.  
-**Third:** 8.4 — Dink idle.  
-**Feels like Dink:** 11.5 + 13.2.  
+**Visual gates (human must accept in Flycast/hardware before the next bite):** V1 3.4 splash **accepted**; V2 6.3 tiles; V3 8.4 Dink idle; V4 9.3 walk; V5 13.2 say box; V6 16.2/16.3 inventory+HUD. See [AGENTS.md](AGENTS.md).  
 **Playable slice:** 14–16 on the opening map.
 
 ---

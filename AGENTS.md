@@ -12,9 +12,20 @@ Instructions for humans and agents working in this repo.
 
 **Kickoff order:** (1) add `origin`, push `master`. (2) Orchestrator opens `bite/0.1-…` (then 0.2, 1.x, … 3.4 title). (3) Use `.github/PULL_REQUEST_TEMPLATE.md`. (4) `make host` must stay green on `master`.
 
-**Human gate:** After a PR is **merged** to `master`, **stop**. Do not open the next bite, spawn the next implementer, or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
+**Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
-**Exception (active):** requester authorized non-stop work through **Bite 3.4** (title quad). Stop again after 3.4 is on `master` and a host title preview exists for review.
+**Visual milestone gate (stronger):** These bites are **showable**. After the PR that first delivers one lands, **do not start the following bite** until the human has **seen it in Flycast or on hardware** and said it is accepted. A host unit test is not enough.
+
+| Gate | Bite | What they must see |
+|---|---|---|
+| V1 | **3.4** | Official splash (`tiles/Splash.bmp`) | **accepted** |
+| V2 | **6.3** | One official screen of tiles |
+| V3 | **8.4** | Dink idle sprite on that screen |
+| V4 | **9.3** | Walk cycle + hardness |
+| V5 | **13.2** | `say` / talk box with real script text |
+| V6 | **16.2** / **16.3** | Inventory and HUD |
+
+Post `visual-gate: waiting @human (V#)` on the PR after merge. Clear it only with `visual-gate: accepted V#` from the requester (or a comment that unambiguously accepts that picture).
 
 ---
 
@@ -95,6 +106,21 @@ One human or agent may not wear Implementer and Adversarial on the same PR, and 
 
 Land: only the orchestrator merges (or explicitly delegates merge on the PR: `merge-delegate: @who`).
 
+### Troubleshooting team (when something is wrong on screen or disc)
+
+When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture), **do not** have one agent guess. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial-review** on a PR they authored) plus **at least two** of these specialists. They work in **parallel**. Findings go on the **open PR** or a new `fix/…` PR — same as review comments (`block` / `should` / `nit` + `verdict:`).
+
+| Role | Looks at | Must write |
+|---|---|---|
+| **Debug orchestrator** | Assigns the other roles, synthesizes, picks the first fix. Does not implement the first theory. | `debug-orch:` + assigned roles + `bar:` |
+| **Disc/FS** | `mkdcdisc -d` basename, `/cd` listing, ISO 8.3, `dink.dat` root, GD-ROM wait | What `/cd` contains vs what we probe |
+| **PVR/video** | Twiddle vs `NONTWIDDLED`, POT pad/UVs, `vid_set_mode`, brown vs stripe vs red | Format/load vs draw mismatch |
+| **Boot/emu** | REIOS vs `dc_boot.bin`, IP.BIN / `1ST_READ.BIN`, Flycast log ≠ SCIF | Whether the ELF even ran |
+| **Data/format** | BMP bpp/bottom-up, `title_path.h`, map/ini once those exist | File identity and decode |
+| **Adversarial debug** | The first diagnosis is a lie. Alternate causes from [docs/GOTCHAS.md](docs/GOTCHAS.md). | Attack list on the *theory* |
+
+Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
+
 ---
 
 ## How to run a review pass
@@ -117,7 +143,7 @@ Land: only the orchestrator merges (or explicitly delegates merge on the PR: `me
 
 ## Coding rules (short)
 
-- Plan bites in order for engine work. **No gameplay before Bite 3.4** (official title still).
+- Plan bites in order. **3.4 is done.** Do not start past a **visual gate** without human accept.
 - Graft FreeDink DinkC; do not invent a language or a “faster” interpreter.
 - Little-endian explicit reads; no packed-struct `fread` on SH-4 without a size lock.
 - PVR textured quads only — no SDL-style CPU blit as the renderer.

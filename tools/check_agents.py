@@ -32,6 +32,8 @@ def main() -> int:
     need("make emu Flycast", "make emu" in low and "flycast" in low)
     need("human gate after merge", "after a pr is" in low and "merged" in low and "until the human" in low)
     need("PROGRESS.md required", "progress.md" in low)
+    need("visual milestone gate", "visual-gate" in low and "6.3" in low)
+    need("troubleshooting team", "troubleshooting" in low and "debug orchestrator" in low)
 
     if missing:
         print("FAIL:", "; ".join(missing))

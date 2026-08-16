@@ -10,6 +10,7 @@
 ## Bite / intent
 
 - Plan bite(s):
+- Visual gate (V1–V6)? waiting / n/a:
 - [PROGRESS.md](../PROGRESS.md) updated?
 - Out of plan? Why:
 
