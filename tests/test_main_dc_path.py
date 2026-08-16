@@ -14,6 +14,7 @@ def main() -> int:
         ("vid_set_mode", "vid_set_mode(DM_640x480, PM_RGB565)" in text),
         ("vid_clear", "vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B)" in text),
         ("serial", "DINK_BOOT_MSG" in text),
+        ("fs root", "dink_fs_root" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

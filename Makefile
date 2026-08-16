@@ -14,10 +14,14 @@ EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkca
 
 all: host
 
-host: check tests/test_boot_const
+host: check tests/test_boot_const tools/test_fs_join
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) -Wall -Wextra -Werror -Isrc -o $@ tests/test_boot_const.c
+	./$@
+
+tools/test_fs_join: tools/test_fs_join.c src/fs.c src/fs.h
+	$(HOSTCC) -Wall -Wextra -Werror -Isrc -o $@ tools/test_fs_join.c src/fs.c
 	./$@
 
 check:
@@ -45,5 +49,5 @@ emu run:
 	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)"
 
 clean:
-	rm -rf build tests/test_boot_const
+	rm -rf build tests/test_boot_const tools/test_fs_join
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi

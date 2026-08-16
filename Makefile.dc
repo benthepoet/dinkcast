@@ -1,9 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Dreamcast ELF (Bite 0.2). Invoke via `make dc` with KOS_BASE set.
 TARGET = build/dinkcast.elf
-OBJS = src/main.o
+OBJS = src/main.o src/fs.o
 
 KOS_CFLAGS += -Isrc
+ifneq ($(DINK_DATA),)
+KOS_CFLAGS += -DDINK_DATA_DEFAULT=\"$(DINK_DATA)\"
+endif
 
 all: $(TARGET)
 
