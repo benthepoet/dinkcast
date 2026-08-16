@@ -103,6 +103,24 @@ int main(void)
     }
     fclose(fp);
 
+    {
+        char secret[512];
+        snprintf(secret, sizeof(secret), "%s/../secret.txt", fb);
+        /* parent of fb is tmp; write a file a naive .. would open */
+        snprintf(p, sizeof(p), "%s/secret.txt", tmp);
+        write_file(p, "nope");
+        if (dink_fopen("../secret.txt", "rb") != NULL) {
+            die("fopen .. escaped root");
+        }
+        if (dink_fopen("STORY/../../secret.txt", "rb") != NULL) {
+            die("fopen nested .. escaped root");
+        }
+        if (dink_fs_join(buf, sizeof(buf), fb, "../secret.txt") == 0) {
+            die("join allowed ..");
+        }
+        (void)secret;
+    }
+
     printf("OK test_fs_join\n");
     return 0;
 }

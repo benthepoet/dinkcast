@@ -50,6 +50,18 @@ int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel)
     if (rel == NULL) {
         rel = "";
     }
+    if (strstr(rel, "..") != NULL) {
+        /* Reject ".." even inside a name-adjacent scan; join is not a sandbox. */
+        const char *q = rel;
+        while (*q != '\0') {
+            if ((q[0] == '.' && q[1] == '.') &&
+                (q[2] == '\0' || q[2] == '/' || q[2] == '\\') &&
+                (q == rel || q[-1] == '/' || q[-1] == '\\')) {
+                return -1;
+            }
+            q++;
+        }
+    }
     n = (size_t)snprintf(tmp, sizeof(tmp), "%s/%s", root, rel);
     if (n >= sizeof(tmp)) {
         return -1;
@@ -248,6 +260,9 @@ FILE *dink_fopen(const char *rel, const char *mode)
         return NULL;
     }
     do {
+        if (strcmp(tok, "..") == 0 || strcmp(tok, ".") == 0) {
+            return NULL;
+        }
         if (resolve_comp(cur, tok, next, sizeof(next)) != 0) {
             return NULL;
         }
