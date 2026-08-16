@@ -4,6 +4,8 @@ Instructions for humans and agents working in this repo.
 
 **Port spec:** [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md) is the source of truth for bites, budgets, DinkC, 60 FPS, and legal/data rules. Do not fork those decisions here. If implementation and the plan disagree, change the plan in the same PR or follow the plan.
 
+**Dreamcast skill:** [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md). Learned failures live in [docs/GOTCHAS.md](docs/GOTCHAS.md) — read before FS/CDI/PVR/Docker work; append a class-of-mistake bullet when we learn one.
+
 **Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed. Every bite/fix PR must update it (master table + bite status) in the **same PR**. Do not treat a green `make host` as “tracked.”
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
