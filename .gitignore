@@ -13,6 +13,7 @@ dinkcast
 
 # Toolchain / local
 .kosenv
+local.mk
 compile_commands.json
 
 # Game data (supply via DINK_DATA; do not commit unless license-cleared)

@@ -1,0 +1,3 @@
+# Copy to local.mk (gitignored). Point at the directory that contains Dink.dat.
+# GNU freedink-data tarball: use the inner dink/ folder, not the tarball root.
+DINK_DATA = /home/YOU/Source/freedink-data-1.08.20190120/dink

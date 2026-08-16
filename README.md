@@ -13,7 +13,9 @@ Dinkcast is **free software** under the **GNU General Public License v3.0 or lat
 
 That matches **GNU FreeDink** (GPLv3), whose interpreter we graft rather than replacing. Combined binaries that include FreeDink-derived code stay under the GPL.
 
-**Game data is separate.** `dink.dat`, graphics, sounds, and `story/*.c` come from the user’s `DINK_DATA` tree and keep *their* licenses. Do not assume this repo’s GPL covers RTSoft or third-party assets.
+**Game data is separate.** Keep it **outside** this repo. `dink.dat`, graphics, sounds, and `story/*.c` come from the user’s `DINK_DATA` tree and keep *their* licenses. Do not assume this repo’s GPL covers RTSoft or third-party assets.
+
+GNU freedink-data tarball: use the inner `dink/` folder (the one with `Dink.dat`), not the tarball root. `make data-check` verifies the path (`local.mk` or `DINK_DATA=`).
 
 KallistiOS and `dc-chain` are third-party toolchain pieces with their own licenses.
 

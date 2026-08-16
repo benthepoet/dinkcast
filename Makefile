@@ -2,12 +2,14 @@
 # Host checks always. Dreamcast ELF is Bite 0.2+ and needs KOS_BASE.
 # Default emulator: Flycast (see DREAMCAST-PORT-PLAN.md).
 
+-include local.mk
+
 PYTHON ?= python3
 EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 
-.PHONY: all host check dc emu run clean
+.PHONY: all host check data-check dc emu run clean
 
 all: host
 
@@ -17,6 +19,11 @@ check:
 	$(PYTHON) tools/check_port_plan.py
 	$(PYTHON) tools/check_agents.py
 	$(PYTHON) tests/test_run_emu.py
+	$(PYTHON) tests/test_check_dink_data.py
+
+# Optional: needs DINK_DATA (env or local.mk). Not part of `make host`.
+data-check:
+	DINK_DATA="$(DINK_DATA)" $(PYTHON) tools/check_dink_data.py
 
 # Fails clearly until Bite 0.2 wires kos-cc.
 dc:
