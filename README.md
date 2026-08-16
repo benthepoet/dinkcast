@@ -19,19 +19,23 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-Planning and repo bootstrap. No Dreamcast ELF yet. First visual bite in the plan is the original title screen (Bite 3.4).
+Spec + workflow + license. No Dreamcast ELF yet.
+
+**First screenshot (do not skip):** plan **Bite 3.4** — official title still at 640×480.
+
+**First implementation PR after kickoff:** **Bite 0.1** (repo/`Makefile` already has `make host`; 0.1 is the remaining skeleton). Then **0.2** color field (`KOS_BASE`). Workflow: [AGENTS.md](AGENTS.md) — feature branch, named orchestrator, reviews on the PR.
 
 ## Checks
 
 ```bash
-python3 tools/check_port_plan.py
+make host
 ```
 
-`make host` / `make dc` will appear in a later bite (`KOS_BASE` required for the DC target).
+`make dc` is supposed to fail until Bite 0.2 (`KOS_BASE` + `src/`).
 
 ## Remote
 
-No `origin` is configured. Add one when you have a host:
+No `origin` is configured:
 
 ```bash
 git remote add origin git@HOST:USER/dinkcast.git

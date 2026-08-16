@@ -6,6 +6,8 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
+**Kickoff order:** (1) add `origin`, push `master`. (2) Orchestrator opens `bite/0.1-…` (then 0.2, 1.x, … 3.4 title). (3) Use `.github/PULL_REQUEST_TEMPLATE.md`. (4) `make host` must stay green on `master`.
+
 ---
 
 ## Git workflow
@@ -47,8 +49,25 @@ Do not merge with unanswered review threads unless a maintainer records `wontfix
 
 Use separate agents (or clearly separated passes) with **different roles**. The implementer does not mark their own PR complete.
 
+### Orchestrator
+
+Someone **must** hold **Orchestrator** on every PR. This role coordinates implementation and review; it is not a silent merge button.
+
+| Does | Does not |
+|---|---|
+| Pick the next plan bite (or justified out-of-plan fix). Open or name the branch/PR. | Implement the bite on the same PR (unless the change is docs-only and they say so). |
+| Assign the required reviewer roles. Chase missing reviews. | Wear **Adversarial** on a PR they orchestrate. |
+| Confirm the merge bar (roles, unresolved threads, tests named). | Rubber-stamp. If a required review is missing, they wait or request it. |
+| Merge to `master` (or record who merged) only when the bar is green. | Bypass PR comments; coordination notes go on the PR. |
+| Sequence stacks (`bite/…` then follow-ups). Rebase policy. | Rewrite the port plan without a PR. |
+
+**On the PR the orchestrator writes:** `orchestrator: @who` — bite id, required reviews for this diff, and later `bar: green` / `bar: blocked (why)` before merge.
+
+The orchestrator may be a human maintainer or a dedicated agent. One person may Orchestrate PR A and Implement PR B, not both on the same PR (docs-only exception above).
+
 | Role | Job | Must write on the PR |
 |---|---|---|
+| **Orchestrator** | Sequence work, assign reviews, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
 | **Implementer** | Code the bite. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
 | **Spec reviewer** | Diff vs [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md): title-before-gameplay, original data formats, no new DinkC dialect, 60 Hz logic, FreeDink interpreter graft. | Approve or list plan violations |
 | **Adversarial reviewer** | Try to break it. Wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Assume the happy path is a lie. | Attack list + repro or “attempted X, held” |
@@ -58,13 +77,15 @@ Use separate agents (or clearly separated passes) with **different roles**. The 
 
 **Minimum bar to merge**
 
-- Implementer + **at least two** of: spec, adversarial, memory, performance, flaws.
+- **Orchestrator** named on the PR + Implementer + **at least two** of: spec, adversarial, memory, performance, flaws.
 - **Adversarial** is required on anything that touches `src/` runtime (not required for docs-only).
 - **Memory** is required if the PR allocates, uploads textures, loads files, or attaches scripts.
 - **Performance** is required if the PR is on the per-frame path or I/O during play/title.
 - Docs-only PRs: spec reviewer is enough.
 
-One human or agent may not wear Implementer and Adversarial on the same PR.
+One human or agent may not wear Implementer and Adversarial on the same PR, and may not wear Orchestrator and Adversarial on the same PR.
+
+Land: only the orchestrator merges (or explicitly delegates merge on the PR: `merge-delegate: @who`).
 
 ---
 
@@ -82,6 +103,7 @@ One human or agent may not wear Implementer and Adversarial on the same PR.
 
 4. End with `verdict: request-changes` or `verdict: approve` for that role.
 5. Implementer answers on the same threads. Re-review the delta, do not rubber-stamp.
+6. Orchestrator updates `bar:` when required verdicts are in and threads are resolved. Then merge or delegate.
 
 ---
 
@@ -99,6 +121,6 @@ One human or agent may not wear Implementer and Adversarial on the same PR.
 
 ## Checks
 
-- `python3 tools/check_port_plan.py` — plan still has required decisions.
-- `make host` — tools and host tests (once the Makefile exists).
+- `make host` — plan + AGENTS structural checks (and later host unit tests).
+- `make dc` — ELF; requires `KOS_BASE` after Bite 0.2.
 - Do not claim DC boot works unless you ran the ELF (hardware or emulator) and say which.

@@ -116,8 +116,9 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 
 - Create layout in §3. `README.md` documents `KOS_BASE`, `dc-chain`, `DINK_DATA`.
 - `Makefile` has two targets from day one: `host` (gcc, tools + unit tests) and `dc` (`kos-cc` → `dinkcast.elf`).
+- **Bootstrap already in-tree:** `make host` runs `tools/check_port_plan.py` and `tools/check_agents.py`; `make dc` exits 2 until 0.2. Remaining 0.1 work is empty `src/` stubs listed in §3 as you need them — do not skip to tiles.
 
-**Done when:** `make host` builds something; `make dc` is present even if it fails without KOS.
+**Done when:** `make host` is green on the PR; `make dc` exists and fails clearly without KOS.
 
 #### Bite 0.2 — Color field
 
