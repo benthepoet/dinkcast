@@ -44,7 +44,7 @@ tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
 
 tests/test_tile_cell: tests/test_tile_cell.c src/tiles.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_tile_cell.c src/tiles.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c
-	./$@
+	DINK_DATA="$(DINK_DATA)" ./$@
 
 DUMP_COMMON := src/world.c src/mapscr.c src/le.c src/fs.c src/dinkdat.c
 

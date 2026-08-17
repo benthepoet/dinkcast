@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "bmp.h"
+#include "fs.h"
 #include "tiles.h"
 
 #include <stdio.h>
@@ -66,6 +67,77 @@ int main(void)
         return 1;
     }
     bitmap_free(&bm);
+
+    /* Official ts01.bmp: shipped decoder vs crop of the same bytes. */
+    {
+        FILE *fp;
+        uint8_t *raw = NULL;
+        long sz;
+        uint8_t off_rgb[3];
+        struct Bitmap official;
+        const uint8_t *crop;
+
+        if (dink_fs_init() != 0) {
+            fprintf(stderr, "FAIL official ts01: no DINK_DATA root\n");
+            return 1;
+        }
+        fp = dink_fopen("tiles/ts01.bmp", "rb");
+        if (fp == NULL) {
+            fprintf(stderr, "FAIL official ts01: tiles/ts01.bmp\n");
+            return 1;
+        }
+        if (fseek(fp, 0, SEEK_END) != 0) {
+            fclose(fp);
+            return 1;
+        }
+        sz = ftell(fp);
+        if (sz < 54 || fseek(fp, 0, SEEK_SET) != 0) {
+            fclose(fp);
+            return 1;
+        }
+        raw = (uint8_t *)malloc((size_t)sz);
+        if (raw == NULL) {
+            fclose(fp);
+            return 1;
+        }
+        if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
+            free(raw);
+            fclose(fp);
+            return 1;
+        }
+        fclose(fp);
+        if (tiles_cell00_rgb(raw, (size_t)sz, off_rgb) != 0) {
+            fprintf(stderr, "FAIL official tiles_cell00_rgb\n");
+            free(raw);
+            return 1;
+        }
+        memset(&official, 0, sizeof(official));
+        if (bitmap_load_mem(raw, (size_t)sz, &official) != 0) {
+            fprintf(stderr, "FAIL official bitmap_load\n");
+            free(raw);
+            return 1;
+        }
+        free(raw);
+        if (official.w < DINK_TILE_PX || official.h < DINK_TILE_PX) {
+            bitmap_free(&official);
+            fprintf(stderr, "FAIL official ts01 too small\n");
+            return 1;
+        }
+        crop = official.pal + (size_t)official.pixels[0] * 3u;
+        if (official.bpp == 24) {
+            crop = official.pixels;
+        }
+        if (off_rgb[0] != crop[0] || off_rgb[1] != crop[1] ||
+            off_rgb[2] != crop[2]) {
+            fprintf(stderr, "FAIL ts01 crop %u %u %u vs %u %u %u\n", off_rgb[0],
+                    off_rgb[1], off_rgb[2], crop[0], crop[1], crop[2]);
+            bitmap_free(&official);
+            return 1;
+        }
+        printf("ts01 cell00 %u %u %u crop %u %u %u\n", off_rgb[0], off_rgb[1],
+               off_rgb[2], crop[0], crop[1], crop[2]);
+        bitmap_free(&official);
+    }
     printf("OK test_tile_cell\n");
     return 0;
 }
