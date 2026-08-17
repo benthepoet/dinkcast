@@ -52,7 +52,6 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                  const struct SeqInfo *seqs)
 {
     int seq, delay, nfr, nx, ny, dx, dy;
-    int hl, ht, hr, hb;
 
     if (p == NULL || seqs == NULL) {
         return;
@@ -69,25 +68,20 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (seq < 1 || seq >= DINK_MAX_SEQ) {
         return;
     }
-    hl = seqs[seq].hl;
-    ht = seqs[seq].ht;
-    hr = seqs[seq].hr;
-    hb = seqs[seq].hb;
-    if (hr <= hl) {
-        hl = -11;
-        hr = 11;
-        ht = -9;
-        hb = 9;
-    }
     if (pad_dir != 0) {
+        int i;
+
         dir_delta(pad_dir, &dx, &dy);
-        nx = p->x + dx * DINK_SPEED;
-        ny = p->y + dy * DINK_SPEED;
-        if (!hard_box_blocked(mask, nx, p->y, hl, ht, hr, hb)) {
-            p->x = nx;
-        }
-        if (!hard_box_blocked(mask, p->x, ny, hl, ht, hr, hb)) {
-            p->y = ny;
+        /* FreeDink move(): 1px steps; check_if_move_is_legal get_hard(x-20,y). */
+        for (i = 0; i < DINK_SPEED; i++) {
+            nx = p->x + dx;
+            ny = p->y + dy;
+            if (dx != 0 && !hard_get(mask, nx, p->y)) {
+                p->x = nx;
+            }
+            if (dy != 0 && !hard_get(mask, p->x, ny)) {
+                p->y = ny;
+            }
         }
     }
     delay = seqs[seq].delay > 0 ? seqs[seq].delay : 50;
