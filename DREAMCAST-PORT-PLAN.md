@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V4 accepted.** **8.6 house** accepted in Flycast (official start interior). Next visual gate is **V5 (13.2)**. Do not start 10.x unless the requester says go.
+**Where we are:** **V4** + **8.6 house** accepted. Next visual gate **V5 (13.2)**. Stock campaign systems (no D-Mods) are listed before Phase D. Do not start 10.x unless the requester says go.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -397,6 +397,43 @@ Commands (names as in file):
 
 **Done when:** Walk the start screen; walls match PC. No talk/hit yet.
 
+- **Leftover (graft with 10.1 / walk polish, not a house PR):** `human_brain` idle snap 1/3→2, 7/9→8; full `get_box` clip (we only skip fully off-playfield quads).
+
+---
+
+### Official campaign systems (stock 1.08 only — no D-Mods)
+
+These **are** the FreeDink systems needed to finish the retail freeware campaign. They are **not** extra. Do not invent a parallel engine. **Out of scope:** D-Mod loader, `dmod.diz`, second data tree, DinkEdit, D-Mod-only DinkC.
+
+| System | FreeDink | Bite | Notes |
+|---|---|---|---|
+| Disc / title / tiles / house / walk | paths, `load_screen_to`, `get_hard`, `game_place_sprites` | 0–9, 8.6 | **done** |
+| Talk / hit probes | `run_through_tag_list_talk`, hit list | **10** | |
+| DinkC graft | `dinkc.cpp`, `dinkc_bindings.cpp` | **11** | long pole |
+| Attach on enter | `game_place_sprites`, `game_screen_init_scripts`, `locate("MAIN")` | **11.6** | screen `script` + every sprite `script` |
+| Engine + `MAIN.c` globals | `attach()`, `make_global_int` | **11.4** | copy lists; include `&vision`, `&story`, `&life`, … |
+| `&vision` / `force_vision` | `draw_screen_game`, DinkC | **11.5 / 11.8** | burned house, many quests |
+| `freeze` nest, yields | `spr[].freeze`, `wait` / `say_stop` / `move_stop` / `choice` | **11.3** | |
+| Unimplemented command | log + no-op | **11.9** | never skip the `.c` file |
+| SFX + one music stream | `sfx`, `bgm`; MIDI id from `dink.dat` | **12** | no seek unless MIDI id changes |
+| Font / say / choice | brain 8, `game_choice` | **13** | V5 |
+| Edge walk + swap | `did_player_cross_screen` | **14.1–14.2** | |
+| Warp | `special_block`, `process_warp`, `is_warp` / `warp_*` | **14.2** | parse those map fields |
+| `screenlock` | `get_hard` clamp + DinkC | **14.2** | |
+| Indoor flag | `dink.dat` `indoor[]` | **14.2** | only if stock scripts/engine use it |
+| `play.spmap` editor_type | `fix_dead_sprites`, `update_play_changes` | **14.2 + 17.1** | dead monsters stay dead 1–5 min |
+| Brains 0–17 | `brain_*.cpp` / `update_frame` | **15.1** | add when that sprite appears |
+| Combat / weapons / magic | `hurt`, `arm_weapon`, missiles | **15** | |
+| Push | `human_brain` / `dink_base_push` | **15** / walk polish | |
+| Death / game over | `die` script, life 0 | **15.2** | |
+| Touch / pickup | `run_through_touch_damage_list` | **16.1** | |
+| Inventory + HUD | `status`, items | **16** | V6; `draw_status` |
+| Map graphic | `process_show_bmp`, seq 165 | **16.3** | Y / map button |
+| VMU save | `savegame` → Maple VMU | **17** | include `play.spmap` + globals |
+| 60 Hz vs `dink.ini` delays | `ThinkSprite`, `game_compute_speed` | keep 60 Hz tick; convert `wait`/seq delay | not a 30 Hz retune |
+
+**Do not skip** a row because the start house does not use it. Graft when that bite is open.
+
 ---
 
 ### Phase D — Talk / hit hooks, then DinkC in waves
@@ -468,7 +505,7 @@ DinkC is **concurrent**. Each attached script is a fiber:
 
 #### Bite 11.4 — Variables
 
-- `&name` globals persist (hash + 100 FreeDink engine vars: `&life`, `&exp`, `&strength`, `&defense`, `&magic`, `&gold`, `&player_map`, `&player_map_x` if any, `&level`, `&enemy_sprite`, `&current_sprite`, … — **copy the engine-var list from FreeDink**, do not invent names).
+- `&name` globals persist. **Copy** FreeDink `attach()` engine vars **and** official `story/MAIN.c` `make_global_int` list (`&vision`, `&story`, `&life`, `&exp`, `&player_map`, …). Do not invent names.
 - Locals per script.
 - `int &x;` in 1.08: match FreeDink 1.08 mode.
 
@@ -476,7 +513,7 @@ DinkC is **concurrent**. Each attached script is a fiber:
 
 Implement **exactly** these first (signatures as DinkC Reference / FreeDink):
 
-`say`, `say_stop`, `say_stop_npc`, `wait`, `freeze`, `unfreeze`, `sp_active`, `sp_x`, `sp_y`, `sp_dir`, `sp_seq`, `sp_frame`, `sp_brain`, `sp_script`, `sp_base_walk`, `sp_base_idle`, `sp_base_attack`, `sp_speed`, `sp_timing`, `sp_pseq`, `sp_pframe`, `move`, `move_stop`, `create_sprite`, `sp_kill`, `playsound` (stub until 12), `debug`, `kill_this_task`, `script_attach`, `external`, `set_callback_random` (may no-op if unused on start screens).
+`say`, `say_stop`, `say_stop_npc`, `wait`, `freeze`, `unfreeze`, `sp_active`, `sp_x`, `sp_y`, `sp_dir`, `sp_seq`, `sp_frame`, `sp_brain`, `sp_script`, `sp_base_walk`, `sp_base_idle`, `sp_base_attack`, `sp_speed`, `sp_timing`, `sp_pseq`, `sp_pframe`, `move`, `move_stop`, `create_sprite`, `sp_kill`, `playsound` (stub until 12), `debug`, `kill_this_task`, `script_attach`, `external`, `set_callback_random` (may no-op if unused on start screens), `force_vision` (and `&vision` writes).
 
 Wire `say*` to a **serial + later Bite 13 box**.
 
@@ -484,8 +521,9 @@ Wire `say*` to a **serial + later Bite 13 box**.
 
 #### Bite 11.6 — Attach on screen enter
 
-- Screen script from `map.dat` / `dink.dat` → `main()`.
+- Screen script from `map.dat` → `locate`/`MAIN` (`game_screen_init_scripts`).
 - Each editor sprite with `script` → instance attached to that sprite → `main()`.
+- Match FreeDink `game_place_sprites` attach order (rank, then scripts).
 
 #### Bite 11.7 — Wave 2 (choices + items prelude)
 
@@ -549,8 +587,12 @@ Depends on Bite 13 for the menu.
 
 #### Bite 14.2 — Swap screen
 
-- Evict **unused** tilesets/seqs only. Keep the tileset if the neighbor still uses it. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 599 − margin, match FreeDink).
+- Evict **unused** tilesets/seqs only. Keep the tileset if the neighbor still uses it. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 619 / playl — **match `did_player_cross_screen`**).
 - Do not stream a new music file on every edge unless `dink.dat` MIDI id changed.
+- **Warp:** parse `is_warp`, `warp_map`, `warp_x`, `warp_y`, `parm_seq`; `special_block` / `process_warp` + fade.
+- **`screenlock`:** `get_hard` edge clamp when set.
+- **`play.spmap` / `update_play_changes` / `fix_dead_sprites`:** editor_type 1–8 (killed / changed sprites persist 1–5 min).
+- **Indoor:** honor `indoor[]` if stock engine/scripts use it.
 
 #### Bite 14.3 — Leak check
 
@@ -565,23 +607,35 @@ Depends on Bite 13 for the menu.
 
 #### Bite 15.1 — Brains (engine, not DinkC)
 
-Implement as FreeDink `brain` switch, **only** types needed for opening combat:
+Implement as FreeDink `update_frame` switch (`brain_*.cpp`). **Log `brain unimplemented: N`.** Add a type when a **stock** sprite uses it (not all at once).
 
-| brain | Role |
+| brain | FreeDink |
 |---|---|
 | 0 | none |
-| 1 | player (already) |
-| 3, 4, 13, … | duck/pig/pillbug — add when that enemy appears |
-| 9 | bounce |
-| 10 | repeat anim |
-| 11 | one-shot then kill |
-| 12 | text sprite |
+| 1 | player (`human_brain`) — walk exists; push / talk / hit later |
+| 2 | bounce |
+| 3 | duck |
+| 4 | pig |
+| 5 | one-time anim |
+| 6 | **repeat** (fireplace / fire) |
+| 7 | one-time then stay |
+| 8 | text (`say`) |
+| 9 | pillbug |
+| 10 | dragon |
+| 11 | missile |
+| 12 | scale |
+| 13 | mouse (title leftover) |
+| 14 | button |
+| 15 | shadow |
+| 16 | people / NPC walk |
+| 17 | missile expire |
 
-Chase/hurt brains: copy FreeDink one type at a time. Log `brain unimplemented: N`.
+Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 15.2 — Damage
 
-- `hurt()` and hit probe write `&life` / enemy hp. Death → `die()` script + brain 11.
+- `hurt()` and hit probe write `&life` / enemy hp. Death → `die()` script + corpse seq. Life 0 → game-over / restart as FreeDink.
+- Push: `dink_base_push` when walking into hardness (`human_brain`).
 
 #### Bite 15.3 — Weapons
 
@@ -604,13 +658,14 @@ Chase/hurt brains: copy FreeDink one type at a time. Log `brain unimplemented: N
 
 #### Bite 16.3 — HUD
 
-- Life, mana, gold, exp from original status BMPs. Atlas ≤ 128 KB. `draw_status` from DinkC becomes real.
+- Life, mana, gold, exp from original status BMPs. Atlas ≤ 128 KB. `draw_status` / `update_status` become real.
+- **Map:** `process_show_bmp` + seq 165 marker (stock world map). Controller: Y or the plan’s map button — **match FreeDink’s mapped action**, pad-only.
 
 **Done when:** Pick up a stock item, open inventory, arm it, HUD and attack seq change.
 
 #### Bite 17.1 — Save blob
 
-- Pack: version u32, `&` engine globals, custom globals used, inventory slots, `&player_map`, x, y, weapon/magic armed. **< 8 KB**.
+- Pack: version u32, `&` engine globals, `MAIN.c` globals, inventory, `&player_map`, x, y, weapon/magic, **`play.spmap` editor_type** (dead/changed sprites). **< 8 KB**.
 
 #### Bite 17.2 — VMU
 
