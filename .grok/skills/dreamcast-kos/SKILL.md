@@ -50,5 +50,5 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 
 - `-DDINK_DATA_DEFAULT=\"$HOST_PATH\"` through `kos-cc` (quotes/backslashes).
 - Invent DinkC or a “faster” interpreter — graft FreeDink. SH-4 can run it; don’t JIT.
-- Skip **4.1** or jump to tiles without a human **go**. 3.4 is done; next picture gate is **6.3**.
+- Skip **4.1** or jump to tiles without a human **go**. V1 and V2 are done; next picture gate is **8.4**.
 - Claim Flycast boot without saying BIOS vs REIOS.

@@ -9,7 +9,10 @@
 #include "boot.h"
 #include "dinkdat.h"
 #include "fs.h"
+#include "hard.h"
+#include "ini.h"
 #include "mapscr.h"
+#include "sprite.h"
 #include "start_map.h"
 #include "tiles.h"
 #include "title.h"
@@ -178,8 +181,58 @@ int main(int argc, char **argv)
             }
         }
         printf("atlas cells %d\n", atlas.used);
-        tiles_present_pvr(&atlas);
-        tiles_free(&atlas);
+        {
+            struct HardMap hard;
+            struct SeqInfo *seqs;
+            struct SpriteFrame spr;
+            int hid;
+
+            memset(&hard, 0, sizeof(hard));
+            if (hard_load(&hard) == 0) {
+                hid = hard_id_for_tile(&hard, scr.t[0].square_full_idx0,
+                                       scr.t[0].althard);
+                printf("hard tile00 id %d\n", hid);
+            }
+            seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
+            memset(&spr, 0, sizeof(spr));
+            if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
+                seqs[DINK_IDLE_SEQ].nframes =
+                    ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix);
+                printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
+                       DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
+                       seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
+                       seqs[DINK_IDLE_SEQ].cy);
+                if (sprite_load_seq_frame(&seqs[DINK_IDLE_SEQ], 1, &spr) != 0) {
+                    printf("idle frame load failed\n");
+                }
+            }
+            free(seqs);
+            if (tiles_upload_pvr(&atlas) != 0) {
+                hud("TILE UPLOAD FAIL", NULL, msg);
+                sprite_frame_free(&spr);
+                for (;;) {
+                    vid_waitvbl();
+                }
+            }
+            if (spr.argb1555 != NULL && sprite_upload_pvr(&spr) != 0) {
+                printf("sprite upload failed\n");
+            }
+            printf("play idle %d,%d\n", DINK_START_X, DINK_START_Y);
+            for (;;) {
+                pvr_wait_ready();
+                pvr_scene_begin();
+                pvr_list_begin(PVR_LIST_OP_POLY);
+                tiles_draw_pvr(&atlas);
+                pvr_list_finish();
+                pvr_list_begin(PVR_LIST_TR_POLY);
+                if (spr.argb1555 != NULL) {
+                    sprite_draw_pvr(&spr, (float)DINK_START_X,
+                                    (float)DINK_START_Y, 2.0f);
+                }
+                pvr_list_finish();
+                pvr_scene_finish();
+            }
+        }
     }
     for (;;) {
         vid_waitvbl();

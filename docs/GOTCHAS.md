@@ -41,3 +41,5 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 
 - **GNU `freedink-data` tarball root is not `DINK_DATA`.** Use the inner `dink/` (`Dink.dat`, `Tiles/`, `Story/`).
 - **Keep that tree outside the git repo.**
+- **Original `Ts01.bmp` is 400×400 (8×8 cells).** FreeDink still uses a 12-wide cell index; slot 30 is empty. Start-screen tile 30 is black; house floor is sprites.
+- **Dink idle frames are `graphics/Dink/idle/dir.ff`.** White is sprite colorkey. Draw sprites TR ARGB1555; tiles OP RGB565.

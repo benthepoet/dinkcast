@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Phase A + **4.1–4.2** done on master. **5.1–6.3** (this PR) parses official `dink.dat`/`map.dat` and draws the start screen as 96 PVR quads. **V2** waits on human Flycast accept. Do not start 6.4.
+**Where we are:** **V2 accepted.** This PR is **6.4–8.4** (evict, hard.dat, `dink.ini`, `dir.ff`, idle at 334,161 dir 4). **V3** waits on human Flycast accept.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 

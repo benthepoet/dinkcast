@@ -195,70 +195,90 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 }
 
 #ifdef _arch_dreamcast
-int tiles_present_pvr(const struct TileAtlas *a)
+static pvr_ptr_t g_tile_tex;
+
+int tiles_upload_pvr(struct TileAtlas *a)
 {
-    pvr_ptr_t tex;
+    if (a == NULL || a->rgb565 == NULL) {
+        return -1;
+    }
+    if (g_tile_tex != NULL) {
+        pvr_mem_free(g_tile_tex);
+        g_tile_tex = NULL;
+    }
+    pvr_init_defaults();
+    g_tile_tex = pvr_mem_malloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
+    if (g_tile_tex == NULL) {
+        return -1;
+    }
+    pvr_txr_load_ex(a->rgb565, g_tile_tex, DINK_ATLAS_W, DINK_ATLAS_H,
+                    PVR_TXRLOAD_16BPP);
+    return 0;
+}
+
+void tiles_evict(struct TileAtlas *a)
+{
+    if (g_tile_tex != NULL) {
+        pvr_mem_free(g_tile_tex);
+        g_tile_tex = NULL;
+    }
+    tiles_free(a);
+}
+
+void tiles_draw_pvr(const struct TileAtlas *a)
+{
     pvr_poly_cxt_t cxt;
     pvr_poly_hdr_t hdr;
     pvr_vertex_t vert;
     int i;
 
-    if (a == NULL || a->rgb565 == NULL) {
-        return -1;
+    if (a == NULL || g_tile_tex == NULL) {
+        return;
     }
-    pvr_init_defaults();
-    tex = pvr_mem_malloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
-    if (tex == NULL) {
-        return -1;
-    }
-    pvr_txr_load_ex(a->rgb565, tex, DINK_ATLAS_W, DINK_ATLAS_H, PVR_TXRLOAD_16BPP);
     pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, DINK_ATLAS_W,
-                     DINK_ATLAS_H, tex, PVR_FILTER_NONE);
+                     DINK_ATLAS_H, g_tile_tex, PVR_FILTER_NONE);
     pvr_poly_compile(&hdr, &cxt);
+    pvr_prim(&hdr, sizeof(hdr));
+    for (i = 0; i < DINK_SCREEN_TILES; i++) {
+        float x0 = (float)(DINK_PLAY_LEFT + (i % 12) * DINK_TILE_PX);
+        float y0 = (float)(DINK_PLAY_TOP + (i / 12) * DINK_TILE_PX);
+        float x1 = x0 + (float)DINK_TILE_PX;
+        float y1 = y0 + (float)DINK_TILE_PX;
+        float u0 = (float)a->slot_x[i] / (float)DINK_ATLAS_W;
+        float v0 = (float)a->slot_y[i] / (float)DINK_ATLAS_H;
+        float u1 = (float)(a->slot_x[i] + DINK_TILE_PX) / (float)DINK_ATLAS_W;
+        float v1 = (float)(a->slot_y[i] + DINK_TILE_PX) / (float)DINK_ATLAS_H;
 
-    for (;;) {
-        pvr_wait_ready();
-        pvr_scene_begin();
-        pvr_list_begin(PVR_LIST_OP_POLY);
-        pvr_prim(&hdr, sizeof(hdr));
-        for (i = 0; i < DINK_SCREEN_TILES; i++) {
-            float x0 = (float)(DINK_PLAY_LEFT + (i % 12) * DINK_TILE_PX);
-            float y0 = (float)(DINK_PLAY_TOP + (i / 12) * DINK_TILE_PX);
-            float x1 = x0 + (float)DINK_TILE_PX;
-            float y1 = y0 + (float)DINK_TILE_PX;
-            float u0 = (float)a->slot_x[i] / (float)DINK_ATLAS_W;
-            float v0 = (float)a->slot_y[i] / (float)DINK_ATLAS_H;
-            float u1 = (float)(a->slot_x[i] + DINK_TILE_PX) / (float)DINK_ATLAS_W;
-            float v1 = (float)(a->slot_y[i] + DINK_TILE_PX) / (float)DINK_ATLAS_H;
-
-            vert.argb = 0xffffffff;
-            vert.oargb = 0;
-            vert.z = 1.0f;
-            vert.flags = PVR_CMD_VERTEX;
-            vert.x = x0;
-            vert.y = y0;
-            vert.u = u0;
-            vert.v = v0;
-            pvr_prim(&vert, sizeof(vert));
-            vert.x = x1;
-            vert.y = y0;
-            vert.u = u1;
-            vert.v = v0;
-            pvr_prim(&vert, sizeof(vert));
-            vert.x = x0;
-            vert.y = y1;
-            vert.u = u0;
-            vert.v = v1;
-            pvr_prim(&vert, sizeof(vert));
-            vert.flags = PVR_CMD_VERTEX_EOL;
-            vert.x = x1;
-            vert.y = y1;
-            vert.u = u1;
-            vert.v = v1;
-            pvr_prim(&vert, sizeof(vert));
-        }
-        pvr_list_finish();
-        pvr_scene_finish();
+        vert.argb = 0xffffffff;
+        vert.oargb = 0;
+        vert.z = 1.0f;
+        vert.flags = PVR_CMD_VERTEX;
+        vert.x = x0;
+        vert.y = y0;
+        vert.u = u0;
+        vert.v = v0;
+        pvr_prim(&vert, sizeof(vert));
+        vert.x = x1;
+        vert.y = y0;
+        vert.u = u1;
+        vert.v = v0;
+        pvr_prim(&vert, sizeof(vert));
+        vert.x = x0;
+        vert.y = y1;
+        vert.u = u0;
+        vert.v = v1;
+        pvr_prim(&vert, sizeof(vert));
+        vert.flags = PVR_CMD_VERTEX_EOL;
+        vert.x = x1;
+        vert.y = y1;
+        vert.u = u1;
+        vert.v = v1;
+        pvr_prim(&vert, sizeof(vert));
     }
+}
+#else
+void tiles_evict(struct TileAtlas *a)
+{
+    tiles_free(a);
 }
 #endif

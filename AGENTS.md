@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1 accepted. **5.1–6.3** is this PR (V2 tiles). After merge: `visual-gate: waiting @human (V2)`. Do not start 6.4 until V2 accepted. `make host` stays green.
+**Now:** V1 and V2 accepted. **8.4 idle** is this PR (V3). After merge: `visual-gate: waiting (V3)` — do **not** `@`-mention anyone. Do not start 9.x until V3 accepted. `make host` stays green.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -25,7 +25,9 @@ Instructions for humans and agents working in this repo.
 | V5 | **13.2** | `say` / talk box with real script text |
 | V6 | **16.2** / **16.3** | Inventory and HUD |
 
-Post `visual-gate: waiting @human (V#)` on the PR after merge. Clear it only with `visual-gate: accepted V#` from the requester (or a comment that unambiguously accepts that picture).
+Post `visual-gate: waiting (V#)` on the PR after merge. **Never `@`-mention a GitHub user** (including the requester). Clear the gate only with `visual-gate: accepted V#` from the requester (or a comment that unambiguously accepts that picture).
+
+On the PR write `orchestrator:` as a label, not an `@` ping.
 
 ---
 
@@ -81,7 +83,7 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 | Merge to `master` (or record who merged) only when the bar is green. | Bypass PR comments; coordination notes go on the PR. |
 | Sequence stacks (`bite/…` then follow-ups). Rebase policy. | Rewrite the port plan without a PR. |
 
-**On the PR the orchestrator writes:** `orchestrator: @who` — bite id, required reviews for this diff, and later `bar: green` / `bar: blocked (why)` before merge.
+**On the PR the orchestrator writes:** `orchestrator:` plus bite id and required reviews (no `@` username). Later `bar: green` / `bar: blocked (why)` before merge.
 
 **Default orchestrator is a dedicated subagent**, not the human requester and not the implementer. Spawn it for every PR. The human may override in writing on that PR. One agent may Orchestrate PR A and Implement PR B, not both on the same PR (docs-only exception above).
 

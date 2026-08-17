@@ -16,7 +16,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -56,6 +56,17 @@ tools/map_recsize: tools/map_recsize.c $(DUMP_COMMON)
 
 tools/dump_screen: tools/dump_screen.c $(DUMP_COMMON)
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/dump_screen.c $(DUMP_COMMON)
+
+tests/test_ini: tests/test_ini.c src/ini.c src/ff.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ini.c src/ini.c src/ff.c src/le.c src/fs.c
+	./$@
+
+tests/test_ff: tests/test_ff.c src/ff.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ff.c src/ff.c src/le.c src/fs.c
+	DINK_DATA="$(DINK_DATA)" ./$@
+
+tools/dump_ini: tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c
 
 tools/bmp_info: tools/bmp_info.c src/bmp.c src/le.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/bmp_info.c src/bmp.c src/le.c
@@ -112,6 +123,7 @@ emu run:
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \
 		tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell \
+		tests/test_ini tests/test_ff \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
-		tools/dump_screen
+		tools/dump_screen tools/dump_ini
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi
