@@ -27,6 +27,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Talk A | `run_through_tag_list_talk` | `talk_probe` | hold (10.1) |
 | Hit B | `item-fst` + `run_through_tag_list` | `player_attack` + `hit_probe` | hold (10.2) |
 | Talk/hit/main hooks | `locate` + `run_script` | `script_on_*` log stubs | hold (10.3); run in 11 |
+| `story/name.c` | `load_script` | `dinkc_load` 32 KB | hold (11.0) |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |

@@ -42,6 +42,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 
 - **SH-4 is fast enough.** Do not invent a VM or JIT “because 200 MHz.” Graft FreeDink; parse once; table-dispatch; cap ops per frame. Busy loops are a script bug (same as PC).
 - **A hitch is not proof scripts are hot.** Profile GD-ROM and texture upload first. Reliability is `wait` / `say_stop` fibers and command coverage, not clock rate.
+- **DinkC files are `story/NAME.c`.** `map.dat` has no extension. Over **32 KB** fails that script only (log `dinkc too big`). Never skip a missing file silently (`dinkc miss`). `dink_fopen` already covers `STORY/NAME.C` / 8.3.
 
 ## Data
 
