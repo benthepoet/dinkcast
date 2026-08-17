@@ -89,7 +89,7 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
             le_i32(p, n, off + 20, &out->sprite[i].size) != 0) {
             return -1;
         }
-        out->sprite[i].active = p[off + 24];
+        out->sprite[i].active = p[off + 24] ? 1 : 0;
         if (le_i32(p, n, off + 36, &out->sprite[i].brain) != 0) {
             return -1;
         }

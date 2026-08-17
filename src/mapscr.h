@@ -16,15 +16,22 @@ struct MapTile {
     int32_t althard;
 };
 
+/* All int32 + 16-byte script: no uint8 hole. SH-4 faults/garbles
+ * misaligned int32 in an array if sizeof % 4 != 0. */
 struct EditorSprite {
     int32_t x, y, seq, frame, type, size;
-    uint8_t active;
+    int32_t active;
     int32_t brain;
-    int32_t que; /* 0 = use y for rank */
-    int32_t hard; /* 0 = solid (FreeDink) */
+    int32_t que;
+    int32_t hard;
     int32_t vision;
-    char script[14];
+    char script[16];
 };
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+_Static_assert(sizeof(struct EditorSprite) % 4u == 0u,
+               "EditorSprite must be 4-aligned for SH-4 arrays");
+#endif
 
 /* Vision 0 always; vision N only when current == N. Type 2 is hardness-only. */
 int editor_sprite_on_vision(const struct EditorSprite *s, int vision);

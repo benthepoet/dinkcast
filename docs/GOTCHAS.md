@@ -23,6 +23,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 ## SH-4 stack
 
 - **KOS thread stack is 32–64 KB.** `World` (9 KB) + `MapScreen` (7 KB) + `HardMap.btile_default` (10 KB) + `EdGfx[96]` (6 KB) as **locals** smash the stack. Serial then looks like a parse bug (`edraw skip seq=388` — that 388 is a **Y**). Put those in BSS (`static`) or heap. Host `make host` will not catch this.
+- **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites on the heap before BMP loads.
 
 ## PVR / video
 
