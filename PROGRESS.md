@@ -26,7 +26,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | [#11](https://github.com/benthepoet/dinkcast/pull/11) |
 | 2026-08-17 | **V2 accepted** | requester Flycast + “we're all good” |
 | 2026-08-17 | **6.4–8.4** evict, hard.dat, ini, dir.ff, idle sprite (V3) | [#13](https://github.com/benthepoet/dinkcast/pull/13) |
-| 2026-08-17 | Idle white key: PT list + PT bins (black slab) | this PR |
+| 2026-08-17 | Idle white key: PT list + PT bins (black slab) | [#14](https://github.com/benthepoet/dinkcast/pull/14) |
+| 2026-08-17 | **V3 accepted** — idle Dink, no black slab | requester screenshot + merge #14 |
 
 ## Bites
 
@@ -48,7 +49,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.2 | hard.dat defaults | source | tile00 id logged |
 | 7.3–7.4 | sprite hard / overlay | pending | after V3 |
-| 8.1–8.5 | ini + dir.ff + idle | source | V3 waiting Flycast |
+| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted; walk is 9.x |
 | 9.1–9.3 | Walk | pending | |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
@@ -67,7 +68,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1 + **V2 accepted**. Next picture gate is **V3 (8.4 idle)**. |
+| Human / visual gates | V1–**V3 accepted**. Next picture gate is **V4 (9.3 walk + hardness)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -77,19 +78,19 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-16)
+### Current (2026-08-17)
 
 | | | |
 |---|---|---|
 | **Overall** | **~85%** | Playable opening-hours campaign on retail 16/8/2 MB |
-| **Next picture (V2 tiles)** | **~90%** | Same blit path as splash |
+| **Next picture (V4 walk)** | **~85%** | Pad + hardness + seq switch; idle path proven |
 | **Hardest remaining** | DinkC Wave 1 + fibers | No `story/*.c` on DC yet |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
 |---|---|---|
 | Title / CDI / Flycast + BIOS | ~98% | V1 accepted |
-| Tiles + Dink idle (V2–V3) | ~90% | Same BMP → twiddled quad |
+| Tiles + Dink idle (V2–V3) | ~98% | V3 accepted; PT punch-through |
 | Walk + hardness (V4) | ~85% | Data/input, not GPU |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
 | Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
@@ -102,3 +103,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 |---|---|---|
 | 2026-08-16 (plan only) | ~80% campaign / ~95% title | Paper: DC can do 2D Dink; DinkC is the pole |
 | 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |
+| 2026-08-17 (V3 accepted) | **~85%** / idle **~98%** | Idle Dink on start screen; PT key (no black slab). Walk/DinkC still unstarted. |

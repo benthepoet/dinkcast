@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1 and V2 accepted. **8.4 idle** is this PR (V3). After merge: `visual-gate: waiting (V3)` — do **not** `@`-mention anyone. Do not start 9.x until V3 accepted. `make host` stays green.
+**Now:** V1–**V3 accepted** (idle Dink, punch-through). Next implementer bite after human **go** is **9.1** (or 7.2–7.4 if we stay in-order). Next visual gate is **V4 (9.3)**. Do not `@`-mention anyone. `make host` stays green.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -20,7 +20,7 @@ Instructions for humans and agents working in this repo.
 |---|---|---|
 | V1 | **3.4** | Official splash (`tiles/Splash.bmp`) | **accepted** |
 | V2 | **6.3** | One official screen of tiles |
-| V3 | **8.4** | Dink idle sprite on that screen |
+| V3 | **8.4** | Dink idle sprite on that screen | **accepted** |
 | V4 | **9.3** | Walk cycle + hardness |
 | V5 | **13.2** | `say` / talk box with real script text |
 | V6 | **16.2** / **16.3** | Inventory and HUD |

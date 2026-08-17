@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V2 accepted.** This PR is **6.4–8.4** (evict, hard.dat, `dink.ini`, `dir.ff`, idle at 334,161 dir 4). **V3** waits on human Flycast accept.
+**Where we are:** **V3 accepted** (2026-08-17): idle Dink at 334,161, punch-through key. Next after human go: walk/hardness toward **V4 (9.3)**.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
