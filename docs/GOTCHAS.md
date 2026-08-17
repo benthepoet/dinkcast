@@ -30,6 +30,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **`pvr_txr_load_ex` always twiddles.** Drawing with `PVR_TXRFMT_NONTWIDDLED` yields horizontal stripes of the right colors. Poly = twiddled `PVR_TXRFMT_RGB565`.
 - **Brown then stripes = decode OK, upload/format wrong.** Red HUD = never found data (or ELF never ran).
 - **640×480 is not a texture size.** Pad to 1024×512; sample with UVs `640/1024`, `480/512`.
+- **`pvr_wait_ready` before `pvr_mem_free` of a texture still in the last scene.** Walk/idle frames share a similar `cx`; punch (`ds-h*`, cx ~58) then idle (`ds-i*`, cx ~36) does not. Evict after `scene_finish` but before the next wait and the GPU still samples the old quad — idle pixels appear left of Dink. Wait, then swap.
 
 ## Screen changes
 

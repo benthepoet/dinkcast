@@ -43,7 +43,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | Audio (12) after combat/inventory (16) | [#27](https://github.com/benthepoet/dinkcast/pull/27) |
 | 2026-08-17 | Idle snap 1/3→2, 7/9→8 (`human_brain`) | #28 |
 | 2026-08-17 | **10.1** talk probe (`run_through_tag_list_talk`) | #29; requester accepted |
-| 2026-08-17 | **10.2** hit probe (`run_through_tag_list`) | this PR |
+| 2026-08-17 | **10.2** hit probe (`run_through_tag_list`) | #30 |
+| 2026-08-17 | Punch→idle ghost: `pvr_wait_ready` before evict | this PR |
 
 ## Bites
 

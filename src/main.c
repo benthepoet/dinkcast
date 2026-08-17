@@ -307,6 +307,10 @@ int main(int argc, char **argv)
                         uint32_t buttons = 0;
                         int have, pdir;
 
+                    /* Finish the last scene before evicting its sprite tex.
+                     * Punch cx (~58) vs idle (~36): freeing mid-frame shows
+                     * idle pixels at the punch quad (ghost to the left). */
+                    pvr_wait_ready();
                     have = (pad_poll_port0(&buttons) == 0);
                     if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
@@ -354,7 +358,6 @@ int main(int argc, char **argv)
                             }
                         }
                     }
-                    pvr_wait_ready();
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);
