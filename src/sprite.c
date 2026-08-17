@@ -117,36 +117,37 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
     out->h = bm.h;
     out->tw = tw;
     out->th = th;
-    out->cx = seq->cx;
-    out->cy = seq->cy;
+    out->cx = seq->cx > 0 ? seq->cx : ((bm.w - bm.w / 2) + bm.w / 6);
+    out->cy = seq->cy > 0 ? seq->cy : ((bm.h - bm.h / 4) - bm.h / 30);
     out->argb1555 = pad;
+    out->tex = NULL;
     bitmap_free(&bm);
     return 0;
 }
 
 #ifdef _arch_dreamcast
-static pvr_ptr_t g_spr_tex;
-
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
+    pvr_ptr_t tex;
+
     if (f == NULL || f->argb1555 == NULL) {
         return -1;
     }
     sprite_evict_pvr(f);
-    g_spr_tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);
-    if (g_spr_tex == NULL) {
+    tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);
+    if (tex == NULL) {
         return -1;
     }
-    pvr_txr_load_ex(f->argb1555, g_spr_tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
+    pvr_txr_load_ex(f->argb1555, tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
+    f->tex = tex;
     return 0;
 }
 
 void sprite_evict_pvr(struct SpriteFrame *f)
 {
-    (void)f;
-    if (g_spr_tex != NULL) {
-        pvr_mem_free(g_spr_tex);
-        g_spr_tex = NULL;
+    if (f != NULL && f->tex != NULL) {
+        pvr_mem_free((pvr_ptr_t)f->tex);
+        f->tex = NULL;
     }
 }
 
@@ -157,12 +158,12 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     pvr_vertex_t vert;
     float u, v, x0, y0, x1, y1;
 
-    if (f == NULL || g_spr_tex == NULL) {
+    if (f == NULL || f->tex == NULL) {
         return;
     }
     /* 1-bit alpha: punch-through list. TR still writes A=0 as black. */
     pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
-                     g_spr_tex, PVR_FILTER_NONE);
+                     (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
     cxt.gen.alpha = PVR_ALPHA_ENABLE;
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
     pvr_poly_compile(&hdr, &cxt);

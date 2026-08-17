@@ -3,7 +3,7 @@
 TARGET = build/dinkcast.elf
 OBJS = src/main.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/title.o src/pad.o \
 	src/world.o src/mapscr.o src/tiles.o src/ff.o src/ini.o src/hard.o src/sprite.o \
-	src/player.o
+	src/player.o src/edraw.o
 
 KOS_CFLAGS += -Isrc
 # Do not -DDINK_DATA_DEFAULT from local.mk: that path is a host tree

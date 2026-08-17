@@ -23,6 +23,7 @@ def main() -> int:
         ("idle", "DINK_IDLE_SEQ" in text or "sprite_draw_pvr" in text),
         ("pt list", "PVR_LIST_PT_POLY" in text),
         ("walk", "player_step" in text),
+        ("edraw", "edraw_load_screen" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

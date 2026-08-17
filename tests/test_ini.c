@@ -10,7 +10,8 @@ int main(void)
     const char *txt =
         "; comment\n"
         "load_sequence_now graphics\\dink\\idle\\ds-i4- 14 250 30 71 -11 -9 11 9\n"
-        "load_sequence graphics\\dink\\walk\\ds-w2- 72 43 37 69 -13 -9 13 9\n";
+        "load_sequence graphics\\dink\\walk\\ds-w2- 72 43 37 69 -13 -9 13 9\n"
+        "load_sequence graphics\\inside\\innwalls\\walls\\inn- 31 NOTANIM\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL parse\n");
@@ -26,6 +27,10 @@ int main(void)
     }
     if (seqs[72].cx != 37 || seqs[72].cy != 69) {
         fprintf(stderr, "FAIL seq72\n");
+        return 1;
+    }
+    if (strcmp(seqs[31].prefix, "graphics/inside/innwalls/walls/inn-") != 0) {
+        fprintf(stderr, "FAIL seq31 NOTANIM prefix %s\n", seqs[31].prefix);
         return 1;
     }
     printf("OK test_ini\n");
