@@ -23,7 +23,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
 | 2026-08-16 | Alignment pass (docs agree: V1 done, next 4.1) | README/AGENTS/plan/PROGRESS |
 | 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | [#10](https://github.com/benthepoet/dinkcast/pull/10) |
-| 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | this PR |
+| 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | [#11](https://github.com/benthepoet/dinkcast/pull/11) |
+| 2026-08-17 | **V2 accepted** — tile plane is T of wood; index 30 empty in original `Ts01.bmp` | requester screenshot + “we're all good” |
 
 ## Bites
 
@@ -40,9 +41,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 3.3 | PVR upload | done | twiddled RGB565 (not NONTWIDDLED) |
 | 3.4 | **Title quad (first screenshot)** | done | Flycast + real BIOS; `tiles/Splash.bmp` |
 | 4.1–4.2 | Start / leave title | done | #10 |
-| 5.1–5.4 | `dink.dat` / `map.dat` | source | LE parse + dumps; 5.4 sprites data-only |
-| 6.1–6.3 | Atlas + 96 quads | source | Policy A used-cells; V2 waiting Flycast |
-| 6.4 | Evict | pending | not this PR |
+| 5.1–5.4 | `dink.dat` / `map.dat` | done | LE parse + dumps; 5.4 sprites data-only |
+| 6.1–6.3 | Atlas + 96 quads | done | V2 accepted; house floor sprites are 8.x |
+| 6.4 | Evict | next | after human go |
 | 7.1–7.4 | Hardness | pending | |
 | 8.1–8.5 | Sequences / Dink sprite | pending | |
 | 9.1–9.3 | Walk | pending | |
@@ -63,7 +64,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. |
+| Human / visual gates | V1 and **V2 (6.3 tiles) accepted**. Next picture gate is **V3 (8.4 Dink idle)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -73,19 +74,19 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-16)
+### Current (2026-08-17)
 
 | | | |
 |---|---|---|
 | **Overall** | **~85%** | Playable opening-hours campaign on retail 16/8/2 MB |
-| **Next picture (V2 tiles)** | **~90%** | Same blit path as splash |
+| **Next picture (V3 Dink idle)** | **~85%** | Need `dink.ini` + seq frames; tiles path proven |
 | **Hardest remaining** | DinkC Wave 1 + fibers | No `story/*.c` on DC yet |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
 |---|---|---|
 | Title / CDI / Flycast + BIOS | ~98% | V1 accepted |
-| Tiles + Dink idle (V2–V3) | ~90% | Same BMP → twiddled quad |
+| Tiles + Dink idle (V2–V3) | ~90% | V2 tiles accepted; idle still unstarted |
 | Walk + hardness (V4) | ~85% | Data/input, not GPU |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
 | Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
@@ -98,3 +99,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 |---|---|---|
 | 2026-08-16 (plan only) | ~80% campaign / ~95% title | Paper: DC can do 2D Dink; DinkC is the pole |
 | 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |
+| 2026-08-17 (V2 accepted) | **~85%** / tiles **~98%** | Official 12×8 tile plane on Flycast. `Ts01` 400×400; cell 30 empty; house fill is sprites (8.x). DinkC still untouched. |

@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Phase A + **4.1–4.2** done on master. **5.1–6.3** (this PR) parses official `dink.dat`/`map.dat` and draws the start screen as 96 PVR quads. **V2** waits on human Flycast accept. Do not start 6.4.
+**Where we are:** Through **6.3** on master. **V2 accepted** (2026-08-17): official start-screen *tile plane* (T of wood; `Ts01` cell 30 empty). Next after human go: **6.4** evict. Next picture: **V3 (8.4)** Dink idle.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -713,7 +713,7 @@ dinkcast/
                          → 18.1–18.3 harden
 ```
 
-**Visual gates (human must accept in Flycast/hardware before the next bite):** V1 3.4 splash **accepted**; V2 6.3 tiles; V3 8.4 Dink idle; V4 9.3 walk; V5 13.2 say box; V6 16.2/16.3 inventory+HUD. See [AGENTS.md](AGENTS.md).  
+**Visual gates (human must accept in Flycast/hardware before the next bite):** V1 3.4 splash **accepted**; V2 6.3 tiles **accepted**; V3 8.4 Dink idle; V4 9.3 walk; V5 13.2 say box; V6 16.2/16.3 inventory+HUD. See [AGENTS.md](AGENTS.md).  
 **Playable slice:** 14–16 on the opening map.
 
 ---

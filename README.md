@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1 accepted:** official splash. **V2 (this PR):** Start/A leaves title; official start-screen tiles (12×8). Human must accept V2 in Flycast before 6.4+.
+**V1 + V2 accepted:** splash, then Start/A, official 12×8 tile plane (house floor sprites come later). Next picture gate is **V3 (8.4 Dink idle)**.
 
 ## Dreamcast toolchain
 

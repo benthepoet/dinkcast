@@ -41,3 +41,4 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 
 - **GNU `freedink-data` tarball root is not `DINK_DATA`.** Use the inner `dink/` (`Dink.dat`, `Tiles/`, `Story/`).
 - **Keep that tree outside the git repo.**
+- **Original `Ts01.bmp` is 400×400 (8×8 cells), not 600×400.** FreeDink still addresses cells as `idx%128` on a **12-wide** grid; slot 30 is empty. Start-screen index **30** is black *tiles*; the house floor is **editor sprites** (seq 31+). A T of wood after V2 is correct, not a twiddle bug.
