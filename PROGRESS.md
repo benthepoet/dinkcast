@@ -34,7 +34,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | Editor `vision` + type 2 (intact house, not fire layer) | [#18](https://github.com/benthepoet/dinkcast/pull/18) |
 | 2026-08-17 | FreeDink `SET_SPRITE_INFO` + `hard==0` stamp | [#19](https://github.com/benthepoet/dinkcast/pull/19) |
 | 2026-08-17 | Move = `get_hard` point + exclusive stamp | [#20](https://github.com/benthepoet/dinkcast/pull/20) |
-| 2026-08-17 | FreeDink audit: `que` rank, diag `speed-speed/3` | this PR |
+| 2026-08-17 | FreeDink audit: `que` rank, diag `speed-speed/3` | [#21](https://github.com/benthepoet/dinkcast/pull/21) |
+| 2026-08-17 | `que` is sort key only (not draw y) | this PR |
 
 ## Bites
 

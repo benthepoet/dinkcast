@@ -319,7 +319,7 @@ int main(int argc, char **argv)
                     pvr_list_begin(PVR_LIST_PT_POLY);
                     {
                         struct {
-                            int y, x;
+                            int rank, x, y, bg;
                             struct SpriteFrame *fr;
                         } draw[101];
                         int nd = 0, a, b;
@@ -341,33 +341,51 @@ int main(int argc, char **argv)
                             if (ef == NULL) {
                                 continue;
                             }
-                            draw[nd].y = editor_sprite_rank_y(&scr.sprite[si]);
+                            /* que is depth only (screen_rank). x,y stay map. */
+                            draw[nd].rank =
+                                editor_sprite_rank_y(&scr.sprite[si]);
                             draw[nd].x = (int)scr.sprite[si].x;
+                            draw[nd].y = (int)scr.sprite[si].y;
+                            draw[nd].bg = (scr.sprite[si].type == 0);
                             draw[nd].fr = ef;
                             nd++;
                         }
                         if (spr.argb1555 != NULL && nd < 100) {
-                            draw[nd].y = pl.y;
+                            draw[nd].rank = pl.y;
                             draw[nd].x = pl.x;
+                            draw[nd].y = pl.y;
+                            draw[nd].bg = 0;
                             draw[nd].fr = &spr;
                             nd++;
                         }
                         for (a = 0; a < nd; a++) {
                             for (b = a + 1; b < nd; b++) {
-                                if (draw[b].y < draw[a].y) {
-                                    int ty = draw[a].y, tx = draw[a].x;
+                                int ba = draw[a].bg ? 0 : 1;
+                                int bb = draw[b].bg ? 0 : 1;
+
+                                if (bb < ba ||
+                                    (bb == ba && draw[b].rank < draw[a].rank)) {
+                                    int tr = draw[a].rank, tx = draw[a].x,
+                                        ty = draw[a].y, tb = draw[a].bg;
                                     struct SpriteFrame *tf = draw[a].fr;
-                                    draw[a] = draw[b];
-                                    draw[b].y = ty;
+
+                                    draw[a].rank = draw[b].rank;
+                                    draw[a].x = draw[b].x;
+                                    draw[a].y = draw[b].y;
+                                    draw[a].bg = draw[b].bg;
+                                    draw[a].fr = draw[b].fr;
+                                    draw[b].rank = tr;
                                     draw[b].x = tx;
+                                    draw[b].y = ty;
+                                    draw[b].bg = tb;
                                     draw[b].fr = tf;
                                 }
                             }
                         }
                         for (a = 0; a < nd; a++) {
                             sprite_draw_pvr(draw[a].fr, (float)draw[a].x,
-                                            (float)draw[a].y, 2.0f +
-                                                                  (float)a * 0.01f);
+                                            (float)draw[a].y,
+                                            1.5f + (float)a * 0.01f);
                         }
                     }
                     pvr_list_finish();

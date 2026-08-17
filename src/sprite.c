@@ -174,6 +174,10 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     y0 = y - (float)f->cy;
     x1 = x0 + (float)f->w;
     y1 = y0 + (float)f->h;
+    /* get_box: skip if fully outside playl..playx, 0..playy */
+    if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
+        return;
+    }
     vert.argb = 0xffffffff;
     vert.oargb = 0;
     vert.z = z;

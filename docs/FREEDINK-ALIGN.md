@@ -12,7 +12,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 |---|---|---|---|
 | `dink.dat` 20+769×3 i32+2240 | `EditorMap::load` | `world_parse_mem` | hold |
 | `map.dat` 31280, tile 80 B, sprite 220 B | `load_screen_to` | `map_parse_mem` | hold |
-| `vision` +188, `hard` +120 (`0`=solid), `que` +116 | `editor_screen` / `screen_rank_*` | parsed; rank `que?:y` | hold |
+| `vision` +188, `hard` +120 (`0`=solid), `que` +116 | `screen_rank_*` | sort by `que?:y`; **draw at map x,y** | hold |
 | Type 0 draw, 1 live, 2 hard-only | `game_place_sprites` | `editor_sprite_draw` | hold |
 | `SET_SPRITE_INFO` last-wins | `program_idata` | `ini_store_frame` | hold (400 unique; official 207) |
 | Default cx/cy/hardbox | `load_sprites` | `ini_frame_geom` | hold |
