@@ -14,6 +14,7 @@ int main(void)
         "load_sequence graphics\\inside\\innwalls\\walls\\inn- 31 NOTANIM\n"
         "SET_SPRITE_INFO 31 22 79 88 -75 1 21 12\n"
         "Set_Sprite_Info 31 22 79 88 -94 -36 21 19\n"
+        "set_frame_special 106 3 1\n"
         "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
@@ -51,6 +52,10 @@ int main(void)
                     cx, cy, hl, ht, hr, hb);
             return 1;
         }
+    }
+    if (!ini_frame_special(106, 3) || ini_frame_special(106, 1)) {
+        fprintf(stderr, "FAIL SET_FRAME_SPECIAL\n");
+        return 1;
     }
     printf("OK test_ini\n");
     return 0;

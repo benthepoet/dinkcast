@@ -42,7 +42,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | Campaign systems table (stock 1.08, no D-Mods) | [#26](https://github.com/benthepoet/dinkcast/pull/26) |
 | 2026-08-17 | Audio (12) after combat/inventory (16) | [#27](https://github.com/benthepoet/dinkcast/pull/27) |
 | 2026-08-17 | Idle snap 1/3→2, 7/9→8 (`human_brain`) | #28 |
-| 2026-08-17 | **10.1** talk probe (`run_through_tag_list_talk`) | this PR |
+| 2026-08-17 | **10.1** talk probe (`run_through_tag_list_talk`) | #29; requester accepted |
+| 2026-08-17 | **10.2** hit probe (`run_through_tag_list`) | this PR |
 
 ## Bites
 
@@ -66,8 +67,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
 | 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
-| 10.1 | Talk probe | source | A edge + `talk_probe`; freeze++; no DinkC |
-| 10.2–10.3 | Hit probe / hook table | pending | |
+| 10.1 | Talk probe | done | #29; requester accepted |
+| 10.2 | Hit probe | source | B fists + `SET_FRAME_SPECIAL` + `hit_probe` |
+| 10.3 | Hook table stubs | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |

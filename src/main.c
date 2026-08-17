@@ -11,6 +11,7 @@
 #include "fs.h"
 #include "edraw.h"
 #include "hard.h"
+#include "hit.h"
 #include "ini.h"
 #include "mapscr.h"
 #include "pad.h"
@@ -212,7 +213,8 @@ int main(int argc, char **argv)
                 int s;
                 for (s = 1; s < DINK_MAX_SEQ; s++) {
                     if (seqs[s].prefix[0] != '\0' &&
-                        ((s >= 12 && s <= 18) || (s >= 71 && s <= 79))) {
+                        ((s >= 12 && s <= 18) || (s >= 71 && s <= 79) ||
+                         (s >= 101 && s <= 109))) {
                         seqs[s].nframes = ini_count_ff_frames(seqs[s].prefix);
                     }
                 }
@@ -306,7 +308,7 @@ int main(int argc, char **argv)
                         int have, pdir;
 
                     have = (pad_poll_port0(&buttons) == 0);
-                    if (have && pl.freeze == 0 &&
+                    if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir);
@@ -319,10 +321,25 @@ int main(int argc, char **argv)
                             printf("talk sprite=0\n");
                         }
                     }
+                    if (have && pl.freeze == 0 &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
+                        player_attack(&pl, seqs);
+                    }
                     prev_buttons = have ? buttons : 0;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
+                        if (pl.just_hit) {
+                            int slot = hit_probe(&g_scr, g_edg, ned, seqs,
+                                                 pl.x, pl.y, pl.dir);
+
+                            if (slot > 0) {
+                                printf("hit sprite=%d script=%s\n", slot,
+                                       g_scr.sprite[slot].script);
+                            } else {
+                                printf("hit sprite=0\n");
+                            }
+                        }
                         if (pl.seq != last_seq || pl.frame != last_frame) {
                             struct SpriteFrame nxt;
 
