@@ -17,6 +17,11 @@ tools/title_preview
 tests/test_bmp
 tests/test_dink_dat_size
 tests/test_pad
+tests/test_world
+tests/test_tile_cell
+tools/dump_world
+tools/map_recsize
+tools/dump_screen
 
 # Toolchain / local
 .kosenv

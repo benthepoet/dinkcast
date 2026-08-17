@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1 accepted:** official `tiles/Splash.bmp` on Flycast with a real BIOS (`make docker-cdi` + `make emu`). **4.1–4.2** leave-title is in this PR. Next engine bite after merge is **5.1**. Next *picture* gate is **V2 (6.3 tiles)**.
+**V1 accepted:** official splash. **V2 (this PR):** Start/A leaves title; official start-screen tiles (12×8). Human must accept V2 in Flycast before 6.4+.
 
 ## Dreamcast toolchain
 

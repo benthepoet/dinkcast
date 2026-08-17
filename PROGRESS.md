@@ -22,7 +22,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Screen-to-screen delay targets (CD vs Flycast) | plan binding + GOTCHAS |
 | 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
 | 2026-08-16 | Alignment pass (docs agree: V1 done, next 4.1) | README/AGENTS/plan/PROGRESS |
-| 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | this PR |
+| 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | [#10](https://github.com/benthepoet/dinkcast/pull/10) |
+| 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | this PR |
 
 ## Bites
 
@@ -38,9 +39,10 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 3.2 | CPU RGB565 | done | `src/rgb565.c` |
 | 3.3 | PVR upload | done | twiddled RGB565 (not NONTWIDDLED) |
 | 3.4 | **Title quad (first screenshot)** | done | Flycast + real BIOS; `tiles/Splash.bmp` |
-| 4.1–4.2 | Start / leave title | source | Maple poll + `leave_title`; Flycast Start/A not yet human-seen |
-| 5.1–5.4 | `dink.dat` / `map.dat` | next | |
-| 6.1–6.4 | Tiles + evict | pending | |
+| 4.1–4.2 | Start / leave title | done | #10 |
+| 5.1–5.4 | `dink.dat` / `map.dat` | source | LE parse + dumps; 5.4 sprites data-only |
+| 6.1–6.3 | Atlas + 96 quads | source | Policy A used-cells; V2 waiting Flycast |
+| 6.4 | Evict | pending | not this PR |
 | 7.1–7.4 | Hardness | pending | |
 | 8.1–8.5 | Sequences / Dink sprite | pending | |
 | 9.1–9.3 | Walk | pending | |

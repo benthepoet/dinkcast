@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Phase A (**Bites 0.1–3.4**) is **done** — official `tiles/Splash.bmp` on Flycast (2026-08-16). **4.1–4.2** Maple leave-title is in source (this PR). **Next after merge:** Bite **5.1** `dink.dat` parse. Tiles are Bite 6 / V2.
+**Where we are:** Phase A + **4.1–4.2** done on master. **5.1–6.3** (this PR) parses official `dink.dat`/`map.dat` and draws the start screen as 96 PVR quads. **V2** waits on human Flycast accept. Do not start 6.4.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
