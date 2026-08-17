@@ -25,7 +25,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | [#10](https://github.com/benthepoet/dinkcast/pull/10) |
 | 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | [#11](https://github.com/benthepoet/dinkcast/pull/11) |
 | 2026-08-17 | **V2 accepted** | requester Flycast + “we're all good” |
-| 2026-08-17 | **6.4–8.4** evict, hard.dat, ini, dir.ff, idle sprite (V3) | this PR |
+| 2026-08-17 | **6.4–8.4** evict, hard.dat, ini, dir.ff, idle sprite (V3) | [#13](https://github.com/benthepoet/dinkcast/pull/13) |
+| 2026-08-17 | Idle white key: PT list + PT bins (black slab) | this PR |
 
 ## Bites
 

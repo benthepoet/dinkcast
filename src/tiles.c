@@ -206,7 +206,17 @@ int tiles_upload_pvr(struct TileAtlas *a)
         pvr_mem_free(g_tile_tex);
         g_tile_tex = NULL;
     }
-    pvr_init_defaults();
+    /* Enable PT bins so 1555 sprites can punch through (defaults often 0). */
+    {
+        pvr_init_params_t params;
+
+        memset(&params, 0, sizeof(params));
+        params.opb_sizes[PVR_LIST_OP_POLY] = PVR_BINSIZE_16;
+        params.opb_sizes[PVR_LIST_TR_POLY] = PVR_BINSIZE_16;
+        params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
+        params.vertex_buf_size = 512 * 1024;
+        pvr_init(&params);
+    }
     g_tile_tex = pvr_mem_malloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
     if (g_tile_tex == NULL) {
         return -1;
