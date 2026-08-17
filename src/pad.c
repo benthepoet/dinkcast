@@ -9,6 +9,40 @@ int pad_title_wants_leave(int have_controller, uint32_t buttons)
     return (buttons & DINK_PAD_LEAVE) != 0;
 }
 
+int pad_dir_from_buttons(uint32_t buttons)
+{
+    int u = (buttons & DINK_PAD_UP) != 0;
+    int d = (buttons & DINK_PAD_DOWN) != 0;
+    int l = (buttons & DINK_PAD_LEFT) != 0;
+    int r = (buttons & DINK_PAD_RIGHT) != 0;
+
+    if (u && l) {
+        return 7;
+    }
+    if (u && r) {
+        return 9;
+    }
+    if (d && l) {
+        return 1;
+    }
+    if (d && r) {
+        return 3;
+    }
+    if (u) {
+        return 8;
+    }
+    if (d) {
+        return 2;
+    }
+    if (l) {
+        return 4;
+    }
+    if (r) {
+        return 6;
+    }
+    return 0;
+}
+
 #ifdef _arch_dreamcast
 #include <kos.h>
 #include <dc/maple.h>
@@ -38,6 +72,18 @@ int pad_poll_port0(uint32_t *out_buttons)
     }
     if (st->buttons & CONT_START) {
         bits |= DINK_PAD_START;
+    }
+    if (st->buttons & CONT_DPAD_UP) {
+        bits |= DINK_PAD_UP;
+    }
+    if (st->buttons & CONT_DPAD_DOWN) {
+        bits |= DINK_PAD_DOWN;
+    }
+    if (st->buttons & CONT_DPAD_LEFT) {
+        bits |= DINK_PAD_LEFT;
+    }
+    if (st->buttons & CONT_DPAD_RIGHT) {
+        bits |= DINK_PAD_RIGHT;
     }
     *out_buttons = bits;
     return 0;

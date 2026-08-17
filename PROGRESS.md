@@ -26,7 +26,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | [#11](https://github.com/benthepoet/dinkcast/pull/11) |
 | 2026-08-17 | **V2 accepted** | requester Flycast + “we're all good” |
 | 2026-08-17 | **6.4–8.4** evict, hard.dat, ini, dir.ff, idle sprite (V3) | [#13](https://github.com/benthepoet/dinkcast/pull/13) |
-| 2026-08-17 | Idle white key: PT list + PT bins (black slab) | this PR |
+| 2026-08-17 | Idle white key: PT list + PT bins (black slab) | [#14](https://github.com/benthepoet/dinkcast/pull/14) |
+| 2026-08-17 | **V3 accepted** | requester screenshot + merge #14 |
+| 2026-08-17 | **7.2–9.3** hardness stamp + walk (V4) | this PR |
 
 ## Bites
 
@@ -46,10 +48,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 5.1–5.4 | `dink.dat` / `map.dat` | done | #11 |
 | 6.1–6.3 | Atlas + 96 quads | done | V2 accepted |
 | 6.4 | Evict | source | `tiles_evict` |
-| 7.1–7.2 | hard.dat defaults | source | tile00 id logged |
-| 7.3–7.4 | sprite hard / overlay | pending | after V3 |
-| 8.1–8.5 | ini + dir.ff + idle | source | V3 waiting Flycast |
-| 9.1–9.3 | Walk | pending | |
+| 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
+| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
+| 9.1–9.3 | Walk | source | V4 waiting Flycast |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
 | 12.1–12.4 | AICA audio | pending | |
@@ -67,7 +68,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1 + **V2 accepted**. Next picture gate is **V3 (8.4 idle)**. |
+| Human / visual gates | V1–**V3 accepted**. Next picture gate is **V4 (9.3 walk)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 

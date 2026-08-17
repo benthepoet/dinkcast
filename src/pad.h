@@ -8,9 +8,15 @@
 #define DINK_PAD_A (1u << 0)
 #define DINK_PAD_START (1u << 1)
 #define DINK_PAD_LEAVE (DINK_PAD_A | DINK_PAD_START)
+#define DINK_PAD_UP (1u << 2)
+#define DINK_PAD_DOWN (1u << 3)
+#define DINK_PAD_LEFT (1u << 4)
+#define DINK_PAD_RIGHT (1u << 5)
 
 /* Missing controller (have == 0) never leaves the title. */
 int pad_title_wants_leave(int have_controller, uint32_t buttons);
+/* Keypad dir 1-9, or 0 if no D-pad. */
+int pad_dir_from_buttons(uint32_t buttons);
 
 #ifdef _arch_dreamcast
 /* Maple port 0. Returns 0 if a controller is present; -1 if missing. */

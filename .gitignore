@@ -26,6 +26,7 @@ tools/dump_ini
 tests/test_ini
 tests/test_ff
 tests/test_sprite
+tests/test_player
 
 # Toolchain / local
 .kosenv
