@@ -77,7 +77,7 @@ int main(void)
     }
     closedir(d);
     printf("dinkc parse files=%d fails=%d\n", nfile, fails);
-    expect(fails == 0 && nfile > 50, "stock parse");
+    expect(fails == 0 && nfile == 381, "stock parse 381");
     printf("OK test_dinkc_parse\n");
     return 0;
 }
