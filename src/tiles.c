@@ -113,6 +113,16 @@ static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
     }
 }
 
+static void free_sheets(uint16_t **sheets)
+{
+    int i;
+
+    for (i = 0; i < 41; i++) {
+        free(sheets[i]);
+        sheets[i] = NULL;
+    }
+}
+
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 {
     uint16_t *sheets[41];
@@ -141,24 +151,28 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 
         tile_split(scr->t[i].square_full_idx0, &sheet0, &cell);
         if (sheet0 < 0 || sheet0 >= 41 || cell < 0 || cell >= 128) {
+            free_sheets(sheets);
             tiles_free(out);
             return -1;
         }
         if (sheets[sheet0] == NULL) {
             snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
             if (slurp_rel(rel, &raw, &n) != 0) {
+                free_sheets(sheets);
                 tiles_free(out);
                 return -1;
             }
             memset(&bm, 0, sizeof(bm));
             if (bitmap_load_mem(raw, n, &bm) != 0) {
                 free(raw);
+                free_sheets(sheets);
                 tiles_free(out);
                 return -1;
             }
             free(raw);
             if (rgb565_from_bitmap(&bm, &pix, &npx) != 0) {
                 bitmap_free(&bm);
+                free_sheets(sheets);
                 tiles_free(out);
                 return -1;
             }
@@ -175,9 +189,7 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
         out->slot_x[i] = ax;
         out->slot_y[i] = ay;
     }
-    for (i = 0; i < 41; i++) {
-        free(sheets[i]);
-    }
+    free_sheets(sheets);
     out->used = DINK_SCREEN_TILES;
     return 0;
 }
