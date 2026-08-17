@@ -21,6 +21,11 @@ int main(void)
     memset(&scr, 0, sizeof(scr));
     strncpy(scr.script, "s1-h1", sizeof(scr.script) - 1);
     strncpy(scr.sprite[3].script, "s1-h1-m", sizeof(scr.sprite[3].script) - 1);
+    scr.sprite[3].active = 1;
+    scr.sprite[3].type = 1;
+    strncpy(scr.sprite[4].script, "s1-h1-m", sizeof(scr.sprite[4].script) - 1);
+    scr.sprite[4].active = 1;
+    scr.sprite[4].type = 1;
 
     script_bind_screen(&scr);
     script_on_main(0);

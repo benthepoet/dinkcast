@@ -302,7 +302,7 @@ int main(int argc, char **argv)
                 last_frame = pl.frame;
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
                 script_bind_screen(&g_scr);
-                script_on_main(0);
+                script_on_main(0); /* also preloads unique sprite story files */
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;

@@ -9,6 +9,8 @@ void script_bind_screen(const struct MapScreen *scr);
 
 /* Bite 10.3 stubs: log only. DinkC is 11. */
 void script_on_main(int script_id);
+/* Load unique sprite + screen story files (11.0). No run. */
+int script_preload_screen(void);
 void script_on_talk(int sprite);
 void script_on_hit(int sprite);
 
