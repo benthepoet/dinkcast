@@ -224,7 +224,7 @@ int main(int argc, char **argv)
                 pvr_list_begin(PVR_LIST_OP_POLY);
                 tiles_draw_pvr(&atlas);
                 pvr_list_finish();
-                pvr_list_begin(PVR_LIST_TR_POLY);
+                pvr_list_begin(PVR_LIST_PT_POLY);
                 if (spr.argb1555 != NULL) {
                     sprite_draw_pvr(&spr, (float)DINK_START_X,
                                     (float)DINK_START_Y, 2.0f);

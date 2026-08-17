@@ -34,12 +34,18 @@ void sprite_frame_free(struct SpriteFrame *f)
     memset(f, 0, sizeof(*f));
 }
 
+int sprite_pixel_opaque(uint16_t p)
+{
+    return (p & SPRITE_ARGB1555_OPAQUE) != 0;
+}
+
 static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
 {
     if (r > 240 && g > 240 && b > 240) {
-        return 0;
+        return 0; /* A=0 punch-through */
     }
-    return (uint16_t)(0x8000u | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3));
+    return (uint16_t)(SPRITE_ARGB1555_OPAQUE | ((r >> 3) << 10) | ((g >> 3) << 5) |
+                      (b >> 3));
 }
 
 int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
@@ -151,8 +157,11 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     if (f == NULL || g_spr_tex == NULL) {
         return;
     }
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+    /* 1-bit alpha: punch-through list. TR still writes A=0 as black. */
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
                      g_spr_tex, PVR_FILTER_NONE);
+    cxt.gen.alpha = PVR_ALPHA_ENABLE;
+    cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
     pvr_poly_compile(&hdr, &cxt);
     pvr_prim(&hdr, sizeof(hdr));
     u = (float)f->w / (float)f->tw;

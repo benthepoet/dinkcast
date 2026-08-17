@@ -12,6 +12,10 @@ struct SpriteFrame {
     uint16_t *argb1555; /* POT-padded; white RGB is alpha 0 */
 };
 
+/* ARGB1555: bit 15 set = opaque. White RGB → 0. */
+#define SPRITE_ARGB1555_OPAQUE 0x8000u
+int sprite_pixel_opaque(uint16_t p);
+
 void sprite_frame_free(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). */
 int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,

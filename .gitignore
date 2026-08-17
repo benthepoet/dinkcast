@@ -25,6 +25,7 @@ tools/dump_screen
 tools/dump_ini
 tests/test_ini
 tests/test_ff
+tests/test_sprite
 
 # Toolchain / local
 .kosenv
