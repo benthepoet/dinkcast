@@ -16,6 +16,7 @@ tools/bmp_info
 tools/title_preview
 tests/test_bmp
 tests/test_dink_dat_size
+tests/test_pad
 
 # Toolchain / local
 .kosenv

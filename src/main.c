@@ -136,9 +136,15 @@ int main(int argc, char **argv)
     }
     title_free(&title);
     /* Title tex already pvr_mem_free'd inside present (Bite 4.2). */
-    printf("leave_title\n");
-    vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
-    hud("leave_title", "GAME_STATE_LOADING", msg);
+    {
+        enum GameState st = GAME_STATE_LOADING;
+
+        (void)st;
+        printf("leave_title\n");
+        vid_set_mode(DM_640x480, PM_RGB565);
+        vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
+        hud("leave_title", "GAME_STATE_LOADING", msg);
+    }
     for (;;) {
         vid_waitvbl();
     }

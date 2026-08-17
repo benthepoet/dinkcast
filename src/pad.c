@@ -24,8 +24,9 @@ int pad_poll_port0(uint32_t *out_buttons)
         return -1;
     }
     *out_buttons = 0;
-    dev = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
-    if (dev == NULL) {
+    /* Plan: Maple port 0 only — not “first controller on the bus”. */
+    dev = maple_enum_dev(0, 0);
+    if (dev == NULL || !(dev->info.functions & MAPLE_FUNC_CONTROLLER)) {
         return -1;
     }
     st = (cont_state_t *)maple_dev_status(dev);
