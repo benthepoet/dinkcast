@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "pad.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+static void expect(int cond, const char *msg)
+{
+    if (!cond) {
+        fprintf(stderr, "FAIL %s\n", msg);
+        exit(1);
+    }
+}
+
+int main(void)
+{
+    expect(pad_title_wants_leave(0, DINK_PAD_A) == 0, "missing pad + A stays");
+    expect(pad_title_wants_leave(0, DINK_PAD_START) == 0, "missing pad + Start stays");
+    expect(pad_title_wants_leave(0, DINK_PAD_LEAVE) == 0, "missing pad + both stays");
+    expect(pad_title_wants_leave(1, 0) == 0, "present, no buttons stays");
+    expect(pad_title_wants_leave(1, DINK_PAD_A) == 1, "A leaves");
+    expect(pad_title_wants_leave(1, DINK_PAD_START) == 1, "Start leaves");
+    expect(pad_title_wants_leave(1, DINK_PAD_A | DINK_PAD_START) == 1, "A+Start leaves");
+    expect(pad_title_wants_leave(1, 1u << 4) == 0, "unrelated bit stays");
+    printf("OK test_pad\n");
+    return 0;
+}

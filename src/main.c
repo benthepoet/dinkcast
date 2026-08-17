@@ -126,9 +126,28 @@ int main(int argc, char **argv)
         }
     }
     printf("title %dx%d\n", title.w, title.h);
-    title_present_pvr(&title);
+    if (title_present_pvr(&title) != 0) {
+        title_free(&title);
+        vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
+        hud("TITLE PRESENT FAIL", DINK_TITLE_REL, msg);
+        for (;;) {
+            vid_waitvbl();
+        }
+    }
     title_free(&title);
-    return 0;
+    /* Title tex already pvr_mem_free'd inside present (Bite 4.2). */
+    {
+        enum GameState st = GAME_STATE_LOADING;
+
+        (void)st;
+        printf("leave_title\n");
+        vid_set_mode(DM_640x480, PM_RGB565);
+        vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
+        hud("leave_title", "GAME_STATE_LOADING", msg);
+    }
+    for (;;) {
+        vid_waitvbl();
+    }
 }
 
 #else

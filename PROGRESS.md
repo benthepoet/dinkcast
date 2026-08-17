@@ -22,6 +22,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Screen-to-screen delay targets (CD vs Flycast) | plan binding + GOTCHAS |
 | 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
 | 2026-08-16 | Alignment pass (docs agree: V1 done, next 4.1) | README/AGENTS/plan/PROGRESS |
+| 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | this PR |
 
 ## Bites
 
@@ -37,8 +38,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 3.2 | CPU RGB565 | done | `src/rgb565.c` |
 | 3.3 | PVR upload | done | twiddled RGB565 (not NONTWIDDLED) |
 | 3.4 | **Title quad (first screenshot)** | done | Flycast + real BIOS; `tiles/Splash.bmp` |
-| 4.1–4.2 | Start / leave title | next | |
-| 5.1–5.4 | `dink.dat` / `map.dat` | pending | |
+| 4.1–4.2 | Start / leave title | source | Maple poll + `leave_title`; Flycast Start/A not yet human-seen |
+| 5.1–5.4 | `dink.dat` / `map.dat` | next | |
 | 6.1–6.4 | Tiles + evict | pending | |
 | 7.1–7.4 | Hardness | pending | |
 | 8.1–8.5 | Sequences / Dink sprite | pending | |
@@ -60,7 +61,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. 4.1 still needs a merge-gate “go”. |
+| Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
