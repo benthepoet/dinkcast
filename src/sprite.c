@@ -48,12 +48,14 @@ static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
                       (b >> 3));
 }
 
+static struct FfFile g_ff;
+static char g_ff_rel[160];
+
 int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
                           struct SpriteFrame *out)
 {
     char dir[160], base[32], name[24];
     const char *sl;
-    struct FfFile ff;
     const uint8_t *bmp = NULL;
     size_t bn = 0;
     struct Bitmap bm;
@@ -72,20 +74,21 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
     snprintf(base, sizeof(base), "%s", sl + 1);
     snprintf(name, sizeof(name), frame < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
              frame);
-    memset(&ff, 0, sizeof(ff));
-    if (ff_load_rel(dir, &ff) != 0) {
-        return -1;
+    if (g_ff_rel[0] == '\0' || strcmp(g_ff_rel, dir) != 0) {
+        ff_free(&g_ff);
+        if (ff_load_rel(dir, &g_ff) != 0) {
+            g_ff_rel[0] = '\0';
+            return -1;
+        }
+        snprintf(g_ff_rel, sizeof(g_ff_rel), "%s", dir);
     }
-    if (ff_find(&ff, name, &bmp, &bn) != 0) {
-        ff_free(&ff);
+    if (ff_find(&g_ff, name, &bmp, &bn) != 0) {
         return -1;
     }
     memset(&bm, 0, sizeof(bm));
     if (bitmap_load_mem(bmp, bn, &bm) != 0) {
-        ff_free(&ff);
         return -1;
     }
-    ff_free(&ff);
     tw = next_pow2(bm.w);
     th = next_pow2(bm.h);
     pad = (uint16_t *)calloc((size_t)tw * (size_t)th, 2);

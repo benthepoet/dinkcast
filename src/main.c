@@ -217,6 +217,7 @@ int main(int argc, char **argv)
 
                 memset(&mask, 0, sizeof(mask));
                 (void)hard_stamp_tiles(&hard, &scr, &mask);
+                hard_free(&hard); /* stamp done; drop 2 MiB file buffer */
                 if (seqs != NULL) {
                     for (si = 1; si <= 99; si++) {
                         int sq = (int)scr.sprite[si].seq;
