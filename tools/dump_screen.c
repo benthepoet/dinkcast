@@ -44,8 +44,9 @@ int main(int argc, char **argv)
     actives = 0;
     for (i = 1; i <= 99; i++) {
         if (s.sprite[i].active) {
-            printf("sprite %d seq=%d frame=%d xy=%d,%d script=%s\n", i,
-                   (int)s.sprite[i].seq, (int)s.sprite[i].frame,
+            printf("sprite %d seq=%d frame=%d type=%d vis=%d xy=%d,%d script=%s\n",
+                   i, (int)s.sprite[i].seq, (int)s.sprite[i].frame,
+                   (int)s.sprite[i].type, (int)s.sprite[i].vision,
                    (int)s.sprite[i].x, (int)s.sprite[i].y, s.sprite[i].script);
             actives++;
         }

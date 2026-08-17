@@ -233,8 +233,10 @@ int main(int argc, char **argv)
                 if (seqs != NULL) {
                     for (si = 1; si <= 100; si++) {
                         int sq = (int)scr.sprite[si].seq;
-                        if (!scr.sprite[si].active || sq < 1 ||
-                            sq >= DINK_MAX_SEQ || seqs[sq].hr <= seqs[sq].hl) {
+                        if (!editor_sprite_on_vision(&scr.sprite[si],
+                                                     DINK_VISION_DEFAULT) ||
+                            sq < 1 || sq >= DINK_MAX_SEQ ||
+                            seqs[sq].hr <= seqs[sq].hl) {
                             continue;
                         }
                         hard_stamp_box(&mask, (int)scr.sprite[si].x,
@@ -309,7 +311,8 @@ int main(int argc, char **argv)
                             int seq, fr;
                             struct SpriteFrame *ef;
 
-                            if (!scr.sprite[si].active) {
+                            if (!editor_sprite_draw(&scr.sprite[si],
+                                                    DINK_VISION_DEFAULT)) {
                                 continue;
                             }
                             seq = (int)scr.sprite[si].seq;

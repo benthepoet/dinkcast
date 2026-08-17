@@ -30,7 +30,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **V3 accepted** | requester screenshot + merge #14 |
 | 2026-08-17 | **7.2–9.3** hardness stamp + walk (V4) | walk branch / merge |
 | 2026-08-17 | **8.6** draw editor sprites (plan + code) | [#16](https://github.com/benthepoet/dinkcast/pull/16) |
-| 2026-08-17 | 8.6 upload after `pvr_init` (leave-title shutdown) | this PR |
+| 2026-08-17 | 8.6 upload after `pvr_init` (leave-title shutdown) | [#17](https://github.com/benthepoet/dinkcast/pull/17) |
+| 2026-08-17 | Editor `vision` + type 2 (intact house, not fire layer) | this PR |
 
 ## Bites
 
@@ -52,7 +53,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
-| 8.6 | Draw editor sprites | source | #16; upload after tiles `pvr_init` |
+| 8.6 | Draw editor sprites | source | vision 0 + skip type 2 |
 | 9.1–9.3 | Walk | done | V4 accepted |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |

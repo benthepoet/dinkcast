@@ -17,6 +17,28 @@ void tile_split(int32_t square_full_idx0, int *sheet0, int *cell)
     }
 }
 
+int editor_sprite_on_vision(const struct EditorSprite *s, int vision)
+{
+    if (s == NULL || !s->active) {
+        return 0;
+    }
+    if (s->vision == 0 || s->vision == vision) {
+        return 1;
+    }
+    return 0;
+}
+
+int editor_sprite_draw(const struct EditorSprite *s, int vision)
+{
+    if (!editor_sprite_on_vision(s, vision)) {
+        return 0;
+    }
+    if (s->type == DINK_SPR_TYPE_INVISIBLE) {
+        return 0;
+    }
+    return 1;
+}
+
 int map_file_records(int64_t file_bytes, int *out_count, int *out_rem)
 {
     if (file_bytes < 0 || out_count == NULL || out_rem == NULL) {
@@ -58,6 +80,10 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         }
         out->sprite[i].active = p[off + 24];
         if (le_i32(p, n, off + 36, &out->sprite[i].brain) != 0) {
+            return -1;
+        }
+        /* FreeDink spr: vision is int at +188 in the 220-byte editor record. */
+        if (le_i32(p, n, off + 188, &out->sprite[i].vision) != 0) {
             return -1;
         }
         memcpy(out->sprite[i].script, p + off + 40, 13);
