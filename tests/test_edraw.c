@@ -39,6 +39,13 @@ int main(void)
         fprintf(stderr, "FAIL vision/type filter\n");
         return 1;
     }
+    if (editor_sprite_rank_y(&scr.sprite[51]) != 248 ||
+        editor_sprite_rank_y(&scr.sprite[1]) != (int)scr.sprite[1].y) {
+        fprintf(stderr, "FAIL que rank %d %d\n",
+                editor_sprite_rank_y(&scr.sprite[51]),
+                editor_sprite_rank_y(&scr.sprite[1]));
+        return 1;
+    }
     seqs = calloc(DINK_MAX_SEQ, sizeof(*seqs));
     if (seqs == NULL || ini_load(seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL ini\n");

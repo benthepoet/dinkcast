@@ -341,7 +341,7 @@ int main(int argc, char **argv)
                             if (ef == NULL) {
                                 continue;
                             }
-                            draw[nd].y = (int)scr.sprite[si].y;
+                            draw[nd].y = editor_sprite_rank_y(&scr.sprite[si]);
                             draw[nd].x = (int)scr.sprite[si].x;
                             draw[nd].fr = ef;
                             nd++;

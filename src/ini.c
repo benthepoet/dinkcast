@@ -145,27 +145,33 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
         if (*p == '\0' || *p == ';' || *p == '/') {
             continue;
         }
-        if (strncmp(p, "set_sprite_info", 15) == 0 ||
-            strncmp(p, "SET_SPRITE_INFO", 15) == 0) {
-            p += 15;
-            if (tok_int(&p, &seq) == 0 && tok_int(&p, &delay) == 0) {
-                /* delay reused as frame */
-                (void)tok_int(&p, &cx);
-                (void)tok_int(&p, &cy);
-                (void)tok_int(&p, &hl);
-                (void)tok_int(&p, &ht);
-                (void)tok_int(&p, &hr);
-                (void)tok_int(&p, &hb);
-                ini_store_frame(seq, delay, cx, cy, hl, ht, hr, hb);
+        {
+            char cmd[24];
+            int c = 0;
+
+            while (p[c] && p[c] != ' ' && p[c] != '\t' &&
+                   c + 1 < (int)sizeof(cmd)) {
+                cmd[c] = (char)tolower((unsigned char)p[c]);
+                c++;
             }
-            continue;
-        }
-        if (strncmp(p, "load_sequence_now", 17) == 0) {
-            p += 17;
-        } else if (strncmp(p, "load_sequence", 13) == 0) {
-            p += 13;
-        } else {
-            continue;
+            cmd[c] = '\0';
+            p += c;
+            if (strcmp(cmd, "set_sprite_info") == 0) {
+                if (tok_int(&p, &seq) == 0 && tok_int(&p, &delay) == 0) {
+                    (void)tok_int(&p, &cx);
+                    (void)tok_int(&p, &cy);
+                    (void)tok_int(&p, &hl);
+                    (void)tok_int(&p, &ht);
+                    (void)tok_int(&p, &hr);
+                    (void)tok_int(&p, &hb);
+                    ini_store_frame(seq, delay, cx, cy, hl, ht, hr, hb);
+                }
+                continue;
+            }
+            if (strcmp(cmd, "load_sequence_now") != 0 &&
+                strcmp(cmd, "load_sequence") != 0) {
+                continue;
+            }
         }
         while (*p == ' ' || *p == '\t') {
             p++;

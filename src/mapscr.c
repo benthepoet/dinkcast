@@ -39,6 +39,17 @@ int editor_sprite_draw(const struct EditorSprite *s, int vision)
     return 1;
 }
 
+int editor_sprite_rank_y(const struct EditorSprite *s)
+{
+    if (s == NULL) {
+        return 0;
+    }
+    if (s->que != 0) {
+        return (int)s->que;
+    }
+    return (int)s->y;
+}
+
 int map_file_records(int64_t file_bytes, int *out_count, int *out_rem)
 {
     if (file_bytes < 0 || out_count == NULL || out_rem == NULL) {
@@ -82,7 +93,10 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 36, &out->sprite[i].brain) != 0) {
             return -1;
         }
-        /* FreeDink editor_sprite: hard +120, vision +188 (220-byte rec). */
+        /* FreeDink: que +116, hard +120, vision +188. */
+        if (le_i32(p, n, off + 116, &out->sprite[i].que) != 0) {
+            return -1;
+        }
         if (le_i32(p, n, off + 120, &out->sprite[i].hard) != 0) {
             return -1;
         }

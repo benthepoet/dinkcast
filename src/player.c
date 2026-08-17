@@ -72,15 +72,22 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         int i;
 
         dir_delta(pad_dir, &dx, &dy);
-        /* FreeDink move(): 1px steps; check_if_move_is_legal get_hard(x-20,y). */
-        for (i = 0; i < DINK_SPEED; i++) {
-            nx = p->x + dx;
-            ny = p->y + dy;
-            if (dx != 0 && !hard_get(mask, nx, p->y)) {
-                p->x = nx;
+        /* FreeDink changedir: diag mx/my = speed - speed/3; then 1px move(). */
+        {
+            int steps = DINK_SPEED;
+
+            if (dx != 0 && dy != 0) {
+                steps = DINK_SPEED - DINK_SPEED / 3;
             }
-            if (dy != 0 && !hard_get(mask, p->x, ny)) {
-                p->y = ny;
+            for (i = 0; i < steps; i++) {
+                nx = p->x + dx;
+                ny = p->y + dy;
+                if (dx != 0 && !hard_get(mask, nx, p->y)) {
+                    p->x = nx;
+                }
+                if (dy != 0 && !hard_get(mask, p->x, ny)) {
+                    p->y = ny;
+                }
             }
         }
     }
