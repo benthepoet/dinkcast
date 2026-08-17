@@ -89,6 +89,7 @@ int dinkc_load(const char *name, char **out, size_t *n)
     raw = (char *)malloc((size_t)sz + 1);
     if (raw == NULL) {
         fclose(fp);
+        printf("dinkc oom %s %ld\n", rel, sz);
         return -1;
     }
     if (sz > 0 && fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
