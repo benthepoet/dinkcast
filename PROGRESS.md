@@ -40,7 +40,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | EditorSprite 4-aligned + heap snapshot | [#24](https://github.com/benthepoet/dinkcast/pull/24) |
 | 2026-08-17 | **8.6 house accepted** (Flycast, unique 17) | requester “House shot is correct” |
 | 2026-08-17 | Campaign systems table (stock 1.08, no D-Mods) | [#26](https://github.com/benthepoet/dinkcast/pull/26) |
-| 2026-08-17 | Audio (12) after combat/inventory (16) | this PR |
+| 2026-08-17 | Audio (12) after combat/inventory (16) | [#27](https://github.com/benthepoet/dinkcast/pull/27) |
+| 2026-08-17 | Idle snap 1/3→2, 7/9→8 (`human_brain`) | this PR |
 
 ## Bites
 

@@ -306,9 +306,13 @@ int main(int argc, char **argv)
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
                         if (pl.seq != last_seq || pl.frame != last_frame) {
-                            sprite_frame_free(&spr);
+                            struct SpriteFrame nxt;
+
+                            memset(&nxt, 0, sizeof(nxt));
                             if (sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
-                                                      pl.frame, &spr) == 0) {
+                                                      pl.frame, &nxt) == 0) {
+                                sprite_frame_free(&spr);
+                                spr = nxt;
                                 (void)sprite_upload_pvr(&spr);
                                 last_seq = pl.seq;
                                 last_frame = pl.frame;
