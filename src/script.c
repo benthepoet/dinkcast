@@ -2,6 +2,7 @@
 #include "script.h"
 
 #include "dinkc_file.h"
+#include "dinkc_lex.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -36,8 +37,11 @@ static int try_load(const char *name)
         return -1;
     }
     if (dinkc_load(name, &buf, &n) == 0) {
+        int ntok = dinkc_lex_count(buf, n);
+
+        printf("dinkc lex %s ntok=%d\n", name, ntok);
         dinkc_free(buf);
-        return 0;
+        return ntok < 0 ? -1 : 0;
     }
     return -1;
 }

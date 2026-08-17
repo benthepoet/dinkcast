@@ -32,6 +32,7 @@ tests/test_talk
 tests/test_hit
 tests/test_script
 tests/test_dinkc_file
+tests/test_dinkc_lex
 
 # Toolchain / local
 .kosenv

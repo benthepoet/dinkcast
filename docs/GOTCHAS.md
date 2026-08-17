@@ -44,6 +44,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **A hitch is not proof scripts are hot.** Profile GD-ROM and texture upload first. Reliability is `wait` / `say_stop` fibers and command coverage, not clock rate.
 - **DinkC files are `story/NAME.c`.** `map.dat` has no extension. Over **32 KB** fails that script only (log `dinkc too big`). Never skip a missing file silently (`dinkc miss`). `dink_fopen` already covers `STORY/NAME.C` / 8.3.
 - **Start house screen script is empty.** Official loc 1 `script=` is blank; `s1-h1-m` / `s1-h1-1` live on **sprites**. `main script_id=0 script=` after leave-title is not a parse miss. Preload unique on-vision sprite files.
+- **DinkC has no `/* */`.** FreeDink is line + `get_word`. Stock `story/` uses `//` only. Lexer skips `//` to EOL. `/*` is `SLASH` then `STAR`, not a block comment. `&s2-map` is one `VAR` (hyphen is ident).
 
 ## Data
 
