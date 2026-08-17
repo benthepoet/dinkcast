@@ -13,7 +13,8 @@ int main(void)
         "load_sequence graphics\\dink\\walk\\ds-w2- 72 43 37 69 -13 -9 13 9\n"
         "load_sequence graphics\\inside\\innwalls\\walls\\inn- 31 NOTANIM\n"
         "SET_SPRITE_INFO 31 22 79 88 -75 1 21 12\n"
-        "SET_SPRITE_INFO 31 22 79 88 -94 -36 21 19\n";
+        "Set_Sprite_Info 31 22 79 88 -94 -36 21 19\n"
+        "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL parse\n");
@@ -29,6 +30,10 @@ int main(void)
     }
     if (seqs[72].cx != 37 || seqs[72].cy != 69) {
         fprintf(stderr, "FAIL seq72\n");
+        return 1;
+    }
+    if (seqs[78].cx != 37 || seqs[78].prefix[0] == '\0') {
+        fprintf(stderr, "FAIL LOAD_SEQUENCE case seq78\n");
         return 1;
     }
     if (strcmp(seqs[31].prefix, "graphics/inside/innwalls/walls/inn-") != 0) {

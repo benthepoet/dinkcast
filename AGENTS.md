@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V4 accepted**. This PR is `fix/freedink-hard-move`. Next visual gate is **V5 (13.2)**. **Graft FreeDink — do not guess** when `live_screen` / `brain.cpp` already specify the rule. Do not `@`-mention anyone.
+**Now:** V1–**V4 accepted**. This PR is the FreeDink audit (`que` rank, diag speed, ini case). Next visual gate **V5**. Graft only — [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md). Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 

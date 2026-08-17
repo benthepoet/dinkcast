@@ -80,6 +80,15 @@ int main(void)
         hard_mask_free(&mask);
         return 1;
     }
+    player_init(&p);
+    p.x = 100;
+    p.y = 100;
+    player_step(&p, 9, &mask, seqs); /* up-right: speed-speed/3 = 2 */
+    if (p.x != 102 || p.y != 98) {
+        fprintf(stderr, "FAIL diag 9 %d,%d\n", p.x, p.y);
+        hard_mask_free(&mask);
+        return 1;
+    }
     hard_mask_free(&mask);
     printf("OK test_player\n");
     return 0;
