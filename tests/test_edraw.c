@@ -32,6 +32,13 @@ int main(void)
             act++;
         }
     }
+    if (!editor_sprite_draw(&scr.sprite[1], DINK_VISION_DEFAULT) ||
+        editor_sprite_draw(&scr.sprite[21], DINK_VISION_DEFAULT) ||
+        editor_sprite_draw(&scr.sprite[25], DINK_VISION_DEFAULT) ||
+        editor_sprite_draw(&scr.sprite[44], DINK_VISION_DEFAULT)) {
+        fprintf(stderr, "FAIL vision/type filter\n");
+        return 1;
+    }
     seqs = calloc(DINK_MAX_SEQ, sizeof(*seqs));
     if (seqs == NULL || ini_load(seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL ini\n");
@@ -54,6 +61,14 @@ int main(void)
         }
         if (!has31) {
             fprintf(stderr, "FAIL no seq 31 gfx\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
+    for (i = 0; i < n; i++) {
+        if (g[i].seq == 70 || g[i].seq == 427 || g[i].seq == 158) {
+            fprintf(stderr, "FAIL loaded fire/hole seq %d\n", g[i].seq);
             edraw_free(g, n);
             free(seqs);
             return 1;

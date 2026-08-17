@@ -271,8 +271,10 @@ Use **explicit little-endian** readers (`read_i32le`). Never `fread` a packed st
 
 #### Bite 5.4 — Editor sprites (data only)
 
-- Parse up to 100 editor sprites: `active, x, y, seq, frame, brain, script[13 or 21]`.
-- Print actives: `sprite i seq= frame= xy= script=`.
+- Parse up to 100 editor sprites: `active, x, y, seq, frame, type, size, brain, vision, script[13 or 21]`.
+- **Vision:** sprite is live when `vision == 0` (always) or `vision == &vision`. Start-of-game `&vision` is **0** (intact house). Vision 1 is the fire layer; 2 is holes/ruins. Drawing every `active` sprite stacks those layers (wrong house).
+- **Type 2** is invisible (hardness only). Do not draw it.
+- Print actives: `sprite i seq= frame= type= vis= xy= script=`.
 
 **Done when:** Count of actives matches the PC editor for that screen.
 
@@ -367,7 +369,7 @@ Commands (names as in file):
 #### Bite 8.6 — Draw editor sprites (houses / props)
 
 - **5.4 is data only.** This bite draws every **active** editor sprite on the current `map.dat` screen (slots **1..100**, slot 0 unused; Dink remains sprite **1** at runtime and is **not** taken from the editor slot).
-- Resolve `seq` + `frame` through `dink.ini` + existing BMP / `.ff` loaders. Skip missing seq/prefix (log once); do not invent frames.
+- Resolve `seq` + `frame` through `dink.ini` + existing BMP / `.ff` loaders. Skip missing seq/prefix (log once); do not invent frames. Draw only `editor_sprite_draw` (vision + not type 2).
 - Quad placement same as 8.4: `x - cx + playfield_ox`, `y - cy + playfield_oy`.
 - **Z:** match FreeDink y-sort (typically `y` as depth so southern props sit in front). Dink vs props must not always paint last.
 - Cache unique `(seq, frame)` textures for the screen. **Evict all** on screen change / leave play. Count against `sprite_tex` (≤ 4 MB with Dink seqs).

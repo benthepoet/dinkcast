@@ -48,7 +48,7 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
     for (i = 1; i <= 100; i++) {
         int seq, fr;
 
-        if (!scr->sprite[i].active) {
+        if (!editor_sprite_draw(&scr->sprite[i], DINK_VISION_DEFAULT)) {
             continue;
         }
         seq = (int)scr->sprite[i].seq;
