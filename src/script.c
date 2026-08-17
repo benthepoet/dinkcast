@@ -3,6 +3,7 @@
 
 #include "dinkc_file.h"
 #include "dinkc_lex.h"
+#include "dinkc_parse.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -38,8 +39,16 @@ static int try_load(const char *name)
     }
     if (dinkc_load(name, &buf, &n) == 0) {
         int ntok = dinkc_lex_count(buf, n);
+        struct DinkcProg pr;
+        char perr[96];
 
         printf("dinkc lex %s ntok=%d\n", name, ntok);
+        if (dinkc_parse(buf, n, &pr, perr, sizeof(perr)) != 0) {
+            printf("dinkc parse %s fail %s\n", name, perr);
+            dinkc_free(buf);
+            return -1;
+        }
+        printf("dinkc parse %s procs=%d\n", name, pr.nproc);
         dinkc_free(buf);
         return ntok < 0 ? -1 : 0;
     }

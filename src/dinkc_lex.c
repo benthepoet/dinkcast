@@ -117,19 +117,26 @@ int dinkc_lex_next(struct DinkcLex *lx, struct DinkcTok *out)
         while (isdigit((unsigned char)peek(lx))) {
             eat(lx);
         }
-        out->kind = DINKC_NUMBER;
+        if (ident_start(peek(lx))) {
+            while (ident_cont(peek(lx))) {
+                eat(lx);
+            }
+            out->kind = DINKC_IDENT;
+        } else {
+            out->kind = DINKC_NUMBER;
+        }
         out->n = (size_t)((lx->src + lx->i) - out->p);
         return 0;
     }
     if (c == '"') {
         eat(lx);
-        while (peek(lx) != 0 && peek(lx) != '"' && peek(lx) != '\n') {
+        while (peek(lx) != 0 && peek(lx) != '"') {
             eat(lx);
         }
         if (peek(lx) != '"') {
-            out->kind = DINKC_ERR;
+            out->kind = DINKC_STRING;
             out->n = (size_t)((lx->src + lx->i) - out->p);
-            return -1;
+            return 0;
         }
         eat(lx);
         out->kind = DINKC_STRING;
@@ -184,9 +191,9 @@ int dinkc_lex_next(struct DinkcLex *lx, struct DinkcTok *out)
             eat(lx);
             out->kind = DINKC_NE;
         } else {
-            out->kind = DINKC_ERR;
+            out->kind = DINKC_OTHER;
             out->n = 1;
-            return -1;
+            return 0;
         }
         break;
     case '<':
@@ -226,9 +233,10 @@ int dinkc_lex_next(struct DinkcLex *lx, struct DinkcTok *out)
         }
         break;
     default:
-        out->kind = DINKC_ERR;
+        /* Title/help prose: ?, ', % — skip in parser, not a hard error. */
+        out->kind = DINKC_OTHER;
         out->n = 1;
-        return -1;
+        return 0;
     }
     out->n = (size_t)((lx->src + lx->i) - out->p);
     return 0;

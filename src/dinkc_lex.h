@@ -30,7 +30,8 @@ enum DinkcKind {
     DINKC_RBRACE,
     DINKC_COMMA,
     DINKC_SEMI,
-    DINKC_COLON
+    DINKC_COLON,
+    DINKC_OTHER
 };
 
 struct DinkcTok {
