@@ -190,11 +190,15 @@ int main(int argc, char **argv)
             int hid;
 
             memset(&hard, 0, sizeof(hard));
-            if (hard_load(&hard) == 0) {
-                hid = hard_id_for_tile(&hard, scr.t[0].square_full_idx0,
-                                       scr.t[0].althard);
-                printf("hard tile00 id %d\n", hid);
+            if (hard_load(&hard) != 0) {
+                hud("HARD LOAD FAIL", "hard.dat", msg);
+                for (;;) {
+                    vid_waitvbl();
+                }
             }
+            hid = hard_id_for_tile(&hard, scr.t[0].square_full_idx0,
+                                   scr.t[0].althard);
+            printf("hard tile00 id %d\n", hid);
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
@@ -216,7 +220,14 @@ int main(int argc, char **argv)
                 int last_seq = 0, last_frame = 0, si;
 
                 memset(&mask, 0, sizeof(mask));
-                (void)hard_stamp_tiles(&hard, &scr, &mask);
+                if (hard_stamp_tiles(&hard, &scr, &mask) != 0) {
+                    hud("HARD STAMP FAIL", "hard.dat", msg);
+                    hard_free(&hard);
+                    free(seqs);
+                    for (;;) {
+                        vid_waitvbl();
+                    }
+                }
                 hard_free(&hard); /* stamp done; drop 2 MiB file buffer */
                 if (seqs != NULL) {
                     for (si = 1; si <= 99; si++) {
@@ -263,9 +274,9 @@ int main(int argc, char **argv)
                             if (sprite_load_seq_frame(&seqs[pl.seq], pl.frame,
                                                       &spr) == 0) {
                                 (void)sprite_upload_pvr(&spr);
+                                last_seq = pl.seq;
+                                last_frame = pl.frame;
                             }
-                            last_seq = pl.seq;
-                            last_frame = pl.frame;
                         }
                     }
                     pvr_wait_ready();
