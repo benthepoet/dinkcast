@@ -28,6 +28,13 @@
 #include <dc/cdrom.h>
 #include <dirent.h>
 
+/* KOS thread stack is ~32–64 KB. These sum > 32 KB if locals. */
+static struct World g_world;
+static struct MapScreen g_scr;
+static struct TileAtlas g_atlas;
+static struct HardMap g_hard;
+static struct EdGfx g_edg[DINK_EDGFX_MAX];
+
 static void hud(const char *line0, const char *line1, const char *line2)
 {
     /* 12×24 BIOS font; opaque so it is readable on red/brown. */
@@ -156,49 +163,46 @@ int main(int argc, char **argv)
         hud("leave_title", "GAME_STATE_LOADING", msg);
     }
     {
-        struct World world;
-        struct MapScreen scr;
-        struct TileAtlas atlas;
         int rec;
 
-        if (world_load(&world) != 0) {
+        if (world_load(&g_world) != 0) {
             hud("WORLD LOAD FAIL", "dink.dat", msg);
             for (;;) {
                 vid_waitvbl();
             }
         }
-        rec = (int)world.loc[DINK_START_PLAYER_MAP];
+        rec = (int)g_world.loc[DINK_START_PLAYER_MAP];
         printf("start map %d loc %d music %d\n", DINK_START_PLAYER_MAP, rec,
-               (int)world.music[DINK_START_PLAYER_MAP]);
-        if (rec < 1 || map_load_record(rec, &scr) != 0) {
+               (int)g_world.music[DINK_START_PLAYER_MAP]);
+        if (rec < 1 || map_load_record(rec, &g_scr) != 0) {
             hud("MAP LOAD FAIL", "map.dat", msg);
             for (;;) {
                 vid_waitvbl();
             }
         }
-        memset(&atlas, 0, sizeof(atlas));
-        if (tiles_build_atlas(&scr, &atlas) != 0) {
+        memset(&g_atlas, 0, sizeof(g_atlas));
+        if (tiles_build_atlas(&g_scr, &g_atlas) != 0) {
             hud("TILE ATLAS FAIL", "tiles/tsNN.bmp", msg);
             for (;;) {
                 vid_waitvbl();
             }
         }
-        printf("atlas cells %d\n", atlas.used);
+        printf("atlas cells %d sprite1 seq=%d y=%d\n", g_atlas.used,
+               (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y);
         {
-            struct HardMap hard;
             struct SeqInfo *seqs;
             struct SpriteFrame spr;
             int hid;
 
-            memset(&hard, 0, sizeof(hard));
-            if (hard_load(&hard) != 0) {
+            memset(&g_hard, 0, sizeof(g_hard));
+            if (hard_load(&g_hard) != 0) {
                 hud("HARD LOAD FAIL", "hard.dat", msg);
                 for (;;) {
                     vid_waitvbl();
                 }
             }
-            hid = hard_id_for_tile(&hard, scr.t[0].square_full_idx0,
-                                   scr.t[0].althard);
+            hid = hard_id_for_tile(&g_hard, g_scr.t[0].square_full_idx0,
+                                   g_scr.t[0].althard);
             printf("hard tile00 id %d\n", hid);
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
@@ -221,70 +225,69 @@ int main(int argc, char **argv)
                 int last_seq = 0, last_frame = 0, si;
 
                 memset(&mask, 0, sizeof(mask));
-                if (hard_stamp_tiles(&hard, &scr, &mask) != 0) {
+                if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
                     hud("HARD STAMP FAIL", "hard.dat", msg);
-                    hard_free(&hard);
+                    hard_free(&g_hard);
                     free(seqs);
                     for (;;) {
                         vid_waitvbl();
                     }
                 }
-                hard_free(&hard); /* tile stamp done; drop 2 MiB file buffer */
+                hard_free(&g_hard); /* tile stamp done; drop 2 MiB file buffer */
                 player_init(&pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
                 {
-                    struct EdGfx edg[DINK_EDGFX_MAX];
                     int ned = 0;
 
-                    memset(edg, 0, sizeof(edg));
+                    memset(g_edg, 0, sizeof(g_edg));
                     if (seqs != NULL) {
-                        (void)edraw_load_screen(&scr, seqs, edg, &ned);
+                        (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
                     }
                     printf("edraw unique %d\n", ned);
                     for (si = 1; si <= 100; si++) {
                         struct SpriteFrame *ef;
                         int hl, ht, hr, hb, cx, cy;
 
-                        if (!editor_sprite_on_vision(&scr.sprite[si],
+                        if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                                      DINK_VISION_DEFAULT) ||
-                            scr.sprite[si].hard != 0) {
+                            g_scr.sprite[si].hard != 0) {
                             continue;
                         }
-                        ef = edraw_find(edg, ned, (int)scr.sprite[si].seq,
-                                        (int)scr.sprite[si].frame < 1
+                        ef = edraw_find(g_edg, ned, (int)g_scr.sprite[si].seq,
+                                        (int)g_scr.sprite[si].frame < 1
                                             ? 1
-                                            : (int)scr.sprite[si].frame);
+                                            : (int)g_scr.sprite[si].frame);
                         if (ef != NULL) {
-                            hard_stamp_box(&mask, (int)scr.sprite[si].x,
-                                           (int)scr.sprite[si].y, ef->hl,
+                            hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
+                                           (int)g_scr.sprite[si].y, ef->hl,
                                            ef->ht, ef->hr, ef->hb);
                             continue;
                         }
                         if (seqs == NULL) {
                             continue;
                         }
-                        ini_frame_geom(&seqs[scr.sprite[si].seq],
-                                       (int)scr.sprite[si].seq,
-                                       (int)scr.sprite[si].frame < 1
+                        ini_frame_geom(&seqs[g_scr.sprite[si].seq],
+                                       (int)g_scr.sprite[si].seq,
+                                       (int)g_scr.sprite[si].frame < 1
                                            ? 1
-                                           : (int)scr.sprite[si].frame,
+                                           : (int)g_scr.sprite[si].frame,
                                        50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
-                        hard_stamp_box(&mask, (int)scr.sprite[si].x,
-                                       (int)scr.sprite[si].y, hl, ht, hr, hb);
+                        hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
+                                       (int)g_scr.sprite[si].y, hl, ht, hr, hb);
                     }
-                if (tiles_upload_pvr(&atlas) != 0) {
+                if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     sprite_frame_free(&spr);
-                    edraw_free(edg, ned);
+                    edraw_free(g_edg, ned);
                     hard_mask_free(&mask);
                     free(seqs);
                     for (;;) {
                         vid_waitvbl();
                     }
                 }
-                if (edraw_upload_pvr(edg, ned) != 0) {
+                if (edraw_upload_pvr(g_edg, ned) != 0) {
                     printf("edraw upload none\n");
                 }
                 if (spr.argb1555 != NULL) {
@@ -314,7 +317,7 @@ int main(int argc, char **argv)
                     pvr_wait_ready();
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
-                    tiles_draw_pvr(&atlas);
+                    tiles_draw_pvr(&g_atlas);
                     pvr_list_finish();
                     pvr_list_begin(PVR_LIST_PT_POLY);
                     {
@@ -328,25 +331,25 @@ int main(int argc, char **argv)
                             int seq, fr;
                             struct SpriteFrame *ef;
 
-                            if (!editor_sprite_draw(&scr.sprite[si],
+                            if (!editor_sprite_draw(&g_scr.sprite[si],
                                                     DINK_VISION_DEFAULT)) {
                                 continue;
                             }
-                            seq = (int)scr.sprite[si].seq;
-                            fr = (int)scr.sprite[si].frame;
+                            seq = (int)g_scr.sprite[si].seq;
+                            fr = (int)g_scr.sprite[si].frame;
                             if (fr < 1) {
                                 fr = 1;
                             }
-                            ef = edraw_find(edg, ned, seq, fr);
+                            ef = edraw_find(g_edg, ned, seq, fr);
                             if (ef == NULL) {
                                 continue;
                             }
                             /* que is depth only (screen_rank). x,y stay map. */
                             draw[nd].rank =
-                                editor_sprite_rank_y(&scr.sprite[si]);
-                            draw[nd].x = (int)scr.sprite[si].x;
-                            draw[nd].y = (int)scr.sprite[si].y;
-                            draw[nd].bg = (scr.sprite[si].type == 0);
+                                editor_sprite_rank_y(&g_scr.sprite[si]);
+                            draw[nd].x = (int)g_scr.sprite[si].x;
+                            draw[nd].y = (int)g_scr.sprite[si].y;
+                            draw[nd].bg = (g_scr.sprite[si].type == 0);
                             draw[nd].fr = ef;
                             nd++;
                         }

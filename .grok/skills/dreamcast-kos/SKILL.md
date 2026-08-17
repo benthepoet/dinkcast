@@ -17,6 +17,7 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 ## Defaults
 
 - Retail DC: 16 MB RAM, 8 MB VRAM, 2 MB AICA. Stream; do not preload the world.
+- **Thread stack ~32–64 KB.** World/map/`HardMap`/`EdGfx[]` are BSS or heap, not `main` locals (GOTCHAS).
 - Video: 640×480 RGB565. Sprites/tiles = **PowerVR textured quads**, not CPU blit.
 - Play input: Maple **controller only**.
 - 60 Hz logic; 30 FPS is the floor, not the design.

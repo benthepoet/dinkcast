@@ -20,6 +20,10 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **GD-ROM is not ready on the first line of `main`.** Wait for `cdrom_get_status` PAUSED/STANDBY/PLAYING before probing `/cd`.
 - **On-screen HUD beats serial.** Use `bfont_draw_str` on `vram_s` so a red screen states `NO DATA ROOT` and lists `/cd`.
 
+## SH-4 stack
+
+- **KOS thread stack is 32–64 KB.** `World` (9 KB) + `MapScreen` (7 KB) + `HardMap.btile_default` (10 KB) + `EdGfx[96]` (6 KB) as **locals** smash the stack. Serial then looks like a parse bug (`edraw skip seq=388` — that 388 is a **Y**). Put those in BSS (`static`) or heap. Host `make host` will not catch this.
+
 ## PVR / video
 
 - **`pvr_txr_load_ex` always twiddles.** Drawing with `PVR_TXRFMT_NONTWIDDLED` yields horizontal stripes of the right colors. Poly = twiddled `PVR_TXRFMT_RGB565`.
