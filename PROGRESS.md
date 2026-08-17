@@ -46,7 +46,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **10.2** hit probe (`run_through_tag_list`) | #30 |
 | 2026-08-17 | Punch→idle ghost: `pvr_wait_ready` before evict | #31; requester accepted |
 | 2026-08-17 | **10.3** script hook stubs (log only) | #32 |
-| 2026-08-17 | **11.0** DinkC `story/NAME.c` 32 KB load | this PR |
+| 2026-08-17 | **11.0** DinkC `story/NAME.c` 32 KB load | #33 |
+| 2026-08-17 | Preload unique sprite scripts (empty screen script) | this PR |
 
 ## Bites
 
@@ -73,7 +74,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 10.1 | Talk probe | done | #29; requester accepted |
 | 10.2 | Hit probe | done | #30; punch ghost #31 |
 | 10.3 | Hook table stubs | done | #32 |
-| 11.0 | DinkC files on disc | source | `story/NAME.c`, 32 KB cap |
+| 11.0 | DinkC files on disc | source | preload unique sprite `.c`; start screen script empty |
 | 11.1–11.9 | DinkC lexer…coverage | pending | |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |
