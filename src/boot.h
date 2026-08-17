@@ -15,4 +15,9 @@
 
 #define DINK_BOOT_RGB565 DINK_RGB565(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B)
 
+enum GameState {
+    GAME_STATE_TITLE = 0,
+    GAME_STATE_LOADING = 1
+};
+
 #endif

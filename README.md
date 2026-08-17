@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1 accepted:** official `tiles/Splash.bmp` on Flycast with a real BIOS (`make docker-cdi` + `make emu`). Next engine bite is **4.1** (Maple on the title). Next *picture* gate is **V2 (6.3 tiles)**.
+**V1 accepted:** official `tiles/Splash.bmp` on Flycast with a real BIOS (`make docker-cdi` + `make emu`). **4.1–4.2** leave-title is in this PR. Next engine bite after merge is **5.1**. Next *picture* gate is **V2 (6.3 tiles)**.
 
 ## Dreamcast toolchain
 

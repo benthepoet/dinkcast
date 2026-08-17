@@ -16,7 +16,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tools/bmp_info
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tools/bmp_info
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -32,6 +32,10 @@ tests/test_bmp: tests/test_bmp.c src/bmp.c src/le.c src/rgb565.c src/bmp.h src/l
 
 tests/test_dink_dat_size: tests/test_dink_dat_size.c src/dinkdat.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dink_dat_size.c src/dinkdat.c src/fs.c
+	./$@
+
+tests/test_pad: tests/test_pad.c src/pad.c src/pad.h
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_pad.c src/pad.c
 	./$@
 
 tools/bmp_info: tools/bmp_info.c src/bmp.c src/le.c
@@ -85,5 +89,5 @@ emu run:
 
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \
-		tests/test_dink_dat_size tools/bmp_info tools/title_preview
+		tests/test_dink_dat_size tests/test_pad tools/bmp_info tools/title_preview
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi

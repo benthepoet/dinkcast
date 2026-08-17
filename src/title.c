@@ -3,6 +3,7 @@
 
 #include "bmp.h"
 #include "fs.h"
+#include "pad.h"
 #include "rgb565.h"
 #include "title_path.h"
 
@@ -144,6 +145,15 @@ int title_present_pvr(const struct TitleStill *t)
     v = (float)t->h / (float)th;
 
     for (;;) {
+        uint32_t buttons = 0;
+        int have;
+
+        have = (pad_poll_port0(&buttons) == 0);
+        if (pad_title_wants_leave(have, buttons)) {
+            pvr_mem_free(tex);
+            return 0;
+        }
+
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);

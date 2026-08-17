@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Phase A (**Bites 0.1–3.4**) is **done** — official `tiles/Splash.bmp` on Flycast (2026-08-16). **Next:** Bite **4.1** Maple poll on the title. Gameplay still starts only after 4.x; tiles are Bite 6.
+**Where we are:** Phase A (**Bites 0.1–3.4**) is **done** — official `tiles/Splash.bmp` on Flycast (2026-08-16). **4.1–4.2** Maple leave-title is in source (this PR). **Next after merge:** Bite **5.1** `dink.dat` parse. Tiles are Bite 6 / V2.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -214,13 +214,13 @@ Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick 
 
 **Done when:** Official splash is stable on **640×480 RGB** in Flycast (real BIOS) or hardware. **Verified 2026-08-16.** Do not start map tiles until 4.x is in and 6.x is the next visual.
 
-#### Bite 4.1 — Maple poll **(next)**
+#### Bite 4.1 — Maple poll **(source)**
 
 - Read controller port 0. Ignore missing controller (stay on title).
 - Do not tear down the title PVR loop until 4.2. Poll inside the present loop.
 - Controllers: see §1.3. No keyboard.
 
-#### Bite 4.2 — Leave title
+#### Bite 4.2 — Leave title **(source)**
 
 - Start or A → `GAME_STATE_LOADING` (solid color or “loading…” via bfont).
 - **`pvr_mem_free` the title texture** so VRAM is back (title_tex ≤ 1 MiB).

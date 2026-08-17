@@ -15,6 +15,7 @@ int title_load(struct TitleStill *out);
 void title_free(struct TitleStill *t);
 
 #ifdef _arch_dreamcast
+/* Draw splash until Start/A on Maple port 0; then pvr_mem_free the tex. */
 int title_present_pvr(const struct TitleStill *t);
 #endif
 
