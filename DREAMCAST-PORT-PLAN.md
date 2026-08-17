@@ -6,11 +6,11 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V4** + **8.6 house** accepted. Next visual gate **V5 (13.2)**. Stock campaign systems (no D-Mods) are listed before Phase D. Do not start 10.x unless the requester says go.
+**Where we are:** **V4** + **8.6 house** accepted. Next visual gate **V5 (13.2)**. Audio **12 after 16**. Do not start 10.x unless the requester says go.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
-**How to use this file:** remaining bites in order. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR.
+**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14 → 15 → 16 → 12 → 17 → 18**. **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
 
 **FreeDink is the implementation, not a hint.** This is a **graft**. When a behavior already exists in GNU FreeDink (`live_screen.cpp`, `gfx_sprites.cpp`, `dinkini.cpp`, `brain.cpp` `move` / `check_if_move_is_legal`, `game_place_sprites`), **copy that rule**. Do not invent a “simpler” hardbox, center, vision filter, or move test. If the port and FreeDink disagree, the port is wrong unless this plan names a Dreamcast-only exception (PVR lists, ISO 8.3, Maple). Patch this plan in the same PR if we must diverge.
 
@@ -415,7 +415,7 @@ These **are** the FreeDink systems needed to finish the retail freeware campaign
 | `&vision` / `force_vision` | `draw_screen_game`, DinkC | **11.5 / 11.8** | burned house, many quests |
 | `freeze` nest, yields | `spr[].freeze`, `wait` / `say_stop` / `move_stop` / `choice` | **11.3** | |
 | Unimplemented command | log + no-op | **11.9** | never skip the `.c` file |
-| SFX + one music stream | `sfx`, `bgm`; MIDI id from `dink.dat` | **12** | no seek unless MIDI id changes |
+| SFX + one music stream | `sfx`, `bgm`; MIDI id from `dink.dat` | **12 (after 16)** | silent `playsound` until then |
 | Font / say / choice | brain 8, `game_choice` | **13** | V5 |
 | Edge walk + swap | `did_player_cross_screen` | **14.1–14.2** | |
 | Warp | `special_block`, `process_warp`, `is_warp` / `warp_*` | **14.2** | parse those map fields |
@@ -527,7 +527,7 @@ Wire `say*` to a **serial + later Bite 13 box**.
 
 #### Bite 11.7 — Wave 2 (choices + items prelude)
 
-`choice_start`, `choice_end`, numbered choice lines, `stop`, `wait_for_button`, `sp_touch_damage`, `sp_hitpoints`, `sp_defense`, `hurt`, `add_item`, `add_magic`, `add_exp`, `playsound` (real), `initfont`/`get_next_sprite` as needed.
+`choice_start`, `choice_end`, numbered choice lines, `stop`, `wait_for_button`, `sp_touch_damage`, `sp_hitpoints`, `sp_defense`, `hurt`, `add_item`, `add_magic`, `add_exp`, `playsound` (**still stub** until 12), `initfont`/`get_next_sprite` as needed.
 
 Depends on Bite 13 for the menu.
 
@@ -542,29 +542,7 @@ Depends on Bite 13 for the menu.
 
 ---
 
-### Phase E — Text, audio, transitions
-
-#### Bite 12.1 — Host WAV → AICA
-
-- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB).
-- Document command line. Output not committed.
-
-#### Bite 12.2 — SFX bank
-
-- Map FreeDink sound numbers used by hit/talk blip (from `sound/` + `playsound` ids).
-- Load ≤ 512 KB at boot. Log AICA free.
-
-#### Bite 12.3 — `playsound` bind
-
-- Wave 1 stub becomes real. Voice steal oldest if > 16.
-
-#### Bite 12.4 — One streamed loop
-
-- Offline convert **one** title or town track (MIDI rendered on host → ADPCM).
-- 32–64 KB disc chunks. One ring 256–512 KB.
-- Title **may** start this; Bite 3.4 must still work with audio compiled out.
-
-**Done when:** Hit plays an SFX; title or screen 1 loops one track; AICA total ≤ 2 MB.
+### Phase E — Text and transitions
 
 #### Bite 13.1 — Font
 
@@ -588,7 +566,7 @@ Depends on Bite 13 for the menu.
 #### Bite 14.2 — Swap screen
 
 - Evict **unused** tilesets/seqs only. Keep the tileset if the neighbor still uses it. Parse new `map.dat` record. Keep sprite 1, `&player_map`, wrap x/y (left exit → x = 619 / playl — **match `did_player_cross_screen`**).
-- Do not stream a new music file on every edge unless `dink.dat` MIDI id changed.
+- Do not stream a new music file on every edge unless `dink.dat` MIDI id changed. **Until 12.4 the id is stored only** (no AICA).
 - **Warp:** parse `is_warp`, `warp_map`, `warp_x`, `warp_y`, `parm_seq`; `special_block` / `process_warp` + fade.
 - **`screenlock`:** `get_hard` edge clamp when set.
 - **`play.spmap` / `update_play_changes` / `fix_dead_sprites`:** editor_type 1–8 (killed / changed sprites persist 1–5 min).
@@ -603,7 +581,7 @@ Depends on Bite 13 for the menu.
 
 ---
 
-### Phase F — Combat, inventory, save
+### Phase F — Combat and inventory
 
 #### Bite 15.1 — Brains (engine, not DinkC)
 
@@ -662,6 +640,34 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 - **Map:** `process_show_bmp` + seq 165 marker (stock world map). Controller: Y or the plan’s map button — **match FreeDink’s mapped action**, pad-only.
 
 **Done when:** Pick up a stock item, open inventory, arm it, HUD and attack seq change.
+
+### Phase F′ — Audio (after 16; ids stay 12.x)
+
+Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
+
+#### Bite 12.1 — Host WAV → AICA
+
+- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB).
+- Document command line. Output not committed.
+
+#### Bite 12.2 — SFX bank
+
+- Map FreeDink sound numbers used by hit/talk/combat (from `sound/` + `playsound` ids).
+- Load ≤ 512 KB at boot. Log AICA free.
+
+#### Bite 12.3 — `playsound` bind
+
+- Wave 1 stub becomes real. Voice steal oldest if > 16.
+
+#### Bite 12.4 — One streamed loop
+
+- Offline convert **one** title or town track (MIDI rendered on host → ADPCM).
+- 32–64 KB disc chunks. One ring 256–512 KB.
+- Title **may** start this; Bite 3.4 must still work with audio compiled out.
+
+**Done when:** Hit plays an SFX; title or town loops one track; AICA total ≤ 2 MB.
+
+### Phase F″ — VMU save
 
 #### Bite 17.1 — Save blob
 
@@ -776,14 +782,14 @@ dinkcast/
 
 ```
 0.1–0.2 → 1.1–1.2 → 2.1–2.2 → 3.1–3.4 TITLE → 4.1–4.2
-                          ↘ 12.1–12.4 audio (after 3.4; optional on title)
 5.1–5.4 → 6.1–6.4 tiles → 7.1–7.4 hard
                 ↘ 8.1–8.5 → 8.6 editor sprites → 9.1–9.3 walk
                          → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
                          → 13.1–13.3 text → 11.7 wave 2
                          → 14.1–14.3 transitions
                          → 15.1–15.4 + 11.8 wave 3
-                         → 16.1–16.3 inventory
+                         → 16.1–16.3 inventory / HUD (V6)
+                         → 12.1–12.4 audio (after 16; playsound was stub)
                          → 17.1–17.3 VMU
                          → 18.1–18.3 harden
 ```

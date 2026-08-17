@@ -39,7 +39,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | SH-4: map/hard/edraw off the thread stack | [#23](https://github.com/benthepoet/dinkcast/pull/23) |
 | 2026-08-17 | EditorSprite 4-aligned + heap snapshot | [#24](https://github.com/benthepoet/dinkcast/pull/24) |
 | 2026-08-17 | **8.6 house accepted** (Flycast, unique 17) | requester “House shot is correct” |
-| 2026-08-17 | Campaign systems table (stock 1.08, no D-Mods) | this PR |
+| 2026-08-17 | Campaign systems table (stock 1.08, no D-Mods) | [#26](https://github.com/benthepoet/dinkcast/pull/26) |
+| 2026-08-17 | Audio (12) after combat/inventory (16) | this PR |
 
 ## Bites
 
@@ -65,7 +66,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
-| 12.1–12.4 | AICA audio | pending | |
+| 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |
 | 14.1–14.3 | Screen transitions | pending | |
 | 15.1–15.4 | Combat | pending | |
