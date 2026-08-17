@@ -43,3 +43,4 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Keep that tree outside the git repo.**
 - **Original `Ts01.bmp` is 400×400 (8×8 cells).** FreeDink still uses a 12-wide cell index; slot 30 is empty. Start-screen tile 30 is black; house floor is sprites.
 - **Dink idle frames are `graphics/Dink/idle/dir.ff`.** White is sprite colorkey. Pack ARGB1555 with A=0 on white. Draw on the **punch-through** list (`PVR_LIST_PT_POLY`) with PT binsize 16. The TR list still writes A=0 as **black** (the idle slab). `pvr_init_defaults` often leaves PT bins at 0.
+- **`pvr_mem_malloc` only after `pvr_init`.** Title `pvr_shutdown` on leave. First play upload is `tiles_upload_pvr` (`pvr_init` + PT bins). Decode BMP/`.ff` to RAM first; do not upload editor sprites before that. Assert `pvr_mem_base != NULL` is this, not a VRAM leak.
