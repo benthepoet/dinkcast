@@ -9,8 +9,12 @@
 #include "boot.h"
 #include "dinkdat.h"
 #include "fs.h"
+#include "mapscr.h"
+#include "start_map.h"
+#include "tiles.h"
 #include "title.h"
 #include "title_path.h"
+#include "world.h"
 
 #ifdef _arch_dreamcast
 #include <kos.h>
@@ -144,6 +148,38 @@ int main(int argc, char **argv)
         vid_set_mode(DM_640x480, PM_RGB565);
         vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
         hud("leave_title", "GAME_STATE_LOADING", msg);
+    }
+    {
+        struct World world;
+        struct MapScreen scr;
+        struct TileAtlas atlas;
+        int rec;
+
+        if (world_load(&world) != 0) {
+            hud("WORLD LOAD FAIL", "dink.dat", msg);
+            for (;;) {
+                vid_waitvbl();
+            }
+        }
+        rec = (int)world.loc[DINK_START_PLAYER_MAP];
+        printf("start map %d loc %d music %d\n", DINK_START_PLAYER_MAP, rec,
+               (int)world.music[DINK_START_PLAYER_MAP]);
+        if (rec < 1 || map_load_record(rec, &scr) != 0) {
+            hud("MAP LOAD FAIL", "map.dat", msg);
+            for (;;) {
+                vid_waitvbl();
+            }
+        }
+        memset(&atlas, 0, sizeof(atlas));
+        if (tiles_build_atlas(&scr, &atlas) != 0) {
+            hud("TILE ATLAS FAIL", "tiles/tsNN.bmp", msg);
+            for (;;) {
+                vid_waitvbl();
+            }
+        }
+        printf("atlas cells %d\n", atlas.used);
+        tiles_present_pvr(&atlas);
+        tiles_free(&atlas);
     }
     for (;;) {
         vid_waitvbl();
