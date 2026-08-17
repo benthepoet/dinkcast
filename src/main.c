@@ -16,6 +16,7 @@
 #include "mapscr.h"
 #include "pad.h"
 #include "player.h"
+#include "script.h"
 #include "sprite.h"
 #include "start_map.h"
 #include "talk.h"
@@ -300,6 +301,8 @@ int main(int argc, char **argv)
                 last_seq = pl.seq;
                 last_frame = pl.frame;
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
+                script_bind_screen(&g_scr);
+                script_on_main(0);
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
@@ -321,12 +324,9 @@ int main(int argc, char **argv)
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir);
 
+                        script_on_talk(slot);
                         if (slot > 0) {
-                            printf("talk sprite=%d script=%s\n", slot,
-                                   g_scr.sprite[slot].script);
                             pl.freeze++;
-                        } else {
-                            printf("talk sprite=0\n");
                         }
                     }
                     if (have && pl.freeze == 0 &&
@@ -341,12 +341,7 @@ int main(int argc, char **argv)
                             int slot = hit_probe(&g_scr, g_edg, ned, seqs,
                                                  pl.x, pl.y, pl.dir);
 
-                            if (slot > 0) {
-                                printf("hit sprite=%d script=%s\n", slot,
-                                       g_scr.sprite[slot].script);
-                            } else {
-                                printf("hit sprite=0\n");
-                            }
+                            script_on_hit(slot);
                         }
                         if (pl.seq != last_seq || pl.frame != last_frame) {
                             struct SpriteFrame nxt;
