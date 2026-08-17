@@ -27,7 +27,7 @@ int main(void)
         fprintf(stderr, "FAIL map\n");
         return 1;
     }
-    for (i = 1; i <= 99; i++) {
+    for (i = 1; i <= 100; i++) {
         if (scr.sprite[i].active) {
             act++;
         }

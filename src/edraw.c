@@ -40,9 +40,12 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
     if (scr == NULL || seqs == NULL || g == NULL || n == NULL) {
         return -1;
     }
+    for (i = 0; i < DINK_EDGFX_MAX; i++) {
+        sprite_frame_free(&g[i].fr);
+    }
     *n = 0;
     memset(g, 0, sizeof(*g) * DINK_EDGFX_MAX);
-    for (i = 1; i <= 99; i++) {
+    for (i = 1; i <= 100; i++) {
         int seq, fr;
 
         if (!scr->sprite[i].active) {
@@ -53,7 +56,12 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
         if (fr < 1) {
             fr = 1;
         }
-        if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
+        if (seq < 1 || seq >= DINK_MAX_SEQ) {
+            printf("edraw skip slot=%d seq=%d\n", i, seq);
+            continue;
+        }
+        if (seqs[seq].prefix[0] == '\0') {
+            printf("edraw skip seq=%d no prefix\n", seq);
             continue;
         }
         if (edraw_find(g, got, seq, fr) != NULL) {

@@ -231,7 +231,7 @@ int main(int argc, char **argv)
                 }
                 hard_free(&hard); /* stamp done; drop 2 MiB file buffer */
                 if (seqs != NULL) {
-                    for (si = 1; si <= 99; si++) {
+                    for (si = 1; si <= 100; si++) {
                         int sq = (int)scr.sprite[si].seq;
                         if (!scr.sprite[si].active || sq < 1 ||
                             sq >= DINK_MAX_SEQ || seqs[sq].hr <= seqs[sq].hl) {
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
                         } draw[101];
                         int nd = 0, a, b;
 
-                        for (si = 1; si <= 99 && nd < 100; si++) {
+                        for (si = 1; si <= 100 && nd < 100; si++) {
                             int seq, fr;
                             struct SpriteFrame *ef;
 
