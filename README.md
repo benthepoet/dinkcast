@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1 accepted:** official splash. **V2 (this PR):** Start/A leaves title; official start-screen tiles (12×8). Human must accept V2 in Flycast before 6.4+.
+**V1 + V2 accepted.** This PR: Dink idle (seq 14) on the start screen (**V3**). Human Flycast accept before 9.x.
 
 ## Dreamcast toolchain
 

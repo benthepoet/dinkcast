@@ -22,6 +22,9 @@ tests/test_tile_cell
 tools/dump_world
 tools/map_recsize
 tools/dump_screen
+tools/dump_ini
+tests/test_ini
+tests/test_ff
 
 # Toolchain / local
 .kosenv

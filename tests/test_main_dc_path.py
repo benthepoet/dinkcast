@@ -19,7 +19,8 @@ def main() -> int:
         ("title", "title_present_pvr" in text or "title_load" in text),
         ("leave_title", "leave_title" in text),
         ("loading", "GAME_STATE_LOADING" in text),
-        ("tiles", "tiles_present_pvr" in text),
+        ("tiles", "tiles_draw_pvr" in text or "tiles_upload_pvr" in text),
+        ("idle", "DINK_IDLE_SEQ" in text or "sprite_draw_pvr" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

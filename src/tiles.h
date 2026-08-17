@@ -33,8 +33,11 @@ void tiles_free(struct TileAtlas *a);
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out);
 int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3]);
 
+void tiles_evict(struct TileAtlas *a);
+
 #ifdef _arch_dreamcast
-int tiles_present_pvr(const struct TileAtlas *a);
+int tiles_upload_pvr(struct TileAtlas *a);
+void tiles_draw_pvr(const struct TileAtlas *a);
 #endif
 
 #endif

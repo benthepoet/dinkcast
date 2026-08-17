@@ -23,7 +23,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-16 | Feasibility snapshot + log | this file, § Feasibility |
 | 2026-08-16 | Alignment pass (docs agree: V1 done, next 4.1) | README/AGENTS/plan/PROGRESS |
 | 2026-08-17 | **4.1–4.2** Maple port-0 Start/A leave title; `pvr_mem_free` title tex | [#10](https://github.com/benthepoet/dinkcast/pull/10) |
-| 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | this PR |
+| 2026-08-17 | **5.1–6.3** world/map parse + start-screen 96-quad atlas (V2) | [#11](https://github.com/benthepoet/dinkcast/pull/11) |
+| 2026-08-17 | **V2 accepted** | requester Flycast + “we're all good” |
+| 2026-08-17 | **6.4–8.4** evict, hard.dat, ini, dir.ff, idle sprite (V3) | this PR |
 
 ## Bites
 
@@ -40,11 +42,12 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 3.3 | PVR upload | done | twiddled RGB565 (not NONTWIDDLED) |
 | 3.4 | **Title quad (first screenshot)** | done | Flycast + real BIOS; `tiles/Splash.bmp` |
 | 4.1–4.2 | Start / leave title | done | #10 |
-| 5.1–5.4 | `dink.dat` / `map.dat` | source | LE parse + dumps; 5.4 sprites data-only |
-| 6.1–6.3 | Atlas + 96 quads | source | Policy A used-cells; V2 waiting Flycast |
-| 6.4 | Evict | pending | not this PR |
-| 7.1–7.4 | Hardness | pending | |
-| 8.1–8.5 | Sequences / Dink sprite | pending | |
+| 5.1–5.4 | `dink.dat` / `map.dat` | done | #11 |
+| 6.1–6.3 | Atlas + 96 quads | done | V2 accepted |
+| 6.4 | Evict | source | `tiles_evict` |
+| 7.1–7.2 | hard.dat defaults | source | tile00 id logged |
+| 7.3–7.4 | sprite hard / overlay | pending | after V3 |
+| 8.1–8.5 | ini + dir.ff + idle | source | V3 waiting Flycast |
 | 9.1–9.3 | Walk | pending | |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
@@ -63,7 +66,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1 (3.4) **accepted**. Next picture gate is **V2 (6.3 tiles)**. |
+| Human / visual gates | V1 + **V2 accepted**. Next picture gate is **V3 (8.4 idle)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
