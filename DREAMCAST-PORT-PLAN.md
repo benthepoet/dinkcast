@@ -449,8 +449,8 @@ Ship commands in **waves**. Unimplemented command = `DINKC unimplemented: name` 
 
 #### Bite 10.2 — Hit probe (engine)
 
-- B: play current `base_attack` seq (fists until Bite 15).
-- On frames with a hitbox (ini), overlap other sprites → queue `hit`.
+- B just-pressed: `item-fst` — snap diag 1/3→2, 7/9→8; `seq = base_attack+dir` (fists **100** until Bite 15); `nocontrol` until the seq ends.
+- On `SET_FRAME_SPECIAL` frames, `run_through_tag_list` (hardbox +5/−5/−5/+10, dir range 28/36) — first overlapping live sprite queues `hit` (log until 10.3).
 
 #### Bite 10.3 — Hook table (stub)
 

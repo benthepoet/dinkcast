@@ -25,6 +25,7 @@ def main() -> int:
         ("walk", "player_step" in text),
         ("edraw", "edraw_load_screen" in text),
         ("talk", "talk_probe" in text),
+        ("hit", "hit_probe" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

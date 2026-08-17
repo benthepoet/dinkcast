@@ -12,6 +12,47 @@
 int ini_nframe;
 struct IniFrame ini_frame[DINK_SSI_MAX];
 
+struct IniSpecial {
+    int seq, frame, on;
+};
+
+static int ini_nspecial;
+static struct IniSpecial ini_special[DINK_SPECIAL_MAX];
+
+int ini_frame_special(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < ini_nspecial; i++) {
+        if (ini_special[i].seq == seq && ini_special[i].frame == frame) {
+            return ini_special[i].on != 0;
+        }
+    }
+    return 0;
+}
+
+static void ini_store_special(int seq, int frame, int on)
+{
+    int i;
+
+    if (seq < 1 || frame < 1) {
+        return;
+    }
+    for (i = 0; i < ini_nspecial; i++) {
+        if (ini_special[i].seq == seq && ini_special[i].frame == frame) {
+            ini_special[i].on = on;
+            return;
+        }
+    }
+    if (ini_nspecial >= DINK_SPECIAL_MAX) {
+        return;
+    }
+    ini_special[ini_nspecial].seq = seq;
+    ini_special[ini_nspecial].frame = frame;
+    ini_special[ini_nspecial].on = on;
+    ini_nspecial++;
+}
+
 static void slash(char *s)
 {
     for (; *s; s++) {
@@ -121,6 +162,8 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
     memset(seqs, 0, (size_t)nseq * sizeof(*seqs));
     ini_nframe = 0;
     memset(ini_frame, 0, sizeof(ini_frame));
+    ini_nspecial = 0;
+    memset(ini_special, 0, sizeof(ini_special));
     while (i < n) {
         char line[256];
         size_t L = 0;
@@ -165,6 +208,15 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
                     (void)tok_int(&p, &hr);
                     (void)tok_int(&p, &hb);
                     ini_store_frame(seq, delay, cx, cy, hl, ht, hr, hb);
+                }
+                continue;
+            }
+            if (strcmp(cmd, "set_frame_special") == 0) {
+                int fr = 0, on = 0;
+
+                if (tok_int(&p, &seq) == 0 && tok_int(&p, &fr) == 0) {
+                    (void)tok_int(&p, &on);
+                    ini_store_special(seq, fr, on);
                 }
                 continue;
             }

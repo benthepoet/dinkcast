@@ -29,6 +29,7 @@ tests/test_sprite
 tests/test_player
 tests/test_edraw
 tests/test_talk
+tests/test_hit
 
 # Toolchain / local
 .kosenv

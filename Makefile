@@ -16,7 +16,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -38,8 +38,8 @@ tests/test_pad: tests/test_pad.c src/pad.c src/pad.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_pad.c src/pad.c
 	./$@
 
-tests/test_player: tests/test_player.c src/player.c src/hard.c src/pad.c src/le.c src/fs.c src/mapscr.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hard.c src/pad.c src/le.c src/fs.c src/mapscr.c
+tests/test_player: tests/test_player.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/mapscr.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/mapscr.c
 	./$@
 
 tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c
@@ -48,6 +48,10 @@ tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c
 
 tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
+	./$@
+
+tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
 	./$@
 
 tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
@@ -140,7 +144,7 @@ clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \
 		tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell \
 		tests/test_ini tests/test_ff tests/test_sprite tests/test_player \
-		tests/test_edraw tests/test_talk \
+		tests/test_edraw tests/test_talk tests/test_hit \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
 		tools/dump_screen tools/dump_ini
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi

@@ -33,6 +33,33 @@ void player_init(struct Player *p)
     p->frame = 1;
     p->acc = 0;
     p->freeze = 0;
+    p->nocontrol = 0;
+    p->just_hit = 0;
+    p->base_attack = DINK_BASE_ATTACK;
+}
+
+void player_attack(struct Player *p, const struct SeqInfo *seqs)
+{
+    int seq;
+
+    if (p == NULL || p->freeze > 0 || p->nocontrol) {
+        return;
+    }
+    if (p->dir == 1 || p->dir == 3) {
+        p->dir = 2;
+    }
+    if (p->dir == 7 || p->dir == 9) {
+        p->dir = 8;
+    }
+    seq = p->base_attack + p->dir;
+    if (seqs != NULL && (seq < 1 || seq >= DINK_MAX_SEQ)) {
+        return;
+    }
+    p->seq = seq;
+    p->frame = 1;
+    p->acc = 0;
+    p->nocontrol = 1;
+    p->just_hit = 0;
 }
 
 void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
@@ -57,8 +84,32 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (p == NULL || seqs == NULL) {
         return;
     }
+    p->just_hit = 0;
     if (p->freeze > 0) {
         pad_dir = 0;
+    }
+    if (p->nocontrol) {
+        delay = seqs[p->seq].delay > 0 ? seqs[p->seq].delay : 50;
+        nfr = seqs[p->seq].nframes > 0 ? seqs[p->seq].nframes : 1;
+        p->acc += 16;
+        if (p->acc >= delay) {
+            p->acc = 0;
+            p->frame++;
+            if (p->frame > nfr) {
+                p->nocontrol = 0;
+                if (p->dir == 1 || p->dir == 3) {
+                    p->dir = 2;
+                }
+                if (p->dir == 7 || p->dir == 9) {
+                    p->dir = 8;
+                }
+                p->seq = DINK_BASE_IDLE + p->dir;
+                p->frame = 1;
+            } else if (ini_frame_special(p->seq, p->frame)) {
+                p->just_hit = 1;
+            }
+        }
+        return;
     }
     if (pad_dir != 0) {
         p->dir = pad_dir;

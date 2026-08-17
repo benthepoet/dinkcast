@@ -7,6 +7,7 @@
 #define DINK_MAX_SEQ 1000
 #define DINK_MAX_FRAMES 50
 #define DINK_SSI_MAX 400
+#define DINK_SPECIAL_MAX 80
 
 struct SeqInfo {
     char prefix[128];
@@ -24,6 +25,8 @@ struct IniFrame {
 
 extern int ini_nframe;
 extern struct IniFrame ini_frame[DINK_SSI_MAX];
+/* SET_FRAME_SPECIAL last-wins (seq,frame) → 1. */
+int ini_frame_special(int seq, int frame);
 
 int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq);
 int ini_load(struct SeqInfo *seqs, int nseq);
