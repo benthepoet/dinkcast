@@ -187,8 +187,9 @@ int main(int argc, char **argv)
                 vid_waitvbl();
             }
         }
-        printf("atlas cells %d sprite1 seq=%d y=%d\n", g_atlas.used,
-               (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y);
+        printf("atlas cells %d sprite1 seq=%d y=%d esz=%d\n", g_atlas.used,
+               (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
+               (int)sizeof(struct EditorSprite));
         {
             struct SeqInfo *seqs;
             struct SpriteFrame spr;

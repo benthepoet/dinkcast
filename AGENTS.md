@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V4 accepted**. This PR is `fix/sh4-stack-smash`. Next visual gate **V5**. Do not `@`-mention anyone.
+**Now:** V1–**V4 accepted**. This PR is `fix/sprite-align-copy`. Next visual gate **V5**. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 

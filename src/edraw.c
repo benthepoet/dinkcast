@@ -2,6 +2,7 @@
 #include "edraw.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void edraw_free(struct EdGfx *g, int n)
@@ -45,14 +46,29 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
     }
     *n = 0;
     memset(g, 0, sizeof(*g) * DINK_EDGFX_MAX);
-    for (i = 1; i <= 100; i++) {
+    /* Heap copy: first BMP loads must not smash later slots in scr. */
+    {
+        struct EditorSprite *sp;
+        size_t nb = 101u * sizeof(*sp);
+
+        sp = (struct EditorSprite *)malloc(nb);
+        if (sp == NULL) {
+            return -1;
+        }
+        memcpy(sp, scr->sprite, nb);
+        for (i = 1; i <= 8; i++) {
+            printf("edraw slot %d act=%d seq=%d fr=%d xy=%d,%d vis=%d\n", i,
+                   (int)sp[i].active, (int)sp[i].seq, (int)sp[i].frame,
+                   (int)sp[i].x, (int)sp[i].y, (int)sp[i].vision);
+        }
+        for (i = 1; i <= 100; i++) {
         int seq, fr;
 
-        if (!editor_sprite_draw(&scr->sprite[i], DINK_VISION_DEFAULT)) {
+        if (!editor_sprite_draw(&sp[i], DINK_VISION_DEFAULT)) {
             continue;
         }
-        seq = (int)scr->sprite[i].seq;
-        fr = (int)scr->sprite[i].frame;
+        seq = (int)sp[i].seq;
+        fr = (int)sp[i].frame;
         if (fr < 1) {
             fr = 1;
         }
@@ -80,6 +96,8 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
         g[got].seq = seq;
         g[got].frame = fr;
         got++;
+        }
+        free(sp);
     }
     *n = got;
     return 0;
