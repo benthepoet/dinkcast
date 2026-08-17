@@ -9,6 +9,7 @@
 struct SpriteFrame {
     int w, h, tw, th;
     int cx, cy;
+    int hl, ht, hr, hb;
     uint16_t *argb1555; /* POT-padded; white RGB is alpha 0 */
     void *tex;          /* DC pvr_ptr_t */
 };
@@ -19,7 +20,7 @@ int sprite_pixel_opaque(uint16_t p);
 
 void sprite_frame_free(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). */
-int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
+int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out);
 
 #ifdef _arch_dreamcast

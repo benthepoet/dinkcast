@@ -33,7 +33,7 @@ int main(void)
         return 1;
     }
     memset(&fr, 0, sizeof(fr));
-    if (sprite_load_seq_frame(&seqs[DINK_IDLE_SEQ], 1, &fr) != 0) {
+    if (sprite_load_seq_frame(&seqs[DINK_IDLE_SEQ], DINK_IDLE_SEQ, 1, &fr) != 0) {
         fprintf(stderr, "FAIL load idle\n");
         free(seqs);
         return 1;

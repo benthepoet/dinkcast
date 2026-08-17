@@ -82,7 +82,10 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 36, &out->sprite[i].brain) != 0) {
             return -1;
         }
-        /* FreeDink spr: vision is int at +188 in the 220-byte editor record. */
+        /* FreeDink editor_sprite: hard +120, vision +188 (220-byte rec). */
+        if (le_i32(p, n, off + 120, &out->sprite[i].hard) != 0) {
+            return -1;
+        }
         if (le_i32(p, n, off + 188, &out->sprite[i].vision) != 0) {
             return -1;
         }

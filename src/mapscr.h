@@ -20,6 +20,7 @@ struct EditorSprite {
     int32_t x, y, seq, frame, type, size;
     uint8_t active;
     int32_t brain;
+    int32_t hard; /* 0 = solid (FreeDink) */
     int32_t vision;
     char script[14];
 };

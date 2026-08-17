@@ -271,9 +271,11 @@ Use **explicit little-endian** readers (`read_i32le`). Never `fread` a packed st
 
 #### Bite 5.4 — Editor sprites (data only)
 
-- Parse up to 100 editor sprites: `active, x, y, seq, frame, type, size, brain, vision, script[13 or 21]`.
-- **Vision:** sprite is live when `vision == 0` (always) or `vision == &vision`. Start-of-game `&vision` is **0** (intact house). Vision 1 is the fire layer; 2 is holes/ruins. Drawing every `active` sprite stacks those layers (wrong house).
-- **Type 2** is invisible (hardness only). Do not draw it.
+- Parse up to 100 editor sprites: `active, x, y, seq, frame, type, size, brain, hard, vision, script[13 or 21]`.
+- **Vision:** sprite is live when `vision == 0` or `vision == &vision` (`game_place_sprites`). Start `&vision` is **0**.
+- **Type:** FreeDink `game_place_sprites`: **0** background draw + hardness, **1** live sprite, **2** hardness only (not drawn).
+- **`hard == 0` means solid** (inverted). Stamp `k[frame].hardbox` from `SET_SPRITE_INFO` / `load_sprites` defaults (`gfx_sprites.cpp`).
+- **SET_SPRITE_INFO** last-wins per (seq,frame) for xoffset/yoffset/hardbox. Do not invent a second center.
 - Print actives: `sprite i seq= frame= type= vis= xy= script=`.
 
 **Done when:** Count of actives matches the PC editor for that screen.

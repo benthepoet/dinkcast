@@ -229,24 +229,10 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
-                hard_free(&hard); /* stamp done; drop 2 MiB file buffer */
-                if (seqs != NULL) {
-                    for (si = 1; si <= 100; si++) {
-                        int sq = (int)scr.sprite[si].seq;
-                        if (!editor_sprite_on_vision(&scr.sprite[si],
-                                                     DINK_VISION_DEFAULT) ||
-                            sq < 1 || sq >= DINK_MAX_SEQ ||
-                            seqs[sq].hr <= seqs[sq].hl) {
-                            continue;
-                        }
-                        hard_stamp_box(&mask, (int)scr.sprite[si].x,
-                                       (int)scr.sprite[si].y, seqs[sq].hl,
-                                       seqs[sq].ht, seqs[sq].hr, seqs[sq].hb);
-                    }
-                }
+                hard_free(&hard); /* tile stamp done; drop 2 MiB file buffer */
                 player_init(&pl);
                 if (seqs != NULL) {
-                    sprite_load_seq_frame(&seqs[pl.seq], pl.frame, &spr);
+                    sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
                 {
                     struct EdGfx edg[DINK_EDGFX_MAX];
@@ -257,6 +243,37 @@ int main(int argc, char **argv)
                         (void)edraw_load_screen(&scr, seqs, edg, &ned);
                     }
                     printf("edraw unique %d\n", ned);
+                    for (si = 1; si <= 100; si++) {
+                        struct SpriteFrame *ef;
+                        int hl, ht, hr, hb, cx, cy;
+
+                        if (!editor_sprite_on_vision(&scr.sprite[si],
+                                                     DINK_VISION_DEFAULT) ||
+                            scr.sprite[si].hard != 0) {
+                            continue;
+                        }
+                        ef = edraw_find(edg, ned, (int)scr.sprite[si].seq,
+                                        (int)scr.sprite[si].frame < 1
+                                            ? 1
+                                            : (int)scr.sprite[si].frame);
+                        if (ef != NULL) {
+                            hard_stamp_box(&mask, (int)scr.sprite[si].x,
+                                           (int)scr.sprite[si].y, ef->hl,
+                                           ef->ht, ef->hr, ef->hb);
+                            continue;
+                        }
+                        if (seqs == NULL) {
+                            continue;
+                        }
+                        ini_frame_geom(&seqs[scr.sprite[si].seq],
+                                       (int)scr.sprite[si].seq,
+                                       (int)scr.sprite[si].frame < 1
+                                           ? 1
+                                           : (int)scr.sprite[si].frame,
+                                       50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
+                        hard_stamp_box(&mask, (int)scr.sprite[si].x,
+                                       (int)scr.sprite[si].y, hl, ht, hr, hb);
+                    }
                 if (tiles_upload_pvr(&atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     sprite_frame_free(&spr);
@@ -286,8 +303,8 @@ int main(int argc, char **argv)
                         player_step(&pl, pdir, &mask, seqs);
                         if (pl.seq != last_seq || pl.frame != last_frame) {
                             sprite_frame_free(&spr);
-                            if (sprite_load_seq_frame(&seqs[pl.seq], pl.frame,
-                                                      &spr) == 0) {
+                            if (sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
+                                                      pl.frame, &spr) == 0) {
                                 (void)sprite_upload_pvr(&spr);
                                 last_seq = pl.seq;
                                 last_frame = pl.frame;
