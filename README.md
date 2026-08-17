@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1–V4 accepted.** This PR: **8.6** editor sprites (houses/props). Next visual gate **V5**.
+**V1–V4 accepted.** **8.6 house** accepted in Flycast. Next visual gate **V5**.
 
 ## Dreamcast toolchain
 

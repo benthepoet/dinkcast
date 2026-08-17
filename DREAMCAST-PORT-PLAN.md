@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V4 accepted.** This PR is **8.6** (draw editor sprites). Next visual gate is **V5 (13.2)**. Do not start 10.x unless the requester says go.
+**Where we are:** **V4 accepted.** **8.6 house** accepted in Flycast (official start interior). Next visual gate is **V5 (13.2)**. Do not start 10.x unless the requester says go.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 

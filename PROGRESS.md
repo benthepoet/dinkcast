@@ -37,7 +37,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | FreeDink audit: `que` rank, diag `speed-speed/3` | [#21](https://github.com/benthepoet/dinkcast/pull/21) |
 | 2026-08-17 | `que` is sort key only (not draw y) | [#22](https://github.com/benthepoet/dinkcast/pull/22) |
 | 2026-08-17 | SH-4: map/hard/edraw off the thread stack | [#23](https://github.com/benthepoet/dinkcast/pull/23) |
-| 2026-08-17 | EditorSprite 4-aligned + heap snapshot | this PR |
+| 2026-08-17 | EditorSprite 4-aligned + heap snapshot | [#24](https://github.com/benthepoet/dinkcast/pull/24) |
+| 2026-08-17 | **8.6 house accepted** (Flycast, unique 17) | requester “House shot is correct” |
 
 ## Bites
 
@@ -59,7 +60,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
-| 8.6 | Draw editor sprites | source | SET_SPRITE_INFO + vision |
+| 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
@@ -78,7 +79,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1–**V4 accepted**. Next picture gate is **V5 (13.2 say)**. |
+| Human / visual gates | V1–**V4 accepted**. **8.6 house accepted**. Next picture gate **V5 (13.2 say)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -88,20 +89,21 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-16)
+### Current (2026-08-17)
 
 | | | |
 |---|---|---|
 | **Overall** | **~85%** | Playable opening-hours campaign on retail 16/8/2 MB |
-| **Next picture (V2 tiles)** | **~90%** | Same blit path as splash |
+| **Next picture (V5 say)** | **~70%** | Needs DinkC + talk box |
 | **Hardest remaining** | DinkC Wave 1 + fibers | No `story/*.c` on DC yet |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
 |---|---|---|
 | Title / CDI / Flycast + BIOS | ~98% | V1 accepted |
-| Tiles + Dink idle (V2–V3) | ~90% | Same BMP → twiddled quad |
-| Walk + hardness (V4) | ~85% | Data/input, not GPU |
+| Tiles + Dink idle (V2–V3) | ~98% | Accepted |
+| Walk + hardness (V4) | ~95% | Accepted |
+| Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
 | Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
 | Full campaign + every MIDI | ~55–65% | Long tail |
@@ -113,3 +115,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 |---|---|---|
 | 2026-08-16 (plan only) | ~80% campaign / ~95% title | Paper: DC can do 2D Dink; DinkC is the pole |
 | 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |
+| 2026-08-17 (8.6 house) | **~85%** / house **~95%** | Official start interior on Flycast. Stack smash + sprite align in GOTCHAS. DinkC still the pole. |
