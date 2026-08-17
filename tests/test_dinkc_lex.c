@@ -42,6 +42,7 @@ int main(void)
     expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_NUMBER, "2");
     expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_ANDAND, "&&");
     expect(dinkc_lex_count("\"oops", 5) < 0, "unterm string");
+    expect(dinkc_lex_count("&s2-map", 7) == 1, "hyphen var");
 
     if (dink_fs_init() != 0) {
         fprintf(stderr, "FAIL no DINK_DATA\n");

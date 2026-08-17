@@ -73,7 +73,8 @@ static int ident_start(int c)
 
 static int ident_cont(int c)
 {
-    return isalnum((unsigned char)c) || c == '_';
+    /* FreeDink get_word is space-split; &s2-map is one token. */
+    return isalnum((unsigned char)c) || c == '_' || c == '-';
 }
 
 int dinkc_lex_next(struct DinkcLex *lx, struct DinkcTok *out)

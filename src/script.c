@@ -41,7 +41,7 @@ static int try_load(const char *name)
 
         printf("dinkc lex %s ntok=%d\n", name, ntok);
         dinkc_free(buf);
-        return 0;
+        return ntok < 0 ? -1 : 0;
     }
     return -1;
 }
