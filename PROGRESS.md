@@ -66,7 +66,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
 | 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
-| 10.1 | Talk probe | next | A edge + `talk_probe`; freeze++; no DinkC |
+| 10.1 | Talk probe | source | A edge + `talk_probe`; freeze++; no DinkC |
 | 10.2–10.3 | Hit probe / hook table | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |

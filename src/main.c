@@ -306,8 +306,8 @@ int main(int argc, char **argv)
                         int have, pdir;
 
                     have = (pad_poll_port0(&buttons) == 0);
-                    if (have && pad_just_pressed(prev_buttons, buttons,
-                                                 DINK_PAD_A)) {
+                    if (have && pl.freeze == 0 &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir);
 
