@@ -89,6 +89,12 @@ int main(void)
         hard_mask_free(&mask);
         return 1;
     }
+    player_step(&p, 0, &mask, seqs);
+    if (p.dir != 8 || p.seq != DINK_BASE_IDLE + 8) {
+        fprintf(stderr, "FAIL idle snap 9→8 dir=%d seq=%d\n", p.dir, p.seq);
+        hard_mask_free(&mask);
+        return 1;
+    }
     hard_mask_free(&mask);
     printf("OK test_player\n");
     return 0;

@@ -58,6 +58,14 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     }
     if (pad_dir != 0) {
         p->dir = pad_dir;
+    } else {
+        /* human_brain idle: no ds-i1/3/7/9 — snap to down/up. */
+        if (p->dir == 1 || p->dir == 3) {
+            p->dir = 2;
+        }
+        if (p->dir == 7 || p->dir == 9) {
+            p->dir = 8;
+        }
     }
     player_seq_for_input(p, pad_dir, &seq, NULL);
     if (seq != p->seq) {
