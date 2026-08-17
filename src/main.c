@@ -365,12 +365,20 @@ int main(int argc, char **argv)
 
                                 if (bb < ba ||
                                     (bb == ba && draw[b].rank < draw[a].rank)) {
-                                    struct {
-                                        int rank, x, y, bg;
-                                        struct SpriteFrame *fr;
-                                    } tmp = draw[a];
-                                    draw[a] = draw[b];
-                                    draw[b] = tmp;
+                                    int tr = draw[a].rank, tx = draw[a].x,
+                                        ty = draw[a].y, tb = draw[a].bg;
+                                    struct SpriteFrame *tf = draw[a].fr;
+
+                                    draw[a].rank = draw[b].rank;
+                                    draw[a].x = draw[b].x;
+                                    draw[a].y = draw[b].y;
+                                    draw[a].bg = draw[b].bg;
+                                    draw[a].fr = draw[b].fr;
+                                    draw[b].rank = tr;
+                                    draw[b].x = tx;
+                                    draw[b].y = ty;
+                                    draw[b].bg = tb;
+                                    draw[b].fr = tf;
                                 }
                             }
                         }
