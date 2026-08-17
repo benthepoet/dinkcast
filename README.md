@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1–V3 accepted.** This PR: walk + hardness (**V4**). Human Flycast accept before 10.x.
+**V1–V4 accepted.** This PR: **8.6** editor sprites (houses/props). Next visual gate **V5**.
 
 ## Dreamcast toolchain
 

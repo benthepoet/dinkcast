@@ -70,7 +70,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1–**V3 accepted**. Next picture gate is **V4 (9.3 walk)**. |
+| Human / visual gates | V1–**V4 accepted**. Next picture gate is **V5 (13.2 say)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 

@@ -260,7 +260,6 @@ int main(int argc, char **argv)
                     sprite_frame_free(&spr);
                     edraw_free(edg, ned);
                     hard_mask_free(&mask);
-                    hard_free(&hard);
                     free(seqs);
                     for (;;) {
                         vid_waitvbl();
