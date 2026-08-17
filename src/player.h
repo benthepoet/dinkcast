@@ -11,6 +11,7 @@
 
 struct Player {
     int x, y, dir, seq, frame, acc;
+    int freeze; /* FreeDink spr[1].freeze nest */
 };
 
 void player_init(struct Player *p);

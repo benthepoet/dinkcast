@@ -32,6 +32,7 @@ void player_init(struct Player *p)
     p->seq = DINK_BASE_IDLE + DINK_START_DIR;
     p->frame = 1;
     p->acc = 0;
+    p->freeze = 0;
 }
 
 void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
@@ -55,6 +56,9 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
 
     if (p == NULL || seqs == NULL) {
         return;
+    }
+    if (p->freeze > 0) {
+        pad_dir = 0;
     }
     if (pad_dir != 0) {
         p->dir = pad_dir;

@@ -17,6 +17,7 @@
 #include "player.h"
 #include "sprite.h"
 #include "start_map.h"
+#include "talk.h"
 #include "tiles.h"
 #include "title.h"
 #include "title_path.h"
@@ -297,11 +298,28 @@ int main(int argc, char **argv)
                 last_seq = pl.seq;
                 last_frame = pl.frame;
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
-                for (;;) {
-                    uint32_t buttons = 0;
-                    int have, pdir;
+                {
+                    uint32_t prev_buttons = 0;
+
+                    for (;;) {
+                        uint32_t buttons = 0;
+                        int have, pdir;
 
                     have = (pad_poll_port0(&buttons) == 0);
+                    if (have && pad_just_pressed(prev_buttons, buttons,
+                                                 DINK_PAD_A)) {
+                        int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
+                                              pl.y, pl.dir);
+
+                        if (slot > 0) {
+                            printf("talk sprite=%d script=%s\n", slot,
+                                   g_scr.sprite[slot].script);
+                            pl.freeze++;
+                        } else {
+                            printf("talk sprite=0\n");
+                        }
+                    }
+                    prev_buttons = have ? buttons : 0;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
@@ -398,6 +416,7 @@ int main(int argc, char **argv)
                     }
                     pvr_list_finish();
                     pvr_scene_finish();
+                    }
                 }
                 }
             }
