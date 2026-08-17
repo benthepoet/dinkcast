@@ -302,11 +302,19 @@ int main(int argc, char **argv)
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
                 {
                     uint32_t prev_buttons = 0;
+                    int have_scene = 0;
 
                     for (;;) {
                         uint32_t buttons = 0;
                         int have, pdir;
 
+                    /* Finish the last scene before evicting its sprite tex.
+                     * Punch cx (~58) vs idle (~36): freeing mid-frame shows
+                     * idle pixels at the punch quad (ghost to the left).
+                     * Skip wait until one play scene has been submitted. */
+                    if (have_scene) {
+                        pvr_wait_ready();
+                    }
                     have = (pad_poll_port0(&buttons) == 0);
                     if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
@@ -354,7 +362,6 @@ int main(int argc, char **argv)
                             }
                         }
                     }
-                    pvr_wait_ready();
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);
@@ -433,6 +440,7 @@ int main(int argc, char **argv)
                     }
                     pvr_list_finish();
                     pvr_scene_finish();
+                    have_scene = 1;
                     }
                 }
                 }
