@@ -12,6 +12,8 @@
 
 **How to use this file:** remaining bites in order. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR.
 
+**FreeDink is the implementation, not a hint.** This is a **graft**. When a behavior already exists in GNU FreeDink (`live_screen.cpp`, `gfx_sprites.cpp`, `dinkini.cpp`, `brain.cpp` `move` / `check_if_move_is_legal`, `game_place_sprites`), **copy that rule**. Do not invent a “simpler” hardbox, center, vision filter, or move test. If the port and FreeDink disagree, the port is wrong unless this plan names a Dreamcast-only exception (PVR lists, ISO 8.3, Maple). Patch this plan in the same PR if we must diverge.
+
 **Canon for layouts:** GNU FreeDink headers (`dinkvar.h`, `screen.h`, `hardness.h`, `dinkini.c`) plus *The Ultimate Dink File Format FAQ* (Dink Network). When this plan and a checked-out FreeDink tag disagree on a field width, **FreeDink wins** — patch this plan, do not invent a third layout.
 
 **Input (binding decision):** **Play the game with the Dreamcast controller only** (Maple pad). D-pad walk (8-way, same as Dink’s keypad dirs), A talk/confirm, B hit/cancel, X magic, Y inventory, Start title/pause. Choice menus and inventory are pad-driven, not number keys. Saves are VMU slots — no name typing. Do **not** require a PC keyboard in Flycast or a Dreamcast keyboard to finish the campaign. Maple keyboard / emulator keys are optional later for debug and are **deferred**. Original Dink’s extra PC keys (quick-save, editor, cheats) stay unmapped unless a later bite names them.
@@ -387,7 +389,7 @@ Commands (names as in file):
 
 #### Bite 9.2 — Move + hardness
 
-- Speed: FreeDink player speed (default 3 px/tick unless scripted). Slide along walls: try X then Y separately (match FreeDink).
+- Speed: FreeDink `spr[1].speed` (default 3). **`move()` is 1 px per step**; `check_if_move_is_legal` samples **`get_hard(x - playl, y)`** (sprite origin), not the seq hardbox. Hardboxes are for **stamping** (`add_hardness`, exclusive `[left,right)×[top,bottom)`). Slide: try X then Y. Keep walk seq while the pad is held (blocked still animates).
 
 #### Bite 9.3 — Walk animation
 

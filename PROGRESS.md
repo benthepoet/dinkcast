@@ -32,7 +32,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **8.6** draw editor sprites (plan + code) | [#16](https://github.com/benthepoet/dinkcast/pull/16) |
 | 2026-08-17 | 8.6 upload after `pvr_init` (leave-title shutdown) | [#17](https://github.com/benthepoet/dinkcast/pull/17) |
 | 2026-08-17 | Editor `vision` + type 2 (intact house, not fire layer) | [#18](https://github.com/benthepoet/dinkcast/pull/18) |
-| 2026-08-17 | FreeDink `SET_SPRITE_INFO` + `hard==0` stamp | this PR |
+| 2026-08-17 | FreeDink `SET_SPRITE_INFO` + `hard==0` stamp | [#19](https://github.com/benthepoet/dinkcast/pull/19) |
+| 2026-08-17 | Move = `get_hard` point + exclusive stamp | this PR |
 
 ## Bites
 
@@ -55,7 +56,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
 | 8.6 | Draw editor sprites | source | SET_SPRITE_INFO + vision |
-| 9.1–9.3 | Walk | done | V4 accepted |
+| 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
 | 12.1–12.4 | AICA audio | pending | |

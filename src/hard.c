@@ -176,17 +176,33 @@ void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
     if (y0 < 0) {
         y0 = 0;
     }
-    if (x1 >= DINK_PLAY_W) {
-        x1 = DINK_PLAY_W - 1;
+    /* FreeDink add_hardness: [left, right) × [top, bottom), hitmap[xx-20][yy]. */
+    if (x1 > DINK_PLAY_W) {
+        x1 = DINK_PLAY_W;
     }
-    if (y1 >= DINK_PLAY_H) {
-        y1 = DINK_PLAY_H - 1;
+    if (y1 > DINK_PLAY_H) {
+        y1 = DINK_PLAY_H;
     }
-    for (py = y0; py <= y1; py++) {
-        for (px = x0; px <= x1; px++) {
+    for (py = y0; py < y1; py++) {
+        for (px = x0; px < x1; px++) {
             m->pix[py * DINK_PLAY_W + px] = 1;
         }
     }
+}
+
+int hard_get(const struct HardMask *m, int sx, int sy)
+{
+    int px, py;
+
+    if (m == NULL || m->pix == NULL) {
+        return 0;
+    }
+    px = sx - DINK_PLAY_LEFT;
+    py = sy - DINK_PLAY_TOP;
+    if (px < 0 || py < 0 || px >= DINK_PLAY_W || py >= DINK_PLAY_H) {
+        return 0;
+    }
+    return m->pix[py * DINK_PLAY_W + px] != 0;
 }
 
 int hard_box_blocked(const struct HardMask *m, int x, int y, int hl, int ht,

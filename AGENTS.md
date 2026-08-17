@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V4 accepted**. This PR is `fix/freedink-sprite-info` (SET_SPRITE_INFO / hard). Next visual gate is **V5 (13.2)**. Graft FreeDink; do not invent sprite geometry. Do not `@`-mention anyone.
+**Now:** V1–**V4 accepted**. This PR is `fix/freedink-hard-move`. Next visual gate is **V5 (13.2)**. **Graft FreeDink — do not guess** when `live_screen` / `brain.cpp` already specify the rule. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -148,6 +148,7 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
 
 - Plan bites in order. **3.4 is done.** Do not start past a **visual gate** without human accept.
 - Graft FreeDink DinkC; do not invent a language or a “faster” interpreter.
+- **Do not guess.** Sprite centers, hardboxes, vision, `hard==0`, and move tests come from FreeDink source. If you cannot name the FreeDink function, stop and look it up. Inventing a box or filter is a bug.
 - Little-endian explicit reads; no packed-struct `fread` on SH-4 without a size lock.
 - PVR textured quads only — no SDL-style CPU blit as the renderer.
 - Log unimplemented DinkC; never skip a script file silently.

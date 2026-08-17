@@ -48,13 +48,28 @@ int main(void)
         hard_mask_free(&mask);
         return 1;
     }
-    p.x = DINK_PLAY_LEFT + 200 - 5;
+    /* Origin sample: wall at play 200 = screen 220. Stop at 219. */
+    p.x = DINK_PLAY_LEFT + 200 - 2;
     p.y = 100;
     {
         int ox = p.x;
         player_step(&p, 6, &mask, seqs);
+        if (p.x != ox + 1) {
+            fprintf(stderr, "FAIL stop at wall x %d from %d\n", p.x, ox);
+            hard_mask_free(&mask);
+            return 1;
+        }
+    }
+    {
+        int ox = p.x;
+        player_step(&p, 6, &mask, seqs);
         if (p.x != ox) {
-            fprintf(stderr, "FAIL wall slide x %d\n", p.x);
+            fprintf(stderr, "FAIL walk into wall x %d\n", p.x);
+            hard_mask_free(&mask);
+            return 1;
+        }
+        if (p.seq != DINK_BASE_WALK + 6) {
+            fprintf(stderr, "FAIL still walk against wall\n");
             hard_mask_free(&mask);
             return 1;
         }
