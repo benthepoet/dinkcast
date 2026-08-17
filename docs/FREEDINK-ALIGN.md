@@ -27,20 +27,35 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |
 | ini commands case-insensitive | `compare()` | `tolower` cmd | hold |
 
-## Deferred (not in current loop — graft when that bite lands)
+## House leftovers (not blocking 10.x)
+
+| Item | FreeDink | When |
+|---|---|---|
+| Idle after diagonal | `human_brain` 1/3→2, 7/9→8 | 10.1 / walk polish |
+| Full `get_box` clip | crop to playl…playx, 0…playy | first sprite that bleeds |
+| `SET_FRAME_*` | `program_idata` | first seq that needs it |
+| NOTANIM copy frame 1 | `load_sprites` | frame without SSI |
+| Hardness 1 vs 2 | `screen_hitmap` | flying / combat |
+
+## Official campaign (no D-Mods)
+
+Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, editor, D-Mod-only DinkC.
 
 | Item | FreeDink | Bite |
 |---|---|---|
-| `SET_FRAME_FRAME` / `_DELAY` / `_SPECIAL` | `program_idata` | 8.x if a used seq needs it |
-| `alt` trim | `get_box` | when a screen uses clip |
-| `size` ≠ 100 | `get_box` scale | when a sprite is scaled |
-| `BLACK` / `LEFTALIGN` | `load_sprites` flags | HUD / fade |
-| Loose `prefix01.bmp` (no `dir.ff`) | `load_sprites` fallback | if a seq has no pack |
-| NPC/fire brains, scripts | `brain_*` / DinkC | 10–13 |
-| Warp, screenlock, `is_warp` | `special_block` | 14 |
-| `dinkspeed` FPS remap | `game_compute_speed` | keep 3 px @ 60 Hz (plan) |
-| Hardness value 1 vs 2 (low/high) | `screen_hitmap` | combat / flying |
-| Pig / say box | scripts | 10 / 13 / V5 |
+| Talk / hit | `run_through_tag_list_talk`, hit list | 10 |
+| DinkC + attach + yields | `dinkc*`, `game_screen_init_scripts` | 11 |
+| `&vision` / `force_vision` | `draw_screen_game` | 11 |
+| Engine + `MAIN.c` globals | `attach()` | 11.4 |
+| `freeze` nest | `spr[].freeze` | 11.3 |
+| SFX + MIDI stream | `sfx`, `bgm` | 12 |
+| Say / choice / font | brain 8, `game_choice` | 13 / V5 |
+| Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | 14 |
+| `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
+| Brains 0–17 (stock names) | `update_frame` | 15.1 |
+| Push / death | `human_brain`, `die` | 15 |
+| Touch / inv / HUD / map bmp | `status`, `process_show_bmp` | 16 / V6 |
+| VMU save | `savegame` | 17 |
 
 ## How to add a bite
 

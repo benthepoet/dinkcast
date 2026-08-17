@@ -39,6 +39,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | SH-4: map/hard/edraw off the thread stack | [#23](https://github.com/benthepoet/dinkcast/pull/23) |
 | 2026-08-17 | EditorSprite 4-aligned + heap snapshot | [#24](https://github.com/benthepoet/dinkcast/pull/24) |
 | 2026-08-17 | **8.6 house accepted** (Flycast, unique 17) | requester “House shot is correct” |
+| 2026-08-17 | Campaign systems table (stock 1.08, no D-Mods) | this PR |
 
 ## Bites
 
