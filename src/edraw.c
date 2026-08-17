@@ -73,7 +73,7 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
         if (seqs[seq].nframes <= 0) {
             seqs[seq].nframes = ini_count_ff_frames(seqs[seq].prefix);
         }
-        if (sprite_load_seq_frame(&seqs[seq], fr, &g[got].fr) != 0) {
+        if (sprite_load_seq_frame(&seqs[seq], seq, fr, &g[got].fr) != 0) {
             printf("edraw skip seq=%d frame=%d\n", seq, fr);
             continue;
         }

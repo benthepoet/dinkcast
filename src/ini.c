@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+int ini_nframe;
+struct IniFrame ini_frame[DINK_SSI_MAX];
+
 static void slash(char *s)
 {
     for (; *s; s++) {
@@ -38,6 +41,76 @@ static int tok_int(const char **pp, int *out)
     return 0;
 }
 
+static void ini_store_frame(int seq, int frame, int cx, int cy, int hl, int ht,
+                            int hr, int hb)
+{
+    int i;
+
+    if (seq < 1 || frame < 1) {
+        return;
+    }
+    for (i = 0; i < ini_nframe; i++) {
+        if (ini_frame[i].seq == seq && ini_frame[i].frame == frame) {
+            ini_frame[i].cx = cx;
+            ini_frame[i].cy = cy;
+            ini_frame[i].hl = hl;
+            ini_frame[i].ht = ht;
+            ini_frame[i].hr = hr;
+            ini_frame[i].hb = hb;
+            return;
+        }
+    }
+    if (ini_nframe >= DINK_SSI_MAX) {
+        return;
+    }
+    ini_frame[ini_nframe].seq = seq;
+    ini_frame[ini_nframe].frame = frame;
+    ini_frame[ini_nframe].cx = cx;
+    ini_frame[ini_nframe].cy = cy;
+    ini_frame[ini_nframe].hl = hl;
+    ini_frame[ini_nframe].ht = ht;
+    ini_frame[ini_nframe].hr = hr;
+    ini_frame[ini_nframe].hb = hb;
+    ini_nframe++;
+}
+
+void ini_frame_geom(const struct SeqInfo *seq, int seqn, int frame, int fw,
+                    int fh, int *cx, int *cy, int *hl, int *ht, int *hr,
+                    int *hb)
+{
+    int i;
+
+    if (cx == NULL || cy == NULL || hl == NULL || ht == NULL || hr == NULL ||
+        hb == NULL) {
+        return;
+    }
+    *cx = (fw - fw / 2) + fw / 6;
+    *cy = (fh - fh / 4) - fh / 30;
+    *hl = -(fw / 4);
+    *ht = -(fh / 10);
+    *hr = fw / 4;
+    *hb = fh / 10;
+    if (seq != NULL && seq->hr > 0) {
+        *cx = seq->cx > 0 ? seq->cx : *cx;
+        *cy = seq->cy > 0 ? seq->cy : *cy;
+        *hl = seq->hl;
+        *ht = seq->ht;
+        *hr = seq->hr;
+        *hb = seq->hb;
+    }
+    for (i = 0; i < ini_nframe; i++) {
+        if (ini_frame[i].seq == seqn && ini_frame[i].frame == frame) {
+            *cx = ini_frame[i].cx;
+            *cy = ini_frame[i].cy;
+            *hl = ini_frame[i].hl;
+            *ht = ini_frame[i].ht;
+            *hr = ini_frame[i].hr;
+            *hb = ini_frame[i].hb;
+            return;
+        }
+    }
+}
+
 int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
 {
     size_t i = 0;
@@ -46,6 +119,8 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
         return -1;
     }
     memset(seqs, 0, (size_t)nseq * sizeof(*seqs));
+    ini_nframe = 0;
+    memset(ini_frame, 0, sizeof(ini_frame));
     while (i < n) {
         char line[256];
         size_t L = 0;
@@ -68,6 +143,21 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
             p++;
         }
         if (*p == '\0' || *p == ';' || *p == '/') {
+            continue;
+        }
+        if (strncmp(p, "set_sprite_info", 15) == 0 ||
+            strncmp(p, "SET_SPRITE_INFO", 15) == 0) {
+            p += 15;
+            if (tok_int(&p, &seq) == 0 && tok_int(&p, &delay) == 0) {
+                /* delay reused as frame */
+                (void)tok_int(&p, &cx);
+                (void)tok_int(&p, &cy);
+                (void)tok_int(&p, &hl);
+                (void)tok_int(&p, &ht);
+                (void)tok_int(&p, &hr);
+                (void)tok_int(&p, &hb);
+                ini_store_frame(seq, delay, cx, cy, hl, ht, hr, hb);
+            }
             continue;
         }
         if (strncmp(p, "load_sequence_now", 17) == 0) {

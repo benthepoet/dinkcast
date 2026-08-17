@@ -11,7 +11,9 @@ int main(void)
         "; comment\n"
         "load_sequence_now graphics\\dink\\idle\\ds-i4- 14 250 30 71 -11 -9 11 9\n"
         "load_sequence graphics\\dink\\walk\\ds-w2- 72 43 37 69 -13 -9 13 9\n"
-        "load_sequence graphics\\inside\\innwalls\\walls\\inn- 31 NOTANIM\n";
+        "load_sequence graphics\\inside\\innwalls\\walls\\inn- 31 NOTANIM\n"
+        "SET_SPRITE_INFO 31 22 79 88 -75 1 21 12\n"
+        "SET_SPRITE_INFO 31 22 79 88 -94 -36 21 19\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL parse\n");
@@ -32,6 +34,18 @@ int main(void)
     if (strcmp(seqs[31].prefix, "graphics/inside/innwalls/walls/inn-") != 0) {
         fprintf(stderr, "FAIL seq31 NOTANIM prefix %s\n", seqs[31].prefix);
         return 1;
+    }
+    {
+        int cx, cy, hl, ht, hr, hb;
+
+        ini_frame_geom(&seqs[31], 31, 22, 100, 100, &cx, &cy, &hl, &ht, &hr,
+                       &hb);
+        if (cx != 79 || cy != 88 || hl != -94 || ht != -36 || hr != 21 ||
+            hb != 19) {
+            fprintf(stderr, "FAIL SET_SPRITE_INFO last-wins %d %d %d %d %d %d\n",
+                    cx, cy, hl, ht, hr, hb);
+            return 1;
+        }
     }
     printf("OK test_ini\n");
     return 0;

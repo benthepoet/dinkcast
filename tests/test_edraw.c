@@ -74,6 +74,16 @@ int main(void)
             return 1;
         }
     }
+    {
+        struct SpriteFrame *plank = edraw_find(g, n, 31, 22);
+
+        if (plank != NULL && (plank->cx != 79 || plank->cy != 88)) {
+            fprintf(stderr, "FAIL wall center %d %d\n", plank->cx, plank->cy);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);

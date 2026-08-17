@@ -51,7 +51,7 @@ static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
 static struct FfFile g_ff;
 static char g_ff_rel[160];
 
-int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
+int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out)
 {
     char dir[160], base[32], name[24];
@@ -117,8 +117,8 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int frame,
     out->h = bm.h;
     out->tw = tw;
     out->th = th;
-    out->cx = seq->cx > 0 ? seq->cx : ((bm.w - bm.w / 2) + bm.w / 6);
-    out->cy = seq->cy > 0 ? seq->cy : ((bm.h - bm.h / 4) - bm.h / 30);
+    ini_frame_geom(seq, seqn, frame, bm.w, bm.h, &out->cx, &out->cy, &out->hl,
+                   &out->ht, &out->hr, &out->hb);
     out->argb1555 = pad;
     out->tex = NULL;
     bitmap_free(&bm);
