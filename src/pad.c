@@ -9,6 +9,11 @@ int pad_title_wants_leave(int have_controller, uint32_t buttons)
     return (buttons & DINK_PAD_LEAVE) != 0;
 }
 
+int pad_just_pressed(uint32_t prev, uint32_t now, uint32_t bit)
+{
+    return (now & bit) != 0 && (prev & bit) == 0;
+}
+
 int pad_dir_from_buttons(uint32_t buttons)
 {
     int u = (buttons & DINK_PAD_UP) != 0;

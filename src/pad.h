@@ -17,6 +17,8 @@
 int pad_title_wants_leave(int have_controller, uint32_t buttons);
 /* Keypad dir 1-9, or 0 if no D-pad. */
 int pad_dir_from_buttons(uint32_t buttons);
+/* 1 if bit went 0→1 this poll. */
+int pad_just_pressed(uint32_t prev, uint32_t now, uint32_t bit);
 
 #ifdef _arch_dreamcast
 /* Maple port 0. Returns 0 if a controller is present; -1 if missing. */

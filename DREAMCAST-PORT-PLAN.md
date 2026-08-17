@@ -444,8 +444,8 @@ Ship commands in **waves**. Unimplemented command = `DINKC unimplemented: name` 
 
 #### Bite 10.1 — Talk probe (engine)
 
-- A pressed: from Dink center, step along `dir` up to FreeDink talk range; pick nearest sprite with a non-empty `script` and `brain` that allows talk.
-- Freeze player (`spr[1].freeze++` semantics: match FreeDink nest count).
+- A **just-pressed**: `run_through_tag_list_talk` — first live editor sprite (slot 1–99) whose hardbox is inflated by 10 and extended 50 (x, dirs 4/6) or 35 (y, dirs 2/8) in Dink's facing, and that contains Dink's `(x,y)`. Skip `brain==8` and empty `script`. Not a ray-step along `dir`.
+- Freeze player (`spr[1].freeze++` nest). Unfreeze is 11.3 / DinkC.
 
 #### Bite 10.2 — Hit probe (engine)
 

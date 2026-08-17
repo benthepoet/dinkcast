@@ -95,6 +95,17 @@ int main(void)
         hard_mask_free(&mask);
         return 1;
     }
+    {
+        int ox = p.x, oy = p.y;
+
+        p.freeze = 1;
+        player_step(&p, 6, &mask, seqs);
+        if (p.x != ox || p.y != oy) {
+            fprintf(stderr, "FAIL freeze moved %d,%d\n", p.x, p.y);
+            hard_mask_free(&mask);
+            return 1;
+        }
+    }
     hard_mask_free(&mask);
     printf("OK test_player\n");
     return 0;

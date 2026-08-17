@@ -24,6 +24,8 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Diag `speed-speed/3` | `changedir` | `player_step` steps | hold |
 | Start map 1, 334,161, dir 4 | `MAIN.c` / `starting_dink_*` / `START-1.c` | `start_map.h` | hold |
 | Idle `10+dir`, walk `70+dir` | `base_idle` / `base_walk` | `DINK_BASE_*` | hold |
+| Talk A | `run_through_tag_list_talk` | `talk_probe` | hold (10.1) |
+| `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |
 | ini commands case-insensitive | `compare()` | `tolower` cmd | hold |
 
@@ -31,7 +33,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 
 | Item | FreeDink | When |
 |---|---|---|
-| Idle after diagonal | `human_brain` 1/3→2, 7/9→8 | hold (this PR) |
+| Idle after diagonal | `human_brain` 1/3→2, 7/9→8 | hold (#28) |
 | Full `get_box` clip | crop to playl…playx, 0…playy | first sprite that bleeds |
 | `SET_FRAME_*` | `program_idata` | first seq that needs it |
 | NOTANIM copy frame 1 | `load_sprites` | frame without SSI |
@@ -43,7 +45,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 
 | Item | FreeDink | Bite |
 |---|---|---|
-| Talk / hit | `run_through_tag_list_talk`, hit list | 10 |
+| Talk / hit | `run_through_tag_list_talk`, hit list | **10.1 talk**; 10.2 hit |
 | DinkC + attach + yields | `dinkc*`, `game_screen_init_scripts` | 11 |
 | `&vision` / `force_vision` | `draw_screen_game` | 11 |
 | Engine + `MAIN.c` globals | `attach()` | 11.4 |
