@@ -50,8 +50,13 @@ int script_preload_screen(void)
     if (g_scr == NULL) {
         return 0;
     }
-    if (g_scr->script[0] != '\0' && try_load(g_scr->script) == 0) {
-        ok++;
+    if (g_scr->script[0] != '\0') {
+        strncpy(seen[nseen], g_scr->script, sizeof(seen[0]) - 1);
+        seen[nseen][sizeof(seen[0]) - 1] = '\0';
+        nseen++;
+        if (try_load(g_scr->script) == 0) {
+            ok++;
+        }
     }
     for (i = 1; i <= 99; i++) {
         const char *nm = g_scr->sprite[i].script;
@@ -72,11 +77,12 @@ int script_preload_screen(void)
         if (dup) {
             continue;
         }
-        if (nseen < 32) {
-            strncpy(seen[nseen], nm, sizeof(seen[0]) - 1);
-            seen[nseen][sizeof(seen[0]) - 1] = '\0';
-            nseen++;
+        if (nseen >= 32) {
+            continue;
         }
+        strncpy(seen[nseen], nm, sizeof(seen[0]) - 1);
+        seen[nseen][sizeof(seen[0]) - 1] = '\0';
+        nseen++;
         if (try_load(nm) == 0) {
             ok++;
         }
