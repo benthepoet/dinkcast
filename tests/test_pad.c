@@ -22,6 +22,9 @@ int main(void)
     expect(pad_title_wants_leave(1, DINK_PAD_START) == 1, "Start leaves");
     expect(pad_title_wants_leave(1, DINK_PAD_A | DINK_PAD_START) == 1, "A+Start leaves");
     expect(pad_title_wants_leave(1, 1u << 4) == 0, "unrelated bit stays");
+    expect(pad_dir_from_buttons(0) == 0, "no dir");
+    expect(pad_dir_from_buttons(DINK_PAD_DOWN) == 2, "down");
+    expect(pad_dir_from_buttons(DINK_PAD_LEFT) == 4, "left");
     printf("OK test_pad\n");
     return 0;
 }

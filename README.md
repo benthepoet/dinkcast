@@ -24,7 +24,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1 + V2 accepted.** This PR: Dink idle (seq 14) on the start screen (**V3**). Human Flycast accept before 9.x.
+**V1–V3 accepted.** This PR: walk + hardness (**V4**). Human Flycast accept before 10.x.
 
 ## Dreamcast toolchain
 

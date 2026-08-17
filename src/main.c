@@ -12,6 +12,8 @@
 #include "hard.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "pad.h"
+#include "player.h"
 #include "sprite.h"
 #include "start_map.h"
 #include "tiles.h"
@@ -196,41 +198,87 @@ int main(int argc, char **argv)
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
-                seqs[DINK_IDLE_SEQ].nframes =
-                    ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix);
+                int s;
+                for (s = 1; s < DINK_MAX_SEQ; s++) {
+                    if (seqs[s].prefix[0] != '\0' &&
+                        ((s >= 12 && s <= 18) || (s >= 71 && s <= 79))) {
+                        seqs[s].nframes = ini_count_ff_frames(seqs[s].prefix);
+                    }
+                }
                 printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
                        seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
-                if (sprite_load_seq_frame(&seqs[DINK_IDLE_SEQ], 1, &spr) != 0) {
-                    printf("idle frame load failed\n");
+            }
+            {
+                struct HardMask mask;
+                struct Player pl;
+                int last_seq = 0, last_frame = 0, si;
+
+                memset(&mask, 0, sizeof(mask));
+                (void)hard_stamp_tiles(&hard, &scr, &mask);
+                if (seqs != NULL) {
+                    for (si = 1; si <= 99; si++) {
+                        int sq = (int)scr.sprite[si].seq;
+                        if (!scr.sprite[si].active || sq < 1 ||
+                            sq >= DINK_MAX_SEQ || seqs[sq].hr <= seqs[sq].hl) {
+                            continue;
+                        }
+                        hard_stamp_box(&mask, (int)scr.sprite[si].x,
+                                       (int)scr.sprite[si].y, seqs[sq].hl,
+                                       seqs[sq].ht, seqs[sq].hr, seqs[sq].hb);
+                    }
                 }
-            }
-            free(seqs);
-            if (tiles_upload_pvr(&atlas) != 0) {
-                hud("TILE UPLOAD FAIL", NULL, msg);
-                sprite_frame_free(&spr);
-                for (;;) {
-                    vid_waitvbl();
+                player_init(&pl);
+                if (seqs != NULL) {
+                    sprite_load_seq_frame(&seqs[pl.seq], pl.frame, &spr);
                 }
-            }
-            if (spr.argb1555 != NULL && sprite_upload_pvr(&spr) != 0) {
-                printf("sprite upload failed\n");
-            }
-            printf("play idle %d,%d\n", DINK_START_X, DINK_START_Y);
-            for (;;) {
-                pvr_wait_ready();
-                pvr_scene_begin();
-                pvr_list_begin(PVR_LIST_OP_POLY);
-                tiles_draw_pvr(&atlas);
-                pvr_list_finish();
-                pvr_list_begin(PVR_LIST_PT_POLY);
+                if (tiles_upload_pvr(&atlas) != 0) {
+                    hud("TILE UPLOAD FAIL", NULL, msg);
+                    sprite_frame_free(&spr);
+                    hard_mask_free(&mask);
+                    hard_free(&hard);
+                    free(seqs);
+                    for (;;) {
+                        vid_waitvbl();
+                    }
+                }
                 if (spr.argb1555 != NULL) {
-                    sprite_draw_pvr(&spr, (float)DINK_START_X,
-                                    (float)DINK_START_Y, 2.0f);
+                    (void)sprite_upload_pvr(&spr);
                 }
-                pvr_list_finish();
-                pvr_scene_finish();
+                last_seq = pl.seq;
+                last_frame = pl.frame;
+                printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
+                for (;;) {
+                    uint32_t buttons = 0;
+                    int have, pdir;
+
+                    have = (pad_poll_port0(&buttons) == 0);
+                    pdir = have ? pad_dir_from_buttons(buttons) : 0;
+                    if (seqs != NULL) {
+                        player_step(&pl, pdir, &mask, seqs);
+                        if (pl.seq != last_seq || pl.frame != last_frame) {
+                            sprite_frame_free(&spr);
+                            if (sprite_load_seq_frame(&seqs[pl.seq], pl.frame,
+                                                      &spr) == 0) {
+                                (void)sprite_upload_pvr(&spr);
+                            }
+                            last_seq = pl.seq;
+                            last_frame = pl.frame;
+                        }
+                    }
+                    pvr_wait_ready();
+                    pvr_scene_begin();
+                    pvr_list_begin(PVR_LIST_OP_POLY);
+                    tiles_draw_pvr(&atlas);
+                    pvr_list_finish();
+                    pvr_list_begin(PVR_LIST_PT_POLY);
+                    if (spr.argb1555 != NULL) {
+                        sprite_draw_pvr(&spr, (float)pl.x, (float)pl.y, 2.0f);
+                    }
+                    pvr_list_finish();
+                    pvr_scene_finish();
+                }
             }
         }
     }
