@@ -18,6 +18,10 @@ void edraw_free(struct EdGfx *g, int n);
 /* Unique (seq,frame) for active editor sprites. */
 int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n);
+#ifdef _arch_dreamcast
+/* After pvr_init (tiles_upload_pvr). Load is CPU-only. */
+int edraw_upload_pvr(struct EdGfx *g, int n);
+#endif
 struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame);
 
 #endif

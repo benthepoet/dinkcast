@@ -265,6 +265,9 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
+                if (edraw_upload_pvr(edg, ned) != 0) {
+                    printf("edraw upload none\n");
+                }
                 if (spr.argb1555 != NULL) {
                     (void)sprite_upload_pvr(&spr);
                 }

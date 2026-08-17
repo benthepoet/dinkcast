@@ -77,13 +77,6 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
             printf("edraw skip seq=%d frame=%d\n", seq, fr);
             continue;
         }
-#ifdef _arch_dreamcast
-        if (sprite_upload_pvr(&g[got].fr) != 0) {
-            sprite_frame_free(&g[got].fr);
-            printf("edraw upload fail seq=%d\n", seq);
-            continue;
-        }
-#endif
         g[got].seq = seq;
         g[got].frame = fr;
         got++;
@@ -91,3 +84,22 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
     *n = got;
     return 0;
 }
+
+#ifdef _arch_dreamcast
+int edraw_upload_pvr(struct EdGfx *g, int n)
+{
+    int i, ok = 0;
+
+    if (g == NULL) {
+        return -1;
+    }
+    for (i = 0; i < n; i++) {
+        if (sprite_upload_pvr(&g[i].fr) != 0) {
+            printf("edraw upload fail seq=%d\n", g[i].seq);
+            continue;
+        }
+        ok++;
+    }
+    return ok > 0 || n == 0 ? 0 : -1;
+}
+#endif

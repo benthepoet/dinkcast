@@ -29,7 +29,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | Idle white key: PT list + PT bins (black slab) | [#14](https://github.com/benthepoet/dinkcast/pull/14) |
 | 2026-08-17 | **V3 accepted** | requester screenshot + merge #14 |
 | 2026-08-17 | **7.2–9.3** hardness stamp + walk (V4) | walk branch / merge |
-| 2026-08-17 | **8.6** draw editor sprites (plan + code) | this PR |
+| 2026-08-17 | **8.6** draw editor sprites (plan + code) | [#16](https://github.com/benthepoet/dinkcast/pull/16) |
+| 2026-08-17 | 8.6 upload after `pvr_init` (leave-title shutdown) | this PR |
 
 ## Bites
 
@@ -51,7 +52,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
-| 8.6 | Draw editor sprites | source | this PR |
+| 8.6 | Draw editor sprites | source | #16; upload after tiles `pvr_init` |
 | 9.1–9.3 | Walk | done | V4 accepted |
 | 10.1–10.3 | Talk / hit hooks | pending | |
 | 11.0–11.9 | DinkC (FreeDink interpreter) | pending | |
