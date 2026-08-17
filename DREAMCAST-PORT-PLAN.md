@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V3 accepted.** This PR is **7.2–9.3** (hardness stamp + D-pad walk). **V4** waits on Flycast accept.
+**Where we are:** **V4 accepted.** This PR is **8.6** (draw editor sprites). Next visual gate is **V5 (13.2)**. Do not start 10.x unless the requester says go.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -364,6 +364,19 @@ Commands (names as in file):
 
 - If any required Dink frame is `.ff`, implement the FreeDink FF container (palette + frames). Host dump first.
 
+#### Bite 8.6 — Draw editor sprites (houses / props)
+
+- **5.4 is data only.** This bite draws every **active** editor sprite on the current `map.dat` screen (slots **1..100**, slot 0 unused; Dink remains sprite **1** at runtime and is **not** taken from the editor slot).
+- Resolve `seq` + `frame` through `dink.ini` + existing BMP / `.ff` loaders. Skip missing seq/prefix (log once); do not invent frames.
+- Quad placement same as 8.4: `x - cx + playfield_ox`, `y - cy + playfield_oy`.
+- **Z:** match FreeDink y-sort (typically `y` as depth so southern props sit in front). Dink vs props must not always paint last.
+- Cache unique `(seq, frame)` textures for the screen. **Evict all** on screen change / leave play. Count against `sprite_tex` (≤ 4 MB with Dink seqs).
+- No DinkC, no talk, no brains beyond static draw. Required so V4 walk is readable (Stonebrook houses).
+
+**Host check:** start-screen active count matches `tools/dump_screen`; each loaded seq/frame listed.
+
+**Done when:** Official start-screen houses/props visible with tiles + Dink idle (or walk if 9.3 is already on the disc).
+
 #### Bite 9.1 — Input → facing
 
 - D-pad sets `dir` 2/4/6/8 (Dink dirs: 1 unused, 2=down? — **use FreeDink’s 1–9 keypad dirs**: 2 down, 4 left, 6 right, 8 up).
@@ -645,6 +658,7 @@ dinkcast/
     dinkini.c
     ff.c                   # 8.5; also start-menu seq 196
     sprite.c
+    edraw.c                # 8.6 editor sprite cache
     input.c
     player.c
     brains.c
@@ -703,7 +717,7 @@ dinkcast/
 0.1–0.2 → 1.1–1.2 → 2.1–2.2 → 3.1–3.4 TITLE → 4.1–4.2
                           ↘ 12.1–12.4 audio (after 3.4; optional on title)
 5.1–5.4 → 6.1–6.4 tiles → 7.1–7.4 hard
-                ↘ 8.1–8.4 (8.5 if FF) → 9.1–9.3 walk
+                ↘ 8.1–8.5 → 8.6 editor sprites → 9.1–9.3 walk
                          → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
                          → 13.1–13.3 text → 11.7 wave 2
                          → 14.1–14.3 transitions

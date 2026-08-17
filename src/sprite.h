@@ -10,6 +10,7 @@ struct SpriteFrame {
     int w, h, tw, th;
     int cx, cy;
     uint16_t *argb1555; /* POT-padded; white RGB is alpha 0 */
+    void *tex;          /* DC pvr_ptr_t */
 };
 
 /* ARGB1555: bit 15 set = opaque. White RGB → 0. */

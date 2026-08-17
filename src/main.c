@@ -9,6 +9,7 @@
 #include "boot.h"
 #include "dinkdat.h"
 #include "fs.h"
+#include "edraw.h"
 #include "hard.h"
 #include "ini.h"
 #include "mapscr.h"
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
                 }
                 hard_free(&hard); /* stamp done; drop 2 MiB file buffer */
                 if (seqs != NULL) {
-                    for (si = 1; si <= 99; si++) {
+                    for (si = 1; si <= 100; si++) {
                         int sq = (int)scr.sprite[si].seq;
                         if (!scr.sprite[si].active || sq < 1 ||
                             sq >= DINK_MAX_SEQ || seqs[sq].hr <= seqs[sq].hl) {
@@ -245,11 +246,20 @@ int main(int argc, char **argv)
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.frame, &spr);
                 }
+                {
+                    struct EdGfx edg[DINK_EDGFX_MAX];
+                    int ned = 0;
+
+                    memset(edg, 0, sizeof(edg));
+                    if (seqs != NULL) {
+                        (void)edraw_load_screen(&scr, seqs, edg, &ned);
+                    }
+                    printf("edraw unique %d\n", ned);
                 if (tiles_upload_pvr(&atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     sprite_frame_free(&spr);
+                    edraw_free(edg, ned);
                     hard_mask_free(&mask);
-                    hard_free(&hard);
                     free(seqs);
                     for (;;) {
                         vid_waitvbl();
@@ -285,11 +295,61 @@ int main(int argc, char **argv)
                     tiles_draw_pvr(&atlas);
                     pvr_list_finish();
                     pvr_list_begin(PVR_LIST_PT_POLY);
-                    if (spr.argb1555 != NULL) {
-                        sprite_draw_pvr(&spr, (float)pl.x, (float)pl.y, 2.0f);
+                    {
+                        struct {
+                            int y, x;
+                            struct SpriteFrame *fr;
+                        } draw[101];
+                        int nd = 0, a, b;
+
+                        for (si = 1; si <= 100 && nd < 100; si++) {
+                            int seq, fr;
+                            struct SpriteFrame *ef;
+
+                            if (!scr.sprite[si].active) {
+                                continue;
+                            }
+                            seq = (int)scr.sprite[si].seq;
+                            fr = (int)scr.sprite[si].frame;
+                            if (fr < 1) {
+                                fr = 1;
+                            }
+                            ef = edraw_find(edg, ned, seq, fr);
+                            if (ef == NULL) {
+                                continue;
+                            }
+                            draw[nd].y = (int)scr.sprite[si].y;
+                            draw[nd].x = (int)scr.sprite[si].x;
+                            draw[nd].fr = ef;
+                            nd++;
+                        }
+                        if (spr.argb1555 != NULL && nd < 100) {
+                            draw[nd].y = pl.y;
+                            draw[nd].x = pl.x;
+                            draw[nd].fr = &spr;
+                            nd++;
+                        }
+                        for (a = 0; a < nd; a++) {
+                            for (b = a + 1; b < nd; b++) {
+                                if (draw[b].y < draw[a].y) {
+                                    int ty = draw[a].y, tx = draw[a].x;
+                                    struct SpriteFrame *tf = draw[a].fr;
+                                    draw[a] = draw[b];
+                                    draw[b].y = ty;
+                                    draw[b].x = tx;
+                                    draw[b].fr = tf;
+                                }
+                            }
+                        }
+                        for (a = 0; a < nd; a++) {
+                            sprite_draw_pvr(draw[a].fr, (float)draw[a].x,
+                                            (float)draw[a].y, 2.0f +
+                                                                  (float)a * 0.01f);
+                        }
                     }
                     pvr_list_finish();
                     pvr_scene_finish();
+                }
                 }
             }
         }
