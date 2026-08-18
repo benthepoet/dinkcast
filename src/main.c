@@ -275,12 +275,10 @@ int main(int argc, char **argv)
                 {
                     int ned = 0;
 
-                    memset(g_edg, 0, sizeof(g_edg));
                     printf("pre-edraw live seq=%d y=%d act=%d snap seq=%d y=%d act=%d\n",
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
                            (int)g_scr.sprite[1].active, (int)g_spr_ok[1].seq,
                            (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
-                    spr_restore("edraw");
                     if (seqs != NULL) {
                         (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                     }

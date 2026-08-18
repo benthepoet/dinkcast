@@ -33,17 +33,21 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame)
     return NULL;
 }
 
-int edraw_load_screen(const struct EditorSprite *spr, struct SeqInfo *seqs,
+int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n)
 {
-    /* Own BSS: copy BEFORE touching g[] (memset g_edg was eating g_scr). */
-    static struct EditorSprite sp[101];
+    struct EditorSprite *sp;
     int i, got = 0;
 
     if (spr == NULL || seqs == NULL || g == NULL || n == NULL) {
         return -1;
     }
-    memcpy(sp, spr, sizeof(sp));
+    /* Heap copy FIRST. BSS memset(g_edg) sits next to g_scr / g_spr_ok. */
+    sp = (struct EditorSprite *)malloc(101u * sizeof(*sp));
+    if (sp == NULL) {
+        return -1;
+    }
+    memcpy(sp, spr, 101u * sizeof(*sp));
     printf("edraw in sprite1 seq=%d y=%d act=%d\n", (int)sp[1].seq,
            (int)sp[1].y, (int)sp[1].active);
     for (i = 0; i < DINK_EDGFX_MAX; i++) {
@@ -92,6 +96,8 @@ int edraw_load_screen(const struct EditorSprite *spr, struct SeqInfo *seqs,
         g[got].frame = fr;
         got++;
     }
+    memcpy(spr, sp, 101u * sizeof(*sp));
+    free(sp);
     *n = got;
     return 0;
 }
