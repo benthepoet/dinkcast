@@ -366,8 +366,10 @@ int main(int argc, char **argv)
                         memset(&mask, 0, sizeof(mask));
                         if (hard_load(&g_hard) != 0) {
                             printf("hard reload fail\n");
-                        } else if (hard_stamp_tiles(&g_hard, &g_scr, &mask) !=
-                                   0) {
+                        }
+                        /* Stamp even if reload failed: empty hid still
+                         * allocates the mask so sprite/warp boxes apply. */
+                        if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
                             printf("hard restamp fail\n");
                         }
                         hard_free(&g_hard);
