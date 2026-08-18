@@ -1,12 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "script.h"
 
+#include "dinkc_cmd.h"
 #include "dinkc_file.h"
 #include "dinkc_lex.h"
 #include "dinkc_parse.h"
 #include "dinkc_vm.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const struct MapScreen *g_scr;
@@ -182,6 +184,11 @@ void script_on_main(int script_id)
     snprintf(g_log, sizeof(g_log), "main script_id=%d script=%s attach=%d",
              script_id, name, n);
     printf("%s\n", g_log);
+    if (getenv("DINKC_DUMP_FNS") != NULL &&
+        getenv("DINKC_DUMP_FNS")[0] != '\0' &&
+        getenv("DINKC_DUMP_FNS")[0] != '0') {
+        dinkc_cmd_dump();
+    }
 }
 
 void script_on_talk(int sprite)

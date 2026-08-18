@@ -56,7 +56,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **11.6** attach screen + sprite `main()` | #40 |
 | 2026-08-18 | **11.7** choice lines + items prelude | #41 |
 | 2026-08-18 | `make emu` tees SCIF to `build/emu.log` | #42 |
-| 2026-08-18 | **11.8** wave-3 cmds (midi/status stubs) | this PR |
+| 2026-08-18 | **11.8** wave-3 cmds (midi/status stubs) | #43 |
+| 2026-08-18 | **11.9** DinkC command table + dump | this PR |
 
 ## Bites
 
@@ -91,8 +92,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39 |
 | 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40 |
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
-| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; compare_weapon |
-| 11.9 | Coverage log | pending | |
+| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43 |
+| 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |
 | 14.1–14.3 | Screen transitions | pending | |

@@ -8,5 +8,9 @@ void dinkc_cmd_bind_player(struct Player *p);
 /* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 2 choice. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
               int *yield, int *ret);
+/* 11.9: one table. DINKC_DUMP_FNS=1 prints implemented + missing. */
+void dinkc_cmd_dump(void);
+int dinkc_cmd_implemented_count(void);
+int dinkc_cmd_missing_count(void);
 
 #endif

@@ -37,6 +37,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Choice lines | `dinkc_get_choices` | `choice_start` + `choice_ret[]` | hold (11.7); A = first visible; `&result` = official # |
 | Wave 2 cmds | `add_item` / `hurt` / `sp_hitpoints` | `dinkc_cmd` | hold (11.7); no inv UI; `playsound` stub |
 | Wave 3 cmds | `playmidi` / `draw_status` / `compare_weapon` | `dinkc_cmd` | hold (11.8); midi/status stub; no fade/screen |
+| Cmd table | `dinkc_bindings` hash | `k_fn[]` + `DINKC_DUMP_FNS` | hold (11.9) |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |
