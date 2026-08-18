@@ -47,6 +47,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **DinkC has no `/* */`.** FreeDink is line + `get_word`. Stock `story/` uses `//` only. Lexer skips `//` to EOL. `/*` is `SLASH` then `STAR`, not a block comment. `&s2-map` is one `VAR` (hyphen is ident).
 - **Stock DinkC is messy.** Missing `{` after `void name()`, extra `}`, `+=` and `&x / 5`, `choice_start`/`title_start` prose, multiline `"…"`, typos (`wait(200:`, `say_stop('…"`). Parser is permissive; it does not execute.
 - **`wait(ms)` is a fiber yield**, not a busy loop. 60 Hz tick is 16 ms. `say_stop` yields until A. Do not attach/run house `main()` until 11.5/11.6 — it `freeze`s and `say_stop`s.
+- **DinkC 1.08 looks up locals before globals.** Unknown `&name` is 0. Engine names `&current_sprite` / `&current_script` / `&return` / `&arg1`–`9` are not `play.var` slots. Only register `MAIN.c` `make_global_int` names — do not invent extras.
 
 ## Data
 

@@ -50,7 +50,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | Preload unique sprite scripts (empty screen script) | #34 |
 | 2026-08-17 | **11.1** DinkC lexer | #35 |
 | 2026-08-17 | **11.2** DinkC parse stock `story/*.c` | #36 |
-| 2026-08-17 | **11.3** DinkC fiber VM (`wait` yield) | this PR |
+| 2026-08-17 | **11.3** DinkC fiber VM (`wait` yield) | #37 |
+| 2026-08-18 | **11.4** DinkC vars (`attach` + MAIN.c) | this PR |
 
 ## Bites
 
@@ -81,7 +82,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.1 | DinkC lexer | source | `//` comments; hyphen `&name` |
 | 11.2 | DinkC parser | source | 0 fail on 381 stock `story/*.c` |
 | 11.3 | DinkC VM yield | source | max 20; `wait` / say_stop / choice; no attach |
-| 11.4–11.9 | Vars…coverage | pending | |
+| 11.4 | DinkC variables | source | 1.08 local-then-global; MAIN.c list |
+| 11.5–11.9 | Commands…coverage | pending | |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |
 | 14.1–14.3 | Screen transitions | pending | |
