@@ -15,6 +15,9 @@ struct EdGfx {
 };
 
 void edraw_free(struct EdGfx *g, int n);
+/* Size matches edraw.c (do not BSS an array next to g_scr). */
+struct EdGfx *edraw_gfx_alloc(void);
+void edraw_gfx_release(struct EdGfx *g);
 /* Unique (seq,frame) for active editor sprites. */
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n);

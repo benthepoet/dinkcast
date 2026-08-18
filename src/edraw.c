@@ -18,6 +18,17 @@ void edraw_free(struct EdGfx *g, int n)
     }
 }
 
+struct EdGfx *edraw_gfx_alloc(void)
+{
+    return (struct EdGfx *)calloc((size_t)DINK_EDGFX_MAX, sizeof(struct EdGfx));
+}
+
+void edraw_gfx_release(struct EdGfx *g)
+{
+    edraw_free(g, DINK_EDGFX_MAX);
+    free(g);
+}
+
 struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame)
 {
     int i;
