@@ -21,6 +21,8 @@ struct Fiber {
     int ip;
     int ntok;
     int locals[DINKC_LOCALS];
+    int nchoice;
+    int choice_ret[20];
     char name[32];
     char *src;
     size_t srclen;
@@ -426,17 +428,81 @@ static void run_fiber(struct Fiber *f, int now_ms)
                 return;
             }
             if (tok_is(t, "choice_start")) {
+                /* dinkc_get_choices: retnum even if condition false. */
+                int retnum = 0;
+
                 parse_args(f, args, &nargs, sarg, sizeof(sarg));
+                f->nchoice = 0;
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
+                    int ok = 1;
+
+                    if (tok_is(&f->tok[f->ip], "set_y") ||
+                        tok_is(&f->tok[f->ip], "set_title_color")) {
+                        f->ip++;
+                        if (f->ip < f->ntok &&
+                            f->tok[f->ip].kind == DINKC_LPAREN) {
+                            skip_balanced(f, DINKC_LPAREN, DINKC_RPAREN);
+                        } else if (f->ip < f->ntok &&
+                                   f->tok[f->ip].kind == DINKC_NUMBER) {
+                            f->ip++;
+                        }
+                        eat_semi(f);
+                        continue;
+                    }
+                    if (tok_is(&f->tok[f->ip], "title_start")) {
+                        f->ip++;
+                        skip_call(f);
+                        while (f->ip < f->ntok &&
+                               !tok_is(&f->tok[f->ip], "title_end")) {
+                            f->ip++;
+                        }
+                        if (f->ip < f->ntok) {
+                            f->ip++;
+                            skip_call(f);
+                        }
+                        continue;
+                    }
+                    while (f->ip < f->ntok &&
+                           f->tok[f->ip].kind == DINKC_LPAREN) {
+                        int cond;
+
+                        f->ip++;
+                        cond = eval_expr(f);
+                        if (f->ip < f->ntok &&
+                            f->tok[f->ip].kind == DINKC_RPAREN) {
+                            f->ip++;
+                        }
+                        if (!cond) {
+                            ok = 0;
+                        }
+                    }
+                    if (f->ip < f->ntok &&
+                        f->tok[f->ip].kind == DINKC_STRING) {
+                        char line[80];
+
+                        retnum++;
+                        copy_tok(&f->tok[f->ip], line, sizeof(line));
+                        if (ok && f->nchoice < 20) {
+                            f->choice_ret[f->nchoice++] = retnum;
+                            printf("choice %d %s\n", retnum, line);
+                        }
+                        f->ip++;
+                        eat_semi(f);
+                        continue;
+                    }
                     f->ip++;
                 }
                 if (f->ip < f->ntok) {
                     f->ip++;
                     skip_call(f);
                 }
+                if (f->nchoice == 0) {
+                    printf("dinkc choice empty\n");
+                    continue;
+                }
                 f->state = DINKC_WAIT_CHOICE;
-                printf("dinkc yield choice\n");
+                printf("dinkc yield choice n=%d\n", f->nchoice);
                 return;
             }
             parse_args(f, args, &nargs, sarg, sizeof(sarg));
@@ -699,10 +765,27 @@ void dinkc_vm_choice_pick(int result)
 {
     int i;
 
-    dinkc_var_set("&result", result, DINKC_GLOBAL_SCOPE, 1);
+    /* result is 1-based visible index; &result is official line number. */
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
+            int vis = result;
+            int off;
+
+            if (vis < 1) {
+                vis = 1;
+            }
+            if (vis > g_f[i].nchoice) {
+                vis = g_f[i].nchoice;
+            }
+            off = vis - 1;
+            if (off >= 0 && off < g_f[i].nchoice) {
+                dinkc_var_set("&result", g_f[i].choice_ret[off],
+                              DINKC_GLOBAL_SCOPE, 1);
+            } else {
+                dinkc_var_set("&result", 0, DINKC_GLOBAL_SCOPE, 1);
+            }
             run_fiber(&g_f[i], g_f[i].wait_until);
+            return;
         }
     }
 }
