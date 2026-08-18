@@ -164,6 +164,8 @@ static void run_fiber(struct Fiber *f, int now_ms)
         if (ops > DINKC_OPS_CAP) {
             g_ops_ovf++;
             printf("dinkc vm ops cap slot overflow\n");
+            f->state = DINKC_WAIT_MS;
+            f->wait_until = now_ms + DINKC_TICK_MS;
             return;
         }
         if (t->kind == DINKC_LBRACE) {
