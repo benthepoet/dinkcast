@@ -57,6 +57,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Choice menu is D-pad + A.** Visible lines only; `&result` is the official number (hidden lines still count). A picks the highlighted row, not always 1.
 - **Do not `start_proc(talk)` on a new fiber each A.** FreeDink `locate`s `talk()` on the sprite’s existing script. A new instance leaks slots and can leave a stale `WAIT_CHOICE`/`wait`. Kill that sprite’s fibers first. `wait` uses the engine clock (`g_now_ms`), not the fiber’s last `wait_until`.
 - **House exit is a warp, not an edge.** Hardness `100+editor` + `is_warp` (`special_block`). Edge is `did_player_cross_screen` (playl=20, x=619, y=0/399, map ±1 / ±32). Clamp if `loc[neighbor]==0`. Instant swap (no fade).
+- **Do not keep `hard.dat` (`raw` ~2 MiB) across sprite BMP loads.** Tile stamp needs it; `edraw_load_screen` then OOMs and the house loses walls/mom (`edraw unique 6`). `hard_free` after `hard_stamp_tiles`, reload on the next swap.
 - **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
 
 ## Data
