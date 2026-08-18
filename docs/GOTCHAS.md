@@ -26,6 +26,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites **immediately after `map_load_record`** (BSS copy).
 - **`edraw_load_screen` must heap-copy sprites before `memset(g_edg)`.** ELF packs `g_edg` → `g_hard` → `g_atlas` → `g_scr`. Free+memset first, then copy, reads `act=88` (Y). A second BSS `static` table can sit next to `g_edg` and die the same way. `malloc`, copy, then memset; write the snap back at the end.
 - **Restore `g_scr.sprite` after edraw before `script_on_main` / talk.** Draw already memcpy’d the snap; attach and `talk_probe` still walked the smashed table (`preload unique=0`, no mom `main`, A does nothing). Keep the snap on the **heap**, not BSS next to `g_edg`.
+- **Do not BSS `EdGfx[96]` next to `g_scr`.** `edraw.c` and `main.c` can disagree on `sizeof(EdGfx)` if only `main` includes `kos.h`. `memset(g)` then walks into the map table. Serial: `restore … script=s1-h1-m` then `preload unique=0`. Allocate gfx with `edraw_gfx_alloc()`; restore again immediately before attach.
 
 ## PVR / video
 

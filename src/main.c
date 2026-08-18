@@ -44,7 +44,7 @@ static struct MapScreen g_scr;
 static struct EditorSprite *g_spr_ok;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
-static struct EdGfx g_edg[DINK_EDGFX_MAX];
+static struct EdGfx *g_edg;
 
 static int spr_ok_ready(void)
 {
@@ -227,6 +227,13 @@ int main(int argc, char **argv)
                 vid_waitvbl();
             }
         }
+        g_edg = edraw_gfx_alloc();
+        if (g_edg == NULL) {
+            hud("EDG ALLOC FAIL", "malloc", msg);
+            for (;;) {
+                vid_waitvbl();
+            }
+        }
         spr_snap("load");
         memset(&g_atlas, 0, sizeof(g_atlas));
         if (tiles_build_atlas(&g_scr, &g_atlas) != 0) {
@@ -367,6 +374,10 @@ int main(int argc, char **argv)
                         printf("saybox upload fail\n");
                     }
                 }
+                spr_restore("pre-attach");
+                printf("pre-attach spr26 script=%s type=%d act=%d\n",
+                       g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
+                       (int)g_scr.sprite[26].active);
                 script_bind_screen(&g_scr);
                 script_on_main(0); /* also preloads unique sprite story files */
                 {
@@ -477,6 +488,7 @@ int main(int argc, char **argv)
                             last_seq = pl.seq;
                             last_frame = pl.frame;
                         }
+                        spr_restore("swap-pre-attach");
                         script_bind_screen(&g_scr);
                         saybox_bind(&g_scr, &pl);
                         script_on_main(0);
