@@ -337,6 +337,9 @@ int main(int argc, char **argv)
                         (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
                          pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
                         dinkc_vm_advance_say();
+                        if (!dinkc_vm_waiting_say()) {
+                            saybox_clear();
+                        }
                     } else if (have && pad_just_pressed(prev_buttons, buttons,
                                                        DINK_PAD_A) &&
                                dinkc_vm_waiting_choice()) {

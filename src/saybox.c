@@ -30,6 +30,9 @@ static void owner_xy(int sprite, int *x, int *y)
 {
     *x = 100;
     *y = 100;
+    if (sprite == 0) {
+        sprite = 1;
+    }
     if (sprite == 1 && g_pl != NULL) {
         *x = g_pl->x;
         *y = g_pl->y;

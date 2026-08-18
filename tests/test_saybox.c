@@ -37,6 +37,8 @@ int main(void)
     expect(saybox_y() == 180 - DINK_SAY_YOFF, "yoff");
     saybox_set("Mother, how do I feed the pigs?  I forgot!", 1);
     expect(strchr(saybox_text(), '\n') != NULL, "wrap");
+    saybox_set("hi", 0);
+    expect(saybox_x() == 334 - DINK_SAY_XOFF, "sprite 0 is Dink");
     saybox_clear();
     expect(!saybox_active(), "off");
     printf("OK test_saybox\n");
