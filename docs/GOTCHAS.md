@@ -46,6 +46,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Start house screen script is empty.** Official loc 1 `script=` is blank; `s1-h1-m` / `s1-h1-1` live on **sprites**. `main script_id=0 script=` after leave-title is not a parse miss. Preload unique on-vision sprite files.
 - **DinkC has no `/* */`.** FreeDink is line + `get_word`. Stock `story/` uses `//` only. Lexer skips `//` to EOL. `/*` is `SLASH` then `STAR`, not a block comment. `&s2-map` is one `VAR` (hyphen is ident).
 - **Stock DinkC is messy.** Missing `{` after `void name()`, extra `}`, `+=` and `&x / 5`, `choice_start`/`title_start` prose, multiline `"…"`, typos (`wait(200:`, `say_stop('…"`). Parser is permissive; it does not execute.
+- **`wait(ms)` is a fiber yield**, not a busy loop. 60 Hz tick is 16 ms. `say_stop` yields until A. Do not attach/run house `main()` until 11.5/11.6 — it `freeze`s and `say_stop`s.
 
 ## Data
 

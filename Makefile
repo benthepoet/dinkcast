@@ -16,7 +16,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -69,6 +69,10 @@ tests/test_dinkc_lex: tests/test_dinkc_lex.c src/dinkc_lex.c src/dinkc_file.c sr
 tests/test_dinkc_parse: tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex.c src/dinkc_file.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex.c src/dinkc_file.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
+
+tests/test_dinkc_vm: tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c
+	./$@
 
 tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
@@ -162,6 +166,7 @@ clean:
 		tests/test_ini tests/test_ff tests/test_sprite tests/test_player \
 		tests/test_edraw tests/test_talk tests/test_hit tests/test_script \
 		tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse \
+		tests/test_dinkc_vm \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
 		tools/dump_screen tools/dump_ini
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi
