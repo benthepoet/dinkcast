@@ -24,6 +24,7 @@ int font_init(void)
             uint8_t bits = k_gl[gi][r];
 
             for (c = 0; c < DINK_FONT_CELL; c++) {
+                /* font8x8_basic: bit 0 is the leftmost pixel. */
                 if ((bits & (1u << c)) == 0) {
                     continue;
                 }

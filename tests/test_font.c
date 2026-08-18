@@ -16,7 +16,7 @@ int main(void)
 {
     int col = -1, row = -1;
     const uint16_t *px;
-    int a_col, i_col;
+    int a_col, bang_col, bang_row;
 
     expect(font_init() == 0, "init");
     expect(font_atlas_bytes() == DINK_FONT_ATLAS_W * DINK_FONT_ATLAS_H * 2,
@@ -53,7 +53,22 @@ int main(void)
             }
         }
         expect(ink == 1, "A ink");
-        (void)i_col;
+    }
+    /* '!' row 0 is 0x18: bits 3 and 4 if bit0 is left (font8x8). */
+    expect(font_glyph_cell('!', &bang_col, &bang_row) == 1, "bang");
+    {
+        int sx, base;
+
+        base = bang_row * 8 * DINK_FONT_ATLAS_W + bang_col * 8;
+        for (sx = 0; sx < 8; sx++) {
+            int on = px[base + sx] != 0;
+
+            if (sx == 3 || sx == 4) {
+                expect(on, "bang bit");
+            } else {
+                expect(!on, "bang gap");
+            }
+        }
     }
     font_free();
     expect(font_atlas_argb1555() == NULL, "free");
