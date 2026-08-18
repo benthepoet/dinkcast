@@ -196,6 +196,7 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 
 #ifdef _arch_dreamcast
 static pvr_ptr_t g_tile_tex;
+static int g_pvr_ready;
 
 int tiles_upload_pvr(struct TileAtlas *a)
 {
@@ -206,8 +207,9 @@ int tiles_upload_pvr(struct TileAtlas *a)
         pvr_mem_free(g_tile_tex);
         g_tile_tex = NULL;
     }
-    /* Enable PT bins so 1555 sprites can punch through (defaults often 0). */
-    {
+    /* Enable PT bins so 1555 sprites can punch through (defaults often 0).
+     * pvr_init once — a second call wipes live saybox/font VRAM. */
+    if (!g_pvr_ready) {
         pvr_init_params_t params;
 
         memset(&params, 0, sizeof(params));
@@ -216,6 +218,7 @@ int tiles_upload_pvr(struct TileAtlas *a)
         params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
         params.vertex_buf_size = 512 * 1024;
         pvr_init(&params);
+        g_pvr_ready = 1;
     }
     g_tile_tex = pvr_mem_malloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
     if (g_tile_tex == NULL) {

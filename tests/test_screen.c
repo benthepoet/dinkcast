@@ -41,10 +41,18 @@ int main(void)
         s.sprite[7].warp_map = 3;
         s.sprite[7].warp_x = 100;
         s.sprite[7].warp_y = 200;
+        w.loc[3] = 9;
         map = 1;
-        expect(screen_try_warp(&s, 7, &map, &p) == 0, "warp");
+        expect(screen_try_warp(&w, &s, 7, &map, &p) == 0, "warp");
         expect(map == 3 && p.x == 100 && p.y == 200, "warp dest");
-        expect(screen_try_warp(&s, 8, &map, &p) != 0, "no warp");
+        expect(screen_try_warp(&w, &s, 8, &map, &p) != 0, "no warp");
+        s.sprite[100].is_warp = 1;
+        s.sprite[100].warp_map = 3;
+        s.sprite[100].warp_x = 50;
+        s.sprite[100].warp_y = 60;
+        expect(screen_try_warp(&w, &s, 100, &map, &p) == 0, "ed 100");
+        s.sprite[7].warp_map = 5;
+        expect(screen_try_warp(&w, &s, 7, &map, &p) != 0, "empty dest");
     }
     printf("OK test_screen\n");
     return 0;

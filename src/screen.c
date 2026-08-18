@@ -54,20 +54,25 @@ int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
     return 0;
 }
 
-int screen_try_warp(const struct MapScreen *scr, int editor, int *player_map,
-                    struct Player *p)
+int screen_try_warp(const struct World *w, const struct MapScreen *scr,
+                    int editor, int *player_map, struct Player *p)
 {
     const struct EditorSprite *es;
+    int dest;
 
-    if (scr == NULL || player_map == NULL || p == NULL || editor < 1 ||
-        editor > 99) {
+    if (w == NULL || scr == NULL || player_map == NULL || p == NULL ||
+        editor < 1 || editor > 100) {
         return -1;
     }
     es = &scr->sprite[editor];
     if (!es->is_warp) {
         return -1;
     }
-    *player_map = (int)es->warp_map;
+    dest = (int)es->warp_map;
+    if (dest < 1 || dest > 24 * 32 || w->loc[dest] < 1) {
+        return -1;
+    }
+    *player_map = dest;
     p->x = (int)es->warp_x;
     p->y = (int)es->warp_y;
     printf("warp ed=%d map=%d xy=%d,%d\n", editor, *player_map, p->x, p->y);

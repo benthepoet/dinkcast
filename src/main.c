@@ -335,6 +335,13 @@ int main(int argc, char **argv)
                     if (swap) {
                         int rec2, nstamp;
 
+                        rec2 = (int)g_world.loc[player_map];
+                        if (rec2 < 1) {
+                            printf("swap skip map %d loc %d\n", player_map,
+                                   rec2);
+                            swap = 0;
+                            continue;
+                        }
                         if (have_scene) {
                             pvr_wait_ready();
                             have_scene = 0;
@@ -346,9 +353,8 @@ int main(int argc, char **argv)
                         tiles_evict(&g_atlas);
                         sprite_frame_free(&spr);
                         hard_mask_free(&mask);
-                        rec2 = (int)g_world.loc[player_map];
                         printf("enter map %d loc %d\n", player_map, rec2);
-                        if (rec2 < 1 || map_load_record(rec2, &g_scr) != 0) {
+                        if (map_load_record(rec2, &g_scr) != 0) {
                             printf("map load fail %d\n", rec2);
                             swap = 0;
                             continue;
@@ -420,6 +426,7 @@ int main(int argc, char **argv)
                         saybox_bind(&g_scr, &pl);
                         script_on_main(0);
                         swap = 0;
+                        continue;
                     }
 
                     /* Finish the last scene before evicting its sprite tex.
@@ -469,8 +476,8 @@ int main(int argc, char **argv)
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
                         if (pl.freeze == 0 && pl.warp_hit > 0 &&
-                            screen_try_warp(&g_scr, pl.warp_hit, &player_map,
-                                            &pl) == 0) {
+                            screen_try_warp(&g_world, &g_scr, pl.warp_hit,
+                                            &player_map, &pl) == 0) {
                             swap = 1;
                             continue;
                         }

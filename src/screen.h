@@ -13,8 +13,8 @@
 
 /* did_player_cross_screen: 1 = map changed. */
 int screen_try_cross(const struct World *w, int *player_map, struct Player *p);
-/* special_block: 0 = warped (player_map/x/y set). */
-int screen_try_warp(const struct MapScreen *scr, int editor, int *player_map,
-                    struct Player *p);
+/* special_block: 0 = warped (player_map/x/y set). dest loc must be nonzero. */
+int screen_try_warp(const struct World *w, const struct MapScreen *scr,
+                    int editor, int *player_map, struct Player *p);
 
 #endif
