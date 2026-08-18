@@ -4,6 +4,7 @@
  */
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "boot.h"
@@ -39,26 +40,40 @@
 
 /* KOS thread stack is ~32–64 KB. These sum > 32 KB if locals. */
 static struct World g_world;
-/* Before g_scr so a linear smash of the map table cannot eat the snap. */
-static struct EditorSprite g_spr_ok[101];
 static struct MapScreen g_scr;
+static struct EditorSprite *g_spr_ok;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx g_edg[DINK_EDGFX_MAX];
 
+static int spr_ok_ready(void)
+{
+    if (g_spr_ok != NULL) {
+        return 0;
+    }
+    g_spr_ok = (struct EditorSprite *)malloc(101u * sizeof(*g_spr_ok));
+    return g_spr_ok == NULL ? -1 : 0;
+}
+
 static void spr_snap(const char *tag)
 {
-    memcpy(g_spr_ok, g_scr.sprite, sizeof(g_spr_ok));
+    if (g_spr_ok == NULL) {
+        return;
+    }
+    memcpy(g_spr_ok, g_scr.sprite, 101u * sizeof(*g_spr_ok));
     printf("snap %s sprite1 seq=%d y=%d act=%d\n", tag,
            (int)g_spr_ok[1].seq, (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
 }
 
 static void spr_restore(const char *tag)
 {
-    memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
-    printf("restore %s sprite1 seq=%d y=%d act=%d\n", tag,
+    if (g_spr_ok == NULL) {
+        return;
+    }
+    memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
+    printf("restore %s sprite1 seq=%d y=%d act=%d script=%s\n", tag,
            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
-           (int)g_scr.sprite[1].active);
+           (int)g_scr.sprite[1].active, g_scr.sprite[26].script);
 }
 
 static void hud(const char *line0, const char *line1, const char *line2)
@@ -202,6 +217,12 @@ int main(int argc, char **argv)
                (int)g_world.music[DINK_START_PLAYER_MAP]);
         if (rec < 1 || map_load_record(rec, &g_scr) != 0) {
             hud("MAP LOAD FAIL", "map.dat", msg);
+            for (;;) {
+                vid_waitvbl();
+            }
+        }
+        if (spr_ok_ready() != 0) {
+            hud("SPR SNAP FAIL", "malloc", msg);
             for (;;) {
                 vid_waitvbl();
             }
@@ -470,7 +491,9 @@ int main(int argc, char **argv)
                     if (have_scene) {
                         pvr_wait_ready();
                     }
-                    memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
+                    if (g_spr_ok != NULL) {
+                        memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
+                    }
                     have = (pad_poll_port0(&buttons) == 0);
                     if (have && dinkc_vm_waiting_say() &&
                         (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
@@ -553,7 +576,9 @@ int main(int argc, char **argv)
                         } draw[101];
                         int nd = 0, a, b;
 
-                        memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
+                        if (g_spr_ok != NULL) {
+                        memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
+                    }
                         for (si = 1; si <= 100 && nd < 100; si++) {
                             int seq, fr;
                             struct SpriteFrame *ef;
