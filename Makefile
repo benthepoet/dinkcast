@@ -56,8 +56,8 @@ tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c s
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
 	./$@
 
-tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
+tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_dinkc_file: tests/test_dinkc_file.c src/dinkc_file.c src/fs.c
