@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "saybox.h"
 
+#include "dinkc_vm.h"
 #include "font.h"
 
 #include <stdio.h>
@@ -283,6 +284,40 @@ void saybox_draw_pvr(float z)
         draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
         x += (float)font_advance((unsigned char)*p);
         p++;
+    }
+}
+
+void saybox_draw_choices_pvr(float z)
+{
+    int n, i, cur;
+    float y;
+
+    n = dinkc_vm_choice_n();
+    cur = dinkc_vm_choice_cur();
+    if (n < 1) {
+        return;
+    }
+    y = 140.0f;
+    for (i = 1; i <= n; i++) {
+        const char *s = dinkc_vm_choice_line(i);
+        uint32_t fg = (i == cur) ? 0xFFFFFF02u : 0xFFFFFFFFu;
+        float x = 80.0f;
+
+        if (i == cur) {
+            draw_ch(x - 12.0f, y, z, '>', fg);
+        }
+        {
+            const char *p = s;
+
+            while (*p != '\0') {
+                draw_ch(x - 1.0f, y, z, (unsigned char)*p, 0xFF080E15u);
+                draw_ch(x + 1.0f, y, z, (unsigned char)*p, 0xFF080E15u);
+                draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
+                x += (float)font_advance((unsigned char)*p);
+                p++;
+            }
+        }
+        y += 12.0f;
     }
 }
 #endif

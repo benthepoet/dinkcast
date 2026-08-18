@@ -23,6 +23,10 @@ int dinkc_vm_start(const char *src, size_t n, int sprite);
 int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc);
 int dinkc_vm_waiting_choice(void);
 void dinkc_vm_choice_pick(int result);
+int dinkc_vm_choice_n(void);
+int dinkc_vm_choice_cur(void);
+const char *dinkc_vm_choice_line(int vis1);
+void dinkc_vm_choice_move(int delta);
 void dinkc_vm_kill(int slot);
 void dinkc_vm_reset(void);
 /* Resume wait(ms) / move_stop stubs. now_ms is elapsed clock. */
