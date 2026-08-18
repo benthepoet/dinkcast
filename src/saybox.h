@@ -25,6 +25,7 @@ int saybox_color(void);
 int saybox_upload(void);
 void saybox_evict(void);
 void saybox_draw_pvr(float z);
+void saybox_draw_choices_pvr(float z);
 #endif
 
 #endif

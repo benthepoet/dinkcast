@@ -340,10 +340,17 @@ int main(int argc, char **argv)
                         if (!dinkc_vm_waiting_say()) {
                             saybox_clear();
                         }
-                    } else if (have && pad_just_pressed(prev_buttons, buttons,
-                                                       DINK_PAD_A) &&
-                               dinkc_vm_waiting_choice()) {
-                        dinkc_vm_choice_pick(1);
+                    } else if (have && dinkc_vm_waiting_choice()) {
+                        if (pad_just_pressed(prev_buttons, buttons,
+                                             DINK_PAD_UP)) {
+                            dinkc_vm_choice_move(-1);
+                        } else if (pad_just_pressed(prev_buttons, buttons,
+                                                    DINK_PAD_DOWN)) {
+                            dinkc_vm_choice_move(1);
+                        } else if (pad_just_pressed(prev_buttons, buttons,
+                                                    DINK_PAD_A)) {
+                            dinkc_vm_choice_pick(dinkc_vm_choice_cur());
+                        }
                     } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
@@ -458,6 +465,7 @@ int main(int argc, char **argv)
                                             1.5f + (float)a * 0.01f);
                         }
                         saybox_draw_pvr(3.0f);
+                        saybox_draw_choices_pvr(3.1f);
                     }
                     pvr_list_finish();
                     pvr_scene_finish();

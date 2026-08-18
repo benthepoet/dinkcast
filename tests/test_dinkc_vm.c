@@ -53,6 +53,7 @@ int main(void)
     dinkc_vm_choice_pick(1);
     expect(dinkc_vm_waiting_say(), "say after choice");
     expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 1, "result 1");
+    expect(dinkc_vm_choice_n() == 0, "choice over");
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0 && pl.freeze == 0, "unfreeze");
     {
@@ -79,6 +80,19 @@ int main(void)
         dinkc_vm_choice_pick(1);
         expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2,
                "hidden still counts");
+    }
+    {
+        const char *two =
+            "void main(void) { choice_start(); \"A\"; \"B\"; choice_end(); }";
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(two, strlen(two), 1);
+        expect(dinkc_vm_choice_n() == 2 && dinkc_vm_choice_cur() == 1, "cur1");
+        expect(strcmp(dinkc_vm_choice_line(1), "A") == 0, "line A");
+        dinkc_vm_choice_move(1);
+        expect(dinkc_vm_choice_cur() == 2, "cur2");
+        dinkc_vm_choice_pick(dinkc_vm_choice_cur());
+        expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2, "pick B");
     }
     {
         const char *none =

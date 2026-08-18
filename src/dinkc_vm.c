@@ -22,7 +22,9 @@ struct Fiber {
     int ntok;
     int locals[DINKC_LOCALS];
     int nchoice;
+    int choice_cur;
     int choice_ret[20];
+    char choice_line[20][80];
     char name[32];
     char *src;
     size_t srclen;
@@ -495,8 +497,21 @@ static void run_fiber(struct Fiber *f, int now_ms)
                         retnum++;
                         copy_tok(&f->tok[f->ip], line, sizeof(line));
                         if (ok && f->nchoice < 20) {
-                            f->choice_ret[f->nchoice++] = retnum;
-                            printf("choice %d %s\n", retnum, line);
+                            const char *p = line;
+                            size_t ln = strlen(line);
+
+                            if (ln >= 2 && p[0] == '"') {
+                                p++;
+                                ln -= 2;
+                            }
+                            if (ln > 79) {
+                                ln = 79;
+                            }
+                            memcpy(f->choice_line[f->nchoice], p, ln);
+                            f->choice_line[f->nchoice][ln] = '\0';
+                            f->choice_ret[f->nchoice] = retnum;
+                            f->nchoice++;
+                            printf("choice %d %s\n", retnum, f->choice_line[f->nchoice - 1]);
                         }
                         f->ip++;
                         eat_semi(f);
@@ -512,6 +527,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     printf("dinkc choice empty\n");
                     continue;
                 }
+                f->choice_cur = 1;
                 f->state = DINKC_WAIT_CHOICE;
                 printf("dinkc yield choice n=%d\n", f->nchoice);
                 return;
@@ -767,9 +783,60 @@ int dinkc_vm_waiting_say(void)
     return 0;
 }
 
-void dinkc_vm_choice_done(void)
+static struct Fiber *choice_fiber(void)
 {
-    dinkc_vm_choice_pick(1);
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
+            return &g_f[i];
+        }
+    }
+    return NULL;
+}
+
+int dinkc_vm_choice_n(void)
+{
+    struct Fiber *f = choice_fiber();
+
+    return f != NULL ? f->nchoice : 0;
+}
+
+int dinkc_vm_choice_cur(void)
+{
+    struct Fiber *f = choice_fiber();
+
+    return f != NULL ? f->choice_cur : 0;
+}
+
+const char *dinkc_vm_choice_line(int vis1)
+{
+    struct Fiber *f = choice_fiber();
+    int i = vis1 - 1;
+
+    if (f == NULL || i < 0 || i >= f->nchoice) {
+        return "";
+    }
+    return f->choice_line[i];
+}
+
+void dinkc_vm_choice_move(int delta)
+{
+    struct Fiber *f = choice_fiber();
+    int n, c;
+
+    if (f == NULL || f->nchoice < 1) {
+        return;
+    }
+    n = f->nchoice;
+    c = f->choice_cur + delta;
+    while (c < 1) {
+        c += n;
+    }
+    while (c > n) {
+        c -= n;
+    }
+    f->choice_cur = c;
 }
 
 void dinkc_vm_choice_pick(int result)
@@ -811,6 +878,11 @@ int dinkc_vm_waiting_choice(void)
         }
     }
     return 0;
+}
+
+void dinkc_vm_choice_done(void)
+{
+    dinkc_vm_choice_pick(dinkc_vm_choice_cur());
 }
 
 int dinkc_vm_live(void)

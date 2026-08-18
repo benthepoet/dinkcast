@@ -60,7 +60,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **11.9** DinkC command table + dump | #44 |
 | 2026-08-18 | **13.1** embedded VGA 8×8 font atlas | #45 |
 | 2026-08-18 | **13.2** say box (sprite-anchored) | #46 |
-| 2026-08-18 | Freeze leftover after last `say_stop` | this PR |
+| 2026-08-18 | Freeze leftover after last `say_stop` | #47 |
+| 2026-08-18 | **V5 accepted** (say box in Flycast) | requester “Looks good” |
+| 2026-08-18 | **13.3** choice menu D-pad + A | this PR |
 
 ## Bites
 
@@ -100,7 +102,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
-| 13.3 | Choice menu | pending | |
+| 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.3 | Screen transitions | pending | |
 | 15.1–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
@@ -114,7 +116,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1–**V4 accepted**. **8.6 house accepted**. Next picture gate **V5 (13.2 say)**. |
+| Human / visual gates | V1–**V5 accepted**. **8.6 house accepted**. Next picture gate **V6 (inv/HUD)**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -124,13 +126,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-17)
+### Current (2026-08-18)
 
 | | | |
 |---|---|---|
-| **Overall** | **~85%** | Playable opening-hours campaign on retail 16/8/2 MB |
-| **Next picture (V5 say)** | **~70%** | Needs DinkC + talk box |
-| **Hardest remaining** | DinkC Wave 1 + fibers | No `story/*.c` on DC yet |
+| **Overall** | **~88%** | Opening house + DinkC + on-screen say |
+| **Next picture (V6 inv/HUD)** | **~40%** | After 14–15 |
+| **Hardest remaining** | Screen change + brains | 14 / 15 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -138,6 +140,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | Title / CDI / Flycast + BIOS | ~98% | V1 accepted |
 | Tiles + Dink idle (V2–V3) | ~98% | Accepted |
 | Walk + hardness (V4) | ~95% | Accepted |
+| Say box (V5) | ~95% | Accepted |
 | Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
 | Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
@@ -151,3 +154,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-16 (plan only) | ~80% campaign / ~95% title | Paper: DC can do 2D Dink; DinkC is the pole |
 | 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |
 | 2026-08-17 (8.6 house) | **~85%** / house **~95%** | Official start interior on Flycast. Stack smash + sprite align in GOTCHAS. DinkC still the pole. |
+| 2026-08-18 (V5 say) | **~88%** / say **~95%** | On-screen `say_stop` + freeze thaw. Next picture V6. |
