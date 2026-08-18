@@ -40,6 +40,21 @@ def main() -> int:
     if str(Path("/tmp/x.cdi")) not in argv:
         print("FAIL image missing:", argv)
         return 1
+    logp = ROOT / "build" / "test-emu-tee.log"
+    if logp.exists():
+        logp.unlink()
+    rc = mod.tee_run([sys.executable, "-c", "print('emu-tee-ok', flush=True)"], logp)
+    if rc != 0:
+        print("FAIL tee rc", rc)
+        return 1
+    text = logp.read_text(encoding="utf-8")
+    if "emu-tee-ok" not in text:
+        print("FAIL tee log", text)
+        return 1
+    logp.unlink(missing_ok=True)
+    if getattr(mod, "DEFAULT_LOG", "") != "build/emu.log":
+        print("FAIL default log", getattr(mod, "DEFAULT_LOG", None))
+        return 1
     print("OK", SCRIPT)
     return 0
 

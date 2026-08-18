@@ -33,7 +33,7 @@ Then from this repo (`local.mk` already has `DINK_DATA`):
 
 ```bash
 make docker-cdi        # ELF + CDI in build/
-make emu
+make emu               # Flycast; SCIF also in build/emu.log
 ```
 
 `make docker-dc` is ELF only. Flycast stays on the host.

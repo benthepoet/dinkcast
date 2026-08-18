@@ -10,7 +10,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **`make docker-cdi` must live on `master`.** A target only on a docs branch is `No rule to make target`.
 - **Fine-grained `github_pat_` can open PRs and push branches but still 403 `mergePullRequest`.** That is a token permission, not a broken PR. Human merges in the GitHub UI. Never “finish” a PR by rewriting `master`.
 - **REIOS ≠ a BIOS.** Flycast without `dc_boot.bin` in `~/.local/share/flycast/` often never runs `1ST_READ.BIN`.
-- **Flycast `N[RENDERER]` is not KOS `printf`.** SH-4 serial is SCIF. `make emu` passes `-config config:Debug.SerialConsoleEnabled=yes` so `printf` mixes into the same terminal. Settings → Advanced → Serial Console does the same.
+- **Flycast `N[RENDERER]` is not KOS `printf`.** SH-4 serial is SCIF. `make emu` enables SerialConsole and tees combined stdout to the terminal **and** `build/emu.log` (override `EMU_LOG=`). Each run overwrites the file. Settings → Advanced → Serial Console does the same.
 
 ## Disc and `/cd`
 

@@ -9,6 +9,8 @@ HOSTCC ?= gcc
 EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
+# Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
+EMU_LOG ?= build/emu.log
 
 .PHONY: all host check data-check title-preview dc cdi docker-dc docker-cdi emu run clean
 
@@ -162,7 +164,7 @@ docker-cdi:
 
 # Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
 emu run:
-	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)"
+	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)"
 
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \

@@ -54,7 +54,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **11.4** DinkC vars (`attach` + MAIN.c) | #38 |
 | 2026-08-18 | **11.5** wave-1 commands; A runs `talk()` | #39 |
 | 2026-08-18 | **11.6** attach screen + sprite `main()` | #40 |
-| 2026-08-18 | **11.7** choice lines + items prelude | this PR |
+| 2026-08-18 | **11.7** choice lines + items prelude | #41 |
+| 2026-08-18 | `make emu` tees SCIF to `build/emu.log` | this PR |
 
 ## Bites
 
