@@ -52,7 +52,7 @@ int main(void)
         free(seqs);
         return 1;
     }
-    if (edraw_load_screen(&scr, seqs, g, &n) != 0 || n < 8) {
+    if (edraw_load_screen(scr.sprite, seqs, g, &n) != 0 || n < 17) {
         fprintf(stderr, "FAIL edraw n=%d act=%d\n", n, act);
         edraw_free(g, n);
         free(seqs);
