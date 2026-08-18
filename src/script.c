@@ -17,6 +17,10 @@ static char g_log[96];
 void script_bind_screen(const struct MapScreen *scr)
 {
     g_scr = scr;
+    printf("script bind esz=%d spr26=%s type=%d\n",
+           (int)sizeof(struct EditorSprite),
+           (scr != NULL) ? scr->sprite[26].script : "",
+           (scr != NULL) ? (int)scr->sprite[26].type : -1);
 }
 
 const char *script_stub_log(void)
@@ -125,6 +129,12 @@ int script_preload_screen(void)
         }
     }
     printf("dinkc preload ok=%d unique=%d\n", ok, nseen);
+    if (nseen == 0 && g_scr != NULL) {
+        printf("dinkc preload empty esz=%d spr26=%s act=%d vis=%d type=%d\n",
+               (int)sizeof(struct EditorSprite), g_scr->sprite[26].script,
+               (int)g_scr->sprite[26].active, (int)g_scr->sprite[26].vision,
+               (int)g_scr->sprite[26].type);
+    }
     return ok;
 }
 

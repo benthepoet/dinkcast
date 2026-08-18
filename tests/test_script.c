@@ -3,6 +3,8 @@
 #include "fs.h"
 #include "mapscr.h"
 #include "script.h"
+#include "start_map.h"
+#include "world.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +82,22 @@ int main(void)
         expect(n == 2, "type1 + strlen>1 only");
         expect(dinkc_vm_live() >= 1, "mom main yields or lives");
         dinkc_vm_reset();
+        {
+            struct World w;
+            int rec, na;
+
+            expect(world_load(&w) == 0, "world");
+            rec = (int)w.loc[DINK_START_PLAYER_MAP];
+            expect(map_load_record(rec, &house) == 0, "house map");
+            expect((int)sizeof(struct EditorSprite) == 80, "esz 80");
+            expect(strcmp(house.sprite[26].script, "s1-h1-m") == 0, "mom name");
+            expect(house.sprite[26].type == 1 && house.sprite[26].active,
+                   "mom live");
+            script_bind_screen(&house);
+            na = script_attach_screen();
+            expect(na >= 1, "house attach");
+            dinkc_vm_reset();
+        }
     }
 
     printf("OK test_script\n");
