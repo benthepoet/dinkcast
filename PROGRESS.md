@@ -67,7 +67,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **14.1–14.2** edge + warp swap | #50 |
 | 2026-08-18 | Keep `hard.dat` only during stamp | #51 |
 | 2026-08-18 | Snapshot sprites after map load | #52 |
-| 2026-08-18 | edraw copy sprites before memset | this PR |
+| 2026-08-18 | edraw copy sprites before memset | #53 |
+| 2026-08-18 | Restore sprites after edraw for scripts | this PR |
 
 ## Bites
 
