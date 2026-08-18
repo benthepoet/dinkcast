@@ -34,6 +34,7 @@ tests/test_script
 tests/test_dinkc_file
 tests/test_dinkc_lex
 tests/test_dinkc_parse
+tests/test_dinkc_vm
 
 # Toolchain / local
 .kosenv

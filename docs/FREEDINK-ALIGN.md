@@ -30,6 +30,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | `story/name.c` | `load_script` | `dinkc_load` 32 KB | hold (11.0) |
 | DinkC tokens | line + `get_word` | `dinkc_lex_*` | hold (11.1); `//` only |
 | DinkC shape | `process_line` / `void` / `if` | `dinkc_parse` | hold (11.2); no run |
+| DinkC fibers | `run_script` + `wait` callback | `dinkc_vm_*` | hold (11.3); no 11.6 attach |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |

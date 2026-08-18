@@ -28,6 +28,7 @@ def main() -> int:
         ("hit", "hit_probe" in text),
         ("script hooks", "script_on_talk" in text and "script_on_hit" in text),
         ("dinkc file", "dinkc_load" in text or "script_on_main" in text),
+        ("dinkc vm", "dinkc_vm_tick" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

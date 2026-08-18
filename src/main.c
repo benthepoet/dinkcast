@@ -17,6 +17,7 @@
 #include "pad.h"
 #include "player.h"
 #include "script.h"
+#include "dinkc_vm.h"
 #include "sprite.h"
 #include "start_map.h"
 #include "talk.h"
@@ -306,6 +307,7 @@ int main(int argc, char **argv)
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
+                    int now_ms = 0;
 
                     for (;;) {
                         uint32_t buttons = 0;
@@ -319,7 +321,11 @@ int main(int argc, char **argv)
                         pvr_wait_ready();
                     }
                     have = (pad_poll_port0(&buttons) == 0);
-                    if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                    if (have && pad_just_pressed(prev_buttons, buttons,
+                                                 DINK_PAD_A) &&
+                        dinkc_vm_waiting_say()) {
+                        dinkc_vm_advance_say();
+                    } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir);
@@ -334,6 +340,8 @@ int main(int argc, char **argv)
                         player_attack(&pl, seqs);
                     }
                     prev_buttons = have ? buttons : 0;
+                    dinkc_vm_tick(now_ms);
+                    now_ms += DINKC_TICK_MS;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
