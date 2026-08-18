@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 
 #include "dinkc_var.h"
+#include "dinkc_vm.h"
 #include "player.h"
 #include "saybox.h"
 
@@ -240,6 +241,14 @@ static int dump_wanted(void)
     return e != NULL && e[0] != '\0' && e[0] != '0';
 }
 
+void dinkc_cmd_thaw_if_idle(void)
+{
+    if (g_pl != NULL && g_pl->freeze > 0 && dinkc_vm_live() == 0) {
+        printf("freeze orphan %d -> 0\n", g_pl->freeze);
+        g_pl->freeze = 0;
+    }
+}
+
 void dinkc_cmd_bind_player(struct Player *p)
 {
     g_pl = p;
@@ -301,14 +310,17 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "freeze")) {
+        /* FreeDink: spr[h].freeze = script (any non-zero). Not a nest. */
         if (spr_is_dink(a0) && g_pl != NULL) {
-            g_pl->freeze++;
+            g_pl->freeze = 1;
+            printf("freeze 1\n");
         }
         return 1;
     }
     if (is_cmd(name, "unfreeze")) {
-        if (spr_is_dink(a0) && g_pl != NULL && g_pl->freeze > 0) {
-            g_pl->freeze--;
+        if (spr_is_dink(a0) && g_pl != NULL) {
+            g_pl->freeze = 0;
+            printf("unfreeze 1\n");
         }
         return 1;
     }

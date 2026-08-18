@@ -53,6 +53,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **`DINKC_DUMP_FNS=1`** prints `dinkc dump implemented=` at bind/atexit and after screen attach. Missing names are unique first-seen calls not in `k_fn[]`. Add the name to the table (even as a stub) instead of a second if-chain.
 - **Official freeware data has no dialog font BMP.** Original Dink used GDI (Arial-like); FreeDink uses LiberationSans TTF. Do not ship TTF on the DC. 13.1 is an embedded public-domain IBM VGA 8×8 atlas (16 KB ARGB1555), not LiberationSans. Say box is 13.2.
 - **`say` is sprite-anchored, not a HUD bar.** FreeDink `say_text`: `x = owner.x-75`, `y = owner.y-100` (default defense), wrap 150, `` `X `` color prefix. A **or** B advances `say_stop`. Do not punch on B while a line is up.
+- **`freeze` is not a nest.** FreeDink sets `spr[1].freeze` to the script id (any non-zero). `unfreeze` clears it. If the fiber dies before `unfreeze`, Dink stays locked — thaw when `dinkc_vm_live()==0`.
 - **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
 
 ## Data

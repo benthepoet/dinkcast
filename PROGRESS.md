@@ -59,7 +59,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **11.8** wave-3 cmds (midi/status stubs) | #43 |
 | 2026-08-18 | **11.9** DinkC command table + dump | #44 |
 | 2026-08-18 | **13.1** embedded VGA 8×8 font atlas | #45 |
-| 2026-08-18 | **13.2** say box (sprite-anchored) | this PR |
+| 2026-08-18 | **13.2** say box (sprite-anchored) | #46 |
+| 2026-08-18 | Freeze leftover after last `say_stop` | this PR |
 
 ## Bites
 
