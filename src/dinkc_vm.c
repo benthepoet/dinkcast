@@ -453,6 +453,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
                 }
                 continue;
             }
+            printf("dinkc unimplemented %s\n", cname);
             continue;
         }
         if (tok_is(t, "else")) {
