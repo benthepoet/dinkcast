@@ -10,6 +10,7 @@
 #include "dinkdat.h"
 #include "fs.h"
 #include "edraw.h"
+#include "font.h"
 #include "hard.h"
 #include "hit.h"
 #include "ini.h"
@@ -304,6 +305,10 @@ int main(int argc, char **argv)
                 last_seq = pl.seq;
                 last_frame = pl.frame;
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
+                if (font_init() == 0) {
+                    printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
+                           font_atlas_h(), font_atlas_bytes());
+                }
                 script_bind_screen(&g_scr);
                 script_on_main(0); /* also preloads unique sprite story files */
                 {

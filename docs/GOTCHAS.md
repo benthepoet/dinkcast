@@ -51,6 +51,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **A while `choice_start` picks the first visible line** until Bite 13 draws the menu. `&result` is FreeDink `line_return` (hidden lines still increment). 0 visible lines do not yield. Serial `say` is the 11.5 box. Do not `freeze++` in the engine on talk — `freeze(1)` in the script is the nest.
 - **`playmidi` / `draw_status` are implemented no-ops** until 12 / 16. Do not leave them as `unimplemented` or mom `main` looks broken. `fade_*` / `load_screen` do not yield (no fade clock, no 14 warp).
 - **`DINKC_DUMP_FNS=1`** prints `dinkc dump implemented=` at bind/atexit and after screen attach. Missing names are unique first-seen calls not in `k_fn[]`. Add the name to the table (even as a stub) instead of a second if-chain.
+- **Official freeware data has no dialog font BMP.** Original Dink used GDI (Arial-like); FreeDink uses LiberationSans TTF. Do not ship TTF on the DC. 13.1 is an embedded public-domain IBM VGA 8×8 atlas (16 KB ARGB1555), not LiberationSans. Say box is 13.2.
 - **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
 
 ## Data
