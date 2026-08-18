@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "dinkc_cmd.h"
 #include "dinkc_vm.h"
+#include "player.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +19,10 @@ int main(void)
 {
     const char *wait1 = "void main(void) { wait(1); }";
     const char *say = "void main(void) { say_stop(\"hi\", 1); }";
+    const char *talk =
+        "void talk(void) { freeze(1); choice_start(); \"A\" choice_end(); "
+        "say_stop(\"fed\", 1); unfreeze(1); }";
+    struct Player pl;
     int slot, i;
 
     dinkc_vm_reset();
@@ -36,6 +42,17 @@ int main(void)
     expect(dinkc_vm_waiting_say() == 1, "tick does not skip say");
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0, "A ends say_stop");
+
+    memset(&pl, 0, sizeof(pl));
+    dinkc_cmd_bind_player(&pl);
+    dinkc_vm_reset();
+    slot = dinkc_vm_start_proc(talk, strlen(talk), 26, "talk");
+    expect(slot > 0 && dinkc_vm_waiting_choice(), "talk choice");
+    expect(pl.freeze == 1, "freeze(1)");
+    dinkc_vm_choice_pick(1);
+    expect(dinkc_vm_waiting_say(), "say after choice");
+    dinkc_vm_advance_say();
+    expect(dinkc_vm_live() == 0 && pl.freeze == 0, "unfreeze");
 
     printf("OK test_dinkc_vm\n");
     return 0;

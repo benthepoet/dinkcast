@@ -4,6 +4,7 @@
 #include "dinkc_file.h"
 #include "dinkc_lex.h"
 #include "dinkc_parse.h"
+#include "dinkc_vm.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -116,10 +117,22 @@ void script_on_main(int script_id)
 
 void script_on_talk(int sprite)
 {
-    snprintf(g_log, sizeof(g_log), "talk sprite=%d script=%s", sprite,
-             slot_script(sprite));
+    char *buf = NULL;
+    size_t n = 0;
+    const char *nm = slot_script(sprite);
+
+    snprintf(g_log, sizeof(g_log), "talk sprite=%d script=%s", sprite, nm);
     printf("%s\n", g_log);
-    try_load(slot_script(sprite));
+    if (nm[0] == '\0') {
+        return;
+    }
+    if (dinkc_load(nm, &buf, &n) != 0) {
+        return;
+    }
+    if (dinkc_vm_start_proc(buf, n, sprite, "talk") < 0) {
+        printf("dinkc talk no proc %s\n", nm);
+    }
+    dinkc_free(buf);
 }
 
 void script_on_hit(int sprite)
