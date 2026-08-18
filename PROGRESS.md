@@ -63,7 +63,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | Freeze leftover after last `say_stop` | #47 |
 | 2026-08-18 | **V5 accepted** (say box in Flycast) | requester “Looks good” |
 | 2026-08-18 | **13.3** choice menu D-pad + A | #48 |
-| 2026-08-18 | Talk lock: kill sprite fibers; wait clock | this PR |
+| 2026-08-18 | Talk lock: kill sprite fibers; wait clock | #49 |
+| 2026-08-18 | **14.1–14.2** edge + warp swap | this PR |
 
 ## Bites
 
@@ -104,7 +105,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
-| 14.1–14.3 | Screen transitions | pending | |
+| 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
+| 14.3 | Leak check 20 crossings | pending | |
 | 15.1–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |

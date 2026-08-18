@@ -751,6 +751,15 @@ void dinkc_vm_set_now(int now_ms)
     }
 }
 
+void dinkc_vm_kill_all(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        fiber_kill(&g_f[i]);
+    }
+}
+
 void dinkc_vm_reset(void)
 {
     int i;

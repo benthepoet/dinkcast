@@ -103,6 +103,14 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 188, &out->sprite[i].vision) != 0) {
             return -1;
         }
+        /* is_warp +140 … parm_seq +156 (load_screen_to). */
+        if (le_i32(p, n, off + 140, &out->sprite[i].is_warp) != 0 ||
+            le_i32(p, n, off + 144, &out->sprite[i].warp_map) != 0 ||
+            le_i32(p, n, off + 148, &out->sprite[i].warp_x) != 0 ||
+            le_i32(p, n, off + 152, &out->sprite[i].warp_y) != 0 ||
+            le_i32(p, n, off + 156, &out->sprite[i].parm_seq) != 0) {
+            return -1;
+        }
         memcpy(out->sprite[i].script, p + off + 40, 13);
         out->sprite[i].script[13] = '\0';
         off += 220;

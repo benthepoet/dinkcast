@@ -18,8 +18,10 @@
 #include "pad.h"
 #include "player.h"
 #include "saybox.h"
+#include "screen.h"
 #include "script.h"
 #include "dinkc_cmd.h"
+#include "dinkc_var.h"
 #include "dinkc_vm.h"
 #include "sprite.h"
 #include "start_map.h"
@@ -232,6 +234,8 @@ int main(int argc, char **argv)
                 struct HardMask mask;
                 struct Player pl;
                 int last_seq = 0, last_frame = 0, si;
+                int player_map = DINK_START_PLAYER_MAP;
+                int swap = 0;
 
                 memset(&mask, 0, sizeof(mask));
                 if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
@@ -242,7 +246,6 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
-                hard_free(&g_hard); /* tile stamp done; drop 2 MiB file buffer */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);
@@ -273,7 +276,10 @@ int main(int argc, char **argv)
                         if (ef != NULL) {
                             hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
                                            (int)g_scr.sprite[si].y, ef->hl,
-                                           ef->ht, ef->hr, ef->hb);
+                                           ef->ht, ef->hr, ef->hb,
+                                           g_scr.sprite[si].is_warp
+                                               ? 100 + si
+                                               : 1);
                             continue;
                         }
                         if (seqs == NULL) {
@@ -286,7 +292,8 @@ int main(int argc, char **argv)
                                            : (int)g_scr.sprite[si].frame,
                                        50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
                         hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
-                                       (int)g_scr.sprite[si].y, hl, ht, hr, hb);
+                                       (int)g_scr.sprite[si].y, hl, ht, hr, hb,
+                                       g_scr.sprite[si].is_warp ? 100 + si : 1);
                     }
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
@@ -324,6 +331,103 @@ int main(int argc, char **argv)
                     for (;;) {
                         uint32_t buttons = 0;
                         int have, pdir;
+
+                    if (swap) {
+                        int rec2, nstamp;
+
+                        rec2 = (int)g_world.loc[player_map];
+                        if (rec2 < 1) {
+                            printf("swap skip map %d loc %d\n", player_map,
+                                   rec2);
+                            swap = 0;
+                            continue;
+                        }
+                        if (have_scene) {
+                            pvr_wait_ready();
+                            have_scene = 0;
+                        }
+                        dinkc_vm_kill_all();
+                        saybox_clear();
+                        edraw_free(g_edg, ned);
+                        ned = 0;
+                        tiles_evict(&g_atlas);
+                        sprite_frame_free(&spr);
+                        hard_mask_free(&mask);
+                        printf("enter map %d loc %d\n", player_map, rec2);
+                        if (map_load_record(rec2, &g_scr) != 0) {
+                            printf("map load fail %d\n", rec2);
+                            swap = 0;
+                            continue;
+                        }
+                        dinkc_var_set("&player_map", player_map,
+                                      DINKC_GLOBAL_SCOPE, 1);
+                        memset(&mask, 0, sizeof(mask));
+                        if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
+                            printf("hard restamp fail\n");
+                        }
+                        if (seqs != NULL) {
+                            (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
+                        }
+                        printf("edraw unique %d\n", ned);
+                        for (nstamp = 1; nstamp <= 100; nstamp++) {
+                            struct SpriteFrame *ef;
+                            int hl, ht, hr, hb, cx, cy, hid;
+
+                            if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
+                                                         DINK_VISION_DEFAULT) ||
+                                g_scr.sprite[nstamp].hard != 0) {
+                                continue;
+                            }
+                            hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp
+                                                               : 1;
+                            ef = edraw_find(g_edg, ned,
+                                            (int)g_scr.sprite[nstamp].seq,
+                                            (int)g_scr.sprite[nstamp].frame < 1
+                                                ? 1
+                                                : (int)g_scr.sprite[nstamp]
+                                                      .frame);
+                            if (ef != NULL) {
+                                hard_stamp_box(&mask,
+                                               (int)g_scr.sprite[nstamp].x,
+                                               (int)g_scr.sprite[nstamp].y,
+                                               ef->hl, ef->ht, ef->hr, ef->hb,
+                                               hid);
+                                continue;
+                            }
+                            if (seqs == NULL) {
+                                continue;
+                            }
+                            ini_frame_geom(&seqs[g_scr.sprite[nstamp].seq],
+                                           (int)g_scr.sprite[nstamp].seq,
+                                           (int)g_scr.sprite[nstamp].frame < 1
+                                               ? 1
+                                               : (int)g_scr.sprite[nstamp]
+                                                     .frame,
+                                           50, 50, &cx, &cy, &hl, &ht, &hr,
+                                           &hb);
+                            hard_stamp_box(&mask, (int)g_scr.sprite[nstamp].x,
+                                           (int)g_scr.sprite[nstamp].y, hl, ht,
+                                           hr, hb, hid);
+                        }
+                        if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
+                            (void)tiles_upload_pvr(&g_atlas);
+                        }
+                        (void)edraw_upload_pvr(g_edg, ned);
+                        if (seqs != NULL) {
+                            sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
+                                                  pl.frame, &spr);
+                            if (spr.argb1555 != NULL) {
+                                (void)sprite_upload_pvr(&spr);
+                            }
+                            last_seq = pl.seq;
+                            last_frame = pl.frame;
+                        }
+                        script_bind_screen(&g_scr);
+                        saybox_bind(&g_scr, &pl);
+                        script_on_main(0);
+                        swap = 0;
+                        continue;
+                    }
 
                     /* Finish the last scene before evicting its sprite tex.
                      * Punch cx (~58) vs idle (~36): freeing mid-frame shows
@@ -371,6 +475,17 @@ int main(int argc, char **argv)
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
+                        if (pl.freeze == 0 && pl.warp_hit > 0 &&
+                            screen_try_warp(&g_world, &g_scr, pl.warp_hit,
+                                            &player_map, &pl) == 0) {
+                            swap = 1;
+                            continue;
+                        }
+                        if (pl.freeze == 0 &&
+                            screen_try_cross(&g_world, &player_map, &pl)) {
+                            swap = 1;
+                            continue;
+                        }
                         if (pl.just_hit) {
                             int slot = hit_probe(&g_scr, g_edg, ned, seqs,
                                                  pl.x, pl.y, pl.dir);
