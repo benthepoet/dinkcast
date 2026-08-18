@@ -32,7 +32,7 @@ Full steps: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md).
 
 ```bash
 make docker-cdi   # ELF + CDI via KOS Docker image (needs dockerd)
-make emu
+make emu          # Flycast; serial also in build/emu.log
 ```
 
 Without Docker, `source $KOS_BASE/environ.sh && make dc && make cdi`.

@@ -60,10 +60,48 @@ def resolve_emu(emu: str) -> list[str] | None:
     return None
 
 
+DEFAULT_LOG = "build/emu.log"
+
+
+def tee_run(cmd: list[str], log_path: Path) -> int:
+    """Run cmd; write combined stdout+stderr to the terminal and log_path."""
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    print("make emu: log", log_path.resolve(), flush=True)
+    with log_path.open("wb") as logf:
+        p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=0,
+        )
+        assert p.stdout is not None
+        try:
+            while True:
+                chunk = p.stdout.read(4096)
+                if not chunk:
+                    break
+                sys.stdout.buffer.write(chunk)
+                sys.stdout.buffer.flush()
+                logf.write(chunk)
+                logf.flush()
+        except KeyboardInterrupt:
+            p.terminate()
+            try:
+                p.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                p.kill()
+        return p.wait()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--emu", default="flycast")
     ap.add_argument("--image", default="")
+    ap.add_argument(
+        "--log",
+        default=os.environ.get("EMU_LOG", DEFAULT_LOG),
+        help="tee SCIF/stdout here (default build/emu.log)",
+    )
     args = ap.parse_args()
 
     image = (args.image or "").strip()
@@ -91,8 +129,8 @@ def main() -> int:
         return 2
 
     full = flycast_cmd(cmd, ip.resolve())
-    print("make emu:", " ".join(full))
-    os.execvp(full[0], full)
+    print("make emu:", " ".join(full), flush=True)
+    return tee_run(full, Path(args.log))
 
 
 if __name__ == "__main__":
