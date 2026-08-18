@@ -359,6 +359,7 @@ int main(int argc, char **argv)
                         script_on_talk(slot);
                     }
                     if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
+                        !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
                         player_attack(&pl, seqs);
                     }
