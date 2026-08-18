@@ -31,6 +31,7 @@ def main() -> int:
         ("dinkc vm", "dinkc_vm_tick" in text),
         ("talk proc", "dinkc_vm_start_proc" in text or "script_on_talk" in text),
         ("font", "font_init" in text),
+        ("saybox", "saybox_draw_pvr" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

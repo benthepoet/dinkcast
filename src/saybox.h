@@ -1,0 +1,30 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+#ifndef DINKCAST_SAYBOX_H
+#define DINKCAST_SAYBOX_H
+
+#include "mapscr.h"
+#include "player.h"
+
+/* FreeDink say_text: owner.x-75, owner.y-100, wrap 150. */
+#define DINK_SAY_XOFF 75
+#define DINK_SAY_YOFF 100
+#define DINK_SAY_BOX_W 150
+#define DINK_SAY_BOX_H 150
+#define DINK_SAY_PLAYX 620
+
+void saybox_bind(const struct MapScreen *scr, struct Player *pl);
+void saybox_set(const char *text, int sprite);
+void saybox_clear(void);
+int saybox_active(void);
+const char *saybox_text(void);
+int saybox_x(void);
+int saybox_y(void);
+int saybox_color(void);
+
+#ifdef _arch_dreamcast
+int saybox_upload(void);
+void saybox_evict(void);
+void saybox_draw_pvr(float z);
+#endif
+
+#endif

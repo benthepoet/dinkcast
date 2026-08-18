@@ -18,7 +18,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -56,8 +56,8 @@ tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c s
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
 	./$@
 
-tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
+tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_dinkc_file: tests/test_dinkc_file.c src/dinkc_file.c src/fs.c
@@ -72,16 +72,20 @@ tests/test_dinkc_parse: tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex.c src/dinkc_file.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_dinkc_vm: tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c
+tests/test_dinkc_vm: tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c
 	./$@
 
-tests/test_dinkc_var: tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c
+tests/test_dinkc_var: tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/saybox.c src/font.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/saybox.c src/font.c
 	./$@
 
 tests/test_font: tests/test_font.c src/font.c src/font.h src/font_glyphs.inc
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_font.c src/font.c
+	./$@
+
+tests/test_saybox: tests/test_saybox.c src/saybox.c src/font.c src/mapscr.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_saybox.c src/saybox.c src/font.c src/mapscr.c src/le.c src/fs.c
 	./$@
 
 tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
@@ -177,6 +181,7 @@ clean:
 		tests/test_edraw tests/test_talk tests/test_hit tests/test_script \
 		tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse \
 		tests/test_dinkc_vm tests/test_dinkc_var tests/test_font \
+		tests/test_saybox \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
 		tools/dump_screen tools/dump_ini
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi

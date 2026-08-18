@@ -5,7 +5,7 @@ OBJS = src/main.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/tit
 	src/world.o src/mapscr.o src/tiles.o src/ff.o src/ini.o src/hard.o src/sprite.o \
 	src/player.o src/edraw.o src/talk.o src/hit.o src/script.o src/dinkc_file.o \
 	src/dinkc_lex.o src/dinkc_parse.o src/dinkc_vm.o src/dinkc_var.o src/dinkc_cmd.o \
-	src/font.o
+	src/font.o src/saybox.o
 
 KOS_CFLAGS += -Isrc
 # Do not -DDINK_DATA_DEFAULT from local.mk: that path is a host tree

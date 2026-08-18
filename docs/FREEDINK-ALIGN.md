@@ -67,6 +67,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | SFX + MIDI stream | `sfx`, `bgm` | **12 after 16** (stub until then) |
 | Say / choice / font | brain 8, `game_choice` | 13 / V5 |
 | Font atlas | TTF LiberationSans | embedded IBM VGA 8x8 | hold (13.1); no stock BMP in official data |
+| Say box | `say_text` / `text_draw` | `saybox_*` | hold (13.2); x-75 y-100 wrap 150 |
 | Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | 14 |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
 | Brains 0–17 (stock names) | `update_frame` | 15.1 |
