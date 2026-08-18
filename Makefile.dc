@@ -18,7 +18,7 @@ include $(KOS_BASE)/Makefile.rules
 
 # EditorSprite lives in mapscr.h. Incremental `kos-cc` without this leaves
 # script.o/talk.o on the 60-byte layout after warp fields (preload unique=0).
-$(OBJS): src/mapscr.h src/sprite.h
+$(OBJS): Makefile.dc src/mapscr.h src/sprite.h
 
 $(TARGET): $(OBJS) | build
 	kos-cc -o $@ $(OBJS)
