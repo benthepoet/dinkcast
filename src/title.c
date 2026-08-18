@@ -150,6 +150,7 @@ int title_present_pvr(const struct TitleStill *t)
 
         have = (pad_poll_port0(&buttons) == 0);
         if (pad_title_wants_leave(have, buttons)) {
+            pvr_wait_ready();
             pvr_mem_free(tex);
             /* Leave PVR so main can vid_clear + bfont on vram_s. */
             pvr_shutdown();

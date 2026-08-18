@@ -210,7 +210,9 @@ int tiles_pvr_ensure(void)
     params.opb_sizes[PVR_LIST_TR_POLY] = PVR_BINSIZE_16;
     params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
     params.vertex_buf_size = 512 * 1024;
-    pvr_init(&params);
+    if (pvr_init(&params) != 0) {
+        return -1;
+    }
     g_pvr_ready = 1;
     return 0;
 }
@@ -248,6 +250,8 @@ void tiles_draw_clear_pvr(uint32_t argb)
     pvr_prim(&vert, sizeof(vert));
     pvr_list_finish();
     pvr_scene_finish();
+    /* Finish returns before the flip; wait or the splash stays up. */
+    pvr_wait_ready();
 }
 
 int tiles_upload_pvr(struct TileAtlas *a)
