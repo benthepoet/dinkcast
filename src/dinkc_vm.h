@@ -18,8 +18,11 @@ enum DinkcState {
     DINKC_WAIT_CHOICE
 };
 
-/* Copy src, locate void main, run until yield. Slot 1..20 or -1. */
+/* Copy src, locate void proc (default main), run until yield. */
 int dinkc_vm_start(const char *src, size_t n, int sprite);
+int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc);
+int dinkc_vm_waiting_choice(void);
+void dinkc_vm_choice_pick(int result);
 void dinkc_vm_kill(int slot);
 void dinkc_vm_reset(void);
 /* Resume wait(ms) / move_stop stubs. now_ms is elapsed clock. */

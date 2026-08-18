@@ -32,6 +32,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | DinkC shape | `process_line` / `void` / `if` | `dinkc_parse` | hold (11.2); no run |
 | DinkC fibers | `run_script` + `wait` callback | `dinkc_vm_*` | hold (11.3); no 11.6 attach |
 | Vars 1.08 | `lookup_var_local_global_108` | `dinkc_var_*` | hold (11.4); MAIN.c + engine specials |
+| Wave 1 cmds | `dinkc_bindings` | `dinkc_cmd` | hold (11.5); say=serial; freeze spr[1] |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
 | `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |

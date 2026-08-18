@@ -17,6 +17,7 @@
 #include "pad.h"
 #include "player.h"
 #include "script.h"
+#include "dinkc_cmd.h"
 #include "dinkc_vm.h"
 #include "sprite.h"
 #include "start_map.h"
@@ -241,6 +242,7 @@ int main(int argc, char **argv)
                 }
                 hard_free(&g_hard); /* tile stamp done; drop 2 MiB file buffer */
                 player_init(&pl);
+                dinkc_cmd_bind_player(&pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
@@ -325,15 +327,16 @@ int main(int argc, char **argv)
                                                  DINK_PAD_A) &&
                         dinkc_vm_waiting_say()) {
                         dinkc_vm_advance_say();
+                    } else if (have && pad_just_pressed(prev_buttons, buttons,
+                                                       DINK_PAD_A) &&
+                               dinkc_vm_waiting_choice()) {
+                        dinkc_vm_choice_pick(1);
                     } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir);
 
                         script_on_talk(slot);
-                        if (slot > 0) {
-                            pl.freeze++;
-                        }
                     }
                     if (have && pl.freeze == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {

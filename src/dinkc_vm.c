@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_vm.h"
 
+#include "dinkc_cmd.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
 
@@ -212,6 +213,55 @@ static void eat_semi(struct Fiber *f)
     }
 }
 
+static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
+                       size_t strsz)
+{
+    *nargs = 0;
+    if (str != NULL && strsz > 0) {
+        str[0] = '\0';
+    }
+    if (f->ip >= f->ntok || f->tok[f->ip].kind != DINKC_LPAREN) {
+        return;
+    }
+    f->ip++;
+    while (f->ip < f->ntok && f->tok[f->ip].kind != DINKC_RPAREN) {
+        if (f->tok[f->ip].kind == DINKC_COMMA) {
+            f->ip++;
+            continue;
+        }
+        if (f->tok[f->ip].kind == DINKC_STRING) {
+            if (str != NULL && strsz > 1) {
+                size_t n = f->tok[f->ip].n;
+                const char *p = f->tok[f->ip].p;
+
+                if (n >= 2 && p[0] == '"') {
+                    p++;
+                    n -= 2;
+                }
+                if (n >= strsz) {
+                    n = strsz - 1;
+                }
+                memcpy(str, p, n);
+                str[n] = '\0';
+            }
+            if (*nargs < 8) {
+                args[(*nargs)++] = 0;
+            }
+            f->ip++;
+            continue;
+        }
+        if (*nargs < 8) {
+            args[(*nargs)++] = eval_expr(f);
+        } else {
+            (void)eval_expr(f);
+        }
+    }
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_RPAREN) {
+        f->ip++;
+    }
+    eat_semi(f);
+}
+
 static int tok_is(const struct DinkcTok *t, const char *w)
 {
     size_t i, n;
@@ -258,12 +308,15 @@ static int fill_toks(struct Fiber *f)
     }
 }
 
-static int find_main(struct Fiber *f)
+static int find_proc(struct Fiber *f, const char *proc)
 {
     int i;
 
-    for (i = 0; i + 3 < f->ntok; i++) {
-        if (tok_is(&f->tok[i], "void") && tok_is(&f->tok[i + 1], "main")) {
+    if (proc == NULL) {
+        proc = "main";
+    }
+    for (i = 0; i + 1 < f->ntok; i++) {
+        if (tok_is(&f->tok[i], "void") && tok_is(&f->tok[i + 1], proc)) {
             while (i < f->ntok && f->tok[i].kind != DINKC_LBRACE) {
                 i++;
             }
@@ -301,31 +354,6 @@ static void skip_call(struct Fiber *f)
     if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_SEMI) {
         f->ip++;
     }
-}
-
-static int num_arg(struct Fiber *f)
-{
-    int v = 0;
-    char buf[16];
-    size_t n;
-
-    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
-        f->ip++;
-    }
-    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_NUMBER) {
-        n = f->tok[f->ip].n < 15 ? f->tok[f->ip].n : 15;
-        memcpy(buf, f->tok[f->ip].p, n);
-        buf[n] = '\0';
-        v = atoi(buf);
-        f->ip++;
-    }
-    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_RPAREN) {
-        f->ip++;
-    }
-    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_SEMI) {
-        f->ip++;
-    }
-    return v;
 }
 
 static void fiber_kill(struct Fiber *f)
@@ -372,44 +400,61 @@ static void run_fiber(struct Fiber *f, int now_ms)
             fiber_kill(f);
             return;
         }
-        if (tok_is(t, "wait")) {
-            int ms;
+        if (t->kind == DINKC_IDENT && f->ip + 1 < f->ntok &&
+            f->tok[f->ip + 1].kind == DINKC_LPAREN && !tok_is(t, "if") &&
+            !tok_is(t, "while") && !tok_is(t, "int")) {
+            char cname[40], sarg[192];
+            int args[8], nargs = 0, yld = 0, rv = 0;
 
+            copy_tok(t, cname, sizeof(cname));
             f->ip++;
-            ms = num_arg(f);
-            if (ms < 1) {
-                ms = 1;
+            if (tok_is(t, "wait")) {
+                int ms;
+
+                parse_args(f, args, &nargs, sarg, sizeof(sarg));
+                ms = nargs > 0 ? args[0] : 1;
+                if (ms < 1) {
+                    ms = 1;
+                }
+                f->state = DINKC_WAIT_MS;
+                f->wait_until = now_ms + ms;
+                return;
             }
-            f->state = DINKC_WAIT_MS;
-            f->wait_until = now_ms + ms;
-            return;
-        }
-        if (tok_is(t, "say_stop") || tok_is(t, "say_stop_npc")) {
-            f->ip++;
-            skip_call(f);
-            f->state = DINKC_WAIT_SAY;
-            printf("dinkc yield say\n");
-            return;
-        }
-        if (tok_is(t, "move_stop")) {
-            f->ip++;
-            skip_call(f);
-            f->state = DINKC_WAIT_MOVE;
-            return;
-        }
-        if (tok_is(t, "choice_start")) {
-            f->ip++;
-            skip_call(f);
-            while (f->ip < f->ntok && !tok_is(&f->tok[f->ip], "choice_end")) {
-                f->ip++;
+            if (tok_is(t, "move_stop")) {
+                parse_args(f, args, &nargs, sarg, sizeof(sarg));
+                f->state = DINKC_WAIT_MOVE;
+                return;
             }
-            if (f->ip < f->ntok) {
-                f->ip++;
-                skip_call(f);
+            if (tok_is(t, "choice_start")) {
+                parse_args(f, args, &nargs, sarg, sizeof(sarg));
+                while (f->ip < f->ntok &&
+                       !tok_is(&f->tok[f->ip], "choice_end")) {
+                    f->ip++;
+                }
+                if (f->ip < f->ntok) {
+                    f->ip++;
+                    skip_call(f);
+                }
+                f->state = DINKC_WAIT_CHOICE;
+                printf("dinkc yield choice\n");
+                return;
             }
-            f->state = DINKC_WAIT_CHOICE;
-            printf("dinkc yield choice\n");
-            return;
+            parse_args(f, args, &nargs, sarg, sizeof(sarg));
+            if (dinkc_cmd(cname, args, nargs, sarg, &yld, &rv)) {
+                dinkc_var_set("&return", rv, DINKC_GLOBAL_SCOPE, f->sprite);
+                if (yld == 3) {
+                    fiber_kill(f);
+                    return;
+                }
+                if (yld == 1) {
+                    f->state = DINKC_WAIT_SAY;
+                    printf("dinkc yield say\n");
+                    return;
+                }
+                continue;
+            }
+            printf("dinkc unimplemented %s\n", cname);
+            continue;
         }
         if (tok_is(t, "else")) {
             f->ip++;
@@ -529,7 +574,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
     }
 }
 
-int dinkc_vm_start(const char *src, size_t n, int sprite)
+int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
 {
     int s, ip;
     struct Fiber *f;
@@ -566,9 +611,9 @@ int dinkc_vm_start(const char *src, size_t n, int sprite)
         fiber_kill(f);
         return -1;
     }
-    ip = find_main(f);
+    ip = find_proc(f, proc);
     if (ip < 0) {
-        printf("dinkc vm no main\n");
+        printf("dinkc vm no %s\n", proc != NULL ? proc : "main");
         fiber_kill(f);
         return -1;
     }
@@ -577,6 +622,11 @@ int dinkc_vm_start(const char *src, size_t n, int sprite)
     f->state = DINKC_RUN;
     run_fiber(f, 0);
     return s;
+}
+
+int dinkc_vm_start(const char *src, size_t n, int sprite)
+{
+    return dinkc_vm_start_proc(src, n, sprite, "main");
 }
 
 void dinkc_vm_kill(int slot)
@@ -642,13 +692,31 @@ int dinkc_vm_waiting_say(void)
 
 void dinkc_vm_choice_done(void)
 {
+    dinkc_vm_choice_pick(1);
+}
+
+void dinkc_vm_choice_pick(int result)
+{
     int i;
 
+    dinkc_var_set("&result", result, DINKC_GLOBAL_SCOPE, 1);
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
             run_fiber(&g_f[i], g_f[i].wait_until);
         }
     }
+}
+
+int dinkc_vm_waiting_choice(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int dinkc_vm_live(void)
