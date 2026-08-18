@@ -62,7 +62,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **13.2** say box (sprite-anchored) | #46 |
 | 2026-08-18 | Freeze leftover after last `say_stop` | #47 |
 | 2026-08-18 | **V5 accepted** (say box in Flycast) | requester “Looks good” |
-| 2026-08-18 | **13.3** choice menu D-pad + A | this PR |
+| 2026-08-18 | **13.3** choice menu D-pad + A | #48 |
+| 2026-08-18 | Talk lock: kill sprite fibers; wait clock | this PR |
 
 ## Bites
 
