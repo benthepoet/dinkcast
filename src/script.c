@@ -205,6 +205,7 @@ void script_on_talk(int sprite)
     if (dinkc_load(nm, &buf, &n) != 0) {
         return;
     }
+    dinkc_vm_kill_sprite(sprite);
     if (dinkc_vm_start_proc(buf, n, sprite, "talk") < 0) {
         printf("dinkc talk no proc %s\n", nm);
     }

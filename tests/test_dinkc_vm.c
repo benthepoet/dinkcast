@@ -95,6 +95,24 @@ int main(void)
         expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2, "pick B");
     }
     {
+        const char *talk2 =
+            "void talk(void) { freeze(1); choice_start(); \"A\"; "
+            "choice_end(); unfreeze(1); }";
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        slot = dinkc_vm_start_proc(talk2, strlen(talk2), 26, "talk");
+        expect(dinkc_vm_waiting_choice() && dinkc_vm_live() == 1, "talk1");
+        dinkc_vm_kill_sprite(26);
+        expect(dinkc_vm_live() == 0, "killed sprite");
+        slot = dinkc_vm_start_proc(talk2, strlen(talk2), 26, "talk");
+        expect(dinkc_vm_live() == 1, "talk2 one fiber");
+        dinkc_vm_choice_pick(1);
+        expect(dinkc_vm_live() == 0 && pl.freeze == 0, "talk2 done");
+        (void)slot;
+    }
+    {
         const char *none =
             "void main(void) { choice_start(); (&story == 1) \"hid\"; "
             "choice_end(); }";

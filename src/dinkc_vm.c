@@ -33,6 +33,7 @@ struct Fiber {
 
 static struct Fiber g_f[DINKC_MAX_LIVE + 1];
 static int g_ops_ovf;
+static int g_now_ms;
 static int g_var_ready;
 
 static int fiber_slot(const struct Fiber *f)
@@ -385,7 +386,9 @@ static void run_fiber(struct Fiber *f, int now_ms)
 {
     int ops = 0;
 
-    (void)now_ms;
+    if (now_ms == 0) {
+        now_ms = g_now_ms;
+    }
     f->state = DINKC_RUN;
     while (f->used && f->state == DINKC_RUN && f->ip < f->ntok) {
         const struct DinkcTok *t = &f->tok[f->ip];
@@ -432,7 +435,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     ms = 1;
                 }
                 f->state = DINKC_WAIT_MS;
-                f->wait_until = now_ms + ms;
+                f->wait_until = g_now_ms + ms;
                 return;
             }
             if (tok_is(t, "move_stop")) {
@@ -730,6 +733,24 @@ void dinkc_vm_kill(int slot)
     fiber_kill(&g_f[slot]);
 }
 
+void dinkc_vm_kill_sprite(int sprite)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].sprite == sprite) {
+            fiber_kill(&g_f[i]);
+        }
+    }
+}
+
+void dinkc_vm_set_now(int now_ms)
+{
+    if (now_ms > 0) {
+        g_now_ms = now_ms;
+    }
+}
+
 void dinkc_vm_reset(void)
 {
     int i;
@@ -746,13 +767,16 @@ void dinkc_vm_tick(int now_ms)
 {
     int i;
 
+    g_now_ms = now_ms;
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         struct Fiber *f = &g_f[i];
 
         if (!f->used) {
             continue;
         }
-        if (f->state == DINKC_WAIT_MS && now_ms >= f->wait_until) {
+        if (f->state == DINKC_RUN) {
+            run_fiber(f, now_ms);
+        } else if (f->state == DINKC_WAIT_MS && now_ms >= f->wait_until) {
             run_fiber(f, now_ms);
         } else if (f->state == DINKC_WAIT_MOVE) {
             run_fiber(f, now_ms);

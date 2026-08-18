@@ -28,6 +28,9 @@ int dinkc_vm_choice_cur(void);
 const char *dinkc_vm_choice_line(int vis1);
 void dinkc_vm_choice_move(int delta);
 void dinkc_vm_kill(int slot);
+/* FreeDink: one instance per sprite; locate talk() on it. */
+void dinkc_vm_kill_sprite(int sprite);
+void dinkc_vm_set_now(int now_ms);
 void dinkc_vm_reset(void);
 /* Resume wait(ms) / move_stop stubs. now_ms is elapsed clock. */
 void dinkc_vm_tick(int now_ms);
