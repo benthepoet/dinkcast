@@ -2,6 +2,7 @@
 #include "dinkc_vm.h"
 
 #include "dinkc_lex.h"
+#include "dinkc_var.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -27,6 +28,189 @@ struct Fiber {
 
 static struct Fiber g_f[DINKC_MAX_LIVE + 1];
 static int g_ops_ovf;
+static int g_var_ready;
+
+static int fiber_slot(const struct Fiber *f)
+{
+    return (int)(f - g_f);
+}
+
+static void copy_tok(const struct DinkcTok *t, char *buf, size_t sz)
+{
+    size_t n = t->n < sz - 1 ? t->n : sz - 1;
+
+    memcpy(buf, t->p, n);
+    buf[n] = '\0';
+}
+
+static int eval_expr(struct Fiber *f);
+static void skip_balanced(struct Fiber *f, enum DinkcKind open,
+                          enum DinkcKind close);
+
+static int eval_prim(struct Fiber *f)
+{
+    char name[DINKC_VAR_NAME];
+    int v;
+
+    if (f->ip >= f->ntok) {
+        return 0;
+    }
+    if (f->tok[f->ip].kind == DINKC_NUMBER) {
+        copy_tok(&f->tok[f->ip], name, sizeof(name));
+        f->ip++;
+        return atoi(name);
+    }
+    if (f->tok[f->ip].kind == DINKC_VAR) {
+        copy_tok(&f->tok[f->ip], name, sizeof(name));
+        f->ip++;
+        return dinkc_var_get(name, fiber_slot(f), f->sprite);
+    }
+    if (f->tok[f->ip].kind == DINKC_STRING) {
+        f->ip++;
+        return 0;
+    }
+    if (f->tok[f->ip].kind == DINKC_IDENT) {
+        f->ip++;
+        if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
+            skip_balanced(f, DINKC_LPAREN, DINKC_RPAREN);
+        }
+        return 0;
+    }
+    if (f->tok[f->ip].kind == DINKC_LPAREN) {
+        f->ip++;
+        v = eval_expr(f);
+        if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_RPAREN) {
+            f->ip++;
+        }
+        return v;
+    }
+    f->ip++;
+    return 0;
+}
+
+static int eval_unary(struct Fiber *f)
+{
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_MINUS) {
+        f->ip++;
+        return -eval_unary(f);
+    }
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_PLUS) {
+        f->ip++;
+        return eval_unary(f);
+    }
+    return eval_prim(f);
+}
+
+static int eval_mul(struct Fiber *f)
+{
+    int v = eval_unary(f);
+
+    while (f->ip < f->ntok &&
+           (f->tok[f->ip].kind == DINKC_STAR || f->tok[f->ip].kind == DINKC_SLASH)) {
+        enum DinkcKind op = f->tok[f->ip].kind;
+        int r;
+
+        f->ip++;
+        r = eval_unary(f);
+        if (op == DINKC_STAR) {
+            v *= r;
+        } else if (r != 0) {
+            v /= r;
+        }
+    }
+    return v;
+}
+
+static int eval_add(struct Fiber *f)
+{
+    int v = eval_mul(f);
+
+    while (f->ip < f->ntok &&
+           (f->tok[f->ip].kind == DINKC_PLUS || f->tok[f->ip].kind == DINKC_MINUS)) {
+        enum DinkcKind op = f->tok[f->ip].kind;
+        int r;
+
+        f->ip++;
+        r = eval_mul(f);
+        v = (op == DINKC_PLUS) ? v + r : v - r;
+    }
+    return v;
+}
+
+static int eval_cmp(struct Fiber *f)
+{
+    int v = eval_add(f);
+
+    while (f->ip < f->ntok) {
+        enum DinkcKind op = f->tok[f->ip].kind;
+        int r;
+
+        if (op != DINKC_EQEQ && op != DINKC_NE && op != DINKC_LT &&
+            op != DINKC_GT && op != DINKC_LE && op != DINKC_GE) {
+            break;
+        }
+        f->ip++;
+        r = eval_add(f);
+        if (op == DINKC_EQEQ) {
+            v = v == r;
+        } else if (op == DINKC_NE) {
+            v = v != r;
+        } else if (op == DINKC_LT) {
+            v = v < r;
+        } else if (op == DINKC_GT) {
+            v = v > r;
+        } else if (op == DINKC_LE) {
+            v = v <= r;
+        } else {
+            v = v >= r;
+        }
+    }
+    return v;
+}
+
+static int eval_and(struct Fiber *f)
+{
+    int v = eval_cmp(f);
+
+    while (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_ANDAND) {
+        f->ip++;
+        v = eval_cmp(f) && v;
+    }
+    return v;
+}
+
+static int eval_expr(struct Fiber *f)
+{
+    int v = eval_and(f);
+
+    while (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_OROR) {
+        f->ip++;
+        v = eval_and(f) || v;
+    }
+    return v;
+}
+
+static void skip_stmt_body(struct Fiber *f)
+{
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LBRACE) {
+        skip_balanced(f, DINKC_LBRACE, DINKC_RBRACE);
+        return;
+    }
+    while (f->ip < f->ntok && f->tok[f->ip].kind != DINKC_SEMI &&
+           f->tok[f->ip].kind != DINKC_RBRACE) {
+        f->ip++;
+    }
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_SEMI) {
+        f->ip++;
+    }
+}
+
+static void eat_semi(struct Fiber *f)
+{
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_SEMI) {
+        f->ip++;
+    }
+}
 
 static int tok_is(const struct DinkcTok *t, const char *w)
 {
@@ -224,26 +408,115 @@ static void run_fiber(struct Fiber *f, int now_ms)
             printf("dinkc yield choice\n");
             return;
         }
+        if (tok_is(t, "else")) {
+            f->ip++;
+            skip_stmt_body(f);
+            continue;
+        }
         if (tok_is(t, "if")) {
+            int cond;
+
             f->ip++;
             if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
-                skip_balanced(f, DINKC_LPAREN, DINKC_RPAREN);
-            }
-            /* 11.4 vars: unknown is 0 — skip body. */
-            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LBRACE) {
-                skip_balanced(f, DINKC_LBRACE, DINKC_RBRACE);
+                f->ip++;
+                cond = eval_expr(f);
+                if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_RPAREN) {
+                    f->ip++;
+                }
             } else {
-                while (f->ip < f->ntok && f->tok[f->ip].kind != DINKC_SEMI &&
-                       f->tok[f->ip].kind != DINKC_RBRACE) {
-                    f->ip++;
-                }
-                if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_SEMI) {
-                    f->ip++;
-                }
+                cond = 0;
             }
+            if (cond) {
+                continue;
+            }
+            skip_stmt_body(f);
             if (f->ip < f->ntok && tok_is(&f->tok[f->ip], "else")) {
                 f->ip++;
             }
+            continue;
+        }
+        if (tok_is(t, "int")) {
+            char name[DINKC_VAR_NAME];
+
+            f->ip++;
+            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_VAR) {
+                copy_tok(&f->tok[f->ip], name, sizeof(name));
+                f->ip++;
+                dinkc_var_make(name, 0, fiber_slot(f));
+                if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_EQ) {
+                    f->ip++;
+                    dinkc_var_set(name, eval_expr(f), fiber_slot(f), f->sprite);
+                }
+            }
+            eat_semi(f);
+            continue;
+        }
+        if (tok_is(t, "make_global_int")) {
+            char name[DINKC_VAR_NAME];
+            int val = 0;
+
+            f->ip++;
+            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
+                f->ip++;
+            }
+            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_STRING) {
+                copy_tok(&f->tok[f->ip], name, sizeof(name));
+                /* strip quotes */
+                if (name[0] == '"' && name[strlen(name) - 1] == '"') {
+                    name[strlen(name) - 1] = '\0';
+                    memmove(name, name + 1, strlen(name));
+                }
+                f->ip++;
+            } else {
+                name[0] = '\0';
+            }
+            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_COMMA) {
+                f->ip++;
+                val = eval_expr(f);
+            }
+            if (name[0] == '&') {
+                dinkc_var_make_global(name, val);
+            }
+            skip_call(f);
+            continue;
+        }
+        if (t->kind == DINKC_VAR) {
+            char name[DINKC_VAR_NAME];
+            int v;
+
+            copy_tok(t, name, sizeof(name));
+            f->ip++;
+            if (f->ip < f->ntok &&
+                (f->tok[f->ip].kind == DINKC_PLUS ||
+                 f->tok[f->ip].kind == DINKC_MINUS ||
+                 f->tok[f->ip].kind == DINKC_STAR ||
+                 f->tok[f->ip].kind == DINKC_SLASH)) {
+                enum DinkcKind op = f->tok[f->ip].kind;
+
+                f->ip++;
+                if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_EQ) {
+                    f->ip++;
+                }
+                v = dinkc_var_get(name, fiber_slot(f), f->sprite);
+                if (op == DINKC_PLUS) {
+                    v += eval_expr(f);
+                } else if (op == DINKC_MINUS) {
+                    v -= eval_expr(f);
+                } else if (op == DINKC_STAR) {
+                    v *= eval_expr(f);
+                } else {
+                    int r = eval_expr(f);
+
+                    if (r != 0) {
+                        v /= r;
+                    }
+                }
+                dinkc_var_set(name, v, fiber_slot(f), f->sprite);
+            } else if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_EQ) {
+                f->ip++;
+                dinkc_var_set(name, eval_expr(f), fiber_slot(f), f->sprite);
+            }
+            eat_semi(f);
             continue;
         }
         f->ip++;
@@ -260,6 +533,10 @@ int dinkc_vm_start(const char *src, size_t n, int sprite)
 
     if (src == NULL || n == 0) {
         return -1;
+    }
+    if (!g_var_ready) {
+        dinkc_var_init();
+        g_var_ready = 1;
     }
     for (s = 1; s <= DINKC_MAX_LIVE; s++) {
         if (!g_f[s].used) {
@@ -315,6 +592,8 @@ void dinkc_vm_reset(void)
         fiber_kill(&g_f[i]);
     }
     g_ops_ovf = 0;
+    dinkc_var_init();
+    g_var_ready = 1;
 }
 
 void dinkc_vm_tick(int now_ms)
