@@ -36,6 +36,7 @@ def main() -> int:
         ("screen swap", "screen_try_cross" in text),
         ("sprite snap", "spr_snap" in text),
         ("edg heap", "edraw_gfx_alloc" in text),
+        ("leave pvr", "tiles_draw_clear_pvr" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

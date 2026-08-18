@@ -202,6 +202,9 @@ int main(int argc, char **argv)
         vid_set_mode(DM_640x480, PM_RGB565);
         vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
         hud("leave_title", "GAME_STATE_LOADING", msg);
+        /* pvr_shutdown left the splash in the last PVR frame. Re-init and
+         * draw brown or Flycast keeps showing the title during house load. */
+        tiles_draw_clear_pvr(0xff5a3a1a);
     }
     {
         int rec;

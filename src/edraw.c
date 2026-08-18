@@ -96,6 +96,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         if (got >= DINK_EDGFX_MAX) {
             break;
         }
+        printf("edraw load seq=%d fr=%d\n", seq, fr);
         if (seqs[seq].nframes <= 0) {
             seqs[seq].nframes = ini_count_ff_frames(seqs[seq].prefix);
         }
