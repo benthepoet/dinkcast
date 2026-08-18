@@ -246,6 +246,8 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
+                /* Drop ~2 MiB hard.dat before dir.ff BMP loads (16 MB RAM). */
+                hard_free(&g_hard);
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);
@@ -362,9 +364,15 @@ int main(int argc, char **argv)
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
+                        if (hard_load(&g_hard) != 0) {
+                            printf("hard reload fail\n");
+                        }
+                        /* Stamp even if reload failed: empty hid still
+                         * allocates the mask so sprite/warp boxes apply. */
                         if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
                             printf("hard restamp fail\n");
                         }
+                        hard_free(&g_hard);
                         if (seqs != NULL) {
                             (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
                         }
