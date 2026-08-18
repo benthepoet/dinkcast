@@ -25,6 +25,7 @@ struct EditorSprite {
     int32_t que;
     int32_t hard;
     int32_t vision;
+    int32_t is_warp, warp_map, warp_x, warp_y, parm_seq;
     char script[16];
 };
 

@@ -159,7 +159,7 @@ int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
 }
 
 void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
-                    int hb)
+                    int hb, int hid)
 {
     int px, py, x0, y0, x1, y1;
 
@@ -185,7 +185,7 @@ void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
     }
     for (py = y0; py < y1; py++) {
         for (px = x0; px < x1; px++) {
-            m->pix[py * DINK_PLAY_W + px] = 1;
+            m->pix[py * DINK_PLAY_W + px] = (uint8_t)(hid < 1 ? 1 : hid);
         }
     }
 }
@@ -202,7 +202,7 @@ int hard_get(const struct HardMask *m, int sx, int sy)
     if (px < 0 || py < 0 || px >= DINK_PLAY_W || py >= DINK_PLAY_H) {
         return 0;
     }
-    return m->pix[py * DINK_PLAY_W + px] != 0;
+    return (int)m->pix[py * DINK_PLAY_W + px];
 }
 
 int hard_box_blocked(const struct HardMask *m, int x, int y, int hl, int ht,

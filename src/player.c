@@ -36,6 +36,7 @@ void player_init(struct Player *p)
     p->nocontrol = 0;
     p->just_hit = 0;
     p->base_attack = DINK_BASE_ATTACK;
+    p->warp_hit = 0;
 }
 
 void player_attack(struct Player *p, const struct SeqInfo *seqs)
@@ -85,6 +86,7 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         return;
     }
     p->just_hit = 0;
+    p->warp_hit = 0;
     if (p->freeze > 0) {
         pad_dir = 0;
     }
@@ -145,11 +147,23 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
             for (i = 0; i < steps; i++) {
                 nx = p->x + dx;
                 ny = p->y + dy;
-                if (dx != 0 && !hard_get(mask, nx, p->y)) {
-                    p->x = nx;
+                if (dx != 0) {
+                    int h = hard_get(mask, nx, p->y);
+
+                    if (h >= 100) {
+                        p->warp_hit = h - 100;
+                    } else if (h == 0) {
+                        p->x = nx;
+                    }
                 }
-                if (dy != 0 && !hard_get(mask, p->x, ny)) {
-                    p->y = ny;
+                if (dy != 0) {
+                    int h = hard_get(mask, p->x, ny);
+
+                    if (h >= 100) {
+                        p->warp_hit = h - 100;
+                    } else if (h == 0) {
+                        p->y = ny;
+                    }
                 }
             }
         }

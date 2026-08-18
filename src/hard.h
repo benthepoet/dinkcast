@@ -37,6 +37,6 @@ int hard_get(const struct HardMask *m, int sx, int sy);
 int hard_box_blocked(const struct HardMask *m, int x, int y, int hl, int ht,
                      int hr, int hb);
 void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
-                    int hb);
+                    int hb, int hid);
 
 #endif

@@ -33,6 +33,7 @@ def main() -> int:
         ("font", "font_init" in text),
         ("saybox", "saybox_draw_pvr" in text),
         ("choice menu", "saybox_draw_choices_pvr" in text),
+        ("screen swap", "screen_try_cross" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

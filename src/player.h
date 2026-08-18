@@ -16,6 +16,7 @@ struct Player {
     int nocontrol; /* attack lock (item-fst / spr.nocontrol) */
     int just_hit; /* 1 after landing on SET_FRAME_SPECIAL */
     int base_attack;
+    int warp_hit; /* editor slot if last step hit hardness 100+is_warp */
 };
 
 void player_init(struct Player *p);
