@@ -109,6 +109,18 @@ int main(void)
         expect(dinkc_var_get("&return", DINKC_GLOBAL_SCOPE, 1) == 26, "editor");
         (void)slot;
     }
+    {
+        int impl = dinkc_cmd_implemented_count();
+        int miss0 = dinkc_cmd_missing_count();
+        int yld = 0, rv = 0, args[2] = {0, 0};
+
+        expect(impl >= 60, "table size");
+        expect(dinkc_cmd("no_such_fn_zz", args, 0, "", &yld, &rv) == 0,
+               "unknown");
+        expect(dinkc_cmd_missing_count() == miss0 + 1, "miss logged");
+        expect(dinkc_cmd("draw_status", args, 0, "", &yld, &rv) == 1, "known");
+        dinkc_cmd_dump();
+    }
 
     printf("OK test_dinkc_vm\n");
     return 0;

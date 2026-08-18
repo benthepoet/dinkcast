@@ -93,9 +93,160 @@ static int change_i(int *slot, int nargs, int setv, int *ret)
     return setv;
 }
 
+#define CMD_VM 1
+
+static const struct {
+    const char *n;
+    unsigned char flags;
+} k_fn[] = {
+    {"say", 0},
+    {"say_stop", 0},
+    {"say_stop_npc", 0},
+    {"debug", 0},
+    {"playsound", 0},
+    {"playmidi", 0},
+    {"stopcd", 0},
+    {"freeze", 0},
+    {"unfreeze", 0},
+    {"kill_this_task", 0},
+    {"stop", 0},
+    {"wait_for_button", 0},
+    {"wait", CMD_VM},
+    {"move_stop", CMD_VM},
+    {"choice_start", CMD_VM},
+    {"choice_end", CMD_VM},
+    {"sp_x", 0},
+    {"sp_y", 0},
+    {"sp_dir", 0},
+    {"sp_seq", 0},
+    {"sp_frame", 0},
+    {"sp_base_attack", 0},
+    {"sp_base_walk", 0},
+    {"sp_base_idle", 0},
+    {"sp_speed", 0},
+    {"sp_timing", 0},
+    {"sp_pseq", 0},
+    {"sp_pframe", 0},
+    {"sp_brain", 0},
+    {"sp_script", 0},
+    {"sp_active", 0},
+    {"sp_kill", 0},
+    {"sp_hitpoints", 0},
+    {"sp_defense", 0},
+    {"sp_touch_damage", 0},
+    {"sp_nohit", 0},
+    {"sp_range", 0},
+    {"sp_target", 0},
+    {"sp_attack_wait", 0},
+    {"sp_editor_num", 0},
+    {"sp_custom", 0},
+    {"sp", 0},
+    {"move", 0},
+    {"create_sprite", 0},
+    {"script_attach", 0},
+    {"external", 0},
+    {"set_callback_random", 0},
+    {"force_vision", 0},
+    {"hurt", 0},
+    {"add_exp", 0},
+    {"add_item", 0},
+    {"add_magic", 0},
+    {"initfont", 0},
+    {"get_next_sprite_with_this_brain", 0},
+    {"draw_status", 0},
+    {"update_status", 0},
+    {"preload_seq", 0},
+    {"kill_shadow", 0},
+    {"arm_weapon", 0},
+    {"arm_magic", 0},
+    {"fade_up", 0},
+    {"fade_down", 0},
+    {"fill_screen", 0},
+    {"load_screen", 0},
+    {"compare_weapon", 0},
+    {"compare_magic", 0},
+};
+
+#define CMD_N ((int)(sizeof(k_fn) / sizeof(k_fn[0])))
+#define MISS_N 32
+
+static char g_miss[MISS_N][32];
+static int g_nmiss;
+static int g_dump_hooked;
+
+static int lookup_fn(const char *name)
+{
+    int i;
+
+    for (i = 0; i < CMD_N; i++) {
+        if (name_eq(k_fn[i].n, name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void note_miss(const char *name)
+{
+    int i;
+
+    if (name == NULL || name[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < g_nmiss; i++) {
+        if (name_eq(g_miss[i], name)) {
+            return;
+        }
+    }
+    if (g_nmiss >= MISS_N) {
+        return;
+    }
+    strncpy(g_miss[g_nmiss], name, 31);
+    g_miss[g_nmiss][31] = '\0';
+    g_nmiss++;
+}
+
+int dinkc_cmd_implemented_count(void)
+{
+    return CMD_N;
+}
+
+int dinkc_cmd_missing_count(void)
+{
+    return g_nmiss;
+}
+
+void dinkc_cmd_dump(void)
+{
+    int i;
+
+    printf("dinkc dump implemented=%d", CMD_N);
+    for (i = 0; i < CMD_N; i++) {
+        printf(" %s", k_fn[i].n);
+    }
+    printf("\n");
+    printf("dinkc dump missing=%d", g_nmiss);
+    for (i = 0; i < g_nmiss; i++) {
+        printf(" %s", g_miss[i]);
+    }
+    printf("\n");
+}
+
+static int dump_wanted(void)
+{
+    const char *e = getenv("DINKC_DUMP_FNS");
+
+    return e != NULL && e[0] != '\0' && e[0] != '0';
+}
+
 void dinkc_cmd_bind_player(struct Player *p)
 {
     g_pl = p;
+    if (dump_wanted() && !g_dump_hooked) {
+        g_dump_hooked = 1;
+        dinkc_cmd_dump();
+        atexit(dinkc_cmd_dump);
+    }
 }
 
 static int spr_is_dink(int id)
@@ -117,6 +268,17 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (name == NULL) {
         return 0;
+    }
+    {
+        int ix = lookup_fn(name);
+
+        if (ix < 0) {
+            note_miss(name);
+            return 0;
+        }
+        if (k_fn[ix].flags == CMD_VM) {
+            return 0;
+        }
     }
     if (is_cmd(name, "say") || is_cmd(name, "say_stop") ||
         is_cmd(name, "say_stop_npc")) {
@@ -220,10 +382,6 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "force_vision")) {
         dinkc_var_set("&vision", a0, DINKC_GLOBAL_SCOPE, 1);
         return 1;
-    }
-    if (is_cmd(name, "wait") || is_cmd(name, "move_stop") ||
-        is_cmd(name, "choice_start") || is_cmd(name, "choice_end")) {
-        return 0; /* VM handles yield */
     }
     if (is_cmd(name, "stop")) {
         if (yield != NULL) {
@@ -425,5 +583,5 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    return 0;
+    return 1; /* in k_fn: default stub */
 }
