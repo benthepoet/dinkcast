@@ -12,5 +12,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
 void dinkc_cmd_dump(void);
 int dinkc_cmd_implemented_count(void);
 int dinkc_cmd_missing_count(void);
+/* If freeze>0 and no live fibers, clear (script died before unfreeze). */
+void dinkc_cmd_thaw_if_idle(void);
 
 #endif

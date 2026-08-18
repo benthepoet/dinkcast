@@ -357,6 +357,7 @@ int main(int argc, char **argv)
                     }
                     prev_buttons = have ? buttons : 0;
                     dinkc_vm_tick(now_ms);
+                    dinkc_cmd_thaw_if_idle();
                     now_ms += DINKC_TICK_MS;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {

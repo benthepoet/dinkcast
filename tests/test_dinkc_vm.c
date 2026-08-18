@@ -55,6 +55,18 @@ int main(void)
     expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 1, "result 1");
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0 && pl.freeze == 0, "unfreeze");
+    {
+        const char *orphan = "void main(void) { freeze(1); }";
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        slot = dinkc_vm_start(orphan, strlen(orphan), 1);
+        expect(pl.freeze == 1 && dinkc_vm_live() == 0, "died frozen");
+        dinkc_cmd_thaw_if_idle();
+        expect(pl.freeze == 0, "orphan thaw");
+        (void)slot;
+    }
 
     {
         const char *skipc =
