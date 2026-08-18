@@ -39,8 +39,9 @@
 
 /* KOS thread stack is ~32–64 KB. These sum > 32 KB if locals. */
 static struct World g_world;
-static struct MapScreen g_scr;
+/* Before g_scr so a linear smash of the map table cannot eat the snap. */
 static struct EditorSprite g_spr_ok[101];
+static struct MapScreen g_scr;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx g_edg[DINK_EDGFX_MAX];
@@ -275,9 +276,10 @@ int main(int argc, char **argv)
                     int ned = 0;
 
                     memset(g_edg, 0, sizeof(g_edg));
-                    printf("pre-edraw sprite1 seq=%d y=%d act=%d\n",
+                    printf("pre-edraw live seq=%d y=%d act=%d snap seq=%d y=%d act=%d\n",
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
-                           (int)g_scr.sprite[1].active);
+                           (int)g_scr.sprite[1].active, (int)g_spr_ok[1].seq,
+                           (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
                     spr_restore("edraw");
                     if (seqs != NULL) {
                         (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
