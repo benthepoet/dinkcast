@@ -330,6 +330,9 @@ static int num_arg(struct Fiber *f)
 
 static void fiber_kill(struct Fiber *f)
 {
+    if (f->used) {
+        dinkc_var_kill_scope((int)(f - g_f));
+    }
     free(f->src);
     free(f->tok);
     memset(f, 0, sizeof(*f));

@@ -35,6 +35,10 @@ int main(void)
     dinkc_var_make("&gold", 5, 2);
     expect(dinkc_var_get("&gold", 2, 1) == 5, "local gold");
     expect(dinkc_var_get("&gold", 0, 1) == 0, "global gold still 0");
+    dinkc_var_make_global("&life", 99);
+    expect(dinkc_var_get("&life", 0, 1) == 10, "make_global no overwrite");
+    dinkc_var_kill_scope(2);
+    expect(dinkc_var_get("&gold", 2, 1) == 0, "local gold gone");
 
     dinkc_vm_reset();
     slot = dinkc_vm_start(life, strlen(life), 1);

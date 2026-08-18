@@ -154,7 +154,7 @@ int dinkc_var_make(const char *name, int value, int scope)
     }
     i = lookup_scope(name, scope);
     if (i != 0) {
-        g_var[i].value = value;
+        /* FreeDink make_int: existing slot stays. */
         return i;
     }
     for (i = 1; i < DINKC_MAX_VARS; i++) {
@@ -209,12 +209,29 @@ int dinkc_var_get(const char *name, int scope, int sprite)
     return g_var[i].value;
 }
 
+void dinkc_var_kill_scope(int scope)
+{
+    int i;
+
+    if (scope == DINKC_GLOBAL_SCOPE) {
+        return;
+    }
+    for (i = 1; i < DINKC_MAX_VARS; i++) {
+        if (g_var[i].active && g_var[i].scope == scope) {
+            g_var[i].active = 0;
+        }
+    }
+}
+
 void dinkc_var_set(const char *name, int value, int scope, int sprite)
 {
     int i;
 
     (void)sprite;
-    if (name == NULL || is_engine(name)) {
+    if (name == NULL) {
+        return;
+    }
+    if (is_engine(name)) {
         if (name_eq(name, "&return")) {
             g_returnint = value;
         }

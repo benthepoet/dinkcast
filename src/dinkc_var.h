@@ -13,5 +13,6 @@ void dinkc_var_set(const char *name, int value, int scope, int sprite);
 /* Local (scope=script slot) or global. */
 int dinkc_var_make(const char *name, int value, int scope);
 int dinkc_var_make_global(const char *name, int value);
+void dinkc_var_kill_scope(int scope);
 
 #endif
