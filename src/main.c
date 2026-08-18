@@ -17,6 +17,7 @@
 #include "mapscr.h"
 #include "pad.h"
 #include "player.h"
+#include "saybox.h"
 #include "script.h"
 #include "dinkc_cmd.h"
 #include "dinkc_vm.h"
@@ -244,6 +245,7 @@ int main(int argc, char **argv)
                 hard_free(&g_hard); /* tile stamp done; drop 2 MiB file buffer */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
+                saybox_bind(&g_scr, &pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
@@ -308,6 +310,9 @@ int main(int argc, char **argv)
                 if (font_init() == 0) {
                     printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
                            font_atlas_h(), font_atlas_bytes());
+                    if (saybox_upload() != 0) {
+                        printf("saybox upload fail\n");
+                    }
                 }
                 script_bind_screen(&g_scr);
                 script_on_main(0); /* also preloads unique sprite story files */
@@ -328,9 +333,9 @@ int main(int argc, char **argv)
                         pvr_wait_ready();
                     }
                     have = (pad_poll_port0(&buttons) == 0);
-                    if (have && pad_just_pressed(prev_buttons, buttons,
-                                                 DINK_PAD_A) &&
-                        dinkc_vm_waiting_say()) {
+                    if (have && dinkc_vm_waiting_say() &&
+                        (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
+                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
                         dinkc_vm_advance_say();
                     } else if (have && pad_just_pressed(prev_buttons, buttons,
                                                        DINK_PAD_A) &&
@@ -343,7 +348,7 @@ int main(int argc, char **argv)
 
                         script_on_talk(slot);
                     }
-                    if (have && pl.freeze == 0 &&
+                    if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
                         player_attack(&pl, seqs);
                     }
@@ -448,6 +453,7 @@ int main(int argc, char **argv)
                                             (float)draw[a].y,
                                             1.5f + (float)a * 0.01f);
                         }
+                        saybox_draw_pvr(3.0f);
                     }
                     pvr_list_finish();
                     pvr_scene_finish();

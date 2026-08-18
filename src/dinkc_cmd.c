@@ -3,6 +3,7 @@
 
 #include "dinkc_var.h"
 #include "player.h"
+#include "saybox.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -282,7 +283,10 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "say") || is_cmd(name, "say_stop") ||
         is_cmd(name, "say_stop_npc")) {
+        int spr = nargs >= 2 ? a1 : a0;
+
         printf("say %s\n", str != NULL ? str : "");
+        saybox_set(str, spr);
         if (yield != NULL && !is_cmd(name, "say")) {
             *yield = 1;
         }

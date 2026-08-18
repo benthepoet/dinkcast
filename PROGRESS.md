@@ -58,7 +58,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | `make emu` tees SCIF to `build/emu.log` | #42 |
 | 2026-08-18 | **11.8** wave-3 cmds (midi/status stubs) | #43 |
 | 2026-08-18 | **11.9** DinkC command table + dump | #44 |
-| 2026-08-18 | **13.1** embedded VGA 8×8 font atlas | this PR |
+| 2026-08-18 | **13.1** embedded VGA 8×8 font atlas | #45 |
+| 2026-08-18 | **13.2** say box (sprite-anchored) | this PR |
 
 ## Bites
 
@@ -96,8 +97,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43 |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
-| 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; no stock BMP |
-| 13.2–13.3 | Say box / choice menu | pending | V5 is 13.2 |
+| 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
+| 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
+| 13.3 | Choice menu | pending | |
 | 14.1–14.3 | Screen transitions | pending | |
 | 15.1–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
