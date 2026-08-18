@@ -282,7 +282,7 @@ int main(int argc, char **argv)
                            (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
                     spr_restore("edraw");
                     if (seqs != NULL) {
-                        (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
+                        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                     }
                     printf("edraw unique %d\n", ned);
                     for (si = 1; si <= 100; si++) {
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
                         hard_free(&g_hard);
                         spr_restore("swap-edraw");
                         if (seqs != NULL) {
-                            (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
+                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                         }
                         printf("edraw unique %d\n", ned);
                         for (nstamp = 1; nstamp <= 100; nstamp++) {

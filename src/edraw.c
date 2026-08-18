@@ -33,35 +33,30 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame)
     return NULL;
 }
 
-int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
+int edraw_load_screen(const struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n)
 {
+    /* Own BSS: copy BEFORE touching g[] (memset g_edg was eating g_scr). */
+    static struct EditorSprite sp[101];
     int i, got = 0;
 
-    if (scr == NULL || seqs == NULL || g == NULL || n == NULL) {
+    if (spr == NULL || seqs == NULL || g == NULL || n == NULL) {
         return -1;
     }
+    memcpy(sp, spr, sizeof(sp));
+    printf("edraw in sprite1 seq=%d y=%d act=%d\n", (int)sp[1].seq,
+           (int)sp[1].y, (int)sp[1].active);
     for (i = 0; i < DINK_EDGFX_MAX; i++) {
         sprite_frame_free(&g[i].fr);
     }
     *n = 0;
-    memset(g, 0, sizeof(*g) * DINK_EDGFX_MAX);
-    /* Heap copy: first BMP loads must not smash later slots in scr. */
-    {
-        struct EditorSprite *sp;
-        size_t nb = 101u * sizeof(*sp);
-
-        sp = (struct EditorSprite *)malloc(nb);
-        if (sp == NULL) {
-            return -1;
-        }
-        memcpy(sp, scr->sprite, nb);
-        for (i = 1; i <= 8; i++) {
-            printf("edraw slot %d act=%d seq=%d fr=%d xy=%d,%d vis=%d\n", i,
-                   (int)sp[i].active, (int)sp[i].seq, (int)sp[i].frame,
-                   (int)sp[i].x, (int)sp[i].y, (int)sp[i].vision);
-        }
-        for (i = 1; i <= 100; i++) {
+    memset(g, 0, sizeof(*g) * (size_t)DINK_EDGFX_MAX);
+    for (i = 1; i <= 8; i++) {
+        printf("edraw slot %d act=%d seq=%d fr=%d xy=%d,%d vis=%d\n", i,
+               (int)sp[i].active, (int)sp[i].seq, (int)sp[i].frame,
+               (int)sp[i].x, (int)sp[i].y, (int)sp[i].vision);
+    }
+    for (i = 1; i <= 100; i++) {
         int seq, fr;
 
         if (!editor_sprite_draw(&sp[i], DINK_VISION_DEFAULT)) {
@@ -96,8 +91,6 @@ int edraw_load_screen(const struct MapScreen *scr, struct SeqInfo *seqs,
         g[got].seq = seq;
         g[got].frame = fr;
         got++;
-        }
-        free(sp);
     }
     *n = got;
     return 0;

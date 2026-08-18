@@ -23,7 +23,8 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 ## SH-4 stack
 
 - **KOS thread stack is 32–64 KB.** `World` (9 KB) + `MapScreen` (7 KB) + `HardMap.btile_default` (10 KB) + `EdGfx[96]` (6 KB) as **locals** smash the stack. Serial then looks like a parse bug (`edraw skip seq=388` — that 388 is a **Y**). Put those in BSS (`static`) or heap. Host `make host` will not catch this.
-- **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites **immediately after `map_load_record`** (BSS copy). The `edraw_load_screen` heap copy is too late: `hard_load` / `ini_load` / idle BMP can smash `g_scr.sprite` first (`atlas sprite1 seq=31 y=88` then `edraw slot 1 act=88` — that 88 is **Y**).
+- **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites **immediately after `map_load_record`** (BSS copy).
+- **`edraw_load_screen` must copy sprites before `memset(g_edg)`.** ELF packs `g_edg` then `g_hard` then `g_atlas` then `g_scr`. Free+memset of editor gfx first, then `malloc`+`memcpy` from `g_scr`, yields `restore sprite1 act=1` and `edraw slot 1 act=88` (Y). Copy into edraw’s own `static` table first; load from that.
 
 ## PVR / video
 
