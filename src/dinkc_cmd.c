@@ -24,6 +24,34 @@ static int is_cmd(const char *a, const char *b)
 }
 
 static struct Player *g_pl;
+static int g_hp[100];
+static int g_def[100];
+static int g_touch[100];
+static int g_nitem;
+static int g_nmagic;
+
+static int spr_slot(int id)
+{
+    if (id < 1 || id > 99) {
+        return 0;
+    }
+    return id;
+}
+
+static int change_i(int *slot, int nargs, int setv, int *ret)
+{
+    if (nargs < 2 || setv == -1) {
+        if (ret != NULL) {
+            *ret = *slot;
+        }
+        return *slot;
+    }
+    *slot = setv;
+    if (ret != NULL) {
+        *ret = setv;
+    }
+    return setv;
+}
 
 void dinkc_cmd_bind_player(struct Player *p)
 {
@@ -154,8 +182,98 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "wait") || is_cmd(name, "move_stop") ||
-        is_cmd(name, "choice_start")) {
+        is_cmd(name, "choice_start") || is_cmd(name, "choice_end")) {
         return 0; /* VM handles yield */
+    }
+    if (is_cmd(name, "stop")) {
+        if (yield != NULL) {
+            *yield = 3;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "wait_for_button")) {
+        printf("wait_for_button\n");
+        if (yield != NULL) {
+            *yield = 1;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_hitpoints")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            change_i(&g_hp[s], nargs, a1, ret);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_defense")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            change_i(&g_def[s], nargs, a1, ret);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_touch_damage")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            /* FreeDink change_sprite_noreturn: -1 is a real set. */
+            if (nargs >= 2) {
+                g_touch[s] = a1;
+                if (ret != NULL) {
+                    *ret = a1;
+                }
+            } else if (ret != NULL) {
+                *ret = g_touch[s];
+            }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "hurt")) {
+        if (spr_is_dink(a0)) {
+            int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+
+            if (a1 > 0) {
+                life -= a1;
+                if (life < 0) {
+                    life = 0;
+                }
+                dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
+            }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "add_exp")) {
+        int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
+
+        exp += a0;
+        if (exp > 99999) {
+            exp = 99999;
+        }
+        dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
+        return 1;
+    }
+    if (is_cmd(name, "add_item")) {
+        if (g_nitem < 16) {
+            g_nitem++;
+        }
+        printf("add_item %s\n", str != NULL ? str : "");
+        return 1;
+    }
+    if (is_cmd(name, "add_magic")) {
+        if (g_nmagic < 8) {
+            g_nmagic++;
+        }
+        printf("add_magic %s\n", str != NULL ? str : "");
+        return 1;
+    }
+    if (is_cmd(name, "initfont") ||
+        is_cmd(name, "get_next_sprite_with_this_brain")) {
+        return 1;
+    }
+    if (is_cmd(name, "sp_nohit")) {
+        return 1;
     }
     return 0;
 }

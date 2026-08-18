@@ -53,7 +53,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-17 | **11.3** DinkC fiber VM (`wait` yield) | #37 |
 | 2026-08-18 | **11.4** DinkC vars (`attach` + MAIN.c) | #38 |
 | 2026-08-18 | **11.5** wave-1 commands; A runs `talk()` | #39 |
-| 2026-08-18 | **11.6** attach screen + sprite `main()` | this PR |
+| 2026-08-18 | **11.6** attach screen + sprite `main()` | #40 |
+| 2026-08-18 | **11.7** choice lines + items prelude | this PR |
 
 ## Bites
 
@@ -86,8 +87,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.3 | DinkC VM yield | source | max 20; `wait` / say_stop / choice; no attach |
 | 11.4 | DinkC variables | source | 1.08 local-then-global; MAIN.c list |
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39 |
-| 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank |
-| 11.7–11.9 | Wave 2+ | pending | |
+| 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40 |
+| 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs |
+| 11.8–11.9 | Wave 3 + coverage | pending | |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1–13.3 | Text / choices | pending | |
 | 14.1–14.3 | Screen transitions | pending | |
