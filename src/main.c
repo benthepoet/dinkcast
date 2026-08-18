@@ -40,9 +40,25 @@
 /* KOS thread stack is ~32–64 KB. These sum > 32 KB if locals. */
 static struct World g_world;
 static struct MapScreen g_scr;
+static struct EditorSprite g_spr_ok[101];
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx g_edg[DINK_EDGFX_MAX];
+
+static void spr_snap(const char *tag)
+{
+    memcpy(g_spr_ok, g_scr.sprite, sizeof(g_spr_ok));
+    printf("snap %s sprite1 seq=%d y=%d act=%d\n", tag,
+           (int)g_spr_ok[1].seq, (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
+}
+
+static void spr_restore(const char *tag)
+{
+    memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
+    printf("restore %s sprite1 seq=%d y=%d act=%d\n", tag,
+           (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
+           (int)g_scr.sprite[1].active);
+}
 
 static void hud(const char *line0, const char *line1, const char *line2)
 {
@@ -189,6 +205,7 @@ int main(int argc, char **argv)
                 vid_waitvbl();
             }
         }
+        spr_snap("load");
         memset(&g_atlas, 0, sizeof(g_atlas));
         if (tiles_build_atlas(&g_scr, &g_atlas) != 0) {
             hud("TILE ATLAS FAIL", "tiles/tsNN.bmp", msg);
@@ -258,6 +275,10 @@ int main(int argc, char **argv)
                     int ned = 0;
 
                     memset(g_edg, 0, sizeof(g_edg));
+                    printf("pre-edraw sprite1 seq=%d y=%d act=%d\n",
+                           (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
+                           (int)g_scr.sprite[1].active);
+                    spr_restore("edraw");
                     if (seqs != NULL) {
                         (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
                     }
@@ -361,6 +382,7 @@ int main(int argc, char **argv)
                             swap = 0;
                             continue;
                         }
+                        spr_snap("swap");
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
@@ -373,6 +395,7 @@ int main(int argc, char **argv)
                             printf("hard restamp fail\n");
                         }
                         hard_free(&g_hard);
+                        spr_restore("swap-edraw");
                         if (seqs != NULL) {
                             (void)edraw_load_screen(&g_scr, seqs, g_edg, &ned);
                         }
@@ -526,6 +549,7 @@ int main(int argc, char **argv)
                         } draw[101];
                         int nd = 0, a, b;
 
+                        memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
                         for (si = 1; si <= 100 && nd < 100; si++) {
                             int seq, fr;
                             struct SpriteFrame *ef;

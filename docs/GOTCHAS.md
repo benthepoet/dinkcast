@@ -23,7 +23,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 ## SH-4 stack
 
 - **KOS thread stack is 32–64 KB.** `World` (9 KB) + `MapScreen` (7 KB) + `HardMap.btile_default` (10 KB) + `EdGfx[96]` (6 KB) as **locals** smash the stack. Serial then looks like a parse bug (`edraw skip seq=388` — that 388 is a **Y**). Put those in BSS (`static`) or heap. Host `make host` will not catch this.
-- **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites on the heap before BMP loads.
+- **SH-4 int32 must be 4-aligned.** `uint8_t active` + `char script[14]` can make `sizeof(EditorSprite) % 4 != 0` so `sprite[i].seq` is a misaligned load (garbage seq=y). Use int32 `active` and a 16-byte script tail. Snapshot sprites **immediately after `map_load_record`** (BSS copy). The `edraw_load_screen` heap copy is too late: `hard_load` / `ini_load` / idle BMP can smash `g_scr.sprite` first (`atlas sprite1 seq=31 y=88` then `edraw slot 1 act=88` — that 88 is **Y**).
 
 ## PVR / video
 
@@ -57,7 +57,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Choice menu is D-pad + A.** Visible lines only; `&result` is the official number (hidden lines still count). A picks the highlighted row, not always 1.
 - **Do not `start_proc(talk)` on a new fiber each A.** FreeDink `locate`s `talk()` on the sprite’s existing script. A new instance leaks slots and can leave a stale `WAIT_CHOICE`/`wait`. Kill that sprite’s fibers first. `wait` uses the engine clock (`g_now_ms`), not the fiber’s last `wait_until`.
 - **House exit is a warp, not an edge.** Hardness `100+editor` + `is_warp` (`special_block`). Edge is `did_player_cross_screen` (playl=20, x=619, y=0/399, map ±1 / ±32). Clamp if `loc[neighbor]==0`. Instant swap (no fade).
-- **Do not keep `hard.dat` (`raw` ~2 MiB) across sprite BMP loads.** Tile stamp needs it; `edraw_load_screen` then OOMs and the house loses walls/mom (`edraw unique 6`). `hard_free` after `hard_stamp_tiles`, reload on the next swap.
+- **Do not keep `hard.dat` (`raw` ~2 MiB) across sprite BMP loads.** Tile stamp needs it; `edraw_load_screen` then OOMs and the house loses walls/mom (`edraw unique 6`). `hard_free` after `hard_stamp_tiles`, reload on the next swap. Unique 6 **with** garbled `edraw slot` is smash, not only OOM.
 - **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
 
 ## Data

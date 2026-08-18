@@ -65,7 +65,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | **13.3** choice menu D-pad + A | #48 |
 | 2026-08-18 | Talk lock: kill sprite fibers; wait clock | #49 |
 | 2026-08-18 | **14.1–14.2** edge + warp swap | #50 |
-| 2026-08-18 | Keep `hard.dat` only during stamp | this PR |
+| 2026-08-18 | Keep `hard.dat` only during stamp | #51 |
+| 2026-08-18 | Snapshot sprites after map load | this PR |
 
 ## Bites
 
