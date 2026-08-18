@@ -11,6 +11,8 @@ void script_bind_screen(const struct MapScreen *scr);
 void script_on_main(int script_id);
 /* Load unique sprite + screen story files (11.0). No run. */
 int script_preload_screen(void);
+/* 11.6: screen MAIN then type-1 sprite main() in rank order. */
+int script_attach_screen(void);
 void script_on_talk(int sprite);
 void script_on_hit(int sprite);
 
