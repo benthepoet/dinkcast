@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int is_cmd(const char *a, const char *b)
@@ -29,6 +30,45 @@ static int g_def[100];
 static int g_touch[100];
 static int g_nitem;
 static int g_nmagic;
+static int g_range[100];
+static int g_target[100];
+static int g_atkwait[100];
+static int g_midi;
+static char g_item[16][16];
+static char g_magic[8][16];
+static struct {
+    int spr;
+    int val;
+    char key[20];
+} g_custom[32];
+
+static int name_eq(const char *a, const char *b)
+{
+    if (a == NULL || b == NULL) {
+        return 0;
+    }
+    while (*a != '\0' && *b != '\0') {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {
+            return 0;
+        }
+        a++;
+        b++;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static void store_name(char dest[][16], int *n, int cap, const char *s)
+{
+    if (*n >= cap) {
+        return;
+    }
+    if (s == NULL) {
+        s = "";
+    }
+    strncpy(dest[*n], s, 15);
+    dest[*n][15] = '\0';
+    (*n)++;
+}
 
 static int spr_slot(int id)
 {
@@ -255,16 +295,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "add_item")) {
-        if (g_nitem < 16) {
-            g_nitem++;
-        }
+        store_name(g_item, &g_nitem, 16, str);
         printf("add_item %s\n", str != NULL ? str : "");
         return 1;
     }
     if (is_cmd(name, "add_magic")) {
-        if (g_nmagic < 8) {
-            g_nmagic++;
-        }
+        store_name(g_magic, &g_nmagic, 8, str);
         printf("add_magic %s\n", str != NULL ? str : "");
         return 1;
     }
@@ -273,6 +309,120 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_nohit")) {
+        return 1;
+    }
+    /* 11.8 wave 3: dispatch so stock scripts do not log unimplemented. */
+    if (is_cmd(name, "playmidi")) {
+        if (str != NULL && str[0] != '\0') {
+            g_midi = atoi(str);
+        } else {
+            g_midi = a0;
+        }
+        printf("playmidi stub %s\n", str != NULL ? str : "");
+        return 1;
+    }
+    if (is_cmd(name, "stopcd")) {
+        return 1;
+    }
+    if (is_cmd(name, "draw_status") || is_cmd(name, "update_status")) {
+        return 1;
+    }
+    if (is_cmd(name, "preload_seq") || is_cmd(name, "kill_shadow") ||
+        is_cmd(name, "arm_weapon") || is_cmd(name, "arm_magic") ||
+        is_cmd(name, "fade_up") || is_cmd(name, "fade_down") ||
+        is_cmd(name, "fill_screen") || is_cmd(name, "load_screen")) {
+        return 1;
+    }
+    if (is_cmd(name, "sp_range")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            change_i(&g_range[s], nargs, a1, ret);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_target")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            change_i(&g_target[s], nargs, a1, ret);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_attack_wait")) {
+        int s = spr_slot(a0);
+
+        if (s != 0) {
+            change_i(&g_atkwait[s], nargs, a1, ret);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_editor_num") || is_cmd(name, "sp")) {
+        /* Live sprite == editor slot until 15. */
+        if (ret != NULL) {
+            *ret = spr_slot(a0);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "compare_weapon")) {
+        int cur = dinkc_var_get("&cur_weapon", DINKC_GLOBAL_SCOPE, 1);
+        int ok = 0;
+
+        if (cur >= 1 && cur <= g_nitem) {
+            ok = name_eq(g_item[cur - 1], str);
+        }
+        if (ret != NULL) {
+            *ret = ok;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "compare_magic")) {
+        int cur = dinkc_var_get("&cur_magic", DINKC_GLOBAL_SCOPE, 1);
+        int ok = 0;
+
+        if (cur >= 1 && cur <= g_nmagic) {
+            ok = name_eq(g_magic[cur - 1], str);
+        }
+        if (ret != NULL) {
+            *ret = ok;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_custom")) {
+        /* parse_args: str=key, args 0 (string), sprite, val */
+        int spr = nargs > 1 ? args[1] : a0;
+        int val = nargs > 2 ? args[2] : a1;
+        int i, empty = -1;
+
+        if (str == NULL) {
+            str = "";
+        }
+        for (i = 0; i < 32; i++) {
+            if (g_custom[i].key[0] == '\0') {
+                if (empty < 0) {
+                    empty = i;
+                }
+                continue;
+            }
+            if (g_custom[i].spr == spr && name_eq(g_custom[i].key, str)) {
+                if (val != -1) {
+                    g_custom[i].val = val;
+                }
+                if (ret != NULL) {
+                    *ret = g_custom[i].val;
+                }
+                return 1;
+            }
+        }
+        if (empty >= 0) {
+            g_custom[empty].spr = spr;
+            g_custom[empty].val = (val == -1) ? 0 : val;
+            strncpy(g_custom[empty].key, str, 19);
+            g_custom[empty].key[19] = '\0';
+            if (ret != NULL) {
+                *ret = g_custom[empty].val;
+            }
+        }
         return 1;
     }
     return 0;

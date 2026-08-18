@@ -49,6 +49,8 @@ static void copy_tok(const struct DinkcTok *t, char *buf, size_t sz)
 static int eval_expr(struct Fiber *f);
 static void skip_balanced(struct Fiber *f, enum DinkcKind open,
                           enum DinkcKind close);
+static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
+                       size_t strsz);
 
 static int eval_prim(struct Fiber *f)
 {
@@ -73,9 +75,18 @@ static int eval_prim(struct Fiber *f)
         return 0;
     }
     if (f->tok[f->ip].kind == DINKC_IDENT) {
+        char cname[40], sarg[192];
+        int args[8], nargs = 0, yld = 0, rv = 0;
+
+        copy_tok(&f->tok[f->ip], cname, sizeof(cname));
         f->ip++;
         if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
-            skip_balanced(f, DINKC_LPAREN, DINKC_RPAREN);
+            parse_args(f, args, &nargs, sarg, sizeof(sarg));
+            if (dinkc_cmd(cname, args, nargs, sarg, &yld, &rv)) {
+                dinkc_var_set("&return", rv, DINKC_GLOBAL_SCOPE, f->sprite);
+                return rv;
+            }
+            printf("dinkc unimplemented %s\n", cname);
         }
         return 0;
     }

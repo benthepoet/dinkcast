@@ -90,6 +90,25 @@ int main(void)
         expect(dinkc_vm_live() == 0, "stop kills");
         (void)slot;
     }
+    {
+        const char *w3 =
+            "void main(void) { "
+            "playmidi(\"1003.mid\"); draw_status(); "
+            "add_item(\"item-fst\", 438, 1); "
+            "&cur_weapon = 1; "
+            "compare_weapon(\"item-fst\"); }";
+        const char *ed =
+            "void main(void) { sp_editor_num(26); }";
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(w3, strlen(w3), 1);
+        expect(dinkc_var_get("&return", DINKC_GLOBAL_SCOPE, 1) == 1, "compare");
+        expect(dinkc_vm_live() == 0, "w3 done");
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(ed, strlen(ed), 1);
+        expect(dinkc_var_get("&return", DINKC_GLOBAL_SCOPE, 1) == 26, "editor");
+        (void)slot;
+    }
 
     printf("OK test_dinkc_vm\n");
     return 0;
