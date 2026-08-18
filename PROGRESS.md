@@ -70,7 +70,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | edraw copy sprites before memset | #53 |
 | 2026-08-18 | Restore sprites after edraw for scripts | #54 |
 | 2026-08-18 | Heap sprite snap | #55 |
-| 2026-08-18 | Heap EdGfx; restore before attach | this PR |
+| 2026-08-18 | Heap EdGfx; restore before attach | #56 |
+| 2026-08-18 | PVR clear after leave-title | this PR |
 
 ## Bites
 

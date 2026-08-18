@@ -36,6 +36,8 @@ int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3]);
 void tiles_evict(struct TileAtlas *a);
 
 #ifdef _arch_dreamcast
+int tiles_pvr_ensure(void);
+void tiles_draw_clear_pvr(uint32_t argb);
 int tiles_upload_pvr(struct TileAtlas *a);
 void tiles_draw_pvr(const struct TileAtlas *a);
 #endif

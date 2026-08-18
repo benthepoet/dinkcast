@@ -198,6 +198,58 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 static pvr_ptr_t g_tile_tex;
 static int g_pvr_ready;
 
+int tiles_pvr_ensure(void)
+{
+    pvr_init_params_t params;
+
+    if (g_pvr_ready) {
+        return 0;
+    }
+    memset(&params, 0, sizeof(params));
+    params.opb_sizes[PVR_LIST_OP_POLY] = PVR_BINSIZE_16;
+    params.opb_sizes[PVR_LIST_TR_POLY] = PVR_BINSIZE_16;
+    params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
+    params.vertex_buf_size = 512 * 1024;
+    pvr_init(&params);
+    g_pvr_ready = 1;
+    return 0;
+}
+
+void tiles_draw_clear_pvr(uint32_t argb)
+{
+    pvr_poly_cxt_t cxt;
+    pvr_poly_hdr_t hdr;
+    pvr_vertex_t vert;
+
+    if (tiles_pvr_ensure() != 0) {
+        return;
+    }
+    pvr_wait_ready();
+    pvr_scene_begin();
+    pvr_list_begin(PVR_LIST_OP_POLY);
+    pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
+    pvr_poly_compile(&hdr, &cxt);
+    pvr_prim(&hdr, sizeof(hdr));
+    vert.flags = PVR_CMD_VERTEX;
+    vert.argb = argb;
+    vert.oargb = 0;
+    vert.z = 1.0f;
+    vert.u = vert.v = 0.0f;
+    vert.x = 0.0f;
+    vert.y = 0.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = 640.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = 0.0f;
+    vert.y = 480.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.flags = PVR_CMD_VERTEX_EOL;
+    vert.x = 640.0f;
+    pvr_prim(&vert, sizeof(vert));
+    pvr_list_finish();
+    pvr_scene_finish();
+}
+
 int tiles_upload_pvr(struct TileAtlas *a)
 {
     if (a == NULL || a->rgb565 == NULL) {
@@ -209,16 +261,8 @@ int tiles_upload_pvr(struct TileAtlas *a)
     }
     /* Enable PT bins so 1555 sprites can punch through (defaults often 0).
      * pvr_init once — a second call wipes live saybox/font VRAM. */
-    if (!g_pvr_ready) {
-        pvr_init_params_t params;
-
-        memset(&params, 0, sizeof(params));
-        params.opb_sizes[PVR_LIST_OP_POLY] = PVR_BINSIZE_16;
-        params.opb_sizes[PVR_LIST_TR_POLY] = PVR_BINSIZE_16;
-        params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
-        params.vertex_buf_size = 512 * 1024;
-        pvr_init(&params);
-        g_pvr_ready = 1;
+    if (tiles_pvr_ensure() != 0) {
+        return -1;
     }
     g_tile_tex = pvr_mem_malloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
     if (g_tile_tex == NULL) {
