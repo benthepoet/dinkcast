@@ -48,7 +48,8 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Stock DinkC is messy.** Missing `{` after `void name()`, extra `}`, `+=` and `&x / 5`, `choice_start`/`title_start` prose, multiline `"…"`, typos (`wait(200:`, `say_stop('…"`). Parser is permissive; it does not execute.
 - **`wait(ms)` is a fiber yield**, not a busy loop. 60 Hz tick is 16 ms. `say_stop` yields until A. Do not attach/run house `main()` until 11.5/11.6 — it `freeze`s and `say_stop`s.
 - **DinkC 1.08 looks up locals before globals.** Unknown `&name` is 0. Engine names `&current_sprite` / `&current_script` / `&return` / `&arg1`–`9` are not `play.var` slots. Only register `MAIN.c` `make_global_int` names — do not invent extras.
-- **A while `choice_start` picks option 1** until 11.7/13. Serial `say` / `say_stop` is the 11.5 box. Do not `freeze++` in the engine on talk — `freeze(1)` in the script is the nest. Do not attach sprite `main()` here (mom’s `main` freezes on enter).
+- **A while `choice_start` picks option 1** until 11.7/13. Serial `say` / `say_stop` is the 11.5 box. Do not `freeze++` in the engine on talk — `freeze(1)` in the script is the nest.
+- **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
 
 ## Data
 

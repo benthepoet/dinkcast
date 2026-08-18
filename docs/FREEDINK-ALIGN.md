@@ -30,7 +30,8 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | `story/name.c` | `load_script` | `dinkc_load` 32 KB | hold (11.0) |
 | DinkC tokens | line + `get_word` | `dinkc_lex_*` | hold (11.1); `//` only |
 | DinkC shape | `process_line` / `void` / `if` | `dinkc_parse` | hold (11.2); no run |
-| DinkC fibers | `run_script` + `wait` callback | `dinkc_vm_*` | hold (11.3); no 11.6 attach |
+| DinkC fibers | `run_script` + `wait` callback | `dinkc_vm_*` | hold (11.3) |
+| Attach on enter | `draw_screen_game` + `game_place_sprites` + `game_screen_init_scripts` | `script_attach_screen` | hold (11.6); type 1, `strlen>1`, rank |
 | Vars 1.08 | `lookup_var_local_global_108` | `dinkc_var_*` | hold (11.4); MAIN.c + engine specials |
 | Wave 1 cmds | `dinkc_bindings` | `dinkc_cmd` | hold (11.5); say=serial; freeze spr[1] |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |

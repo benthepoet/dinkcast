@@ -56,6 +56,27 @@ static int try_load(const char *name)
     return -1;
 }
 
+static int start_main(const char *name, int sprite)
+{
+    char *buf = NULL;
+    size_t n = 0;
+
+    if (name == NULL || strlen(name) <= 1) {
+        return -1;
+    }
+    if (dinkc_load(name, &buf, &n) != 0) {
+        return -1;
+    }
+    if (dinkc_vm_start(buf, n, sprite) < 0) {
+        printf("dinkc attach no main %s spr=%d\n", name, sprite);
+        dinkc_free(buf);
+        return -1;
+    }
+    printf("dinkc attach spr=%d script=%s\n", sprite, name);
+    dinkc_free(buf);
+    return 0;
+}
+
 int script_preload_screen(void)
 {
     char seen[32][16];
@@ -105,14 +126,62 @@ int script_preload_screen(void)
     return ok;
 }
 
+int script_attach_screen(void)
+{
+    int rank[100];
+    int nrank = 0, i, a, nstart = 0;
+
+    if (g_scr == NULL) {
+        return 0;
+    }
+    (void)script_preload_screen();
+    /* draw_screen_game: screen script MAIN before game_place_sprites. */
+    if (start_main(g_scr->script, 0) == 0) {
+        nstart++;
+    }
+    /* game_place_sprites: type 1 + vision + strlen(script) > 1, rank order. */
+    for (i = 1; i <= 99; i++) {
+        if (!editor_sprite_on_vision(&g_scr->sprite[i], DINK_VISION_DEFAULT)) {
+            continue;
+        }
+        if (g_scr->sprite[i].type != 1) {
+            continue;
+        }
+        if (strlen(g_scr->sprite[i].script) <= 1) {
+            continue;
+        }
+        rank[nrank++] = i;
+    }
+    for (a = 1; a < nrank; a++) {
+        int t = rank[a];
+        int ty = editor_sprite_rank_y(&g_scr->sprite[t]);
+        int b = a;
+
+        while (b > 0 &&
+               editor_sprite_rank_y(&g_scr->sprite[rank[b - 1]]) > ty) {
+            rank[b] = rank[b - 1];
+            b--;
+        }
+        rank[b] = t;
+    }
+    for (i = 0; i < nrank; i++) {
+        if (start_main(g_scr->sprite[rank[i]].script, rank[i]) == 0) {
+            nstart++;
+        }
+    }
+    printf("dinkc attach n=%d\n", nstart);
+    return nstart;
+}
+
 void script_on_main(int script_id)
 {
     const char *name = (g_scr != NULL) ? g_scr->script : "";
+    int n;
 
-    snprintf(g_log, sizeof(g_log), "main script_id=%d script=%s", script_id,
-             name);
+    n = script_attach_screen();
+    snprintf(g_log, sizeof(g_log), "main script_id=%d script=%s attach=%d",
+             script_id, name, n);
     printf("%s\n", g_log);
-    (void)script_preload_screen();
 }
 
 void script_on_talk(int sprite)
