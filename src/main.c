@@ -282,6 +282,8 @@ int main(int argc, char **argv)
                     if (seqs != NULL) {
                         (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                     }
+                    /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
+                    spr_restore("post-edraw");
                     printf("edraw unique %d\n", ned);
                     for (si = 1; si <= 100; si++) {
                         struct SpriteFrame *ef;
@@ -399,6 +401,7 @@ int main(int argc, char **argv)
                         if (seqs != NULL) {
                             (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                         }
+                        spr_restore("swap-post-edraw");
                         printf("edraw unique %d\n", ned);
                         for (nstamp = 1; nstamp <= 100; nstamp++) {
                             struct SpriteFrame *ef;
@@ -467,6 +470,7 @@ int main(int argc, char **argv)
                     if (have_scene) {
                         pvr_wait_ready();
                     }
+                    memcpy(g_scr.sprite, g_spr_ok, sizeof(g_spr_ok));
                     have = (pad_poll_port0(&buttons) == 0);
                     if (have && dinkc_vm_waiting_say() &&
                         (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
