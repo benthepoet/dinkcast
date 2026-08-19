@@ -2,7 +2,7 @@
 
 **Target:** Sega Dreamcast (retail, 16 MB main RAM)  
 **Source game:** Dink Smallwood (Robinson Technologies, v1.07 / v1.08 behavior via GNU FreeDink)  
-**Homebrew stack:** KallistiOS via **`make docker-cdi`** (default) or native `dc-chain` + `source $KOS_BASE/environ.sh && make dc`. Pack with `mkdcdisc` (CDI for hardware). Iterate in **Flycast** (`make emu`) on the **CHD** (`build/dinkcast.chd`) with a **real `dc_boot.bin`**. DiscJuggler CDI is flaky in Flycast; do not use it for playtest. `dcload` / burned CDI remains the ship check.
+**Homebrew stack:** KallistiOS via **`make docker-cdi`** (default) or native `dc-chain` + `source $KOS_BASE/environ.sh && make dc`. Pack with `mkdcdisc` (CDI for hardware). Iterate in **Flycast** (`make emu`) on the **MIL-CD CHD** (`build/dinkcast.chd`, from a CUE — not a GDI) with a **real `dc_boot.bin`**. DiscJuggler CDI is flaky in Flycast; a GDI CHD is rejected (needs 3 GD-ROM tracks). `dcload` / burned CDI remains the ship check.
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 

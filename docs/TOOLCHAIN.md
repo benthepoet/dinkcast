@@ -9,7 +9,7 @@ A working disc needs four pieces:
 1. **dc-chain** — `sh-elf-gcc` (hours the first time)
 2. **KallistiOS** — `kos-cc`, `libkallisti`
 3. **mkdcdisc** — ELF + `dink/` data → selfboot `.cdi` + data-track `.iso`
-4. **chdman** (`mame-tools`) — ISO + dummy audio GDI → `.chd` for Flycast
+4. **chdman** (`mame-tools`) — ISO + dummy audio CUE → MIL-CD `.chd` for Flycast
 
 Do **not** commit the toolchain or game data.
 

@@ -172,7 +172,7 @@ dc:
 cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
 
-# Flycast image: GDI (mkdcdisc ISO + dummy audio) compressed to CHD. Needs chdman (mame-tools).
+# Flycast image: CUE (mkdcdisc ISO + dummy audio) compressed to a MIL-CD CHD. Needs chdman (mame-tools).
 chd:
 	sh tools/make_chd.sh build/dinkcast.iso build/dinkcast.chd
 

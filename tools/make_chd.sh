@@ -1,7 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Wrap mkdcdisc's data-track ISO as a GDI and compress to CHD for Flycast.
-# chdman cannot parse DiscJuggler .cdi (0 tracks). Hardware still uses the .cdi.
+# Wrap mkdcdisc's data-track ISO as a two-track CUE and compress to CHD.
+# Do NOT use a GDI: chdman then emits GD-ROM metadata (CHGD) and Flycast
+# rejects it ("Invalid CHD: less than 3 tracks"). A CUE is a MIL-CD CHD.
+# Hardware still uses the .cdi.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
@@ -9,10 +11,9 @@ ISO=${1:-"$ROOT/build/dinkcast.iso"}
 OUT=${2:-"$ROOT/build/dinkcast.chd"}
 CHDMAN=${CHDMAN:-chdman}
 
-# mkdcdisc src/main.cpp: 4s blank audio (2352*302) when no -c CDDA.
-# disc_image.c first session: LEAD_IN 4500 + LEAD_OUT 6750 + pregap 150.
+# mkdcdisc blank audio when no -c: 2352*302 (4 s). Flycast MIL-CD then
+# inserts SESSION_GAP 11400 + 150 lead-in → data FAD 11852 = LBA 11702.
 MKDCDISC_AUDIO_SECTORS=302
-MKDCDISC_DATA_LBA=$((4500 + 6750 + 150 + MKDCDISC_AUDIO_SECTORS))
 
 if [ ! -f "$ISO" ]; then
     echo "make chd: missing $ISO (rebuild with make cdi; mkdcdisc -I dumps the iso)" >&2
@@ -29,10 +30,9 @@ DIR=$(dirname "$OUT")
 mkdir -p "$DIR"
 BASE=$(basename "$OUT" .chd)
 AUDIO="$DIR/${BASE}-track01.bin"
-GDI="$DIR/${BASE}.gdi"
+CUE="$DIR/${BASE}.cue"
 ISO_LINK="$DIR/${BASE}.iso"
 
-# chdman resolves names relative to the .gdi. Keep all three in DIR.
 if [ "$(CDPATH= cd -- "$(dirname "$ISO")" && pwd)" != "$(CDPATH= cd -- "$DIR" && pwd)" ] ||
     [ "$(basename "$ISO")" != "$(basename "$ISO_LINK")" ]; then
     ln -sf "$ISO" "$ISO_LINK"
@@ -44,16 +44,18 @@ AUDIO_NAME=$(basename "$AUDIO")
 
 dd if=/dev/zero of="$AUDIO" bs=2352 count="$MKDCDISC_AUDIO_SECTORS" status=none
 
-# GDI: track type 0 = audio, 4 = data. Data LBA matches mkdcdisc ms_block.
 {
-    echo 2
-    echo "1 0 0 2352 $AUDIO_NAME 0"
-    echo "2 $MKDCDISC_DATA_LBA 4 2048 $ISO_NAME 0"
-} > "$GDI"
+    echo "FILE \"$AUDIO_NAME\" BINARY"
+    echo "  TRACK 01 AUDIO"
+    echo "    INDEX 01 00:00:00"
+    echo "FILE \"$ISO_NAME\" BINARY"
+    echo "  TRACK 02 MODE1/2048"
+    echo "    INDEX 01 00:00:00"
+} > "$CUE"
 
-echo "make chd: gdi data LBA $MKDCDISC_DATA_LBA (mkdcdisc session0)"
+echo "make chd: cue MIL-CD audio ${MKDCDISC_AUDIO_SECTORS} sectors + iso"
 set -x
-"$CHDMAN" createcd -f -i "$GDI" -o "$OUT"
+"$CHDMAN" createcd -f -i "$CUE" -o "$OUT"
 set +x
 
 INFO=$("$CHDMAN" info -i "$OUT")
@@ -61,6 +63,10 @@ echo "$INFO"
 case "$INFO" in
     *"Input tracks: 0"*|*"Tracks:          0"*)
         echo "make chd: CHD has 0 tracks" >&2
+        exit 1
+        ;;
+    *"Tag='CHGD'"*)
+        echo "make chd: CHD has GD-ROM metadata; Flycast needs a MIL-CD CUE" >&2
         exit 1
         ;;
 esac
