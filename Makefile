@@ -12,7 +12,7 @@ EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkca
 # Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
 EMU_LOG ?= build/emu.log
 
-.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi chd chd-redream docker-dc docker-cdi emu run clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -148,6 +148,7 @@ check:
 	$(PYTHON) tools/check_progress.py
 	$(PYTHON) tests/test_run_emu.py
 	$(PYTHON) tests/test_make_chd.py
+	$(PYTHON) tests/test_gdrom_from_msiso.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py
 
@@ -175,6 +176,10 @@ cdi:
 # Flycast image: CUE (mkdcdisc ISO + dummy audio) compressed to a MIL-CD CHD. Needs chdman (mame-tools).
 chd:
 	sh tools/make_chd.sh build/dinkcast.iso build/dinkcast.chd
+
+# Redream: 3-track MODE1/2352 GD-ROM CHD. Does not replace make emu's MIL-CD CHD.
+chd-redream:
+	sh tools/make_chd_redream.sh build/dinkcast.iso build/dinkcast-redream.chd
 
 # KallistiOS via Docker (see docs/TOOLCHAIN.md). Needs a running daemon.
 docker-dc:

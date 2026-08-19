@@ -159,7 +159,8 @@ cd /home/benh/Source/dinkcast
 make dc          # build/dinkcast.elf
 make cdi         # build/dinkcast.cdi + .iso  (needs mkdcdisc + DINK_DATA)
 make chd         # build/dinkcast.chd from the iso (needs chdman / mame-tools)
-make emu         # Flycast on that CHD
+make chd-redream # build/dinkcast-redream.chd (3-track 2352 GD-ROM; Redream)
+make emu         # Flycast on the MIL-CD CHD (not the Redream file)
 ```
 
 `make cdi` stages `build/iso/dink` → your `DINK_DATA` so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`).
