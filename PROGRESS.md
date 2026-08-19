@@ -89,6 +89,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | this PR |
 | 2026-08-19 | Blob cache grows; never evict borrowed dir.ff/hard.dat | this PR |
 | 2026-08-19 | Tile atlas is BSS; ts sheet LRU re-decodes from blob | this PR |
+| 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | this PR |
 
 ## Bites
 

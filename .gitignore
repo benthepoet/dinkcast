@@ -6,6 +6,8 @@
 *.elf
 *.bin
 *.cdi
+*.chd
+*.gdi
 *.iso
 *.lst
 *.map

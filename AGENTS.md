@@ -161,5 +161,5 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
 
 - `make host` — plan + AGENTS structural checks (and later host unit tests).
 - `make docker-cdi` — ELF + CDI (preferred). Native `make dc` if `KOS_BASE` is set.
-- `make emu` — Flycast + real BIOS on `build/dinkcast.cdi`. Name BIOS vs REIOS if you claim a visual check.
+- `make emu` — Flycast + real BIOS on `build/dinkcast.chd` (from `make chd` / `make docker-cdi`). Name BIOS vs REIOS if you claim a visual check. Do not playtest the DiscJuggler `.cdi` in Flycast.
 - Do not claim DC boot works unless you ran the ELF (hardware or emulator) and say which.

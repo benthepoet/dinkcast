@@ -8,11 +8,11 @@ PYTHON ?= python3
 HOSTCC ?= gcc
 EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
-EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
+EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 # Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
 EMU_LOG ?= build/emu.log
 
-.PHONY: all host check data-check title-preview dc cdi docker-dc docker-cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -147,6 +147,7 @@ check:
 	$(PYTHON) tools/check_agents.py
 	$(PYTHON) tools/check_progress.py
 	$(PYTHON) tests/test_run_emu.py
+	$(PYTHON) tests/test_make_chd.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py
 
@@ -167,9 +168,13 @@ dc:
 	fi
 	$(MAKE) -f Makefile.dc
 
-# Selfboot CDI: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
+# Selfboot CDI + data-track ISO: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
 cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
+
+# Flycast image: GDI (mkdcdisc ISO + dummy audio) compressed to CHD. Needs chdman (mame-tools).
+chd:
+	sh tools/make_chd.sh build/dinkcast.iso build/dinkcast.chd
 
 # KallistiOS via Docker (see docs/TOOLCHAIN.md). Needs a running daemon.
 docker-dc:
@@ -177,8 +182,9 @@ docker-dc:
 
 docker-cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
+	$(MAKE) chd
 
-# Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
+# Launch Flycast (or EMU=...) on the built CHD (preferred) / CDI / ELF.
 emu run:
 	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)"
 

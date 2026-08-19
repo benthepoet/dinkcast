@@ -44,7 +44,8 @@ fi
 # data tree itself so the folder is "dink" → /cd/dink.
 mkdir -p "$(dirname "$OUT")"
 set -x
-"$MKDCDISC" -e "$ELF" -o "$OUT" -d "$DATA" -n DINKCAST
+# -I dumps the data track .iso next to the .cdi for tools/make_chd.sh.
+"$MKDCDISC" -e "$ELF" -o "$OUT" -d "$DATA" -n DINKCAST -I
 set +x
 ls -l "$OUT"
 echo "OK $OUT (data -> /cd/$(basename "$DATA"))"
