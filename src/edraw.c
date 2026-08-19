@@ -101,7 +101,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         if (old > DINK_EDGFX_MAX) {
             old = DINK_EDGFX_MAX;
         }
-        for (i = 0; i < old; i++) {
+        /* Free unused pixels. Pinned dir.ff still supplies other frames
+         * without /cd. Keeping 96 decoded frames OOMs the 16 MB heap. */
+        i = 0;
+        while (i < old) {
             int keep = 0;
 
             for (k = 0; k < nneed; k++) {
@@ -111,32 +114,23 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
             g[i].live = keep;
+            if (keep) {
+                i++;
+            } else {
+                sprite_frame_free(&g[i].fr);
+                old--;
+                if (i < old) {
+                    g[i] = g[old];
+                    memset(&g[old], 0, sizeof(g[old]));
+                } else {
+                    memset(&g[i], 0, sizeof(g[i]));
+                }
+            }
         }
         got = old;
         for (k = 0; k < nneed; k++) {
             if (edraw_find(g, got, need_s[k], need_f[k]) != NULL) {
                 continue;
-            }
-            while (got >= DINK_EDGFX_MAX) {
-                int drop = -1;
-
-                for (i = 0; i < got; i++) {
-                    if (!g[i].live) {
-                        drop = i;
-                        break;
-                    }
-                }
-                if (drop < 0) {
-                    break;
-                }
-                sprite_frame_free(&g[drop].fr);
-                got--;
-                if (drop < got) {
-                    g[drop] = g[got];
-                    memset(&g[got], 0, sizeof(g[got]));
-                } else {
-                    memset(&g[drop], 0, sizeof(g[drop]));
-                }
             }
             if (got >= DINK_EDGFX_MAX) {
                 printf("edraw full skip seq=%d fr=%d\n", need_s[k], need_f[k]);
@@ -152,46 +146,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].frame = need_f[k];
             g[got].live = 1;
             got++;
-            /* Neighbor screens reuse this seq with other frames (yard
-             * home- 1/2/11, east 3/4). Decode the rest while dir.ff is
-             * open; reopening the pack hangs /cd. */
-            {
-                int nfr = seqs[need_s[k]].nframes;
-                int fi;
-
-                if (nfr > 24) {
-                    nfr = 0;
-                }
-                for (fi = 1; fi <= nfr; fi++) {
-                    int live = 0, d;
-
-                    if (edraw_find(g, got, need_s[k], fi) != NULL) {
-                        continue;
-                    }
-                    if (got >= DINK_EDGFX_MAX) {
-                        break;
-                    }
-                    if (sprite_load_seq_frame(&seqs[need_s[k]], need_s[k], fi,
-                                              &g[got].fr) != 0) {
-                        continue;
-                    }
-                    for (d = 0; d < nneed; d++) {
-                        if (need_s[d] == need_s[k] && need_f[d] == fi) {
-                            live = 1;
-                            break;
-                        }
-                    }
-                    g[got].seq = need_s[k];
-                    g[got].frame = fi;
-                    g[got].live = live;
-                    got++;
-                }
-            }
-        }
-        for (i = 0; i < got; i++) {
-            if (!g[i].live) {
-                sprite_evict_pvr(&g[i].fr);
-            }
         }
     }
     ff_cache_drop_unpinned();

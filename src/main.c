@@ -407,8 +407,7 @@ int main(int argc, char **argv)
                         dinkc_cmd_thaw_if_idle();
                         saybox_clear();
                         /* Keep editor gfx that the next screen still uses. */
-                        /* Keep tile PVR until upload; evict only CPU atlas. */
-                        tiles_free(&g_atlas);
+                        /* Keep tile CPU+PVR until a new atlas is ready. */
                         sprite_frame_free(&spr);
                         hard_mask_free(&mask);
                         printf("enter map %d loc %d\n", player_map, rec2);
@@ -482,18 +481,23 @@ int main(int argc, char **argv)
                         dink_cd_settle();
                         printf("swap tiles build\n");
                         fflush(stdout);
-                        if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
-                            printf("swap atlas ok\n");
-                            /* Do not pvr_wait_ready here: after the swap-start
-                             * wait the GPU is idle; a second wait can hang. */
-                            printf("swap tiles upload\n");
-                            if (tiles_upload_pvr(&g_atlas) != 0) {
-                                printf("swap tiles upload fail\n");
+                        {
+                            struct TileAtlas nxt;
+
+                            memset(&nxt, 0, sizeof(nxt));
+                            if (tiles_build_atlas(&g_scr, &nxt) == 0) {
+                                tiles_free(&g_atlas);
+                                g_atlas = nxt;
+                                printf("swap atlas ok\n");
+                                printf("swap tiles upload\n");
+                                if (tiles_upload_pvr(&g_atlas) != 0) {
+                                    printf("swap tiles upload fail\n");
+                                } else {
+                                    printf("swap tiles upload ok\n");
+                                }
                             } else {
-                                printf("swap tiles upload ok\n");
+                                printf("swap atlas fail keep\n");
                             }
-                        } else {
-                            printf("swap atlas fail\n");
                         }
                         if (edraw_upload_pvr(g_edg, ned) != 0) {
                             printf("swap edraw upload fail\n");

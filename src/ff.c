@@ -195,7 +195,6 @@ int ff_cached(const char *rel, struct FfFile **out)
     }
     if (hit >= 0) {
         g_slot[hit].tick = g_tick;
-        printf("ff hit %s\n", rel);
         *out = &g_slot[hit].ff;
         return 0;
     }
