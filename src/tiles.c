@@ -14,12 +14,18 @@
 #include <dc/pvr.h>
 #endif
 
+/* Swap must not sbrk 512 KB. Heap is full of packs; calloc fails and
+ * the previous screen's tiles stay on PVR (house floor in the yard). */
+static uint16_t g_atlas_pix[DINK_ATLAS_W * DINK_ATLAS_H];
+
 void tiles_free(struct TileAtlas *a)
 {
     if (a == NULL) {
         return;
     }
-    free(a->rgb565);
+    if (a->rgb565 != NULL && a->rgb565 != g_atlas_pix) {
+        free(a->rgb565);
+    }
     a->rgb565 = NULL;
     a->used = 0;
 }
@@ -72,11 +78,13 @@ static struct {
     int sheet0;
     int w, h;
     uint16_t *pix;
+    int tick;
 } g_ts[DINK_TS_CACHE];
+static int g_ts_tick;
 
 static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
 {
-    int i, empty = -1;
+    int i, empty = -1, victim = -1;
     char rel[32];
     const uint8_t *raw = NULL;
     size_t n = 0;
@@ -84,8 +92,10 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     uint16_t *p = NULL;
     int npx = 0;
 
+    g_ts_tick++;
     for (i = 0; i < DINK_TS_CACHE; i++) {
         if (g_ts[i].pix != NULL && g_ts[i].sheet0 == sheet0) {
+            g_ts[i].tick = g_ts_tick;
             *pix = g_ts[i].pix;
             *w = g_ts[i].w;
             *h = g_ts[i].h;
@@ -93,6 +103,10 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
         }
         if (empty < 0 && g_ts[i].pix == NULL) {
             empty = i;
+        }
+        if (g_ts[i].pix != NULL &&
+            (victim < 0 || g_ts[i].tick < g_ts[victim].tick)) {
+            victim = i;
         }
     }
     snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
@@ -114,15 +128,21 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     *h = bm.h;
     bitmap_free(&bm);
     if (empty < 0) {
-        /* Do not evict a decoded sheet: re-slurp during swap hangs /cd. */
-        printf("tiles cache full skip ts%02d\n", sheet0 + 1);
-        free(p);
-        return -1;
+        if (victim < 0) {
+            free(p);
+            return -1;
+        }
+        /* Re-decode from the blob; do not fopen. */
+        empty = victim;
+        printf("tiles evict ts%02d\n", g_ts[empty].sheet0 + 1);
+        free(g_ts[empty].pix);
+        g_ts[empty].pix = NULL;
     }
     g_ts[empty].sheet0 = sheet0;
     g_ts[empty].w = *w;
     g_ts[empty].h = *h;
     g_ts[empty].pix = p;
+    g_ts[empty].tick = g_ts_tick;
     *pix = p;
     return 0;
 }
@@ -167,10 +187,8 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
         return -1;
     }
     memset(out, 0, sizeof(*out));
-    out->rgb565 = (uint16_t *)calloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H, 2);
-    if (out->rgb565 == NULL) {
-        return -1;
-    }
+    memset(g_atlas_pix, 0, sizeof(g_atlas_pix));
+    out->rgb565 = g_atlas_pix;
 
     for (i = 0; i < DINK_SCREEN_TILES; i++) {
         int sheet0, cell, sw, sh, ax, ay;

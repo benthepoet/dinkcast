@@ -4,6 +4,7 @@
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "tiles.h"
 #include "world.h"
 
 #include <stdio.h>
@@ -155,6 +156,33 @@ int main(void)
         if (o1 - o0 != 1) {
             fprintf(stderr, "FAIL map.dat opens %d want 1\n", o1 - o0);
             return 1;
+        }
+        {
+            struct TileAtlas a;
+            int opens;
+
+            memset(&a, 0, sizeof(a));
+            if (tiles_build_atlas(&scr, &a) != 0 ||
+                a.used != DINK_SCREEN_TILES || a.rgb565 == NULL) {
+                fprintf(stderr, "FAIL atlas used=%d\n", a.used);
+                return 1;
+            }
+            opens = dink_disc_opens();
+            tiles_free(&a);
+            memset(&a, 0, sizeof(a));
+            if (tiles_build_atlas(&scr, &a) != 0 ||
+                a.used != DINK_SCREEN_TILES) {
+                fprintf(stderr, "FAIL atlas rebuild\n");
+                return 1;
+            }
+            if (dink_disc_opens() != opens) {
+                fprintf(stderr, "FAIL atlas reopen %d -> %d\n", opens,
+                        dink_disc_opens());
+                tiles_free(&a);
+                return 1;
+            }
+            printf("atlas used %d disc_opens_hold %d\n", a.used, opens);
+            tiles_free(&a);
         }
         {
             struct SeqInfo *seqs;

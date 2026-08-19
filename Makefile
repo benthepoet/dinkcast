@@ -119,8 +119,8 @@ tests/test_ff: tests/test_ff.c src/ff.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ff.c src/ff.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c
+tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/world.c src/mapscr.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/world.c src/mapscr.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tools/dump_ini: tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c

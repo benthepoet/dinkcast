@@ -23,7 +23,7 @@
 #include <stdint.h>
 
 struct TileAtlas {
-    uint16_t *rgb565; /* 512×512 host pixels; NULL after PVR upload */
+    uint16_t *rgb565; /* 512×512 BSS; do not free. PVR upload copies. */
     int slot_x[DINK_SCREEN_TILES];
     int slot_y[DINK_SCREEN_TILES];
     int used;
