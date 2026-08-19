@@ -133,6 +133,95 @@ int ff_load_rel(const char *rel, struct FfFile *out)
     return 0;
 }
 
+static struct FfFile g_idle;
+static struct FfFile g_walk;
+static struct FfFile g_other;
+static char g_idle_rel[160];
+static char g_walk_rel[160];
+static char g_other_rel[160];
+static int g_disc_loads;
+
+static int rel_has(const char *rel, const char *needle)
+{
+    size_t i, j;
+
+    if (rel == NULL || needle == NULL) {
+        return 0;
+    }
+    for (i = 0; rel[i] != '\0'; i++) {
+        for (j = 0; needle[j] != '\0'; j++) {
+            char a = rel[i + j];
+            char b = needle[j];
+
+            if (a >= 'A' && a <= 'Z') {
+                a = (char)(a - 'A' + 'a');
+            }
+            if (b >= 'A' && b <= 'Z') {
+                b = (char)(b - 'A' + 'a');
+            }
+            if (a != b) {
+                break;
+            }
+        }
+        if (needle[j] == '\0') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int ff_disc_loads(void)
+{
+    return g_disc_loads;
+}
+
+void ff_cache_clear(void)
+{
+    ff_free(&g_idle);
+    ff_free(&g_walk);
+    ff_free(&g_other);
+    g_idle_rel[0] = g_walk_rel[0] = g_other_rel[0] = '\0';
+}
+
+int ff_cached(const char *rel, struct FfFile **out)
+{
+    struct FfFile *slot;
+    char *held;
+
+    if (rel == NULL || rel[0] == '\0' || out == NULL) {
+        return -1;
+    }
+    if (rel_has(rel, "dink/idle")) {
+        slot = &g_idle;
+        held = g_idle_rel;
+    } else if (rel_has(rel, "dink/walk")) {
+        slot = &g_walk;
+        held = g_walk_rel;
+    } else {
+        slot = &g_other;
+        held = g_other_rel;
+    }
+    if (held[0] != '\0' && strcmp(held, rel) == 0 && slot->data != NULL) {
+        *out = slot;
+        return 0;
+    }
+    if (slot == &g_other) {
+        ff_free(slot);
+        held[0] = '\0';
+    } else if (slot->data != NULL) {
+        *out = slot;
+        return 0;
+    }
+    if (ff_load_rel(rel, slot) != 0) {
+        held[0] = '\0';
+        return -1;
+    }
+    g_disc_loads++;
+    snprintf(held, 160, "%s", rel);
+    *out = slot;
+    return 0;
+}
+
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
             size_t *len)
 {

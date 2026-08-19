@@ -45,6 +45,25 @@ int main(void)
         }
         printf("ff ds-i4-01.bmp %zu bytes entries %d\n", ln, ff.nent);
         ff_free(&ff);
+        {
+            struct FfFile *a = NULL, *b = NULL;
+            int loads;
+
+            ff_cache_clear();
+            if (ff_cached("graphics/dink/idle/dir.ff", &a) != 0 ||
+                ff_cached("graphics/dink/walk/dir.ff", &b) != 0 ||
+                ff_cached("graphics/dink/idle/dir.ff", &a) != 0 ||
+                ff_cached("graphics/dink/walk/dir.ff", &b) != 0) {
+                fprintf(stderr, "FAIL ff cache load\n");
+                return 1;
+            }
+            loads = ff_disc_loads();
+            if (loads != 2) {
+                fprintf(stderr, "FAIL ff cache disc_loads=%d want 2\n", loads);
+                return 1;
+            }
+            ff_cache_clear();
+        }
     }
     (void)nent;
     printf("OK test_ff\n");

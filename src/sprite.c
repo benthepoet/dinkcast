@@ -48,9 +48,6 @@ static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
                       (b >> 3));
 }
 
-static struct FfFile g_ff;
-static char g_ff_rel[160];
-
 int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out)
 {
@@ -61,6 +58,7 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     struct Bitmap bm;
     uint16_t *pad;
     int x, y, tw, th;
+    struct FfFile *ff = NULL;
 
     if (seq == NULL || out == NULL || frame < 1 || seq->prefix[0] == '\0') {
         return -1;
@@ -74,15 +72,10 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     snprintf(base, sizeof(base), "%s", sl + 1);
     snprintf(name, sizeof(name), frame < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
              frame);
-    if (g_ff_rel[0] == '\0' || strcmp(g_ff_rel, dir) != 0) {
-        ff_free(&g_ff);
-        if (ff_load_rel(dir, &g_ff) != 0) {
-            g_ff_rel[0] = '\0';
-            return -1;
-        }
-        snprintf(g_ff_rel, sizeof(g_ff_rel), "%s", dir);
+    if (ff_cached(dir, &ff) != 0 || ff == NULL) {
+        return -1;
     }
-    if (ff_find(&g_ff, name, &bmp, &bn) != 0) {
+    if (ff_find(ff, name, &bmp, &bn) != 0) {
         return -1;
     }
     memset(&bm, 0, sizeof(bm));
