@@ -209,7 +209,7 @@ void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
     pvr_poly_hdr_t hdr;
     pvr_vertex_t vert;
     float u0, v0, u1, v1, x0, y0, x1, y1;
-    int sl, st, sr, sb;
+    int sl = 0, st = 0, sr = 0, sb = 0;
 
     if (f == NULL || f->tex == NULL) {
         return;
