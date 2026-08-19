@@ -2,6 +2,8 @@
 
 **Do not implement this on approval.** Critique first. Not a plan bite; not 14.3.
 
+Root-cause analysis: [CD-HANG-ROOTCAUSE.md](CD-HANG-ROOTCAUSE.md) (KOS fs_iso9660 DMA stream abort, KOS #1492).
+
 ## What happened
 
 **Separate boots of the same ELF/CHD** (not one session that went good → door → mom):
