@@ -406,7 +406,6 @@ int main(int argc, char **argv)
                             pvr_wait_ready();
                             have_scene = 0;
                         }
-                        tiles_draw_clear_pvr(0xff5a3a1a);
                         dinkc_vm_kill_all();
                         saybox_clear();
                         edraw_free(g_edg, ned);
@@ -425,9 +424,11 @@ int main(int argc, char **argv)
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
+                        printf("swap hard load\n");
                         if (hard_load(&g_hard) != 0) {
                             printf("hard reload fail\n");
                         }
+                        printf("swap hard loaded\n");
                         /* Stamp even if reload failed: empty hid still
                          * allocates the mask so sprite/warp boxes apply. */
                         if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
