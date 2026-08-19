@@ -99,8 +99,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         if (old > DINK_EDGFX_MAX) {
             old = DINK_EDGFX_MAX;
         }
-        i = 0;
-        while (i < old) {
+        for (i = 0; i < old; i++) {
             int keep = 0;
 
             for (k = 0; k < nneed; k++) {
@@ -109,17 +108,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     break;
                 }
             }
-            if (keep) {
-                i++;
-            } else {
-                sprite_frame_free(&g[i].fr);
-                old--;
-                if (i < old) {
-                    g[i] = g[old];
-                    memset(&g[old], 0, sizeof(g[old]));
-                } else {
-                    memset(&g[i], 0, sizeof(g[i]));
-                }
+            g[i].live = keep;
+            if (!keep) {
+                /* Drop VRAM only. CPU pixels stay so house↔yard is not /cd. */
+                sprite_evict_pvr(&g[i].fr);
             }
         }
         got = old;
@@ -127,8 +119,30 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (edraw_find(g, got, need_s[k], need_f[k]) != NULL) {
                 continue;
             }
+            while (got >= DINK_EDGFX_MAX) {
+                int drop = -1;
+
+                for (i = 0; i < got; i++) {
+                    if (!g[i].live) {
+                        drop = i;
+                        break;
+                    }
+                }
+                if (drop < 0) {
+                    break;
+                }
+                sprite_frame_free(&g[drop].fr);
+                got--;
+                if (drop < got) {
+                    g[drop] = g[got];
+                    memset(&g[got], 0, sizeof(g[got]));
+                } else {
+                    memset(&g[drop], 0, sizeof(g[drop]));
+                }
+            }
             if (got >= DINK_EDGFX_MAX) {
-                break;
+                printf("edraw full skip seq=%d fr=%d\n", need_s[k], need_f[k]);
+                continue;
             }
             printf("edraw load seq=%d fr=%d\n", need_s[k], need_f[k]);
             if (sprite_load_seq_frame(&seqs[need_s[k]], need_s[k], need_f[k],
@@ -138,6 +152,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
             g[got].seq = need_s[k];
             g[got].frame = need_f[k];
+            g[got].live = 1;
             got++;
         }
     }
@@ -156,6 +171,9 @@ int edraw_upload_pvr(struct EdGfx *g, int n)
         return -1;
     }
     for (i = 0; i < n; i++) {
+        if (!g[i].live) {
+            continue;
+        }
         if (sprite_upload_pvr(&g[i].fr) != 0) {
             printf("edraw upload fail seq=%d\n", g[i].seq);
             continue;

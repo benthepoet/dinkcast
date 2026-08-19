@@ -78,6 +78,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Editor `alt` crop (`get_box`) — extra pig fences | this PR |
 | 2026-08-19 | Pin Dink walk/idle `dir.ff` (re-enter house hang) | this PR |
 | 2026-08-19 | Keep `map.dat` open; LRU `dir.ff`; reuse edraw | this PR |
+| 2026-08-19 | Keep unused editor CPU; cache ts sheets | this PR |
 
 ## Bites
 

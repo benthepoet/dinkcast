@@ -70,6 +70,65 @@ static int slurp_rel(const char *rel, uint8_t **out, size_t *n)
     return 0;
 }
 
+#define DINK_TS_CACHE 8
+
+static struct {
+    int sheet0;
+    int w, h;
+    uint16_t *pix;
+} g_ts[DINK_TS_CACHE];
+
+static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
+{
+    int i, empty = -1, victim = 0;
+    char rel[32];
+    uint8_t *raw = NULL;
+    size_t n = 0;
+    struct Bitmap bm;
+    uint16_t *p = NULL;
+    int npx = 0;
+
+    for (i = 0; i < DINK_TS_CACHE; i++) {
+        if (g_ts[i].pix != NULL && g_ts[i].sheet0 == sheet0) {
+            *pix = g_ts[i].pix;
+            *w = g_ts[i].w;
+            *h = g_ts[i].h;
+            return 0;
+        }
+        if (empty < 0 && g_ts[i].pix == NULL) {
+            empty = i;
+        }
+    }
+    snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
+    if (slurp_rel(rel, &raw, &n) != 0) {
+        return -1;
+    }
+    memset(&bm, 0, sizeof(bm));
+    if (bitmap_load_mem(raw, n, &bm) != 0) {
+        free(raw);
+        return -1;
+    }
+    free(raw);
+    if (rgb565_from_bitmap(&bm, &p, &npx) != 0) {
+        bitmap_free(&bm);
+        return -1;
+    }
+    *w = bm.w;
+    *h = bm.h;
+    bitmap_free(&bm);
+    if (empty < 0) {
+        empty = victim;
+        free(g_ts[empty].pix);
+        g_ts[empty].pix = NULL;
+    }
+    g_ts[empty].sheet0 = sheet0;
+    g_ts[empty].w = *w;
+    g_ts[empty].h = *h;
+    g_ts[empty].pix = p;
+    *pix = p;
+    return 0;
+}
+
 static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
                       int cell, int dx, int dy)
 {
@@ -91,83 +150,39 @@ static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
     }
 }
 
-static void free_sheets(uint16_t **sheets)
-{
-    int i;
-
-    for (i = 0; i < 41; i++) {
-        free(sheets[i]);
-        sheets[i] = NULL;
-    }
-}
-
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 {
-    uint16_t *sheets[41];
-    int sw[41], sh[41];
     int i, slot;
 
     if (scr == NULL || out == NULL) {
         return -1;
     }
     memset(out, 0, sizeof(*out));
-    memset(sheets, 0, sizeof(sheets));
     out->rgb565 = (uint16_t *)calloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H, 2);
     if (out->rgb565 == NULL) {
         return -1;
     }
 
     for (i = 0; i < DINK_SCREEN_TILES; i++) {
-        int sheet0, cell;
-        char rel[32];
-        uint8_t *raw = NULL;
-        size_t n = 0;
-        struct Bitmap bm;
+        int sheet0, cell, sw, sh, ax, ay;
         uint16_t *pix = NULL;
-        int npx = 0;
-        int ax, ay;
 
         tile_split(scr->t[i].square_full_idx0, &sheet0, &cell);
         if (sheet0 < 0 || sheet0 >= 41 || cell < 0 || cell >= 128) {
-            free_sheets(sheets);
             tiles_free(out);
             return -1;
         }
-        if (sheets[sheet0] == NULL) {
-            snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
-            if (slurp_rel(rel, &raw, &n) != 0) {
-                free_sheets(sheets);
-                tiles_free(out);
-                return -1;
-            }
-            memset(&bm, 0, sizeof(bm));
-            if (bitmap_load_mem(raw, n, &bm) != 0) {
-                free(raw);
-                free_sheets(sheets);
-                tiles_free(out);
-                return -1;
-            }
-            free(raw);
-            if (rgb565_from_bitmap(&bm, &pix, &npx) != 0) {
-                bitmap_free(&bm);
-                free_sheets(sheets);
-                tiles_free(out);
-                return -1;
-            }
-            sw[sheet0] = bm.w;
-            sh[sheet0] = bm.h;
-            bitmap_free(&bm);
-            sheets[sheet0] = pix;
+        if (ts_sheet(sheet0, &pix, &sw, &sh) != 0 || pix == NULL) {
+            tiles_free(out);
+            return -1;
         }
         slot = i;
         ax = (slot % DINK_ATLAS_COLS) * DINK_ATLAS_STRIDE;
         ay = (slot / DINK_ATLAS_COLS) * DINK_ATLAS_STRIDE;
-        blit_cell(out->rgb565, sheets[sheet0], sw[sheet0], sh[sheet0], cell, ax,
-                  ay);
+        blit_cell(out->rgb565, pix, sw, sh, cell, ax, ay);
         out->slot_x[i] = ax;
         out->slot_y[i] = ay;
     }
-    free_sheets(sheets);
     out->used = DINK_SCREEN_TILES;
     return 0;
 }

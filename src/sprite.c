@@ -27,9 +27,7 @@ void sprite_frame_free(struct SpriteFrame *f)
     if (f == NULL) {
         return;
     }
-#ifdef _arch_dreamcast
     sprite_evict_pvr(f);
-#endif
     free(f->argb1555);
     memset(f, 0, sizeof(*f));
 }
@@ -164,6 +162,20 @@ int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
     return 1;
 }
 
+void sprite_evict_pvr(struct SpriteFrame *f)
+{
+#ifdef _arch_dreamcast
+    if (f != NULL && f->tex != NULL) {
+        pvr_mem_free((pvr_ptr_t)f->tex);
+        f->tex = NULL;
+    }
+#else
+    if (f != NULL) {
+        f->tex = NULL;
+    }
+#endif
+}
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
@@ -183,14 +195,6 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     pvr_txr_load_ex(f->argb1555, tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
     f->tex = tex;
     return 0;
-}
-
-void sprite_evict_pvr(struct SpriteFrame *f)
-{
-    if (f != NULL && f->tex != NULL) {
-        pvr_mem_free((pvr_ptr_t)f->tex);
-        f->tex = NULL;
-    }
 }
 
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)

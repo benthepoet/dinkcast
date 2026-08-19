@@ -11,6 +11,7 @@
 struct EdGfx {
     int seq;
     int frame;
+    int live; /* 1 = this screen; CPU kept when 0 so return visits skip /cd */
     struct SpriteFrame fr;
 };
 
