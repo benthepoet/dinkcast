@@ -26,6 +26,7 @@ int ff_load_rel(const char *rel, struct FfFile *out);
 int ff_cached(const char *rel, struct FfFile **out);
 int ff_disc_loads(void);
 void ff_cache_clear(void);
+void ff_cache_drop_unpinned(void);
 /* Case-insensitive 8.3 name. Points into ff->data; not a copy. */
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
             size_t *len);

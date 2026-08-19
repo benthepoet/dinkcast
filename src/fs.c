@@ -316,6 +316,16 @@ void dink_cd_yield(void)
 #endif
 }
 
+void dink_cd_settle(void)
+{
+#ifdef _arch_dreamcast
+    /* Let GD-ROM/ISO go idle before the next fopen. Back-to-back
+     * dir.ff then ts02.bmp is the house-door hang (stamp ok, no atlas). */
+    vid_waitvbl();
+    vid_waitvbl();
+#endif
+}
+
 int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
 {
     size_t got = 0, chunk, nrd;
@@ -397,6 +407,7 @@ int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n)
     }
     rc = dink_fread_all(fp, out, n);
     fclose(fp);
+    dink_cd_settle();
     if (rc != 0) {
         free(*out);
         *out = NULL;

@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "edraw.h"
 
+#include "ff.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -109,10 +111,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
             g[i].live = keep;
-            if (!keep) {
-                /* Drop VRAM only. CPU pixels stay so house↔yard is not /cd. */
-                sprite_evict_pvr(&g[i].fr);
-            }
         }
         got = old;
         for (k = 0; k < nneed; k++) {
@@ -155,7 +153,13 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].live = 1;
             got++;
         }
+        for (i = 0; i < got; i++) {
+            if (!g[i].live) {
+                sprite_evict_pvr(&g[i].fr);
+            }
+        }
     }
+    ff_cache_drop_unpinned();
     memcpy(spr, sp, 101u * sizeof(*sp));
     free(sp);
     *n = got;

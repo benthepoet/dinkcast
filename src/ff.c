@@ -164,6 +164,19 @@ void ff_cache_clear(void)
     g_tick = 0;
 }
 
+void ff_cache_drop_unpinned(void)
+{
+    int i;
+
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        if (!g_slot[i].pin && g_slot[i].rel[0] != '\0') {
+            ff_free(&g_slot[i].ff);
+            g_slot[i].rel[0] = '\0';
+            g_slot[i].tick = 0;
+        }
+    }
+}
+
 int ff_cached(const char *rel, struct FfFile **out)
 {
     int i, hit = -1, empty = -1, victim = -1, pin;

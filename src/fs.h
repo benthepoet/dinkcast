@@ -19,6 +19,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n);
 int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n);
 int dink_fread_n(FILE *fp, uint8_t *dst, size_t n);
 void dink_cd_yield(void);
+void dink_cd_settle(void);
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);

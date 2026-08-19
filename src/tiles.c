@@ -100,9 +100,12 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
         }
     }
     snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
+    printf("tiles slurp %s\n", rel);
     if (slurp_rel(rel, &raw, &n) != 0) {
+        printf("tiles slurp fail %s\n", rel);
         return -1;
     }
+    printf("tiles slurp ok %s %u\n", rel, (unsigned)n);
     memset(&bm, 0, sizeof(bm));
     if (bitmap_load_mem(raw, n, &bm) != 0) {
         free(raw);

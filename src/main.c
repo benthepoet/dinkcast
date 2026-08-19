@@ -481,6 +481,9 @@ int main(int argc, char **argv)
                                            hr, hb, hid);
                         }
                         printf("swap stamp ok\n");
+                        fflush(stdout);
+                        printf("swap tiles build\n");
+                        fflush(stdout);
                         if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
                             printf("swap atlas ok\n");
                             /* Do not pvr_wait_ready here: after the swap-start
