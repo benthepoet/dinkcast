@@ -100,6 +100,13 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 120, &out->sprite[i].hard) != 0) {
             return -1;
         }
+        /* FreeDink rect alt after hard (+124). */
+        if (le_i32(p, n, off + 124, &out->sprite[i].alt_l) != 0 ||
+            le_i32(p, n, off + 128, &out->sprite[i].alt_t) != 0 ||
+            le_i32(p, n, off + 132, &out->sprite[i].alt_r) != 0 ||
+            le_i32(p, n, off + 136, &out->sprite[i].alt_b) != 0) {
+            return -1;
+        }
         if (le_i32(p, n, off + 188, &out->sprite[i].vision) != 0) {
             return -1;
         }
@@ -122,33 +129,30 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
 
 int map_load_record(int rec, struct MapScreen *out)
 {
-    FILE *fp;
+    static FILE *fp;
     uint8_t *raw;
     long hold;
 
     if (rec < 1 || out == NULL) {
         return -1;
     }
-    fp = dink_fopen("map.dat", "rb");
+    /* Keep map.dat open. Re-fopen of this 20 MiB ISO file hangs /cd. */
     if (fp == NULL) {
-        return -1;
+        fp = dink_fopen("map.dat", "rb");
+        if (fp == NULL) {
+            return -1;
+        }
+        dink_disc_note_open();
     }
     hold = (long)DINK_MAP_RECSIZE * (long)(rec - 1);
-    if (fseek(fp, hold, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
-    }
     raw = (uint8_t *)malloc(DINK_MAP_RECSIZE);
     if (raw == NULL) {
-        fclose(fp);
         return -1;
     }
-    if (fread(raw, 1, DINK_MAP_RECSIZE, fp) != DINK_MAP_RECSIZE) {
+    if (dink_pread(fp, hold, raw, DINK_MAP_RECSIZE) != 0) {
         free(raw);
-        fclose(fp);
         return -1;
     }
-    fclose(fp);
     if (map_parse_mem(raw, DINK_MAP_RECSIZE, out) != 0) {
         free(raw);
         return -1;

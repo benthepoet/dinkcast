@@ -73,7 +73,25 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | Heap EdGfx; restore before attach | #56 |
 | 2026-08-18 | PVR clear after leave-title | #57 |
 | 2026-08-18 | Makefile.dc header deps for EditorSprite | #58 |
-| 2026-08-18 | Swap: keep tile PVR until new atlas | this PR |
+| 2026-08-18 | Swap: keep tile PVR until new atlas | #59 |
+| 2026-08-19 | No brown clear on screen swap | this PR |
+| 2026-08-19 | Editor `alt` crop (`get_box`) — extra pig fences | this PR |
+| 2026-08-19 | Pin Dink walk/idle `dir.ff` (re-enter house hang) | this PR |
+| 2026-08-19 | Keep `map.dat` open; LRU `dir.ff`; reuse edraw | this PR |
+| 2026-08-19 | Keep unused editor CPU; cache ts sheets | this PR |
+| 2026-08-19 | CD settle after slurp; drop dir.ff after decode | this PR |
+| 2026-08-19 | Do not count bow/bottles dir.ff at boot | this PR |
+| 2026-08-19 | Decode all frames of a seq while dir.ff is open | this PR |
+| 2026-08-19 | Pin large dir.ff for the session (no reopen) | this PR |
+| 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | dropped; blob cache |
+| 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | this PR |
+| 2026-08-19 | Pin idle+walk dir.ff before house edraw | this PR |
+| 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | this PR |
+| 2026-08-19 | Blob cache grows; never evict borrowed dir.ff/hard.dat | this PR |
+| 2026-08-19 | Tile atlas is BSS; ts sheet LRU re-decodes from blob | this PR |
+| 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | this PR |
+| 2026-08-19 | hard.dat FILE* + rec reads; no mid-file yield; /cd mutex | this PR |
+| 2026-08-19 | `make chd-redream` 3-track MODE1/2352 CHD for Redream | this PR |
 
 ## Bites
 

@@ -62,6 +62,28 @@ int main(void)
     printf("idle punch clear %d opaque %d %dx%d pad %dx%d\n", clear, opaque, fr.w,
            fr.h, fr.tw, fr.th);
     sprite_frame_free(&fr);
+    {
+        int sl, st, sr, sb;
+
+        if (sprite_alt_src(185, 62, 0, 0, 0, 0, &sl, &st, &sr, &sb) != 0 ||
+            sl != 0 || sr != 185) {
+            fprintf(stderr, "FAIL alt none\n");
+            return 1;
+        }
+        /* pig slot 23: only the right stub of fence-01 */
+        if (sprite_alt_src(185, 62, 128, 0, 185, 62, &sl, &st, &sr, &sb) !=
+                1 ||
+            sl != 128 || sr != 185 || st != 0 || sb != 62) {
+            fprintf(stderr, "FAIL alt gate stub %d %d %d %d\n", sl, st, sr, sb);
+            return 1;
+        }
+        /* pig slot 18: only the left stub */
+        if (sprite_alt_src(185, 62, 0, 0, 65, 62, &sl, &st, &sr, &sb) != 1 ||
+            sl != 0 || sr != 65) {
+            fprintf(stderr, "FAIL alt right rail %d %d\n", sl, sr);
+            return 1;
+        }
+    }
     printf("OK test_sprite\n");
     return 0;
 }

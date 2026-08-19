@@ -3,10 +3,16 @@
 
 #include <ctype.h>
 #include <dirent.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#ifdef _arch_dreamcast
+#include <kos.h>
+#include <kos/mutex.h>
+#endif
 
 #ifndef DINK_DATA_DEFAULT
 #define DINK_DATA_DEFAULT ""
@@ -120,6 +126,7 @@ int dink_fs_init(void)
     char *slash;
 
     g_root[0] = '\0';
+    dink_blob_clear();
     if (dink_fs_try_root(g_pc) == 0 || dink_fs_try_root("/pc/DINK") == 0) {
         return 0;
     }
@@ -268,6 +275,28 @@ static int resolve_comp(const char *dir, const char *comp, char *out, size_t out
     return found ? 0 : -1;
 }
 
+#ifdef _arch_dreamcast
+static mutex_t g_cd_mu;
+static int g_cd_mu_ok;
+
+static void cd_lock(void)
+{
+    if (!g_cd_mu_ok) {
+        mutex_init(&g_cd_mu, MUTEX_TYPE_NORMAL);
+        g_cd_mu_ok = 1;
+    }
+    mutex_lock(&g_cd_mu);
+}
+
+static void cd_unlock(void)
+{
+    mutex_unlock(&g_cd_mu);
+}
+#else
+static void cd_lock(void) {}
+static void cd_unlock(void) {}
+#endif
+
 FILE *dink_fopen(const char *rel, const char *mode)
 {
     char cur[DINK_FS_PATH_MAX];
@@ -275,6 +304,7 @@ FILE *dink_fopen(const char *rel, const char *mode)
     char relnorm[DINK_FS_PATH_MAX];
     char *save = NULL;
     char *tok;
+    FILE *fp;
 
     if (g_root[0] == '\0' || rel == NULL || mode == NULL) {
         return NULL;
@@ -287,40 +317,321 @@ FILE *dink_fopen(const char *rel, const char *mode)
     if (tok == NULL) {
         return NULL;
     }
+    cd_lock();
     do {
         if (strcmp(tok, "..") == 0 || strcmp(tok, ".") == 0) {
+            cd_unlock();
             return NULL;
         }
         if (resolve_comp(cur, tok, next, sizeof(next)) != 0) {
+            cd_unlock();
             return NULL;
         }
         memcpy(cur, next, strlen(next) + 1);
         tok = strtok_r(NULL, "/", &save);
     } while (tok != NULL);
 
-    return fopen(cur, mode);
+    fp = fopen(cur, mode);
+    cd_unlock();
+    return fp;
+}
+
+#define DINK_CD_CHUNK 8192u
+#define DINK_SLURP_MAX (4u * 1024u * 1024u)
+
+void dink_cd_yield(void)
+{
+    /* Do not yield mid-file. A 2 MiB fread with thd_pass every 8 KiB
+     * leaves the GD-ROM command sitting while other threads run. */
+}
+
+void dink_cd_settle(void)
+{
+#ifdef _arch_dreamcast
+    /* Do not vid_waitvbl here: vblank may not fire during load. */
+    thd_sleep(20);
+#endif
+}
+
+int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
+{
+    size_t got = 0, chunk, nrd;
+
+    if (fp == NULL || dst == NULL) {
+        return -1;
+    }
+    cd_lock();
+    while (got < n) {
+        chunk = n - got;
+        if (chunk > DINK_CD_CHUNK) {
+            chunk = DINK_CD_CHUNK;
+        }
+        nrd = fread(dst + got, 1, chunk, fp);
+        if (nrd == 0) {
+            cd_unlock();
+            return -1;
+        }
+        got += nrd;
+    }
+    cd_unlock();
+    return 0;
+}
+
+int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
+{
+    size_t got = 0, chunk, nrd;
+
+    if (fp == NULL || dst == NULL) {
+        return -1;
+    }
+    cd_lock();
+    if (fseek(fp, off, SEEK_SET) != 0) {
+        cd_unlock();
+        return -1;
+    }
+    while (got < n) {
+        chunk = n - got;
+        if (chunk > DINK_CD_CHUNK) {
+            chunk = DINK_CD_CHUNK;
+        }
+        nrd = fread(dst + got, 1, chunk, fp);
+        if (nrd == 0) {
+            cd_unlock();
+            return -1;
+        }
+        got += nrd;
+    }
+    cd_unlock();
+    return 0;
+}
+
+int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
+{
+    uint8_t *p;
+    size_t cap, got, nrd;
+
+    if (fp == NULL || out == NULL || n == NULL) {
+        return -1;
+    }
+    cap = 32u * 1024u;
+    p = (uint8_t *)malloc(cap);
+    if (p == NULL) {
+        return -1;
+    }
+    got = 0;
+    cd_lock();
+    for (;;) {
+        if (got + DINK_CD_CHUNK > cap) {
+            uint8_t *np;
+            size_t ncap = cap * 2u;
+
+            if (ncap > DINK_SLURP_MAX || ncap < cap) {
+                cd_unlock();
+                free(p);
+                return -1;
+            }
+            np = (uint8_t *)realloc(p, ncap);
+            if (np == NULL) {
+                cd_unlock();
+                free(p);
+                return -1;
+            }
+            p = np;
+            cap = ncap;
+        }
+        nrd = fread(p + got, 1, DINK_CD_CHUNK, fp);
+        if (nrd == 0) {
+            break;
+        }
+        got += nrd;
+    }
+    cd_unlock();
+    *out = p;
+    *n = got;
+    return 0;
+}
+
+#define DINK_BLOB_INIT 64
+#define DINK_BLOB_PIN (80u * 1024u)
+
+/* Session cache. Never free a live slot to insert another — ff/hard borrow
+ * these pointers until dink_blob_clear. Grow when full. */
+static struct {
+    char rel[DINK_FS_PATH_MAX];
+    uint8_t *data;
+    size_t n;
+    int pin;
+} *g_blob;
+static int g_nblob;
+static int g_disc_opens;
+
+static int blob_slot_empty(void)
+{
+    int i, ncap;
+    void *nb;
+
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] == '\0') {
+            return i;
+        }
+    }
+    ncap = g_nblob == 0 ? DINK_BLOB_INIT : g_nblob * 2;
+    if (ncap < DINK_BLOB_INIT || ncap < g_nblob) {
+        return -1;
+    }
+    nb = realloc(g_blob, (size_t)ncap * sizeof(*g_blob));
+    if (nb == NULL) {
+        return -1;
+    }
+    g_blob = nb;
+    memset(g_blob + g_nblob, 0, (size_t)(ncap - g_nblob) * sizeof(*g_blob));
+    i = g_nblob;
+    g_nblob = ncap;
+    return i;
+}
+
+static void rel_key(char *dst, size_t dstsz, const char *rel)
+{
+    size_t i, o = 0;
+
+    if (dst == NULL || dstsz < 2) {
+        return;
+    }
+    dst[0] = '\0';
+    if (rel == NULL) {
+        return;
+    }
+    for (i = 0; rel[i] != '\0' && o + 1 < dstsz; i++) {
+        char c = rel[i];
+
+        if (c == '\\') {
+            c = '/';
+        }
+        if (c >= 'A' && c <= 'Z') {
+            c = (char)(c - 'A' + 'a');
+        }
+        dst[o++] = c;
+    }
+    dst[o] = '\0';
+}
+
+int dink_disc_opens(void)
+{
+    return g_disc_opens;
+}
+
+void dink_disc_note_open(void)
+{
+    g_disc_opens++;
+}
+
+void dink_blob_clear(void)
+{
+    int i;
+
+    for (i = 0; i < g_nblob; i++) {
+        free(g_blob[i].data);
+        g_blob[i].data = NULL;
+        g_blob[i].n = 0;
+        g_blob[i].pin = 0;
+        g_blob[i].rel[0] = '\0';
+    }
+    g_disc_opens = 0;
+}
+
+int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
+{
+    char key[DINK_FS_PATH_MAX];
+    FILE *fp;
+    uint8_t *raw = NULL;
+    size_t got = 0;
+    int i, empty, rc;
+
+    if (ptr == NULL || n == NULL || rel == NULL || rel[0] == '\0') {
+        return -1;
+    }
+    *ptr = NULL;
+    *n = 0;
+    rel_key(key, sizeof(key), rel);
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] != '\0' && strcmp(g_blob[i].rel, key) == 0 &&
+            g_blob[i].data != NULL) {
+            *ptr = g_blob[i].data;
+            *n = g_blob[i].n;
+            return 0;
+        }
+    }
+    empty = blob_slot_empty();
+    if (empty < 0) {
+        return -1;
+    }
+    fp = dink_fopen(rel, "rb");
+    if (fp == NULL) {
+        return -1;
+    }
+    rc = dink_fread_all(fp, &raw, &got);
+    fclose(fp);
+    if (rc != 0 || raw == NULL) {
+        free(raw);
+        return -1;
+    }
+    g_disc_opens++;
+    snprintf(g_blob[empty].rel, sizeof(g_blob[empty].rel), "%s", key);
+    g_blob[empty].data = raw;
+    g_blob[empty].n = got;
+    g_blob[empty].pin = got >= DINK_BLOB_PIN;
+    *ptr = raw;
+    *n = got;
+    return 0;
+}
+
+int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n)
+{
+    const uint8_t *p;
+    size_t got;
+    uint8_t *copy;
+
+    if (out == NULL || n == NULL) {
+        return -1;
+    }
+    *out = NULL;
+    *n = 0;
+    if (dink_blob_get(rel, &p, &got) != 0 || p == NULL) {
+        return -1;
+    }
+    copy = (uint8_t *)malloc(got ? got : 1);
+    if (copy == NULL) {
+        return -1;
+    }
+    if (got > 0) {
+        memcpy(copy, p, got);
+    }
+    *out = copy;
+    *n = got;
+    return 0;
 }
 
 /* Accept path if dink.dat is here or in a child named dink (any case). */
 static int dink_fs_try_root(const char *path)
 {
-    FILE *fp;
+    const uint8_t *blob;
+    size_t n;
     char child[DINK_FS_PATH_MAX];
 
     if (path == NULL || path[0] == '\0' || !dink_fs_exists_dir(path)) {
         return -1;
     }
     snprintf(g_root, sizeof(g_root), "%s", path);
-    fp = dink_fopen("dink.dat", "rb");
-    if (fp != NULL) {
-        fclose(fp);
+    blob = NULL;
+    n = 0;
+    if (dink_blob_get("dink.dat", &blob, &n) == 0) {
         return 0;
     }
     if (resolve_comp(path, "dink", child, sizeof(child)) == 0) {
         snprintf(g_root, sizeof(g_root), "%s", child);
-        fp = dink_fopen("dink.dat", "rb");
-        if (fp != NULL) {
-            fclose(fp);
+        blob = NULL;
+        n = 0;
+        if (dink_blob_get("dink.dat", &blob, &n) == 0) {
             return 0;
         }
     }

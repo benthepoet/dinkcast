@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V5** + **8.6 house** accepted. This PR: swap keep tile PVR until new atlas upload. Do not start 14.3 unless the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V5** + **8.6 house** accepted. This PR: chunked dir.ff load; no double fread on edraw. Do not start 14.3 unless the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -161,5 +161,5 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
 
 - `make host` — plan + AGENTS structural checks (and later host unit tests).
 - `make docker-cdi` — ELF + CDI (preferred). Native `make dc` if `KOS_BASE` is set.
-- `make emu` — Flycast + real BIOS on `build/dinkcast.cdi`. Name BIOS vs REIOS if you claim a visual check.
+- `make emu` — Flycast + real BIOS on `build/dinkcast.chd` (from `make chd` / `make docker-cdi`). Name BIOS vs REIOS if you claim a visual check. Do not playtest the DiscJuggler `.cdi` in Flycast.
 - Do not claim DC boot works unless you ran the ELF (hardware or emulator) and say which.

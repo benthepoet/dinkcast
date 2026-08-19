@@ -4,8 +4,14 @@
 #include "fs.h"
 #include "le.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static FILE *g_fp;
+static uint8_t *g_rec[DINK_HARD_TILES];
+static uint16_t g_def[DINK_BTILE_MAX];
+static int g_def_ok;
 
 int hard_parse_defaults(const uint8_t *p, size_t n, struct HardMap *out)
 {
@@ -28,6 +34,7 @@ int hard_parse_defaults(const uint8_t *p, size_t n, struct HardMap *out)
         out->btile_default[i] = (uint16_t)(v < 0 ? 0 : v);
         off += 4;
     }
+    out->ready = 1;
     return 0;
 }
 
@@ -36,53 +43,81 @@ void hard_free(struct HardMap *h)
     if (h == NULL) {
         return;
     }
-    free(h->raw);
-    h->raw = NULL;
-    h->n = 0;
+    h->ready = 0;
+}
+
+static int hard_ensure_rec(int hid)
+{
+    uint8_t *p;
+    long off;
+
+    if (hid < 0 || hid >= DINK_HARD_TILES || g_fp == NULL) {
+        return -1;
+    }
+    if (g_rec[hid] != NULL) {
+        return 0;
+    }
+    p = (uint8_t *)malloc((size_t)DINK_HARD_REC);
+    if (p == NULL) {
+        return -1;
+    }
+    off = (long)hid * (long)DINK_HARD_REC;
+    if (dink_pread(g_fp, off, p, (size_t)DINK_HARD_REC) != 0) {
+        free(p);
+        return -1;
+    }
+    g_rec[hid] = p;
+    return 0;
 }
 
 int hard_load(struct HardMap *out)
 {
-    FILE *fp;
-    long sz;
-    uint8_t *raw;
-    int rc;
+    uint8_t *tail;
+    size_t ntail;
+    long off;
+    int i;
 
     if (out == NULL) {
         return -1;
     }
-    hard_free(out);
-    fp = dink_fopen("hard.dat", "rb");
-    if (fp == NULL) {
+    memset(out, 0, sizeof(*out));
+    if (g_fp != NULL && g_def_ok) {
+        memcpy(out->btile_default, g_def, sizeof(g_def));
+        out->ready = 1;
+        return 0;
+    }
+    printf("hard load\n");
+    if (g_fp == NULL) {
+        g_fp = dink_fopen("hard.dat", "rb");
+        if (g_fp == NULL) {
+            return -1;
+        }
+        dink_disc_note_open();
+    }
+    off = (long)DINK_HARD_TILES * (long)DINK_HARD_REC;
+    ntail = (size_t)DINK_BTILE_MAX * 4u;
+    tail = (uint8_t *)malloc(ntail);
+    if (tail == NULL) {
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
+    if (dink_pread(g_fp, off, tail, ntail) != 0) {
+        free(tail);
         return -1;
     }
-    sz = ftell(fp);
-    if (sz < 0 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
+    for (i = 0; i < DINK_BTILE_MAX; i++) {
+        int32_t v;
+
+        if (le_i32(tail, ntail, (size_t)i * 4u, &v) != 0) {
+            free(tail);
+            return -1;
+        }
+        g_def[i] = (uint16_t)(v < 0 ? 0 : v);
     }
-    raw = (uint8_t *)malloc((size_t)sz);
-    if (raw == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    rc = hard_parse_defaults(raw, (size_t)sz, out);
-    if (rc != 0) {
-        free(raw);
-        return -1;
-    }
-    out->raw = raw;
-    out->n = (size_t)sz;
+    free(tail);
+    g_def_ok = 1;
+    memcpy(out->btile_default, g_def, sizeof(g_def));
+    out->ready = 1;
+    printf("hard load defaults ok\n");
     return 0;
 }
 
@@ -103,21 +138,23 @@ int hard_sample(const struct HardMap *h, int hid, int lx, int ly)
     size_t off;
     int x, y;
 
-    if (h == NULL || h->raw == NULL || hid < 0 || hid >= DINK_HARD_TILES) {
+    if (h == NULL || hid < 0 || hid >= DINK_HARD_TILES) {
         return 0;
     }
     if (lx < 0 || ly < 0 || lx >= 50 || ly >= 50) {
         return 1;
     }
+    if (hard_ensure_rec(hid) != 0 || g_rec[hid] == NULL) {
+        return 0;
+    }
     /* Disk: for x in 0..50, for y in 0..50: hm[x][y] */
     x = lx;
     y = ly;
-    off = (size_t)hid * (size_t)DINK_HARD_REC + (size_t)x * (size_t)DINK_HARD_PX +
-          (size_t)y;
-    if (off >= h->n) {
+    off = (size_t)x * (size_t)DINK_HARD_PX + (size_t)y;
+    if (off >= (size_t)DINK_HARD_REC) {
         return 0;
     }
-    return h->raw[off] != 0;
+    return g_rec[hid][off] != 0;
 }
 
 void hard_mask_free(struct HardMask *m)
@@ -141,6 +178,13 @@ int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
     out->pix = (uint8_t *)calloc((size_t)DINK_PLAY_W * (size_t)DINK_PLAY_H, 1);
     if (out->pix == NULL) {
         return -1;
+    }
+    for (i = 0; i < DINK_SCREEN_TILES; i++) {
+        int hid = hard_id_for_tile(h, scr->t[i].square_full_idx0, scr->t[i].althard);
+
+        if (hid > 0 && hid < DINK_HARD_TILES && hard_ensure_rec(hid) != 0) {
+            printf("hard rec fail hid=%d\n", hid);
+        }
     }
     for (i = 0; i < DINK_SCREEN_TILES; i++) {
         int hid = hard_id_for_tile(h, scr->t[i].square_full_idx0, scr->t[i].althard);

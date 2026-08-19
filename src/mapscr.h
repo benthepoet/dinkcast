@@ -24,6 +24,8 @@ struct EditorSprite {
     int32_t brain;
     int32_t que;
     int32_t hard;
+    /* get_box spr[].alt: trim src if left||top||right nonzero. */
+    int32_t alt_l, alt_t, alt_r, alt_b;
     int32_t vision;
     int32_t is_warp, warp_map, warp_x, warp_y, parm_seq;
     char script[16];

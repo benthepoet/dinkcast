@@ -27,9 +27,7 @@ void sprite_frame_free(struct SpriteFrame *f)
     if (f == NULL) {
         return;
     }
-#ifdef _arch_dreamcast
     sprite_evict_pvr(f);
-#endif
     free(f->argb1555);
     memset(f, 0, sizeof(*f));
 }
@@ -48,10 +46,7 @@ static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
                       (b >> 3));
 }
 
-static struct FfFile g_ff;
-static char g_ff_rel[160];
-
-int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
+int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out)
 {
     char dir[160], base[32], name[24];
@@ -61,6 +56,7 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     struct Bitmap bm;
     uint16_t *pad;
     int x, y, tw, th;
+    struct FfFile *ff = NULL;
 
     if (seq == NULL || out == NULL || frame < 1 || seq->prefix[0] == '\0') {
         return -1;
@@ -74,15 +70,28 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     snprintf(base, sizeof(base), "%s", sl + 1);
     snprintf(name, sizeof(name), frame < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
              frame);
-    if (g_ff_rel[0] == '\0' || strcmp(g_ff_rel, dir) != 0) {
-        ff_free(&g_ff);
-        if (ff_load_rel(dir, &g_ff) != 0) {
-            g_ff_rel[0] = '\0';
-            return -1;
-        }
-        snprintf(g_ff_rel, sizeof(g_ff_rel), "%s", dir);
+    if (ff_cached(dir, &ff) != 0 || ff == NULL) {
+        return -1;
     }
-    if (ff_find(&g_ff, name, &bmp, &bn) != 0) {
+    if (seq->nframes < 1) {
+        int nf = 0, fi;
+
+        for (fi = 1; fi < DINK_MAX_FRAMES; fi++) {
+            const uint8_t *p;
+            size_t ln;
+            char fn[24];
+
+            snprintf(fn, sizeof(fn), fi < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
+                     fi);
+            if (ff_find(ff, fn, &p, &ln) != 0) {
+                break;
+            }
+            nf = fi;
+        }
+        seq->nframes = nf;
+        printf("seq %d nframes %d\n", seqn, nf);
+    }
+    if (ff_find(ff, name, &bmp, &bn) != 0) {
         return -1;
     }
     memset(&bm, 0, sizeof(bm));
@@ -125,6 +134,66 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     return 0;
 }
 
+int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
+                   int *st, int *sr, int *sb)
+{
+    if (sl == NULL || st == NULL || sr == NULL || sb == NULL || fw < 1 ||
+        fh < 1) {
+        return 0;
+    }
+    *sl = 0;
+    *st = 0;
+    *sr = fw;
+    *sb = fh;
+    /* get_box: alt applies if right||left||top (not bottom alone). */
+    if (ar == 0 && al == 0 && at == 0) {
+        return 0;
+    }
+    if (al < 0) {
+        al = 0;
+    }
+    if (al > fw) {
+        al = fw;
+    }
+    if (at < 0) {
+        at = 0;
+    }
+    if (at > fh) {
+        at = fh;
+    }
+    if (ar < 0) {
+        ar = 0;
+    }
+    if (ar > fw) {
+        ar = fw;
+    }
+    if (ab < 0) {
+        ab = 0;
+    }
+    if (ab > fh) {
+        ab = fh;
+    }
+    *sl = al;
+    *st = at;
+    *sr = ar;
+    *sb = ab;
+    return 1;
+}
+
+void sprite_evict_pvr(struct SpriteFrame *f)
+{
+#ifdef _arch_dreamcast
+    if (f != NULL && f->tex != NULL) {
+        pvr_mem_free((pvr_ptr_t)f->tex);
+        f->tex = NULL;
+    }
+#else
+    if (f != NULL) {
+        f->tex = NULL;
+    }
+#endif
+}
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
@@ -132,6 +201,9 @@ int sprite_upload_pvr(struct SpriteFrame *f)
 
     if (f == NULL || f->argb1555 == NULL) {
         return -1;
+    }
+    if (f->tex != NULL) {
+        return 0;
     }
     sprite_evict_pvr(f);
     tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);
@@ -143,22 +215,25 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     return 0;
 }
 
-void sprite_evict_pvr(struct SpriteFrame *f)
+void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
 {
-    if (f != NULL && f->tex != NULL) {
-        pvr_mem_free((pvr_ptr_t)f->tex);
-        f->tex = NULL;
-    }
+    sprite_draw_pvr_alt(f, x, y, z, 0, 0, 0, 0);
 }
 
-void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
+void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
+                         float z, int al, int at, int ar, int ab)
 {
     pvr_poly_cxt_t cxt;
     pvr_poly_hdr_t hdr;
     pvr_vertex_t vert;
-    float u, v, x0, y0, x1, y1;
+    float u0, v0, u1, v1, x0, y0, x1, y1;
+    int sl = 0, st = 0, sr = 0, sb = 0;
 
     if (f == NULL || f->tex == NULL) {
+        return;
+    }
+    (void)sprite_alt_src(f->w, f->h, al, at, ar, ab, &sl, &st, &sr, &sb);
+    if (sr <= sl || sb <= st) {
         return;
     }
     /* 1-bit alpha: punch-through list. TR still writes A=0 as black. */
@@ -168,12 +243,14 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
     pvr_poly_compile(&hdr, &cxt);
     pvr_prim(&hdr, sizeof(hdr));
-    u = (float)f->w / (float)f->tw;
-    v = (float)f->h / (float)f->th;
-    x0 = x - (float)f->cx;
-    y0 = y - (float)f->cy;
-    x1 = x0 + (float)f->w;
-    y1 = y0 + (float)f->h;
+    u0 = (float)sl / (float)f->tw;
+    v0 = (float)st / (float)f->th;
+    u1 = (float)sr / (float)f->tw;
+    v1 = (float)sb / (float)f->th;
+    x0 = x - (float)f->cx + (float)sl;
+    y0 = y - (float)f->cy + (float)st;
+    x1 = x - (float)f->cx + (float)sr;
+    y1 = y - (float)f->cy + (float)sb;
     /* get_box: skip if fully outside playl..playx, 0..playy */
     if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
         return;
@@ -184,24 +261,24 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     vert.flags = PVR_CMD_VERTEX;
     vert.x = x0;
     vert.y = y0;
-    vert.u = 0;
-    vert.v = 0;
+    vert.u = u0;
+    vert.v = v0;
     pvr_prim(&vert, sizeof(vert));
     vert.x = x1;
     vert.y = y0;
-    vert.u = u;
-    vert.v = 0;
+    vert.u = u1;
+    vert.v = v0;
     pvr_prim(&vert, sizeof(vert));
     vert.x = x0;
     vert.y = y1;
-    vert.u = 0;
-    vert.v = v;
+    vert.u = u0;
+    vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
     vert.flags = PVR_CMD_VERTEX_EOL;
     vert.x = x1;
     vert.y = y1;
-    vert.u = u;
-    vert.v = v;
+    vert.u = u1;
+    vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
 }
 #endif

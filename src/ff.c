@@ -5,6 +5,7 @@
 #include "le.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,7 +14,9 @@ void ff_free(struct FfFile *ff)
     if (ff == NULL) {
         return;
     }
-    free(ff->data);
+    if (!ff->borrowed) {
+        free(ff->data);
+    }
     free(ff->ent);
     memset(ff, 0, sizeof(*ff));
 }
@@ -30,7 +33,7 @@ static int name_eq(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
-int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
+static int ff_parse_ents(const uint8_t *p, size_t n, struct FfFile *out)
 {
     uint32_t nent;
     size_t off;
@@ -62,6 +65,14 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
         out->ent[i].name[12] = '\0';
         off += 17;
     }
+    return 0;
+}
+
+int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
+{
+    if (ff_parse_ents(p, n, out) != 0) {
+        return -1;
+    }
     out->data = (uint8_t *)malloc(n);
     if (out->data == NULL) {
         ff_free(out);
@@ -74,38 +85,142 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
 
 int ff_load_rel(const char *rel, struct FfFile *out)
 {
-    FILE *fp;
-    long sz;
-    uint8_t *raw;
-    int rc;
+    const uint8_t *raw;
+    size_t n;
 
-    fp = dink_fopen(rel, "rb");
-    if (fp == NULL) {
+    if (rel == NULL || out == NULL) {
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
+    printf("ff load %s\n", rel);
+    raw = NULL;
+    n = 0;
+    if (dink_blob_get(rel, &raw, &n) != 0 || raw == NULL || n < 4) {
         return -1;
     }
-    sz = ftell(fp);
-    if (sz < 4 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
+    if (ff_parse_ents(raw, n, out) != 0) {
         return -1;
     }
-    raw = (uint8_t *)malloc((size_t)sz);
-    if (raw == NULL) {
-        fclose(fp);
+    out->data = (uint8_t *)raw;
+    out->n = n;
+    out->borrowed = 1;
+    printf("ff ok %s %u\n", rel, (unsigned)n);
+    return 0;
+}
+
+#define DINK_FF_SLOTS 32
+#define DINK_FF_PIN_BYTES (80u * 1024u)
+
+static struct {
+    char rel[160];
+    struct FfFile ff;
+    int pin;
+    int tick;
+} g_slot[DINK_FF_SLOTS];
+static int g_tick;
+
+static int rel_has(const char *rel, const char *needle)
+{
+    size_t i, j;
+
+    if (rel == NULL || needle == NULL) {
+        return 0;
+    }
+    for (i = 0; rel[i] != '\0'; i++) {
+        for (j = 0; needle[j] != '\0'; j++) {
+            char a = rel[i + j];
+            char b = needle[j];
+
+            if (a >= 'A' && a <= 'Z') {
+                a = (char)(a - 'A' + 'a');
+            }
+            if (b >= 'A' && b <= 'Z') {
+                b = (char)(b - 'A' + 'a');
+            }
+            if (a != b) {
+                break;
+            }
+        }
+        if (needle[j] == '\0') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int ff_disc_loads(void)
+{
+    return dink_disc_opens();
+}
+
+void ff_cache_clear(void)
+{
+    int i;
+
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        ff_free(&g_slot[i].ff);
+        g_slot[i].rel[0] = '\0';
+        g_slot[i].pin = 0;
+        g_slot[i].tick = 0;
+    }
+    g_tick = 0;
+}
+
+void ff_cache_drop_unpinned(void)
+{
+    /* Large packs stay. Reopening trees/home/walls hangs /cd. */
+}
+
+int ff_cached(const char *rel, struct FfFile **out)
+{
+    int i, hit = -1, empty = -1, victim = -1, pin;
+
+    if (rel == NULL || rel[0] == '\0' || out == NULL) {
         return -1;
     }
-    if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
+    pin = rel_has(rel, "dink/idle") || rel_has(rel, "dink/walk");
+    g_tick++;
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
+            g_slot[i].ff.data != NULL) {
+            hit = i;
+            break;
+        }
+        if (empty < 0 && g_slot[i].rel[0] == '\0') {
+            empty = i;
+        }
+        if (!g_slot[i].pin &&
+            (victim < 0 || g_slot[i].tick < g_slot[victim].tick)) {
+            victim = i;
+        }
+    }
+    if (hit >= 0) {
+        g_slot[hit].tick = g_tick;
+        *out = &g_slot[hit].ff;
+        return 0;
+    }
+    if (empty < 0) {
+        if (victim < 0) {
+            printf("ff cache full no victim %s\n", rel);
+            return -1;
+        }
+        printf("ff evict %s\n", g_slot[victim].rel);
+        empty = victim;
+        ff_free(&g_slot[empty].ff);
+        g_slot[empty].rel[0] = '\0';
+        g_slot[empty].pin = 0;
+    }
+    if (ff_load_rel(rel, &g_slot[empty].ff) != 0) {
+        g_slot[empty].rel[0] = '\0';
         return -1;
     }
-    fclose(fp);
-    rc = ff_parse_mem(raw, (size_t)sz, out);
-    free(raw);
-    return rc;
+    if (g_slot[empty].ff.n >= DINK_FF_PIN_BYTES) {
+        pin = 1;
+    }
+    snprintf(g_slot[empty].rel, sizeof(g_slot[empty].rel), "%s", rel);
+    g_slot[empty].pin = pin;
+    g_slot[empty].tick = g_tick;
+    *out = &g_slot[empty].ff;
+    return 0;
 }
 
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,

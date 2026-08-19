@@ -15,8 +15,7 @@
 
 struct HardMap {
     uint16_t btile_default[DINK_BTILE_MAX];
-    uint8_t *raw;
-    size_t n;
+    int ready;
 };
 
 struct HardMask {

@@ -49,6 +49,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 |---|---|---|
 | Idle after diagonal | `human_brain` 1/3→2, 7/9→8 | hold (#28) |
 | Full `get_box` clip | crop to playl…playx, 0…playy | first sprite that bleeds |
+| `spr[].alt` trim | `get_box` if left\|\|top\|\|right | hold (pig fence stubs) |
 | `SET_FRAME_*` | `program_idata` | first seq that needs it |
 | NOTANIM copy frame 1 | `load_sprites` | frame without SSI |
 | Hardness 1 vs 2 | `screen_hitmap` | flying / combat |

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Launch the Dinkcast CDI/ELF in Flycast (default) or EMU override."""
+"""Launch the Dinkcast CHD/CDI/ELF in Flycast (default) or EMU override."""
 from __future__ import annotations
 
 import argparse
@@ -107,8 +107,9 @@ def main() -> int:
     image = (args.image or "").strip()
     if not image:
         print(
-            "make emu: no image yet (looked for build/dinkcast.cdi, "
-            "dinkcast.cdi, build/dinkcast.elf, dinkcast.elf). "
+            "make emu: no image yet (looked for build/dinkcast.chd, "
+            "dinkcast.chd, build/dinkcast.cdi, dinkcast.cdi, "
+            "build/dinkcast.elf, dinkcast.elf). "
             "Build Bite 0.2+ first.",
             file=sys.stderr,
         )

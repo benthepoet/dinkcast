@@ -31,8 +31,8 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 Full steps: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md).
 
 ```bash
-make docker-cdi   # ELF + CDI via KOS Docker image (needs dockerd)
-make emu          # Flycast; serial also in build/emu.log
+make docker-cdi   # ELF + CDI + CHD via KOS Docker image (needs dockerd + chdman)
+make emu          # Flycast on the CHD; serial also in build/emu.log
 ```
 
 Without Docker, `source $KOS_BASE/environ.sh && make dc && make cdi`.
@@ -50,4 +50,4 @@ Host still: `make title-preview` → `build/title_preview.ppm`.
 make host
 ```
 
-**Emulator:** Flycast + **`dc_boot.bin`** in `~/.local/share/flycast/`. `make emu` opens `build/dinkcast.cdi`. REIOS often will not boot this CDI. Real hardware + `dcload` is still the ship check.
+**Emulator:** Flycast + **`dc_boot.bin`** in `~/.local/share/flycast/`. `make emu` opens `build/dinkcast.chd`. REIOS often will not boot. Real hardware + `dcload` / burned CDI is still the ship check. Needs **chdman** (`pacman -S mame-tools`).

@@ -4,17 +4,18 @@ Follow [dreamcast.wiki — Getting Started](https://dreamcast.wiki/Getting_Start
 
 **This machine is CachyOS** (Arch-based, `pacman`). Use §1 CachyOS. Debian is only a fallback.
 
-A working disc needs three pieces:
+A working disc needs four pieces:
 
 1. **dc-chain** — `sh-elf-gcc` (hours the first time)
 2. **KallistiOS** — `kos-cc`, `libkallisti`
-3. **mkdcdisc** — ELF + `dink/` data → selfboot `.cdi`
+3. **mkdcdisc** — ELF + `dink/` data → selfboot `.cdi` + data-track `.iso`
+4. **chdman** (`mame-tools`) — ISO + dummy audio CUE → MIL-CD `.chd` for Flycast
 
 Do **not** commit the toolchain or game data.
 
 ## Docker vs native (CachyOS)
 
-**Docker is easier for the first `.cdi`.** Native dc-chain is a multi-hour SH-4 GCC build. A current KOS image skips that: pull, mount this repo + `DINK_DATA`, `make dc` / pack a CDI inside the container, run **Flycast on the host**.
+**Docker is easier for the first `.cdi`/`.chd`.** Native dc-chain is a multi-hour SH-4 GCC build. A current KOS image skips that: pull, mount this repo + `DINK_DATA`, `make dc` / pack a CDI inside the container, compress to CHD on the host, run **Flycast on the CHD**.
 
 Use a **maintained** image (wiki: [Docker images](https://dreamcast.wiki/Docker_images) — e.g. [kos-builds](https://github.com/orgs/kos-builds/packages?repo_name=KallistiOS) or a recent `maishuji/dc-kos-image`). **Do not** use `nold360/kallistios-sdk` (Debian Jessie, stale).
 
@@ -32,8 +33,8 @@ newgrp docker          # or log out and back in
 Then from this repo (`local.mk` already has `DINK_DATA`):
 
 ```bash
-make docker-cdi        # ELF + CDI in build/
-make emu               # Flycast; SCIF also in build/emu.log
+make docker-cdi        # ELF + CDI + CHD in build/ (needs chdman on the host)
+make emu               # Flycast on the CHD; SCIF also in build/emu.log
 ```
 
 `make docker-dc` is ELF only. Flycast stays on the host.
@@ -55,7 +56,7 @@ sudo pacman -S --needed \
   python meson ninja cmake pkgconf libisofs ruby-rake which gcc
 ```
 
-`base-devel` pulls the usual compile tools. `libisofs` + `meson` are for **mkdcdisc**. `ruby-rake` matches the wiki; we do not need it for Bite 3.4.
+`base-devel` pulls the usual compile tools. `libisofs` + `meson` are for **mkdcdisc**. `ruby-rake` matches the wiki; we do not need it for Bite 3.4. Flycast CHD: `sudo pacman -S --needed mame-tools` (`chdman`).
 
 Optional: `paru -S --needed` if you prefer the AUR helper; these packages are in extra/community, not AUR.
 
@@ -156,8 +157,10 @@ From this repo, with `KOS_BASE` set and `local.mk` / `DINK_DATA` pointing at the
 ```bash
 cd /home/benh/Source/dinkcast
 make dc          # build/dinkcast.elf
-make cdi         # build/dinkcast.cdi  (needs mkdcdisc + DINK_DATA)
-make emu         # Flycast on that CDI
+make cdi         # build/dinkcast.cdi + .iso  (needs mkdcdisc + DINK_DATA)
+make chd         # build/dinkcast.chd from the iso (needs chdman / mame-tools)
+make chd-redream # build/dinkcast-redream.chd (3-track 2352 GD-ROM; Redream)
+make emu         # Flycast on the MIL-CD CHD (not the Redream file)
 ```
 
 `make cdi` stages `build/iso/dink` → your `DINK_DATA` so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`).

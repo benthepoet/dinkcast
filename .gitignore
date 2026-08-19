@@ -6,6 +6,9 @@
 *.elf
 *.bin
 *.cdi
+*.chd
+*.cue
+*.gdi
 *.iso
 *.lst
 *.map
@@ -25,6 +28,7 @@ tools/dump_screen
 tools/dump_ini
 tests/test_ini
 tests/test_ff
+tests/test_io_once
 tests/test_sprite
 tests/test_player
 tests/test_edraw

@@ -8,17 +8,17 @@ PYTHON ?= python3
 HOSTCC ?= gcc
 EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
-EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
+EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 # Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
 EMU_LOG ?= build/emu.log
 
-.PHONY: all host check data-check title-preview dc cdi docker-dc docker-cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi chd chd-redream docker-dc docker-cdi emu run clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_screen tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_screen tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -119,6 +119,10 @@ tests/test_ff: tests/test_ff.c src/ff.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ff.c src/ff.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
+tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c
+	DINK_DATA="$(DINK_DATA)" ./$@
+
 tools/dump_ini: tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c
 
@@ -143,6 +147,8 @@ check:
 	$(PYTHON) tools/check_agents.py
 	$(PYTHON) tools/check_progress.py
 	$(PYTHON) tests/test_run_emu.py
+	$(PYTHON) tests/test_make_chd.py
+	$(PYTHON) tests/test_gdrom_from_msiso.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py
 
@@ -163,9 +169,17 @@ dc:
 	fi
 	$(MAKE) -f Makefile.dc
 
-# Selfboot CDI: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
+# Selfboot CDI + data-track ISO: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
 cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
+
+# Flycast image: CUE (mkdcdisc ISO + dummy audio) compressed to a MIL-CD CHD. Needs chdman (mame-tools).
+chd:
+	sh tools/make_chd.sh build/dinkcast.iso build/dinkcast.chd
+
+# Redream: 3-track MODE1/2352 GD-ROM CHD. Does not replace make emu's MIL-CD CHD.
+chd-redream:
+	sh tools/make_chd_redream.sh build/dinkcast.iso build/dinkcast-redream.chd
 
 # KallistiOS via Docker (see docs/TOOLCHAIN.md). Needs a running daemon.
 docker-dc:
@@ -173,15 +187,16 @@ docker-dc:
 
 docker-cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
+	$(MAKE) chd
 
-# Launch Flycast (or EMU=...) on the built CDI/ELF. Does not build the ELF.
+# Launch Flycast (or EMU=...) on the built CHD (preferred) / CDI / ELF.
 emu run:
 	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)"
 
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \
 		tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell \
-		tests/test_ini tests/test_ff tests/test_sprite tests/test_player \
+		tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player \
 		tests/test_edraw tests/test_talk tests/test_hit tests/test_script \
 		tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse \
 		tests/test_dinkc_vm tests/test_dinkc_var tests/test_font \

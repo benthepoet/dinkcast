@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "edraw.h"
+#include "ff.h"
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
@@ -90,6 +91,53 @@ int main(void)
             free(seqs);
             return 1;
         }
+    }
+    {
+        struct MapScreen pig;
+        int prec = (int)w.loc[407];
+
+        if (prec < 1 || map_load_record(prec, &pig) != 0) {
+            fprintf(stderr, "FAIL pig map loc=%d\n", prec);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (pig.sprite[23].seq != 93 || pig.sprite[23].alt_l != 128 ||
+            pig.sprite[23].alt_r != 185 || pig.sprite[18].alt_r != 65 ||
+            pig.sprite[62].type != DINK_SPR_TYPE_INVISIBLE) {
+            fprintf(stderr, "FAIL pig alt/type 23=%d,%d 18r=%d t62=%d\n",
+                    (int)pig.sprite[23].alt_l, (int)pig.sprite[23].alt_r,
+                    (int)pig.sprite[18].alt_r, (int)pig.sprite[62].type);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (editor_sprite_draw(&pig.sprite[62], DINK_VISION_DEFAULT) ||
+            editor_sprite_draw(&pig.sprite[60], DINK_VISION_DEFAULT)) {
+            fprintf(stderr, "FAIL pig type2 drawn\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
+    {
+        int loads1, loads2, n2 = n;
+
+        loads1 = ff_disc_loads();
+        if (edraw_load_screen(scr.sprite, seqs, g, &n2) != 0) {
+            fprintf(stderr, "FAIL edraw reload\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        loads2 = ff_disc_loads();
+        if (loads2 != loads1) {
+            fprintf(stderr, "FAIL edraw reuse disc %d -> %d\n", loads1, loads2);
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        n = n2;
     }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);

@@ -4,6 +4,7 @@
 #include "fs.h"
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,9 +52,8 @@ int dinkc_story_rel(const char *name, char *rel, size_t relsz)
 int dinkc_load(const char *name, char **out, size_t *n)
 {
     char rel[80];
-    FILE *fp;
-    long sz;
-    char *raw;
+    size_t sz = 0;
+    char *txt;
 
     if (out != NULL) {
         *out = NULL;
@@ -65,49 +65,35 @@ int dinkc_load(const char *name, char **out, size_t *n)
         printf("dinkc bad name %s\n", name != NULL ? name : "");
         return -1;
     }
-    fp = dink_fopen(rel, "rb");
-    if (fp == NULL) {
-        printf("dinkc miss %s\n", rel);
-        return -1;
+    {
+        const uint8_t *blob = NULL;
+
+        if (dink_blob_get(rel, &blob, &sz) != 0 || blob == NULL) {
+            printf("dinkc miss %s\n", rel);
+            return -1;
+        }
+        if (sz > (size_t)DINKC_FILE_CAP) {
+            printf("dinkc too big %s %u\n", rel, (unsigned)sz);
+            return -1;
+        }
+        txt = (char *)malloc(sz + 1);
+        if (txt == NULL) {
+            return -1;
+        }
+        if (sz > 0) {
+            memcpy(txt, blob, sz);
+        }
+        txt[sz] = '\0';
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
-        printf("dinkc miss %s\n", rel);
-        return -1;
-    }
-    sz = ftell(fp);
-    if (sz < 0 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        printf("dinkc miss %s\n", rel);
-        return -1;
-    }
-    if (sz > DINKC_FILE_CAP) {
-        fclose(fp);
-        printf("dinkc too big %s %ld\n", rel, sz);
-        return -1;
-    }
-    raw = (char *)malloc((size_t)sz + 1);
-    if (raw == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    if (sz > 0 && fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
-        printf("dinkc miss %s\n", rel);
-        return -1;
-    }
-    fclose(fp);
-    raw[sz] = '\0';
     if (out != NULL) {
-        *out = raw;
+        *out = txt;
     } else {
-        free(raw);
+        free(txt);
     }
     if (n != NULL) {
-        *n = (size_t)sz;
+        *n = sz;
     }
-    printf("dinkc load %s %ld\n", rel, sz);
+    printf("dinkc load %s %u\n", rel, (unsigned)sz);
     return 0;
 }
 

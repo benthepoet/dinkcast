@@ -254,6 +254,8 @@ int main(int argc, char **argv)
             int hid;
 
             memset(&g_hard, 0, sizeof(g_hard));
+            printf("hard load\n");
+            fflush(stdout);
             if (hard_load(&g_hard) != 0) {
                 hud("HARD LOAD FAIL", "hard.dat", msg);
                 for (;;) {
@@ -263,16 +265,25 @@ int main(int argc, char **argv)
             hid = hard_id_for_tile(&g_hard, g_scr.t[0].square_full_idx0,
                                    g_scr.t[0].althard);
             printf("hard tile00 id %d\n", hid);
+            fflush(stdout);
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
+            printf("ini load\n");
+            fflush(stdout);
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
-                int s;
-                for (s = 1; s < DINK_MAX_SEQ; s++) {
-                    if (seqs[s].prefix[0] != '\0' &&
-                        ((s >= 12 && s <= 18) || (s >= 71 && s <= 79) ||
-                         (s >= 101 && s <= 109))) {
-                        seqs[s].nframes = ini_count_ff_frames(seqs[s].prefix);
-                    }
+                int wseq = DINK_BASE_WALK + DINK_START_DIR;
+
+                /* Do not count 12–18/71–79/101–109 (seq 75 bottles, 101
+                 * bow). Pin idle+walk now: first walk after mom unfreeze
+                 * opened walk/dir.ff after the house dir.ff storm and hung. */
+                if (seqs[DINK_IDLE_SEQ].prefix[0] != '\0') {
+                    seqs[DINK_IDLE_SEQ].nframes =
+                        ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix);
+                }
+                if (wseq > 0 && wseq < DINK_MAX_SEQ &&
+                    seqs[wseq].prefix[0] != '\0') {
+                    seqs[wseq].nframes =
+                        ini_count_ff_frames(seqs[wseq].prefix);
                 }
                 printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
@@ -295,8 +306,7 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
-                /* Drop ~2 MiB hard.dat before dir.ff BMP loads (16 MB RAM). */
-                hard_free(&g_hard);
+                /* Keep hard.dat: swap reopen of the 2 MiB file hangs on /cd. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);
@@ -310,6 +320,8 @@ int main(int argc, char **argv)
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
                            (int)g_scr.sprite[1].active, (int)g_spr_ok[1].seq,
                            (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
+                    printf("edraw start\n");
+                    fflush(stdout);
                     if (seqs != NULL) {
                         (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                     }
@@ -406,13 +418,12 @@ int main(int argc, char **argv)
                             pvr_wait_ready();
                             have_scene = 0;
                         }
-                        tiles_draw_clear_pvr(0xff5a3a1a);
                         dinkc_vm_kill_all();
+                        pl.freeze = 0;
+                        dinkc_cmd_thaw_if_idle();
                         saybox_clear();
-                        edraw_free(g_edg, ned);
-                        ned = 0;
-                        /* Keep tile PVR until upload; evict only CPU atlas. */
-                        tiles_free(&g_atlas);
+                        /* Keep editor gfx that the next screen still uses. */
+                        /* Keep tile CPU+PVR until a new atlas is ready. */
                         sprite_frame_free(&spr);
                         hard_mask_free(&mask);
                         printf("enter map %d loc %d\n", player_map, rec2);
@@ -425,15 +436,20 @@ int main(int argc, char **argv)
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
-                        if (hard_load(&g_hard) != 0) {
-                            printf("hard reload fail\n");
+                        if (!g_hard.ready) {
+                            printf("swap hard load\n");
+                            if (hard_load(&g_hard) != 0) {
+                                printf("hard reload fail\n");
+                            }
+                            printf("swap hard loaded\n");
+                        } else {
+                            printf("swap hard keep\n");
                         }
                         /* Stamp even if reload failed: empty hid still
                          * allocates the mask so sprite/warp boxes apply. */
                         if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
                             printf("hard restamp fail\n");
                         }
-                        hard_free(&g_hard);
                         spr_restore("swap-edraw");
                         if (seqs != NULL) {
                             (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
@@ -477,16 +493,27 @@ int main(int argc, char **argv)
                                            hr, hb, hid);
                         }
                         printf("swap stamp ok\n");
-                        if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
-                            printf("swap atlas ok\n");
-                            pvr_wait_ready();
-                            if (tiles_upload_pvr(&g_atlas) != 0) {
-                                printf("swap tiles upload fail\n");
+                        fflush(stdout);
+                        dink_cd_settle();
+                        printf("swap tiles build\n");
+                        fflush(stdout);
+                        {
+                            struct TileAtlas nxt;
+
+                            memset(&nxt, 0, sizeof(nxt));
+                            if (tiles_build_atlas(&g_scr, &nxt) == 0) {
+                                tiles_free(&g_atlas);
+                                g_atlas = nxt;
+                                printf("swap atlas ok\n");
+                                printf("swap tiles upload\n");
+                                if (tiles_upload_pvr(&g_atlas) != 0) {
+                                    printf("swap tiles upload fail\n");
+                                } else {
+                                    printf("swap tiles upload ok\n");
+                                }
                             } else {
-                                printf("swap tiles upload ok\n");
+                                printf("swap atlas fail keep\n");
                             }
-                        } else {
-                            printf("swap atlas fail\n");
                         }
                         if (edraw_upload_pvr(g_edg, ned) != 0) {
                             printf("swap edraw upload fail\n");
@@ -599,6 +626,7 @@ int main(int argc, char **argv)
                     {
                         struct {
                             int rank, x, y, bg;
+                            int al, at, ar, ab;
                             struct SpriteFrame *fr;
                         } draw[101];
                         int nd = 0, a, b;
@@ -629,6 +657,10 @@ int main(int argc, char **argv)
                             draw[nd].x = (int)g_scr.sprite[si].x;
                             draw[nd].y = (int)g_scr.sprite[si].y;
                             draw[nd].bg = (g_scr.sprite[si].type == 0);
+                            draw[nd].al = (int)g_scr.sprite[si].alt_l;
+                            draw[nd].at = (int)g_scr.sprite[si].alt_t;
+                            draw[nd].ar = (int)g_scr.sprite[si].alt_r;
+                            draw[nd].ab = (int)g_scr.sprite[si].alt_b;
                             draw[nd].fr = ef;
                             nd++;
                         }
@@ -637,6 +669,8 @@ int main(int argc, char **argv)
                             draw[nd].x = pl.x;
                             draw[nd].y = pl.y;
                             draw[nd].bg = 0;
+                            draw[nd].al = draw[nd].at = 0;
+                            draw[nd].ar = draw[nd].ab = 0;
                             draw[nd].fr = &spr;
                             nd++;
                         }
@@ -649,25 +683,37 @@ int main(int argc, char **argv)
                                     (bb == ba && draw[b].rank < draw[a].rank)) {
                                     int tr = draw[a].rank, tx = draw[a].x,
                                         ty = draw[a].y, tb = draw[a].bg;
+                                    int tal = draw[a].al, tat = draw[a].at,
+                                        tar = draw[a].ar, tab = draw[a].ab;
                                     struct SpriteFrame *tf = draw[a].fr;
 
                                     draw[a].rank = draw[b].rank;
                                     draw[a].x = draw[b].x;
                                     draw[a].y = draw[b].y;
                                     draw[a].bg = draw[b].bg;
+                                    draw[a].al = draw[b].al;
+                                    draw[a].at = draw[b].at;
+                                    draw[a].ar = draw[b].ar;
+                                    draw[a].ab = draw[b].ab;
                                     draw[a].fr = draw[b].fr;
                                     draw[b].rank = tr;
                                     draw[b].x = tx;
                                     draw[b].y = ty;
                                     draw[b].bg = tb;
+                                    draw[b].al = tal;
+                                    draw[b].at = tat;
+                                    draw[b].ar = tar;
+                                    draw[b].ab = tab;
                                     draw[b].fr = tf;
                                 }
                             }
                         }
                         for (a = 0; a < nd; a++) {
-                            sprite_draw_pvr(draw[a].fr, (float)draw[a].x,
-                                            (float)draw[a].y,
-                                            1.5f + (float)a * 0.01f);
+                            sprite_draw_pvr_alt(draw[a].fr, (float)draw[a].x,
+                                                (float)draw[a].y,
+                                                1.5f + (float)a * 0.01f,
+                                                draw[a].al, draw[a].at,
+                                                draw[a].ar, draw[a].ab);
                         }
                         saybox_draw_pvr(3.0f);
                         saybox_draw_choices_pvr(3.1f);
