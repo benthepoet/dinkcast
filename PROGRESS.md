@@ -92,8 +92,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | this PR |
 | 2026-08-19 | hard.dat FILE* + rec reads; no mid-file yield; /cd mutex | this PR |
 | 2026-08-19 | `make chd-redream` 3-track MODE1/2352 CHD for Redream | this PR |
-| 2026-08-19 | Sector-pad staged disc files + boot binary (KOS #1492 stream abort) | this PR |
-| 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | this PR |
+| 2026-08-19 | Sector-pad staged disc files + boot binary (KOS #1492 stream abort) | #61 |
+| 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | #61 |
+| 2026-08-19 | First-open /cd hang retired in Flycast (3 clean cold boots) | requester report |
 
 ## Bites
 
@@ -158,11 +159,11 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-18)
+### Current (2026-08-19)
 
 | | | |
 |---|---|---|
-| **Overall** | **~88%** | Opening house + DinkC + on-screen say |
+| **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
 | **Next picture (V6 inv/HUD)** | **~40%** | After 14–15 |
 | **Hardest remaining** | Screen change + brains | 14 / 15 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
@@ -188,3 +189,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-17 (8.6 house) | **~85%** / house **~95%** | Official start interior on Flycast. Stack smash + sprite align in GOTCHAS. DinkC still the pole. |
 | 2026-08-18 (V5 say) | **~88%** / say **~95%** | On-screen `say_stop` + freeze thaw. Next picture V6. |
 | 2026-08-19 (CD hang root cause) | **~88%** (unmoved) | First-open /cd hang = KOS fs_iso9660 stream abort on non-2048-multiple files (KOS #1492, hardware-confirmed there). Images now sector-padded at build; hang retirement pending Flycast/hardware confirmation. |
+| 2026-08-19 (CD hang retired) | **~90%** | 3 consecutive clean cold boots after #61 sector padding (leave-title, house door, village). Random-lockup class gone from the dev loop; hardware/ODE confirmation still open. DinkC coverage back as the pole. |

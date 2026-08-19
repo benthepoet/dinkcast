@@ -1,5 +1,9 @@
 # First-open `/cd` hang — root cause (KOS fs_iso9660 stream abort)
 
+**Status: retired in Flycast** — sector padding (#61) plus three
+consecutive clean cold boots (leave-title, house door, village traverse),
+2026-08-19. Hardware/ODE confirmation still pending.
+
 Follow-up to [FIRST-OPEN-CD-HANG.md](FIRST-OPEN-CD-HANG.md). **Analysis only.**
 Not a plan bite; remedies below are options, not an approved sequence.
 
