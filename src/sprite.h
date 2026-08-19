@@ -21,7 +21,7 @@ int sprite_pixel_opaque(uint16_t p);
 void sprite_frame_free(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). */
-int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
+int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out);
 
 /* get_box alt crop. 1 if trimmed. sl/st/sr/sb are exclusive-right src. */

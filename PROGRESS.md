@@ -80,6 +80,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Keep `map.dat` open; LRU `dir.ff`; reuse edraw | this PR |
 | 2026-08-19 | Keep unused editor CPU; cache ts sheets | this PR |
 | 2026-08-19 | CD settle after slurp; drop dir.ff after decode | this PR |
+| 2026-08-19 | Do not count bow/bottles dir.ff at boot | this PR |
 
 ## Bites
 

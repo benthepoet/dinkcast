@@ -266,17 +266,11 @@ int main(int argc, char **argv)
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
-                int s;
-                for (s = 1; s < DINK_MAX_SEQ; s++) {
-                    if (seqs[s].prefix[0] != '\0' &&
-                        ((s >= 12 && s <= 18) || (s >= 71 && s <= 79) ||
-                         (s >= 101 && s <= 109))) {
-                        seqs[s].nframes = ini_count_ff_frames(seqs[s].prefix);
-                    }
-                }
-                printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
-                       DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
-                       seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
+                /* Do not ini_count 12–18/71–79/101–109 here: seq 75 is
+                 * bottles and 101 is bow; those dir.ff hangs boot. Count
+                 * when the seq is first drawn. */
+                printf("ini seq %d prefix %s cx %d cy %d\n", DINK_IDLE_SEQ,
+                       seqs[DINK_IDLE_SEQ].prefix, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
             }
             {
@@ -482,6 +476,7 @@ int main(int argc, char **argv)
                         }
                         printf("swap stamp ok\n");
                         fflush(stdout);
+                        dink_cd_settle();
                         printf("swap tiles build\n");
                         fflush(stdout);
                         if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {

@@ -46,7 +46,7 @@ static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
                       (b >> 3));
 }
 
-int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
+int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out)
 {
     char dir[160], base[32], name[24];
@@ -72,6 +72,24 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
              frame);
     if (ff_cached(dir, &ff) != 0 || ff == NULL) {
         return -1;
+    }
+    if (seq->nframes < 1) {
+        int nf = 0, fi;
+
+        for (fi = 1; fi < DINK_MAX_FRAMES; fi++) {
+            const uint8_t *p;
+            size_t ln;
+            char fn[24];
+
+            snprintf(fn, sizeof(fn), fi < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
+                     fi);
+            if (ff_find(ff, fn, &p, &ln) != 0) {
+                break;
+            }
+            nf = fi;
+        }
+        seq->nframes = nf;
+        printf("seq %d nframes %d\n", seqn, nf);
     }
     if (ff_find(ff, name, &bmp, &bn) != 0) {
         return -1;
