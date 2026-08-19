@@ -39,13 +39,28 @@ if [ -z "$MKDCDISC" ]; then
     fi
 fi
 
-# mkdcdisc -d DIR puts a folder named basename(DIR) on the disc.
-# Staging as build/iso produced /cd/iso (Flycast listing). Pass the
-# data tree itself so the folder is "dink" → /cd/dink.
+# mkdcdisc -d DIR puts a folder named basename(DIR) on the disc. Pass a
+# staged tree named "dink" → /cd/dink. Staging (copy, never in place —
+# Docker mounts DINK_DATA read-only) also sector-pads every file:
+# non-2048-multiple sizes leave a live GD-ROM DMA stream aborted with data
+# queued and can wedge the drive (KOS issue #1492, docs/CD-HANG-ROOTCAUSE.md).
+# NB: build/iso is avoided — a root-owned symlink build/iso/dink -> /dink
+# from an early Docker run cannot be removed by the container user.
+STAGE="$ROOT/build/stage/dink"
+sh "$ROOT/tools/stage_dink.sh" "$DATA" "$STAGE"
+
+# Boot binary: objcopy to a raw image and pad it too — an unpadded
+# 1ST_READ.BIN leaves the same multi-read residue at the BIOS→KOS handoff.
+# -b takes an unscrambled binary (load 0x8c010000); mkdcdisc scrambles it.
+OBJCOPY=${OBJCOPY:-sh-elf-objcopy}
+BOOTBIN="$ROOT/build/dinkcast-boot.bin"
+"$OBJCOPY" -O binary "$ELF" "$BOOTBIN"
+sh "$ROOT/tools/pad2048.sh" "$BOOTBIN"
+
 mkdir -p "$(dirname "$OUT")"
 set -x
 # -I dumps the data track .iso next to the .cdi for tools/make_chd.sh.
-"$MKDCDISC" -e "$ELF" -o "$OUT" -d "$DATA" -n DINKCAST -I
+"$MKDCDISC" -b "$BOOTBIN" -o "$OUT" -d "$STAGE" -n DINKCAST -I
 set +x
 ls -l "$OUT"
-echo "OK $OUT (data -> /cd/$(basename "$DATA"))"
+echo "OK $OUT (data -> /cd/$(basename "$STAGE"))"

@@ -67,7 +67,11 @@ file position). Our Docker KOS image (`15.2.1-dev-08feb26`) includes it.
   the BIOS→KOS handoff and caused a random wedge at KOS's first GD-ROM
   command.
 
-## Remedy options (ranked, not approved)
+## Remedy options (ranked)
+
+**1 and 2 are implemented** (fix branch: `tools/stage_dink.sh` +
+`tools/pad2048.sh` in `make_cdi.sh`; the staged tree and the boot binary
+are padded, the source tree is never touched).
 
 1. **Sector-pad data files at image build.** The reporter's confirmed
    fix: pad files to 2048-byte multiples → stream drains fully,

@@ -92,6 +92,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | this PR |
 | 2026-08-19 | hard.dat FILE* + rec reads; no mid-file yield; /cd mutex | this PR |
 | 2026-08-19 | `make chd-redream` 3-track MODE1/2352 CHD for Redream | this PR |
+| 2026-08-19 | Sector-pad staged disc files + boot binary (KOS #1492 stream abort) | this PR |
+| 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | this PR |
 
 ## Bites
 
@@ -185,3 +187,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-16 (V1 accepted) | **~85%** / title **~98%** | Splash on Flycast+BIOS; Docker CDI works; ISO/twiddle/REIOS now in GOTCHAS. DinkC still untouched. |
 | 2026-08-17 (8.6 house) | **~85%** / house **~95%** | Official start interior on Flycast. Stack smash + sprite align in GOTCHAS. DinkC still the pole. |
 | 2026-08-18 (V5 say) | **~88%** / say **~95%** | On-screen `say_stop` + freeze thaw. Next picture V6. |
+| 2026-08-19 (CD hang root cause) | **~88%** (unmoved) | First-open /cd hang = KOS fs_iso9660 stream abort on non-2048-multiple files (KOS #1492, hardware-confirmed there). Images now sector-padded at build; hang retirement pending Flycast/hardware confirmation. |
