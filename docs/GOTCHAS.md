@@ -35,6 +35,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Brown then stripes = decode OK, upload/format wrong.** Red HUD = never found data (or ELF never ran).
 - **640×480 is not a texture size.** Pad to 1024×512; sample with UVs `640/1024`, `480/512`.
 - **`pvr_wait_ready` before `pvr_mem_free` of a texture still in the last scene.** Walk/idle frames share a similar `cx`; punch (`ds-h*`, cx ~58) then idle (`ds-i*`, cx ~36) does not. Evict after `scene_finish` but before the next wait and the GPU still samples the old quad — idle pixels appear left of Dink. Wait, then swap.
+- **Do not `pvr_wait_ready` when no scene is in flight.** After swap-start wait, edraw CPU work leaves the GPU idle. A second wait before `tiles_upload_pvr` can freeze (`swap atlas ok` then silence; house/outdoor tiles stay). Wait once at swap start (`have_scene`), then upload.
 - **`pvr_shutdown` on leave-title leaves the splash in the last PVR frame.** Flycast keeps showing it while we load `map.dat` / editor BMPs (serial already says `leave_title`). Re-`pvr_init` and draw a brown clear immediately, then load. Do not wait until `tiles_upload_pvr`.
 
 ## Screen changes

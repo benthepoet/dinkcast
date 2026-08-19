@@ -484,7 +484,9 @@ int main(int argc, char **argv)
                         printf("swap stamp ok\n");
                         if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
                             printf("swap atlas ok\n");
-                            pvr_wait_ready();
+                            /* Do not pvr_wait_ready here: after the swap-start
+                             * wait the GPU is idle; a second wait can hang. */
+                            printf("swap tiles upload\n");
                             if (tiles_upload_pvr(&g_atlas) != 0) {
                                 printf("swap tiles upload fail\n");
                             } else {
