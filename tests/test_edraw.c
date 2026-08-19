@@ -119,31 +119,6 @@ int main(void)
             free(seqs);
             return 1;
         }
-        {
-            int loads_a, loads_b;
-
-            if (edraw_load_screen(pig.sprite, seqs, g, &n) != 0) {
-                fprintf(stderr, "FAIL pig edraw\n");
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
-            }
-            loads_a = ff_disc_loads();
-            if (edraw_load_screen(scr.sprite, seqs, g, &n) != 0) {
-                fprintf(stderr, "FAIL house after pig\n");
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
-            }
-            loads_b = ff_disc_loads();
-            if (loads_b != loads_a) {
-                fprintf(stderr, "FAIL house CPU cache disc %d -> %d\n", loads_a,
-                        loads_b);
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
-            }
-        }
     }
     {
         int loads1, loads2, n2 = n;

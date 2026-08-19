@@ -152,6 +152,41 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].frame = need_f[k];
             g[got].live = 1;
             got++;
+            /* Neighbor screens reuse this seq with other frames (yard
+             * home- 1/2/11, east 3/4). Decode the rest while dir.ff is
+             * open; reopening the pack hangs /cd. */
+            {
+                int nfr = seqs[need_s[k]].nframes;
+                int fi;
+
+                if (nfr > 24) {
+                    nfr = 0;
+                }
+                for (fi = 1; fi <= nfr; fi++) {
+                    int live = 0, d;
+
+                    if (edraw_find(g, got, need_s[k], fi) != NULL) {
+                        continue;
+                    }
+                    if (got >= DINK_EDGFX_MAX) {
+                        break;
+                    }
+                    if (sprite_load_seq_frame(&seqs[need_s[k]], need_s[k], fi,
+                                              &g[got].fr) != 0) {
+                        continue;
+                    }
+                    for (d = 0; d < nneed; d++) {
+                        if (need_s[d] == need_s[k] && need_f[d] == fi) {
+                            live = 1;
+                            break;
+                        }
+                    }
+                    g[got].seq = need_s[k];
+                    g[got].frame = fi;
+                    g[got].live = live;
+                    got++;
+                }
+            }
         }
         for (i = 0; i < got; i++) {
             if (!g[i].live) {
