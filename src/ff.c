@@ -106,7 +106,8 @@ int ff_load_rel(const char *rel, struct FfFile *out)
     return 0;
 }
 
-#define DINK_FF_SLOTS 8
+#define DINK_FF_SLOTS 32
+#define DINK_FF_PIN_BYTES (80u * 1024u)
 
 static struct {
     char rel[160];
@@ -166,15 +167,7 @@ void ff_cache_clear(void)
 
 void ff_cache_drop_unpinned(void)
 {
-    int i;
-
-    for (i = 0; i < DINK_FF_SLOTS; i++) {
-        if (!g_slot[i].pin && g_slot[i].rel[0] != '\0') {
-            ff_free(&g_slot[i].ff);
-            g_slot[i].rel[0] = '\0';
-            g_slot[i].tick = 0;
-        }
-    }
+    /* Large packs stay. Reopening trees/home/walls hangs /cd. */
 }
 
 int ff_cached(const char *rel, struct FfFile **out)
@@ -202,11 +195,17 @@ int ff_cached(const char *rel, struct FfFile **out)
     }
     if (hit >= 0) {
         g_slot[hit].tick = g_tick;
+        printf("ff hit %s\n", rel);
         *out = &g_slot[hit].ff;
         return 0;
     }
     if (empty < 0) {
-        empty = victim >= 0 ? victim : 0;
+        if (victim < 0) {
+            printf("ff cache full no victim %s\n", rel);
+            return -1;
+        }
+        printf("ff evict %s\n", g_slot[victim].rel);
+        empty = victim;
         ff_free(&g_slot[empty].ff);
         g_slot[empty].rel[0] = '\0';
         g_slot[empty].pin = 0;
@@ -214,6 +213,9 @@ int ff_cached(const char *rel, struct FfFile **out)
     if (ff_load_rel(rel, &g_slot[empty].ff) != 0) {
         g_slot[empty].rel[0] = '\0';
         return -1;
+    }
+    if (g_slot[empty].ff.n >= DINK_FF_PIN_BYTES) {
+        pin = 1;
     }
     snprintf(g_slot[empty].rel, sizeof(g_slot[empty].rel), "%s", rel);
     g_slot[empty].pin = pin;
