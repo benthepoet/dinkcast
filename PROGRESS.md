@@ -83,7 +83,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Do not count bow/bottles dir.ff at boot | this PR |
 | 2026-08-19 | Decode all frames of a seq while dir.ff is open | this PR |
 | 2026-08-19 | Pin large dir.ff for the session (no reopen) | this PR |
-| 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | this PR |
+| 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | dropped; blob cache |
 | 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | this PR |
 | 2026-08-19 | Pin idle+walk dir.ff before house edraw | this PR |
 | 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | this PR |

@@ -248,9 +248,6 @@ int main(int argc, char **argv)
         printf("atlas cells %d sprite1 seq=%d y=%d esz=%d\n", g_atlas.used,
                (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
                (int)sizeof(struct EditorSprite));
-        /* Yard/east need ts02. Opening it after home-/trees dir.ff hangs. */
-        (void)tiles_warm_sheet(1);
-        (void)tiles_warm_sheet(2);
         {
             struct SeqInfo *seqs;
             struct SpriteFrame spr;

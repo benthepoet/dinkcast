@@ -168,17 +168,6 @@ static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
     }
 }
 
-int tiles_warm_sheet(int sheet0)
-{
-    uint16_t *pix = NULL;
-    int w = 0, h = 0;
-
-    if (sheet0 < 0 || sheet0 >= 41) {
-        return -1;
-    }
-    return ts_sheet(sheet0, &pix, &w, &h);
-}
-
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
 {
     int i, slot;
