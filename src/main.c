@@ -295,8 +295,7 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
-                /* Drop ~2 MiB hard.dat before dir.ff BMP loads (16 MB RAM). */
-                hard_free(&g_hard);
+                /* Keep hard.dat: swap reopen of the 2 MiB file hangs on /cd. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);
@@ -424,17 +423,20 @@ int main(int argc, char **argv)
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
-                        printf("swap hard load\n");
-                        if (hard_load(&g_hard) != 0) {
-                            printf("hard reload fail\n");
+                        if (g_hard.raw == NULL) {
+                            printf("swap hard load\n");
+                            if (hard_load(&g_hard) != 0) {
+                                printf("hard reload fail\n");
+                            }
+                            printf("swap hard loaded\n");
+                        } else {
+                            printf("swap hard keep n=%d\n", (int)g_hard.n);
                         }
-                        printf("swap hard loaded\n");
                         /* Stamp even if reload failed: empty hid still
                          * allocates the mask so sprite/warp boxes apply. */
                         if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
                             printf("hard restamp fail\n");
                         }
-                        hard_free(&g_hard);
                         spr_restore("swap-edraw");
                         if (seqs != NULL) {
                             (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
