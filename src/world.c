@@ -40,40 +40,20 @@ int world_parse_mem(const uint8_t *p, size_t n, struct World *out)
 
 int world_load(struct World *out)
 {
-    FILE *fp;
-    uint8_t *raw;
-    long sz;
+    const uint8_t *raw;
+    size_t sz;
     int rc;
 
     if (out == NULL) {
         return -1;
     }
-    fp = dink_fopen("dink.dat", "rb");
-    if (fp == NULL) {
+    raw = NULL;
+    sz = 0;
+    if (dink_blob_get("dink.dat", &raw, &sz) != 0 || raw == NULL ||
+        sz < (size_t)DINK_DAT_SIZE) {
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    sz = ftell(fp);
-    if (sz < DINK_DAT_SIZE || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    raw = (uint8_t *)malloc((size_t)sz);
-    if (raw == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    rc = world_parse_mem(raw, (size_t)sz, out);
-    free(raw);
+    rc = world_parse_mem(raw, sz, out);
     return rc;
 }
 

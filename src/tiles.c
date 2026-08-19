@@ -58,13 +58,9 @@ int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3])
     return 0;
 }
 
-static int slurp_rel(const char *rel, uint8_t **out, size_t *n)
+static int slurp_rel(const char *rel, const uint8_t **out, size_t *n)
 {
-    if (dink_slurp_rel(rel, out, n) != 0 || n == NULL || *n < 54) {
-        if (out != NULL) {
-            free(*out);
-            *out = NULL;
-        }
+    if (dink_blob_get(rel, out, n) != 0 || n == NULL || *n < 54) {
         return -1;
     }
     return 0;
@@ -82,7 +78,7 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
 {
     int i, empty = -1;
     char rel[32];
-    uint8_t *raw = NULL;
+    const uint8_t *raw = NULL;
     size_t n = 0;
     struct Bitmap bm;
     uint16_t *p = NULL;
@@ -108,10 +104,8 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     printf("tiles slurp ok %s %u\n", rel, (unsigned)n);
     memset(&bm, 0, sizeof(bm));
     if (bitmap_load_mem(raw, n, &bm) != 0) {
-        free(raw);
         return -1;
     }
-    free(raw);
     if (rgb565_from_bitmap(&bm, &p, &npx) != 0) {
         bitmap_free(&bm);
         return -1;

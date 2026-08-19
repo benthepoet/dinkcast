@@ -36,15 +36,14 @@ void hard_free(struct HardMap *h)
     if (h == NULL) {
         return;
     }
-    free(h->raw);
     h->raw = NULL;
     h->n = 0;
 }
 
 int hard_load(struct HardMap *out)
 {
+    const uint8_t *raw;
     size_t sz;
-    uint8_t *raw;
     int rc;
 
     if (out == NULL) {
@@ -52,16 +51,16 @@ int hard_load(struct HardMap *out)
     }
     hard_free(out);
     raw = NULL;
-    if (dink_slurp_rel("hard.dat", &raw, &sz) != 0) {
+    sz = 0;
+    if (dink_blob_get("hard.dat", &raw, &sz) != 0 || raw == NULL) {
         return -1;
     }
     rc = hard_parse_defaults(raw, sz, out);
     if (rc != 0) {
-        free(raw);
         return -1;
     }
-    out->raw = raw;
-    out->n = (size_t)sz;
+    out->raw = (uint8_t *)raw;
+    out->n = sz;
     return 0;
 }
 

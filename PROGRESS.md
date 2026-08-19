@@ -86,6 +86,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | this PR |
 | 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | this PR |
 | 2026-08-19 | Pin idle+walk dir.ff before house edraw | this PR |
+| 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | this PR |
+| 2026-08-19 | Blob cache grows; never evict borrowed dir.ff/hard.dat | this PR |
 
 ## Bites
 

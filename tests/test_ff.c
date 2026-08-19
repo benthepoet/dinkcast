@@ -47,22 +47,34 @@ int main(void)
         ff_free(&ff);
         {
             struct FfFile *a = NULL, *b = NULL;
-            int loads;
+            int o0, o1, o2;
 
-            ff_cache_clear();
+            o0 = dink_disc_opens();
+            if (ff_cached("graphics/dink/idle/dir.ff", &a) != 0) {
+                fprintf(stderr, "FAIL ff cache idle\n");
+                return 1;
+            }
+            o1 = dink_disc_opens();
             if (ff_cached("graphics/dink/idle/dir.ff", &a) != 0 ||
-                ff_cached("graphics/dink/walk/dir.ff", &b) != 0 ||
-                ff_cached("graphics/dink/idle/dir.ff", &a) != 0 ||
-                ff_cached("graphics/dink/walk/dir.ff", &b) != 0) {
-                fprintf(stderr, "FAIL ff cache load\n");
+                dink_disc_opens() != o1) {
+                fprintf(stderr, "FAIL idle slurped twice %d -> %d\n", o1,
+                        dink_disc_opens());
                 return 1;
             }
-            loads = ff_disc_loads();
-            if (loads != 2) {
-                fprintf(stderr, "FAIL ff cache disc_loads=%d want 2\n", loads);
+            if (ff_cached("graphics/dink/walk/dir.ff", &b) != 0) {
+                fprintf(stderr, "FAIL ff cache walk\n");
                 return 1;
             }
-            ff_cache_clear();
+            o2 = dink_disc_opens();
+            if (ff_cached("graphics/dink/walk/dir.ff", &b) != 0 ||
+                dink_disc_opens() != o2) {
+                fprintf(stderr, "FAIL walk slurped twice\n");
+                return 1;
+            }
+            if (o2 - o0 > 2) {
+                fprintf(stderr, "FAIL extra disc_opens %d\n", o2 - o0);
+                return 1;
+            }
         }
     }
     (void)nent;

@@ -14,7 +14,9 @@ void ff_free(struct FfFile *ff)
     if (ff == NULL) {
         return;
     }
-    free(ff->data);
+    if (!ff->borrowed) {
+        free(ff->data);
+    }
     free(ff->ent);
     memset(ff, 0, sizeof(*ff));
 }
@@ -83,7 +85,7 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
 
 int ff_load_rel(const char *rel, struct FfFile *out)
 {
-    uint8_t *raw;
+    const uint8_t *raw;
     size_t n;
 
     if (rel == NULL || out == NULL) {
@@ -92,16 +94,15 @@ int ff_load_rel(const char *rel, struct FfFile *out)
     printf("ff load %s\n", rel);
     raw = NULL;
     n = 0;
-    if (dink_slurp_rel(rel, &raw, &n) != 0 || n < 4) {
-        free(raw);
+    if (dink_blob_get(rel, &raw, &n) != 0 || raw == NULL || n < 4) {
         return -1;
     }
     if (ff_parse_ents(raw, n, out) != 0) {
-        free(raw);
         return -1;
     }
-    out->data = raw;
+    out->data = (uint8_t *)raw;
     out->n = n;
+    out->borrowed = 1;
     printf("ff ok %s %u\n", rel, (unsigned)n);
     return 0;
 }
@@ -116,7 +117,6 @@ static struct {
     int tick;
 } g_slot[DINK_FF_SLOTS];
 static int g_tick;
-static int g_disc_loads;
 
 static int rel_has(const char *rel, const char *needle)
 {
@@ -149,7 +149,7 @@ static int rel_has(const char *rel, const char *needle)
 
 int ff_disc_loads(void)
 {
-    return g_disc_loads;
+    return dink_disc_opens();
 }
 
 void ff_cache_clear(void)
@@ -219,7 +219,6 @@ int ff_cached(const char *rel, struct FfFile **out)
     snprintf(g_slot[empty].rel, sizeof(g_slot[empty].rel), "%s", rel);
     g_slot[empty].pin = pin;
     g_slot[empty].tick = g_tick;
-    g_disc_loads++;
     *out = &g_slot[empty].ff;
     return 0;
 }

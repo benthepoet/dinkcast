@@ -17,6 +17,7 @@ struct FfFile {
     size_t n;
     struct FfEntry *ent;
     int nent;
+    int borrowed; /* 1 = data is dink_blob_get; ff_free must not free it */
 };
 
 void ff_free(struct FfFile *ff);

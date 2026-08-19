@@ -15,6 +15,8 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 
 ## Disc and `/cd`
 
+- **One I/O policy: open a relative game-data path once per session.** `dink_blob_get` / `dink_disc_opens` own the cache. Repeat `dir.ff`, tilesheet BMP, `hard.dat`, `dink.ini`, story, `dink.dat` must not `fopen` again. `map.dat` stays a single `FILE*` (`dink_disc_note_open` once). Swap decodes **live** frames from cached packs and frees unused pixels. Do not `SEEK_END`. Do not `vid_waitvbl` on every fclose. A first Flycast `/cd` read may still hang; this policy is open-once + RAM, not an emu fix.
+- **Do not free a blob while ff/hard still point at it.** `dink_blob_get` pointers stay valid until `dink_blob_clear`. `ff_load_rel` / `hard_load` borrow them. A 64-slot overflow that `free`s the smallest unpinned file UAFs a live `dir.ff` and reopens it. Grow the table; never evict a live slot to insert another.
 - **`mkdcdisc -d DIR` uses `basename(DIR)` as the folder on the disc.** `-d build/iso` → `/cd/iso/...`. Pass the data tree named `dink` → `/cd/dink`.
 - **ISO9660 is 8.3 / often `DINK.DAT`.** `stat("/cd/dink")` can fail; `S_ISDIR` is untrustworthy. `opendir` and open `dink.dat` (case-insensitive). Also try `/cd`, `/cd/DINK`, leftover `/cd/iso`.
 - **Empty directory is not a data root.** Only accept a root if `dink.dat` opens.

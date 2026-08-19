@@ -142,6 +142,7 @@ int map_load_record(int rec, struct MapScreen *out)
         if (fp == NULL) {
             return -1;
         }
+        dink_disc_note_open();
     }
     hold = (long)DINK_MAP_RECSIZE * (long)(rec - 1);
     if (fseek(fp, hold, SEEK_SET) != 0) {
