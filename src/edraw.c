@@ -97,9 +97,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             break;
         }
         printf("edraw load seq=%d fr=%d\n", seq, fr);
-        if (seqs[seq].nframes <= 0) {
-            seqs[seq].nframes = ini_count_ff_frames(seqs[seq].prefix);
-        }
+        /* Do not ini_count_ff_frames here: it fread's the whole dir.ff, then
+         * sprite_load fread's it again (home- ~692 KB). */
         if (sprite_load_seq_frame(&seqs[seq], seq, fr, &g[got].fr) != 0) {
             printf("edraw skip seq=%d frame=%d\n", seq, fr);
             continue;

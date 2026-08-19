@@ -5,6 +5,7 @@
 #include "le.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,7 +31,7 @@ static int name_eq(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
-int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
+static int ff_parse_ents(const uint8_t *p, size_t n, struct FfFile *out)
 {
     uint32_t nent;
     size_t off;
@@ -62,6 +63,14 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
         out->ent[i].name[12] = '\0';
         off += 17;
     }
+    return 0;
+}
+
+int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
+{
+    if (ff_parse_ents(p, n, out) != 0) {
+        return -1;
+    }
     out->data = (uint8_t *)malloc(n);
     if (out->data == NULL) {
         ff_free(out);
@@ -77,7 +86,7 @@ int ff_load_rel(const char *rel, struct FfFile *out)
     FILE *fp;
     long sz;
     uint8_t *raw;
-    int rc;
+    size_t got, chunk, nrd;
 
     fp = dink_fopen(rel, "rb");
     if (fp == NULL) {
@@ -92,20 +101,36 @@ int ff_load_rel(const char *rel, struct FfFile *out)
         fclose(fp);
         return -1;
     }
+    printf("ff load %s %ld\n", rel, sz);
     raw = (uint8_t *)malloc((size_t)sz);
     if (raw == NULL) {
         fclose(fp);
         return -1;
     }
-    if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
-        return -1;
+    /* One giant fread from /cd can stall (seq 63 home- dir.ff ~692 KB). */
+    got = 0;
+    while (got < (size_t)sz) {
+        chunk = (size_t)sz - got;
+        if (chunk > 32u * 1024u) {
+            chunk = 32u * 1024u;
+        }
+        nrd = fread(raw + got, 1, chunk, fp);
+        if (nrd == 0) {
+            free(raw);
+            fclose(fp);
+            return -1;
+        }
+        got += nrd;
     }
     fclose(fp);
-    rc = ff_parse_mem(raw, (size_t)sz, out);
-    free(raw);
-    return rc;
+    if (ff_parse_ents(raw, (size_t)sz, out) != 0) {
+        free(raw);
+        return -1;
+    }
+    out->data = raw;
+    out->n = (size_t)sz;
+    printf("ff ok %s\n", rel);
+    return 0;
 }
 
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
