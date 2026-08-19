@@ -148,6 +148,7 @@ check:
 	$(PYTHON) tools/check_progress.py
 	$(PYTHON) tests/test_run_emu.py
 	$(PYTHON) tests/test_make_chd.py
+	$(PYTHON) tests/test_stage_dink.py
 	$(PYTHON) tests/test_gdrom_from_msiso.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py

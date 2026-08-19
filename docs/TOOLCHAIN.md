@@ -163,7 +163,7 @@ make chd-redream # build/dinkcast-redream.chd (3-track 2352 GD-ROM; Redream)
 make emu         # Flycast on the MIL-CD CHD (not the Redream file)
 ```
 
-`make cdi` stages `build/iso/dink` → your `DINK_DATA` so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`).
+`make cdi` stages `build/stage/dink` from your `DINK_DATA` (copy; the source tree is never touched) so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`). Staging sector-pads every file to a 2048-byte multiple and the boot binary is padded likewise — see [CD-HANG-ROOTCAUSE.md](CD-HANG-ROOTCAUSE.md) (KOS issue #1492).
 
 A CDI **without** the data tree will boot the color field / red `missing dink.dat` screen. Title splash needs `tiles/Splash.bmp` on the disc.
 
