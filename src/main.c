@@ -606,6 +606,7 @@ int main(int argc, char **argv)
                     {
                         struct {
                             int rank, x, y, bg;
+                            int al, at, ar, ab;
                             struct SpriteFrame *fr;
                         } draw[101];
                         int nd = 0, a, b;
@@ -636,6 +637,10 @@ int main(int argc, char **argv)
                             draw[nd].x = (int)g_scr.sprite[si].x;
                             draw[nd].y = (int)g_scr.sprite[si].y;
                             draw[nd].bg = (g_scr.sprite[si].type == 0);
+                            draw[nd].al = (int)g_scr.sprite[si].alt_l;
+                            draw[nd].at = (int)g_scr.sprite[si].alt_t;
+                            draw[nd].ar = (int)g_scr.sprite[si].alt_r;
+                            draw[nd].ab = (int)g_scr.sprite[si].alt_b;
                             draw[nd].fr = ef;
                             nd++;
                         }
@@ -644,6 +649,8 @@ int main(int argc, char **argv)
                             draw[nd].x = pl.x;
                             draw[nd].y = pl.y;
                             draw[nd].bg = 0;
+                            draw[nd].al = draw[nd].at = 0;
+                            draw[nd].ar = draw[nd].ab = 0;
                             draw[nd].fr = &spr;
                             nd++;
                         }
@@ -656,25 +663,37 @@ int main(int argc, char **argv)
                                     (bb == ba && draw[b].rank < draw[a].rank)) {
                                     int tr = draw[a].rank, tx = draw[a].x,
                                         ty = draw[a].y, tb = draw[a].bg;
+                                    int tal = draw[a].al, tat = draw[a].at,
+                                        tar = draw[a].ar, tab = draw[a].ab;
                                     struct SpriteFrame *tf = draw[a].fr;
 
                                     draw[a].rank = draw[b].rank;
                                     draw[a].x = draw[b].x;
                                     draw[a].y = draw[b].y;
                                     draw[a].bg = draw[b].bg;
+                                    draw[a].al = draw[b].al;
+                                    draw[a].at = draw[b].at;
+                                    draw[a].ar = draw[b].ar;
+                                    draw[a].ab = draw[b].ab;
                                     draw[a].fr = draw[b].fr;
                                     draw[b].rank = tr;
                                     draw[b].x = tx;
                                     draw[b].y = ty;
                                     draw[b].bg = tb;
+                                    draw[b].al = tal;
+                                    draw[b].at = tat;
+                                    draw[b].ar = tar;
+                                    draw[b].ab = tab;
                                     draw[b].fr = tf;
                                 }
                             }
                         }
                         for (a = 0; a < nd; a++) {
-                            sprite_draw_pvr(draw[a].fr, (float)draw[a].x,
-                                            (float)draw[a].y,
-                                            1.5f + (float)a * 0.01f);
+                            sprite_draw_pvr_alt(draw[a].fr, (float)draw[a].x,
+                                                (float)draw[a].y,
+                                                1.5f + (float)a * 0.01f,
+                                                draw[a].al, draw[a].at,
+                                                draw[a].ar, draw[a].ab);
                         }
                         saybox_draw_pvr(3.0f);
                         saybox_draw_choices_pvr(3.1f);

@@ -91,6 +91,34 @@ int main(void)
             return 1;
         }
     }
+    {
+        struct MapScreen pig;
+        int prec = (int)w.loc[407];
+
+        if (prec < 1 || map_load_record(prec, &pig) != 0) {
+            fprintf(stderr, "FAIL pig map loc=%d\n", prec);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (pig.sprite[23].seq != 93 || pig.sprite[23].alt_l != 128 ||
+            pig.sprite[23].alt_r != 185 || pig.sprite[18].alt_r != 65 ||
+            pig.sprite[62].type != DINK_SPR_TYPE_INVISIBLE) {
+            fprintf(stderr, "FAIL pig alt/type 23=%d,%d 18r=%d t62=%d\n",
+                    (int)pig.sprite[23].alt_l, (int)pig.sprite[23].alt_r,
+                    (int)pig.sprite[18].alt_r, (int)pig.sprite[62].type);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (editor_sprite_draw(&pig.sprite[62], DINK_VISION_DEFAULT) ||
+            editor_sprite_draw(&pig.sprite[60], DINK_VISION_DEFAULT)) {
+            fprintf(stderr, "FAIL pig type2 drawn\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);

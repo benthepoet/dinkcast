@@ -100,6 +100,13 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 120, &out->sprite[i].hard) != 0) {
             return -1;
         }
+        /* FreeDink rect alt after hard (+124). */
+        if (le_i32(p, n, off + 124, &out->sprite[i].alt_l) != 0 ||
+            le_i32(p, n, off + 128, &out->sprite[i].alt_t) != 0 ||
+            le_i32(p, n, off + 132, &out->sprite[i].alt_r) != 0 ||
+            le_i32(p, n, off + 136, &out->sprite[i].alt_b) != 0) {
+            return -1;
+        }
         if (le_i32(p, n, off + 188, &out->sprite[i].vision) != 0) {
             return -1;
         }

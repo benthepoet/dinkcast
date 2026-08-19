@@ -75,6 +75,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-18 | Makefile.dc header deps for EditorSprite | #58 |
 | 2026-08-18 | Swap: keep tile PVR until new atlas | #59 |
 | 2026-08-19 | No brown clear on screen swap | this PR |
+| 2026-08-19 | Editor `alt` crop (`get_box`) — extra pig fences | this PR |
 
 ## Bites
 

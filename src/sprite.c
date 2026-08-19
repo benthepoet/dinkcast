@@ -125,6 +125,52 @@ int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
     return 0;
 }
 
+int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
+                   int *st, int *sr, int *sb)
+{
+    if (sl == NULL || st == NULL || sr == NULL || sb == NULL || fw < 1 ||
+        fh < 1) {
+        return 0;
+    }
+    *sl = 0;
+    *st = 0;
+    *sr = fw;
+    *sb = fh;
+    /* get_box: alt applies if right||left||top (not bottom alone). */
+    if (ar == 0 && al == 0 && at == 0) {
+        return 0;
+    }
+    if (al < 0) {
+        al = 0;
+    }
+    if (al > fw) {
+        al = fw;
+    }
+    if (at < 0) {
+        at = 0;
+    }
+    if (at > fh) {
+        at = fh;
+    }
+    if (ar < 0) {
+        ar = 0;
+    }
+    if (ar > fw) {
+        ar = fw;
+    }
+    if (ab < 0) {
+        ab = 0;
+    }
+    if (ab > fh) {
+        ab = fh;
+    }
+    *sl = al;
+    *st = at;
+    *sr = ar;
+    *sb = ab;
+    return 1;
+}
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
@@ -153,12 +199,23 @@ void sprite_evict_pvr(struct SpriteFrame *f)
 
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
 {
+    sprite_draw_pvr_alt(f, x, y, z, 0, 0, 0, 0);
+}
+
+void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
+                         float z, int al, int at, int ar, int ab)
+{
     pvr_poly_cxt_t cxt;
     pvr_poly_hdr_t hdr;
     pvr_vertex_t vert;
-    float u, v, x0, y0, x1, y1;
+    float u0, v0, u1, v1, x0, y0, x1, y1;
+    int sl, st, sr, sb;
 
     if (f == NULL || f->tex == NULL) {
+        return;
+    }
+    (void)sprite_alt_src(f->w, f->h, al, at, ar, ab, &sl, &st, &sr, &sb);
+    if (sr <= sl || sb <= st) {
         return;
     }
     /* 1-bit alpha: punch-through list. TR still writes A=0 as black. */
@@ -168,12 +225,14 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
     pvr_poly_compile(&hdr, &cxt);
     pvr_prim(&hdr, sizeof(hdr));
-    u = (float)f->w / (float)f->tw;
-    v = (float)f->h / (float)f->th;
-    x0 = x - (float)f->cx;
-    y0 = y - (float)f->cy;
-    x1 = x0 + (float)f->w;
-    y1 = y0 + (float)f->h;
+    u0 = (float)sl / (float)f->tw;
+    v0 = (float)st / (float)f->th;
+    u1 = (float)sr / (float)f->tw;
+    v1 = (float)sb / (float)f->th;
+    x0 = x - (float)f->cx + (float)sl;
+    y0 = y - (float)f->cy + (float)st;
+    x1 = x - (float)f->cx + (float)sr;
+    y1 = y - (float)f->cy + (float)sb;
     /* get_box: skip if fully outside playl..playx, 0..playy */
     if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
         return;
@@ -184,24 +243,24 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
     vert.flags = PVR_CMD_VERTEX;
     vert.x = x0;
     vert.y = y0;
-    vert.u = 0;
-    vert.v = 0;
+    vert.u = u0;
+    vert.v = v0;
     pvr_prim(&vert, sizeof(vert));
     vert.x = x1;
     vert.y = y0;
-    vert.u = u;
-    vert.v = 0;
+    vert.u = u1;
+    vert.v = v0;
     pvr_prim(&vert, sizeof(vert));
     vert.x = x0;
     vert.y = y1;
-    vert.u = 0;
-    vert.v = v;
+    vert.u = u0;
+    vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
     vert.flags = PVR_CMD_VERTEX_EOL;
     vert.x = x1;
     vert.y = y1;
-    vert.u = u;
-    vert.v = v;
+    vert.u = u1;
+    vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
 }
 #endif

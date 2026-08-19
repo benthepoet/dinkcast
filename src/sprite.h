@@ -23,10 +23,16 @@ void sprite_frame_free(struct SpriteFrame *f);
 int sprite_load_seq_frame(const struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out);
 
+/* get_box alt crop. 1 if trimmed. sl/st/sr/sb are exclusive-right src. */
+int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
+                   int *st, int *sr, int *sb);
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z);
+void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
+                         float z, int al, int at, int ar, int ab);
 #endif
 
 #endif
