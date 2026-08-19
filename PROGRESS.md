@@ -83,6 +83,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Do not count bow/bottles dir.ff at boot | this PR |
 | 2026-08-19 | Decode all frames of a seq while dir.ff is open | this PR |
 | 2026-08-19 | Pin large dir.ff for the session (no reopen) | this PR |
+| 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | this PR |
 
 ## Bites
 

@@ -31,6 +31,8 @@ struct TileAtlas {
 
 void tiles_free(struct TileAtlas *a);
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out);
+/* Decode ts(sheet0+1).bmp into the sheet cache. Call before swap I/O. */
+int tiles_warm_sheet(int sheet0);
 int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3]);
 
 void tiles_evict(struct TileAtlas *a);

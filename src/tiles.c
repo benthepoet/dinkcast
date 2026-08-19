@@ -80,7 +80,7 @@ static struct {
 
 static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
 {
-    int i, empty = -1, victim = 0;
+    int i, empty = -1;
     char rel[32];
     uint8_t *raw = NULL;
     size_t n = 0;
@@ -120,9 +120,10 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     *h = bm.h;
     bitmap_free(&bm);
     if (empty < 0) {
-        empty = victim;
-        free(g_ts[empty].pix);
-        g_ts[empty].pix = NULL;
+        /* Do not evict a decoded sheet: re-slurp during swap hangs /cd. */
+        printf("tiles cache full skip ts%02d\n", sheet0 + 1);
+        free(p);
+        return -1;
     }
     g_ts[empty].sheet0 = sheet0;
     g_ts[empty].w = *w;
@@ -151,6 +152,17 @@ static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
             atlas[(dy + y) * DINK_ATLAS_W + (dx + x)] = px;
         }
     }
+}
+
+int tiles_warm_sheet(int sheet0)
+{
+    uint16_t *pix = NULL;
+    int w = 0, h = 0;
+
+    if (sheet0 < 0 || sheet0 >= 41) {
+        return -1;
+    }
+    return ts_sheet(sheet0, &pix, &w, &h);
 }
 
 int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
