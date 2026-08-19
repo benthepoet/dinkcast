@@ -83,62 +83,38 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
 
 int ff_load_rel(const char *rel, struct FfFile *out)
 {
-    FILE *fp;
-    long sz;
     uint8_t *raw;
-    size_t got, chunk, nrd;
+    size_t n;
 
-    fp = dink_fopen(rel, "rb");
-    if (fp == NULL) {
+    if (rel == NULL || out == NULL) {
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
+    printf("ff load %s\n", rel);
+    raw = NULL;
+    n = 0;
+    if (dink_slurp_rel(rel, &raw, &n) != 0 || n < 4) {
+        free(raw);
         return -1;
     }
-    sz = ftell(fp);
-    if (sz < 4 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    printf("ff load %s %ld\n", rel, sz);
-    raw = (uint8_t *)malloc((size_t)sz);
-    if (raw == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    /* One giant fread from /cd can stall (seq 63 home- dir.ff ~692 KB). */
-    got = 0;
-    while (got < (size_t)sz) {
-        chunk = (size_t)sz - got;
-        if (chunk > 32u * 1024u) {
-            chunk = 32u * 1024u;
-        }
-        nrd = fread(raw + got, 1, chunk, fp);
-        if (nrd == 0) {
-            free(raw);
-            fclose(fp);
-            return -1;
-        }
-        got += nrd;
-    }
-    fclose(fp);
-    if (ff_parse_ents(raw, (size_t)sz, out) != 0) {
+    if (ff_parse_ents(raw, n, out) != 0) {
         free(raw);
         return -1;
     }
     out->data = raw;
-    out->n = (size_t)sz;
-    printf("ff ok %s\n", rel);
+    out->n = n;
+    printf("ff ok %s %u\n", rel, (unsigned)n);
     return 0;
 }
 
-static struct FfFile g_idle;
-static struct FfFile g_walk;
-static struct FfFile g_other;
-static char g_idle_rel[160];
-static char g_walk_rel[160];
-static char g_other_rel[160];
+#define DINK_FF_SLOTS 8
+
+static struct {
+    char rel[160];
+    struct FfFile ff;
+    int pin;
+    int tick;
+} g_slot[DINK_FF_SLOTS];
+static int g_tick;
 static int g_disc_loads;
 
 static int rel_has(const char *rel, const char *needle)
@@ -177,48 +153,60 @@ int ff_disc_loads(void)
 
 void ff_cache_clear(void)
 {
-    ff_free(&g_idle);
-    ff_free(&g_walk);
-    ff_free(&g_other);
-    g_idle_rel[0] = g_walk_rel[0] = g_other_rel[0] = '\0';
+    int i;
+
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        ff_free(&g_slot[i].ff);
+        g_slot[i].rel[0] = '\0';
+        g_slot[i].pin = 0;
+        g_slot[i].tick = 0;
+    }
+    g_tick = 0;
 }
 
 int ff_cached(const char *rel, struct FfFile **out)
 {
-    struct FfFile *slot;
-    char *held;
+    int i, hit = -1, empty = -1, victim = -1, pin;
 
     if (rel == NULL || rel[0] == '\0' || out == NULL) {
         return -1;
     }
-    if (rel_has(rel, "dink/idle")) {
-        slot = &g_idle;
-        held = g_idle_rel;
-    } else if (rel_has(rel, "dink/walk")) {
-        slot = &g_walk;
-        held = g_walk_rel;
-    } else {
-        slot = &g_other;
-        held = g_other_rel;
+    pin = rel_has(rel, "dink/idle") || rel_has(rel, "dink/walk");
+    g_tick++;
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
+            g_slot[i].ff.data != NULL) {
+            hit = i;
+            break;
+        }
+        if (empty < 0 && g_slot[i].rel[0] == '\0') {
+            empty = i;
+        }
+        if (!g_slot[i].pin &&
+            (victim < 0 || g_slot[i].tick < g_slot[victim].tick)) {
+            victim = i;
+        }
     }
-    if (held[0] != '\0' && strcmp(held, rel) == 0 && slot->data != NULL) {
-        *out = slot;
+    if (hit >= 0) {
+        g_slot[hit].tick = g_tick;
+        *out = &g_slot[hit].ff;
         return 0;
     }
-    if (slot == &g_other) {
-        ff_free(slot);
-        held[0] = '\0';
-    } else if (slot->data != NULL) {
-        *out = slot;
-        return 0;
+    if (empty < 0) {
+        empty = victim >= 0 ? victim : 0;
+        ff_free(&g_slot[empty].ff);
+        g_slot[empty].rel[0] = '\0';
+        g_slot[empty].pin = 0;
     }
-    if (ff_load_rel(rel, slot) != 0) {
-        held[0] = '\0';
+    if (ff_load_rel(rel, &g_slot[empty].ff) != 0) {
+        g_slot[empty].rel[0] = '\0';
         return -1;
     }
+    snprintf(g_slot[empty].rel, sizeof(g_slot[empty].rel), "%s", rel);
+    g_slot[empty].pin = pin;
+    g_slot[empty].tick = g_tick;
     g_disc_loads++;
-    snprintf(held, 160, "%s", rel);
-    *out = slot;
+    *out = &g_slot[empty].ff;
     return 0;
 }
 

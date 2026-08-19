@@ -172,6 +172,9 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     if (f == NULL || f->argb1555 == NULL) {
         return -1;
     }
+    if (f->tex != NULL) {
+        return 0;
+    }
     sprite_evict_pvr(f);
     tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);
     if (tex == NULL) {

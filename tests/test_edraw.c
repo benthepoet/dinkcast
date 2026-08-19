@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "edraw.h"
+#include "ff.h"
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
@@ -118,6 +119,25 @@ int main(void)
             free(seqs);
             return 1;
         }
+    }
+    {
+        int loads1, loads2, n2 = n;
+
+        loads1 = ff_disc_loads();
+        if (edraw_load_screen(scr.sprite, seqs, g, &n2) != 0) {
+            fprintf(stderr, "FAIL edraw reload\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        loads2 = ff_disc_loads();
+        if (loads2 != loads1) {
+            fprintf(stderr, "FAIL edraw reuse disc %d -> %d\n", loads1, loads2);
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        n = n2;
     }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);

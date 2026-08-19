@@ -299,7 +299,6 @@ int ini_count_ff_frames(const char *prefix)
 {
     char dir[160], base[32], name[24];
     const char *slash;
-    struct FfFile ff;
     int n = 0, i;
 
     if (prefix == NULL || prefix[0] == '\0') {
@@ -311,19 +310,22 @@ int ini_count_ff_frames(const char *prefix)
     }
     snprintf(dir, sizeof(dir), "%.*s/dir.ff", (int)(slash - prefix), prefix);
     snprintf(base, sizeof(base), "%s", slash + 1);
-    memset(&ff, 0, sizeof(ff));
-    if (ff_load_rel(dir, &ff) != 0) {
-        return 0;
-    }
-    for (i = 1; i < DINK_MAX_FRAMES; i++) {
-        const uint8_t *p;
-        size_t ln;
-        snprintf(name, sizeof(name), i < 10 ? "%s0%d.bmp" : "%s%d.bmp", base, i);
-        if (ff_find(&ff, name, &p, &ln) != 0) {
-            break;
+    {
+        struct FfFile *cached = NULL;
+
+        if (ff_cached(dir, &cached) != 0 || cached == NULL) {
+            return 0;
         }
-        n = i;
+        for (i = 1; i < DINK_MAX_FRAMES; i++) {
+            const uint8_t *p;
+            size_t ln;
+            snprintf(name, sizeof(name), i < 10 ? "%s0%d.bmp" : "%s%d.bmp",
+                     base, i);
+            if (ff_find(cached, name, &p, &ln) != 0) {
+                break;
+            }
+            n = i;
+        }
     }
-    ff_free(&ff);
     return n;
 }

@@ -43,8 +43,7 @@ void hard_free(struct HardMap *h)
 
 int hard_load(struct HardMap *out)
 {
-    FILE *fp;
-    long sz;
+    size_t sz;
     uint8_t *raw;
     int rc;
 
@@ -52,31 +51,11 @@ int hard_load(struct HardMap *out)
         return -1;
     }
     hard_free(out);
-    fp = dink_fopen("hard.dat", "rb");
-    if (fp == NULL) {
+    raw = NULL;
+    if (dink_slurp_rel("hard.dat", &raw, &sz) != 0) {
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    sz = ftell(fp);
-    if (sz < 0 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    raw = (uint8_t *)malloc((size_t)sz);
-    if (raw == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    if (fread(raw, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(raw);
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    rc = hard_parse_defaults(raw, (size_t)sz, out);
+    rc = hard_parse_defaults(raw, sz, out);
     if (rc != 0) {
         free(raw);
         return -1;

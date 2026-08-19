@@ -3,10 +3,15 @@
 
 #include <ctype.h>
 #include <dirent.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#ifdef _arch_dreamcast
+#include <kos.h>
+#endif
 
 #ifndef DINK_DATA_DEFAULT
 #define DINK_DATA_DEFAULT ""
@@ -299,6 +304,105 @@ FILE *dink_fopen(const char *rel, const char *mode)
     } while (tok != NULL);
 
     return fopen(cur, mode);
+}
+
+#define DINK_CD_CHUNK 8192u
+#define DINK_SLURP_MAX (4u * 1024u * 1024u)
+
+void dink_cd_yield(void)
+{
+#ifdef _arch_dreamcast
+    thd_pass();
+#endif
+}
+
+int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
+{
+    size_t got = 0, chunk, nrd;
+
+    if (fp == NULL || dst == NULL) {
+        return -1;
+    }
+    while (got < n) {
+        chunk = n - got;
+        if (chunk > DINK_CD_CHUNK) {
+            chunk = DINK_CD_CHUNK;
+        }
+        nrd = fread(dst + got, 1, chunk, fp);
+        if (nrd == 0) {
+            return -1;
+        }
+        got += nrd;
+        dink_cd_yield();
+    }
+    return 0;
+}
+
+int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
+{
+    uint8_t *p;
+    size_t cap, got, nrd;
+
+    if (fp == NULL || out == NULL || n == NULL) {
+        return -1;
+    }
+    cap = 32u * 1024u;
+    p = (uint8_t *)malloc(cap);
+    if (p == NULL) {
+        return -1;
+    }
+    got = 0;
+    for (;;) {
+        if (got + DINK_CD_CHUNK > cap) {
+            uint8_t *np;
+            size_t ncap = cap * 2u;
+
+            if (ncap > DINK_SLURP_MAX || ncap < cap) {
+                free(p);
+                return -1;
+            }
+            np = (uint8_t *)realloc(p, ncap);
+            if (np == NULL) {
+                free(p);
+                return -1;
+            }
+            p = np;
+            cap = ncap;
+        }
+        nrd = fread(p + got, 1, DINK_CD_CHUNK, fp);
+        if (nrd == 0) {
+            break;
+        }
+        got += nrd;
+        dink_cd_yield();
+    }
+    *out = p;
+    *n = got;
+    return 0;
+}
+
+int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n)
+{
+    FILE *fp;
+    int rc;
+
+    if (out == NULL || n == NULL) {
+        return -1;
+    }
+    *out = NULL;
+    *n = 0;
+    fp = dink_fopen(rel, "rb");
+    if (fp == NULL) {
+        return -1;
+    }
+    rc = dink_fread_all(fp, out, n);
+    fclose(fp);
+    if (rc != 0) {
+        free(*out);
+        *out = NULL;
+        *n = 0;
+    }
+    return rc;
 }
 
 /* Accept path if dink.dat is here or in a child named dink (any case). */

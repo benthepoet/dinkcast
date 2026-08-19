@@ -60,35 +60,13 @@ int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3])
 
 static int slurp_rel(const char *rel, uint8_t **out, size_t *n)
 {
-    FILE *fp;
-    long sz;
-
-    fp = dink_fopen(rel, "rb");
-    if (fp == NULL) {
+    if (dink_slurp_rel(rel, out, n) != 0 || n == NULL || *n < 54) {
+        if (out != NULL) {
+            free(*out);
+            *out = NULL;
+        }
         return -1;
     }
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    sz = ftell(fp);
-    if (sz < 54 || fseek(fp, 0, SEEK_SET) != 0) {
-        fclose(fp);
-        return -1;
-    }
-    *out = (uint8_t *)malloc((size_t)sz);
-    if (*out == NULL) {
-        fclose(fp);
-        return -1;
-    }
-    if (fread(*out, 1, (size_t)sz, fp) != (size_t)sz) {
-        free(*out);
-        *out = NULL;
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    *n = (size_t)sz;
     return 0;
 }
 

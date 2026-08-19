@@ -409,8 +409,7 @@ int main(int argc, char **argv)
                         pl.freeze = 0;
                         dinkc_cmd_thaw_if_idle();
                         saybox_clear();
-                        edraw_free(g_edg, ned);
-                        ned = 0;
+                        /* Keep editor gfx that the next screen still uses. */
                         /* Keep tile PVR until upload; evict only CPU atlas. */
                         tiles_free(&g_atlas);
                         sprite_frame_free(&spr);

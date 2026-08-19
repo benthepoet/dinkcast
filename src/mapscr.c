@@ -129,33 +129,32 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
 
 int map_load_record(int rec, struct MapScreen *out)
 {
-    FILE *fp;
+    static FILE *fp;
     uint8_t *raw;
     long hold;
 
     if (rec < 1 || out == NULL) {
         return -1;
     }
-    fp = dink_fopen("map.dat", "rb");
+    /* Keep map.dat open. Re-fopen of this 20 MiB ISO file hangs /cd. */
     if (fp == NULL) {
-        return -1;
+        fp = dink_fopen("map.dat", "rb");
+        if (fp == NULL) {
+            return -1;
+        }
     }
     hold = (long)DINK_MAP_RECSIZE * (long)(rec - 1);
     if (fseek(fp, hold, SEEK_SET) != 0) {
-        fclose(fp);
         return -1;
     }
     raw = (uint8_t *)malloc(DINK_MAP_RECSIZE);
     if (raw == NULL) {
-        fclose(fp);
         return -1;
     }
-    if (fread(raw, 1, DINK_MAP_RECSIZE, fp) != DINK_MAP_RECSIZE) {
+    if (dink_fread_n(fp, raw, DINK_MAP_RECSIZE) != 0) {
         free(raw);
-        fclose(fp);
         return -1;
     }
-    fclose(fp);
     if (map_parse_mem(raw, DINK_MAP_RECSIZE, out) != 0) {
         free(raw);
         return -1;

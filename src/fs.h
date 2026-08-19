@@ -2,6 +2,8 @@
 #ifndef DINKCAST_FS_H
 #define DINKCAST_FS_H
 
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #define DINK_FS_PATH_MAX 512
@@ -12,6 +14,11 @@ const char *dink_fs_root(void);
 
 /* Open rel under the resolved root. Tries exact, case-fold, then 8.3. */
 FILE *dink_fopen(const char *rel, const char *mode);
+/* ISO9660/Flycast: no SEEK_END; 8 KiB fread + yield. */
+int dink_fread_all(FILE *fp, uint8_t **out, size_t *n);
+int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n);
+int dink_fread_n(FILE *fp, uint8_t *dst, size_t n);
+void dink_cd_yield(void);
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);
