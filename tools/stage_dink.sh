@@ -14,10 +14,20 @@ if [ -z "$SRC" ] || [ -z "$DST" ] || [ ! -d "$SRC" ]; then
     echo "usage: stage_dink.sh SRCDIR DSTDIR" >&2
     exit 2
 fi
+SRC_REAL=$(CDPATH= cd -- "$SRC" && pwd)
+case $(readlink -m "$DST") in
+    "$SRC_REAL" | "$SRC_REAL"/*)
+        echo "stage_dink: DST must not be SRC or inside SRC" >&2
+        exit 2
+        ;;
+esac
 
 rm -rf "$DST"
 mkdir -p "$DST"
 cp -a "$SRC/." "$DST/"
+# cp -a keeps source modes; CD-ripped data is often read-only, and the
+# pad step must be able to append.
+chmod -R u+w "$DST"
 
 # Data names are 8.3-safe; a plain find loop is enough.
 find "$DST" -type f -exec sh "$ROOT/tools/pad2048.sh" {} +

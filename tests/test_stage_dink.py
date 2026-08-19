@@ -15,11 +15,15 @@ PAD = ROOT / "tools" / "pad2048.sh"
 FIXTURE = {
     "graphics/struct/home/dir.ff": (b"FFPK" + bytes(range(256))) * 45 + b"tail",  # odd, binary
     "story/s1-h1-m.c": b"void main(void) {\n  say(\"hi\", 1);\n}\n",  # odd, text
+    "story/UPPER.C": b"void main(void) {}\n",  # uppercase ext is still text
     "dink.ini": b"SET_SPRITE_INFO 1 1 0 0 0 0 0 0 0 0\n",  # odd, text
     "map.dat": b"\x01" * 4096,  # already aligned
     "notes.txt": b"hello",  # odd, text
     "empty.bin": b"",  # 0 is a multiple of 2048
+    "readonly.bin": b"RO" * 1000,  # CD-ripped data is often 0444
 }
+
+TEXT_EXT = ("c", "ini", "txt")
 
 
 def build_fixture(src: Path) -> None:
@@ -27,6 +31,7 @@ def build_fixture(src: Path) -> None:
         p = src / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data)
+    (src / "readonly.bin").chmod(0o444)
 
 
 def main() -> int:
@@ -54,7 +59,7 @@ def main() -> int:
                 print("FAIL content changed", rel)
                 return 1
             tail = out[len(data):]
-            want = b" " if rel.rsplit(".", 1)[-1] in ("c", "ini", "txt") else b"\0"
+            want = b" " if rel.rsplit(".", 1)[-1].lower() in TEXT_EXT else b"\0"
             if tail and tail != want * len(tail):
                 print("FAIL wrong pad bytes", rel, tail[:16])
                 return 1
@@ -67,6 +72,14 @@ def main() -> int:
         if r.returncode != 0 or victim.stat().st_size != size:
             print("FAIL pad not idempotent", r.returncode, r.stdout, r.stderr)
             return 1
+        # Staging into the source tree must be refused, not rm -rf'd.
+        r = subprocess.run(
+            ["sh", str(STAGE), str(src), str(src)], cwd=ROOT, capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            print("FAIL DST == SRC accepted")
+            return 1
+        src.joinpath("story", "UPPER.C").read_bytes()  # source tree survived
         print("OK", STAGE, f"({len(FIXTURE)} fixture files, all 2048-aligned)")
         return 0
 

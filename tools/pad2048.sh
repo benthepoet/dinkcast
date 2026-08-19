@@ -37,7 +37,7 @@ for f do
         *.c | *.ini | *.txt) blk="$BLOCK_DIR/space" ;;
         *) blk="$BLOCK_DIR/zero" ;;
     esac
-    dd if="$blk" of="$f" bs="$pad" count=1 conv=notrunc oflag=append 2>/dev/null
+    dd if="$blk" of="$f" bs="$pad" count=1 conv=notrunc oflag=append status=none
     padded=$((padded + 1))
 done
 echo "pad2048: $padded file(s) padded"
