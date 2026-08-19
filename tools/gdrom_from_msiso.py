@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Rebase a mkdcdisc multi-session ISO onto GD-ROM FAD 45000 and emit MODE1/2352.
+"""Rebase a mkdcdisc multi-session ISO to LBA 0 and emit MODE1/2352 tracks.
 
 mkdcdisc -I writes 2048-byte sectors whose ISO9660 LBAs start at session
-LBA 11702. Redream wants a GD-ROM high-density track at 45000 with 2352-byte
-sectors. Flycast `make emu` still uses the MIL-CD CUE CHD, not this output.
+LBA 11702. Redream boots track 1 at LBA 0; an empty dummy there is the BIOS
+menu. Put the game ISO on track 1 (2352, rebased to 0) and tiny dummy
+tracks after it so the CHD has 3 tracks. Flycast `make emu` still uses the
+MIL-CD CUE CHD, not this output.
 """
 from __future__ import annotations
 
@@ -173,12 +175,13 @@ def write_dummy_audio_2352(path: Path, frames: int) -> None:
         f.write(bytes(frames * 2352))
 
 
-def write_gdi(path: Path, t1: str, t2: str, t3: str) -> None:
+def write_gdi(path: Path, t1: str, t2: str, t3: str, data_lba: int, data_frames: int) -> None:
+    end = data_lba + data_frames
     path.write_text(
         "3\n"
-        f"1 0 4 2352 {t1} 0\n"
-        f"2 {GD_HD_LBA} 0 2352 {t2} 0\n"
-        f"3 {GD_HD_LBA} 4 2352 {t3} 0\n",
+        f"1 {data_lba} 4 2352 {t1} 0\n"
+        f"2 {end} 0 2352 {t2} 0\n"
+        f"3 {end} 4 2352 {t3} 0\n",
         encoding="ascii",
     )
 
@@ -188,7 +191,7 @@ def main() -> int:
     ap.add_argument("iso")
     ap.add_argument("outdir")
     ap.add_argument("--session-start", type=int, default=MKDCDISC_SESSION)
-    ap.add_argument("--gd-start", type=int, default=GD_HD_LBA)
+    ap.add_argument("--gd-start", type=int, default=0)
     ap.add_argument("--ld-frames", type=int, default=300)
     ap.add_argument("--audio-frames", type=int, default=300)
     args = ap.parse_args()
@@ -207,11 +210,11 @@ def main() -> int:
     t1 = "track01.bin"
     t2 = "track02.raw"
     t3 = "track03.bin"
-    write_dummy_data_2352(outdir / t1, args.ld_frames, 0)
+    n = write_mode1_2352(bytes(raw), outdir / t1, args.gd_start)
     write_dummy_audio_2352(outdir / t2, args.audio_frames)
-    n = write_mode1_2352(bytes(raw), outdir / t3, args.gd_start)
-    write_gdi(outdir / "dinkcast-redream.gdi", t1, t2, t3)
-    print(f"gdrom iso sectors {n} root LBA {root} gdi {outdir / 'dinkcast-redream.gdi'}")
+    write_dummy_data_2352(outdir / t3, args.ld_frames, args.gd_start + n)
+    write_gdi(outdir / "dinkcast-redream.gdi", t1, t2, t3, args.gd_start, n)
+    print(f"redream iso sectors {n} root LBA {root} gdi {outdir / 'dinkcast-redream.gdi'}")
     return 0
 
 

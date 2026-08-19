@@ -23,7 +23,7 @@ DIR=$(dirname "$OUT")
 STAGE="$DIR/redream-gdi"
 mkdir -p "$STAGE"
 
-echo "make chd-redream: rebase ISO to GD-ROM 45000 + MODE1/2352"
+echo "make chd-redream: rebase ISO to LBA 0 + MODE1/2352 on track 1"
 "$PYTHON" "$ROOT/tools/gdrom_from_msiso.py" "$ISO" "$STAGE"
 
 GDI="$STAGE/dinkcast-redream.gdi"

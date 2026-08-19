@@ -63,7 +63,38 @@ def main() -> int:
     g.rebase_iso(buf, session, gd)
     root = g.both_u32(buf, pvd + 156 + 2)
     if root != gd + 19:
-        print("FAIL rebased root", root)
+        print("FAIL rebased root 45000", root)
+        return 1
+    session, gd0 = 11702, 0
+    buf0 = bytearray(2048 * 24)
+    buf0[pvd] = 1
+    buf0[pvd + 1 : pvd + 6] = b"CD001"
+    g.put_both_u32(buf0, pvd + 80, 24)
+    g.put_both_u32(buf0, pvd + 132, 10)
+    struct.pack_into("<I", buf0, pvd + 140, session + 20)
+    struct.pack_into(">I", buf0, pvd + 148, session + 20)
+    buf0[pvd + 156] = 34
+    g.put_both_u32(buf0, pvd + 156 + 2, session + 19)
+    g.put_both_u32(buf0, pvd + 156 + 10, 2048)
+    buf0[pvd + 156 + 25] = 2
+    buf0[pvd + 156 + 32] = 1
+    buf0[pvd + 156 + 33] = 0
+    buf0[d] = 34
+    g.put_both_u32(buf0, d + 2, session + 19)
+    g.put_both_u32(buf0, d + 10, 2048)
+    buf0[d + 25] = 2
+    buf0[d + 32] = 1
+    buf0[d + 33] = 0
+    buf0[d + 34] = 34
+    g.put_both_u32(buf0, d + 36, session + 19)
+    g.put_both_u32(buf0, d + 44, 2048)
+    buf0[d + 59] = 2
+    buf0[d + 66] = 1
+    buf0[d + 67] = 1
+    g.rebase_iso(buf0, session, gd0)
+    root0 = g.both_u32(buf0, pvd + 156 + 2)
+    if root0 != 19:
+        print("FAIL rebased root 0", root0)
         return 1
     print("OK test_gdrom_from_msiso")
     return 0
