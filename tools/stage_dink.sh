@@ -14,10 +14,17 @@ if [ -z "$SRC" ] || [ -z "$DST" ] || [ ! -d "$SRC" ]; then
     echo "usage: stage_dink.sh SRCDIR DSTDIR" >&2
     exit 2
 fi
-SRC_REAL=$(CDPATH= cd -- "$SRC" && pwd)
-case $(readlink -m "$DST") in
+SRC_REAL=$(CDPATH= cd -- "$SRC" && pwd -P)
+DST_REAL=$(readlink -m "$DST")
+case $DST_REAL in
     "$SRC_REAL" | "$SRC_REAL"/*)
         echo "stage_dink: DST must not be SRC or inside SRC" >&2
+        exit 2
+        ;;
+esac
+case $SRC_REAL/ in
+    "$DST_REAL"/*)
+        echo "stage_dink: SRC must not be inside DST (rm -rf would take it)" >&2
         exit 2
         ;;
 esac
