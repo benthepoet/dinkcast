@@ -85,6 +85,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Pin large dir.ff for the session (no reopen) | this PR |
 | 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | this PR |
 | 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | this PR |
+| 2026-08-19 | Pin idle+walk dir.ff before house edraw | this PR |
 
 ## Bites
 

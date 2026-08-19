@@ -269,11 +269,23 @@ int main(int argc, char **argv)
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
-                /* Do not ini_count 12–18/71–79/101–109 here: seq 75 is
-                 * bottles and 101 is bow; those dir.ff hangs boot. Count
-                 * when the seq is first drawn. */
-                printf("ini seq %d prefix %s cx %d cy %d\n", DINK_IDLE_SEQ,
-                       seqs[DINK_IDLE_SEQ].prefix, seqs[DINK_IDLE_SEQ].cx,
+                int wseq = DINK_BASE_WALK + DINK_START_DIR;
+
+                /* Do not count 12–18/71–79/101–109 (seq 75 bottles, 101
+                 * bow). Pin idle+walk now: first walk after mom unfreeze
+                 * opened walk/dir.ff after the house dir.ff storm and hung. */
+                if (seqs[DINK_IDLE_SEQ].prefix[0] != '\0') {
+                    seqs[DINK_IDLE_SEQ].nframes =
+                        ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix);
+                }
+                if (wseq > 0 && wseq < DINK_MAX_SEQ &&
+                    seqs[wseq].prefix[0] != '\0') {
+                    seqs[wseq].nframes =
+                        ini_count_ff_frames(seqs[wseq].prefix);
+                }
+                printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
+                       DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
+                       seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
             }
             {
