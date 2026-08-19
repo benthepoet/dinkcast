@@ -406,11 +406,13 @@ int main(int argc, char **argv)
                             pvr_wait_ready();
                             have_scene = 0;
                         }
+                        tiles_draw_clear_pvr(0xff5a3a1a);
                         dinkc_vm_kill_all();
                         saybox_clear();
                         edraw_free(g_edg, ned);
                         ned = 0;
-                        tiles_evict(&g_atlas);
+                        /* Keep tile PVR until upload; evict only CPU atlas. */
+                        tiles_free(&g_atlas);
                         sprite_frame_free(&spr);
                         hard_mask_free(&mask);
                         printf("enter map %d loc %d\n", player_map, rec2);
@@ -440,21 +442,23 @@ int main(int argc, char **argv)
                         printf("edraw unique %d\n", ned);
                         for (nstamp = 1; nstamp <= 100; nstamp++) {
                             struct SpriteFrame *ef;
-                            int hl, ht, hr, hb, cx, cy, hid;
+                            int hl, ht, hr, hb, cx, cy, hid, seq, fr;
 
                             if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
                                                          DINK_VISION_DEFAULT) ||
                                 g_scr.sprite[nstamp].hard != 0) {
                                 continue;
                             }
+                            seq = (int)g_scr.sprite[nstamp].seq;
+                            fr = (int)g_scr.sprite[nstamp].frame < 1
+                                     ? 1
+                                     : (int)g_scr.sprite[nstamp].frame;
+                            if (seq < 1 || seq >= DINK_MAX_SEQ) {
+                                continue;
+                            }
                             hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp
                                                                : 1;
-                            ef = edraw_find(g_edg, ned,
-                                            (int)g_scr.sprite[nstamp].seq,
-                                            (int)g_scr.sprite[nstamp].frame < 1
-                                                ? 1
-                                                : (int)g_scr.sprite[nstamp]
-                                                      .frame);
+                            ef = edraw_find(g_edg, ned, seq, fr);
                             if (ef != NULL) {
                                 hard_stamp_box(&mask,
                                                (int)g_scr.sprite[nstamp].x,
@@ -466,22 +470,29 @@ int main(int argc, char **argv)
                             if (seqs == NULL) {
                                 continue;
                             }
-                            ini_frame_geom(&seqs[g_scr.sprite[nstamp].seq],
-                                           (int)g_scr.sprite[nstamp].seq,
-                                           (int)g_scr.sprite[nstamp].frame < 1
-                                               ? 1
-                                               : (int)g_scr.sprite[nstamp]
-                                                     .frame,
-                                           50, 50, &cx, &cy, &hl, &ht, &hr,
-                                           &hb);
+                            ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx,
+                                           &cy, &hl, &ht, &hr, &hb);
                             hard_stamp_box(&mask, (int)g_scr.sprite[nstamp].x,
                                            (int)g_scr.sprite[nstamp].y, hl, ht,
                                            hr, hb, hid);
                         }
+                        printf("swap stamp ok\n");
                         if (tiles_build_atlas(&g_scr, &g_atlas) == 0) {
-                            (void)tiles_upload_pvr(&g_atlas);
+                            printf("swap atlas ok\n");
+                            pvr_wait_ready();
+                            if (tiles_upload_pvr(&g_atlas) != 0) {
+                                printf("swap tiles upload fail\n");
+                            } else {
+                                printf("swap tiles upload ok\n");
+                            }
+                        } else {
+                            printf("swap atlas fail\n");
                         }
-                        (void)edraw_upload_pvr(g_edg, ned);
+                        if (edraw_upload_pvr(g_edg, ned) != 0) {
+                            printf("swap edraw upload fail\n");
+                        } else {
+                            printf("swap edraw upload ok n=%d\n", ned);
+                        }
                         if (seqs != NULL) {
                             sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
                                                   pl.frame, &spr);
@@ -490,6 +501,7 @@ int main(int argc, char **argv)
                             }
                             last_seq = pl.seq;
                             last_frame = pl.frame;
+                            printf("swap dink seq=%d\n", pl.seq);
                         }
                         spr_restore("swap-pre-attach");
                         script_bind_screen(&g_scr);
