@@ -406,6 +406,8 @@ int main(int argc, char **argv)
                             have_scene = 0;
                         }
                         dinkc_vm_kill_all();
+                        pl.freeze = 0;
+                        dinkc_cmd_thaw_if_idle();
                         saybox_clear();
                         edraw_free(g_edg, ned);
                         ned = 0;
