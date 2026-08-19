@@ -254,6 +254,8 @@ int main(int argc, char **argv)
             int hid;
 
             memset(&g_hard, 0, sizeof(g_hard));
+            printf("hard load\n");
+            fflush(stdout);
             if (hard_load(&g_hard) != 0) {
                 hud("HARD LOAD FAIL", "hard.dat", msg);
                 for (;;) {
@@ -263,8 +265,11 @@ int main(int argc, char **argv)
             hid = hard_id_for_tile(&g_hard, g_scr.t[0].square_full_idx0,
                                    g_scr.t[0].althard);
             printf("hard tile00 id %d\n", hid);
+            fflush(stdout);
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
             memset(&spr, 0, sizeof(spr));
+            printf("ini load\n");
+            fflush(stdout);
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
                 int wseq = DINK_BASE_WALK + DINK_START_DIR;
 
@@ -315,6 +320,8 @@ int main(int argc, char **argv)
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
                            (int)g_scr.sprite[1].active, (int)g_spr_ok[1].seq,
                            (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
+                    printf("edraw start\n");
+                    fflush(stdout);
                     if (seqs != NULL) {
                         (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
                     }
@@ -429,14 +436,14 @@ int main(int argc, char **argv)
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
                         memset(&mask, 0, sizeof(mask));
-                        if (g_hard.raw == NULL) {
+                        if (!g_hard.ready) {
                             printf("swap hard load\n");
                             if (hard_load(&g_hard) != 0) {
                                 printf("hard reload fail\n");
                             }
                             printf("swap hard loaded\n");
                         } else {
-                            printf("swap hard keep n=%d\n", (int)g_hard.n);
+                            printf("swap hard keep\n");
                         }
                         /* Stamp even if reload failed: empty hid still
                          * allocates the mask so sprite/warp boxes apply. */

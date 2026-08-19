@@ -11,6 +11,7 @@
 
 #ifdef _arch_dreamcast
 #include <kos.h>
+#include <kos/mutex.h>
 #endif
 
 #ifndef DINK_DATA_DEFAULT
@@ -274,6 +275,28 @@ static int resolve_comp(const char *dir, const char *comp, char *out, size_t out
     return found ? 0 : -1;
 }
 
+#ifdef _arch_dreamcast
+static mutex_t g_cd_mu;
+static int g_cd_mu_ok;
+
+static void cd_lock(void)
+{
+    if (!g_cd_mu_ok) {
+        mutex_init(&g_cd_mu, MUTEX_TYPE_NORMAL);
+        g_cd_mu_ok = 1;
+    }
+    mutex_lock(&g_cd_mu);
+}
+
+static void cd_unlock(void)
+{
+    mutex_unlock(&g_cd_mu);
+}
+#else
+static void cd_lock(void) {}
+static void cd_unlock(void) {}
+#endif
+
 FILE *dink_fopen(const char *rel, const char *mode)
 {
     char cur[DINK_FS_PATH_MAX];
@@ -281,6 +304,7 @@ FILE *dink_fopen(const char *rel, const char *mode)
     char relnorm[DINK_FS_PATH_MAX];
     char *save = NULL;
     char *tok;
+    FILE *fp;
 
     if (g_root[0] == '\0' || rel == NULL || mode == NULL) {
         return NULL;
@@ -293,18 +317,23 @@ FILE *dink_fopen(const char *rel, const char *mode)
     if (tok == NULL) {
         return NULL;
     }
+    cd_lock();
     do {
         if (strcmp(tok, "..") == 0 || strcmp(tok, ".") == 0) {
+            cd_unlock();
             return NULL;
         }
         if (resolve_comp(cur, tok, next, sizeof(next)) != 0) {
+            cd_unlock();
             return NULL;
         }
         memcpy(cur, next, strlen(next) + 1);
         tok = strtok_r(NULL, "/", &save);
     } while (tok != NULL);
 
-    return fopen(cur, mode);
+    fp = fopen(cur, mode);
+    cd_unlock();
+    return fp;
 }
 
 #define DINK_CD_CHUNK 8192u
@@ -312,9 +341,8 @@ FILE *dink_fopen(const char *rel, const char *mode)
 
 void dink_cd_yield(void)
 {
-#ifdef _arch_dreamcast
-    thd_pass();
-#endif
+    /* Do not yield mid-file. A 2 MiB fread with thd_pass every 8 KiB
+     * leaves the GD-ROM command sitting while other threads run. */
 }
 
 void dink_cd_settle(void)
@@ -332,6 +360,7 @@ int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
     if (fp == NULL || dst == NULL) {
         return -1;
     }
+    cd_lock();
     while (got < n) {
         chunk = n - got;
         if (chunk > DINK_CD_CHUNK) {
@@ -339,11 +368,40 @@ int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
         }
         nrd = fread(dst + got, 1, chunk, fp);
         if (nrd == 0) {
+            cd_unlock();
             return -1;
         }
         got += nrd;
-        dink_cd_yield();
     }
+    cd_unlock();
+    return 0;
+}
+
+int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
+{
+    size_t got = 0, chunk, nrd;
+
+    if (fp == NULL || dst == NULL) {
+        return -1;
+    }
+    cd_lock();
+    if (fseek(fp, off, SEEK_SET) != 0) {
+        cd_unlock();
+        return -1;
+    }
+    while (got < n) {
+        chunk = n - got;
+        if (chunk > DINK_CD_CHUNK) {
+            chunk = DINK_CD_CHUNK;
+        }
+        nrd = fread(dst + got, 1, chunk, fp);
+        if (nrd == 0) {
+            cd_unlock();
+            return -1;
+        }
+        got += nrd;
+    }
+    cd_unlock();
     return 0;
 }
 
@@ -361,17 +419,20 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
         return -1;
     }
     got = 0;
+    cd_lock();
     for (;;) {
         if (got + DINK_CD_CHUNK > cap) {
             uint8_t *np;
             size_t ncap = cap * 2u;
 
             if (ncap > DINK_SLURP_MAX || ncap < cap) {
+                cd_unlock();
                 free(p);
                 return -1;
             }
             np = (uint8_t *)realloc(p, ncap);
             if (np == NULL) {
+                cd_unlock();
                 free(p);
                 return -1;
             }
@@ -383,8 +444,8 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
             break;
         }
         got += nrd;
-        dink_cd_yield();
     }
+    cd_unlock();
     *out = p;
     *n = got;
     return 0;

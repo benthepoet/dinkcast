@@ -145,14 +145,11 @@ int map_load_record(int rec, struct MapScreen *out)
         dink_disc_note_open();
     }
     hold = (long)DINK_MAP_RECSIZE * (long)(rec - 1);
-    if (fseek(fp, hold, SEEK_SET) != 0) {
-        return -1;
-    }
     raw = (uint8_t *)malloc(DINK_MAP_RECSIZE);
     if (raw == NULL) {
         return -1;
     }
-    if (dink_fread_n(fp, raw, DINK_MAP_RECSIZE) != 0) {
+    if (dink_pread(fp, hold, raw, DINK_MAP_RECSIZE) != 0) {
         free(raw);
         return -1;
     }

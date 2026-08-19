@@ -2,6 +2,7 @@
 #include "edraw.h"
 #include "ff.h"
 #include "fs.h"
+#include "hard.h"
 #include "ini.h"
 #include "mapscr.h"
 #include "tiles.h"
@@ -183,6 +184,38 @@ int main(void)
             }
             printf("atlas used %d disc_opens_hold %d\n", a.used, opens);
             tiles_free(&a);
+        }
+        {
+            struct HardMap hm;
+            struct HardMask mask;
+            int opens;
+
+            memset(&hm, 0, sizeof(hm));
+            memset(&mask, 0, sizeof(mask));
+            if (hard_load(&hm) != 0 || !hm.ready) {
+                fprintf(stderr, "FAIL hard_load\n");
+                return 1;
+            }
+            opens = dink_disc_opens();
+            if (hard_load(&hm) != 0 || dink_disc_opens() != opens) {
+                fprintf(stderr, "FAIL hard reopen %d -> %d\n", opens,
+                        dink_disc_opens());
+                return 1;
+            }
+            if (hard_stamp_tiles(&hm, &scr, &mask) != 0) {
+                fprintf(stderr, "FAIL hard stamp\n");
+                hard_mask_free(&mask);
+                return 1;
+            }
+            if (hard_stamp_tiles(&hm, &scr, &mask) != 0 ||
+                dink_disc_opens() != opens) {
+                fprintf(stderr, "FAIL hard stamp reopen %d -> %d\n", opens,
+                        dink_disc_opens());
+                hard_mask_free(&mask);
+                return 1;
+            }
+            printf("hard stamp disc_opens_hold %d\n", opens);
+            hard_mask_free(&mask);
         }
         {
             struct SeqInfo *seqs;
