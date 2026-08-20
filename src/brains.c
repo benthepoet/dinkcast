@@ -909,6 +909,34 @@ int brains_freeze(int slot)
     return g_b[slot].freeze;
 }
 
+int brains_change_prop(int slot, int prop, int val)
+{
+    struct BrainSpr *s;
+    int *p = NULL;
+
+    if (slot < 1 || slot > 100) {
+        return -1;
+    }
+    s = &g_b[slot];
+    if (prop == 1) {
+        p = &s->brain;
+    } else if (prop == 2) {
+        p = &s->speed;
+    } else if (prop == 3) {
+        p = &s->base_walk;
+    } else if (prop == 4) {
+        p = &s->timing;
+    }
+    if (p == NULL) {
+        return -1;
+    }
+    if (val != -1) {
+        *p = val;
+        s->live = 1;
+    }
+    return *p;
+}
+
 int brains_unimpl_count(void)
 {
     return g_unimpl;

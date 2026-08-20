@@ -6,6 +6,12 @@ struct Player;
 
 void dinkc_cmd_bind_player(struct Player *p);
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
+/* prop: 1 brain, 2 speed, 3 base_walk, 4 timing. val -1 = read. */
+#define DINKC_SP_BRAIN 1
+#define DINKC_SP_SPEED 2
+#define DINKC_SP_BASE_WALK 3
+#define DINKC_SP_TIMING 4
+void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 /* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 2 choice. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
               int *yield, int *ret);

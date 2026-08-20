@@ -312,6 +312,7 @@ int main(int argc, char **argv)
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 dinkc_cmd_bind_sprite_freeze(brains_set_freeze);
+                dinkc_cmd_bind_sprite_change(brains_change_prop);
                 saybox_bind(&g_scr, &pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);

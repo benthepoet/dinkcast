@@ -173,6 +173,28 @@ int main(void)
                 expect(moved, "pig_brain walked");
                 expect(brains_unimpl_count() == 0, "pig screen no unimplemented");
             }
+            {
+                struct MapScreen pill;
+                int prec = (int)w.loc[378];
+                int ox, oy, j;
+
+                expect(prec >= 1 && map_load_record(prec, &pill) == 0,
+                       "pill map 378");
+                expect(pill.sprite[7].brain == 0 && pill.sprite[7].speed == 0 &&
+                           pill.sprite[7].base_walk == 130,
+                       "editor pill is brain 0");
+                brains_enter(&pill, DINK_VISION_DEFAULT);
+                expect(brains_change_prop(7, 1, 9) == 9, "sp_brain 9");
+                expect(brains_change_prop(7, 2, 1) == 1, "sp_speed 1");
+                expect(brains_change_prop(7, 3, 130) == 130, "sp_base_walk");
+                ox = (int)pill.sprite[7].x;
+                oy = (int)pill.sprite[7].y;
+                for (j = 0; j < 400; j++) {
+                    brains_tick(&pill, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+                }
+                expect((int)pill.sprite[7].x != ox || (int)pill.sprite[7].y != oy,
+                       "en-pill main then pill_brain walks");
+            }
         }
     }
     printf("OK test_brains\n");

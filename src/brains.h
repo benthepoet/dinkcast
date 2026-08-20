@@ -15,6 +15,8 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
 void brains_apply(struct MapScreen *scr);
 void brains_set_freeze(int slot, int on);
 int brains_freeze(int slot);
+/* FreeDink change_sprite: val -1 reads. prop = DINKC_SP_* in dinkc_cmd.h. */
+int brains_change_prop(int slot, int prop, int val);
 int brains_unimpl_count(void);
 
 #endif

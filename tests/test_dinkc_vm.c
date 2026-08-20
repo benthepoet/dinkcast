@@ -8,6 +8,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int g_stub_brain[100];
+
+static int stub_sp_change(int slot, int prop, int val)
+{
+    if (slot < 1 || slot > 99 || prop != DINKC_SP_BRAIN) {
+        return -1;
+    }
+    if (val != -1) {
+        g_stub_brain[slot] = val;
+    }
+    return g_stub_brain[slot];
+}
+
 static void expect(int cond, const char *msg)
 {
     if (!cond) {
@@ -163,6 +176,11 @@ int main(void)
                "unknown");
         expect(dinkc_cmd_missing_count() == miss0 + 1, "miss logged");
         expect(dinkc_cmd("draw_status", args, 0, "", &yld, &rv) == 1, "known");
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        args[0] = 7;
+        args[1] = 9;
+        expect(dinkc_cmd("sp_brain", args, 2, "", &yld, &rv) == 1 && rv == 9,
+               "sp_brain writes");
         dinkc_cmd_dump();
     }
 

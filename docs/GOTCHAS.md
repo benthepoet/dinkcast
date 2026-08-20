@@ -79,6 +79,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Pin idle+walk before house edraw.** After mom `unfreeze`, the first walk opened `graphics/dink/walk/dir.ff` (~423 KB) following mom/walls packs and hung (`ff load` no `ok`). Count/cache those two prefixes right after `ini_load`, not after talk.
 - **Do not reopen Dink walk/idle `dir.ff` after another pack.** Walk is ~423 KB. Pin idle+walk in `ff_cached`.
 - **Attach is not “every script field.”** FreeDink `draw_screen_game` runs the screen `script` `MAIN` first (`strlen>1`). `game_place_sprites` only `load_script`s **type 1** on-vision sprites with `strlen(script)>1`. `game_screen_init_scripts` then `locate("main")`. Type 0/2 names stay unused. Mom `main` `freeze`+`say` when `&story==0` is intended.
+- **DinkC `sp_brain` / `sp_speed` must write live `BrainSpr`.** Stock pillbugs are editor **brain 0 speed 0**; `en-pill` `main` sets 9 and 1. A known-command stub that `return 1` leaves `no_brain`. Snapshot restore does not carry brain; the live table is the source of truth.
 
 ## Data
 
