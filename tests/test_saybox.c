@@ -52,10 +52,18 @@ int main(void)
     expect(strchr(saybox_text(), '\n') != NULL, "wrap");
     saybox_set("hi", 0);
     expect(saybox_x() == 334 - DINK_SAY_XOFF, "sprite 0 is Dink");
+    /* print_text_wrap hcenter: box left + 150/2 - line_w/2. "hi" is 16px. */
+    expect(saybox_line_x("hi") == (334 - DINK_SAY_XOFF) + DINK_SAY_BOX_W / 2 -
+                                     (2 * DINK_FONT_CELL) / 2,
+           "hcenter hi over Dink");
     pl.x = 400;
     pl.y = 200;
     expect(saybox_x() == 400 - DINK_SAY_XOFF, "text_brain follows Dink");
     expect(saybox_y() == 200 - DINK_SAY_YOFF, "text_brain y");
+    expect(saybox_line_x(saybox_text()) ==
+               (400 - DINK_SAY_XOFF) + DINK_SAY_BOX_W / 2 -
+                   (2 * DINK_FONT_CELL) / 2,
+           "hcenter follows");
     saybox_set("`#YES, NOW.", 26);
     scr.sprite[26].x = 250;
     scr.sprite[26].y = 220;

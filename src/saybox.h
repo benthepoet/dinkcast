@@ -8,7 +8,8 @@
 #include <stdint.h>
 
 /* FreeDink say_text + text_brain: owner.x-75, owner.y-100 each
- * frame (narrator 1000 stays put). Wrap 150. */
+ * frame (narrator 1000 stays put). Wrap 150. text_draw print_text_wrap
+ * hcenter=1 in that box. */
 #define DINK_SAY_XOFF 75
 #define DINK_SAY_YOFF 100
 #define DINK_SAY_BOX_W 150
@@ -23,6 +24,8 @@ int saybox_active(void);
 const char *saybox_text(void);
 int saybox_x(void);
 int saybox_y(void);
+/* First line of `line` (up to \\n). print_text_wrap: left + boxw/2 - w/2. */
+int saybox_line_x(const char *line);
 int saybox_color(void);
 /* FreeDink gfx_fonts_init_colors index 0–15 as 0xAARRGGBB. */
 uint32_t saybox_argb(int color);

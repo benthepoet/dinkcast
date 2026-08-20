@@ -86,7 +86,13 @@ static void owner_xy(int sprite, int *x, int *y)
     }
 }
 
-/* text_brain: non-narrator text takes owner x/y every frame. */
+static int say_box_w(void)
+{
+    return g_owner == 1000 ? DINK_SAY_PLAYX - 20 : DINK_SAY_BOX_W;
+}
+
+/* text_brain then text_draw rect: owner.x-75, clamp ≥1, then if right
+ * edge > 620 shift left. */
 static void saybox_place(void)
 {
     int ox, oy, boxw;
@@ -97,15 +103,15 @@ static void saybox_place(void)
     owner_xy(g_owner, &ox, &oy);
     g_x = ox - DINK_SAY_XOFF;
     g_y = oy - DINK_SAY_YOFF;
+    if (g_x < 1) {
+        g_x = 1;
+    }
+    if (g_y < 1) {
+        g_y = 1;
+    }
     boxw = DINK_SAY_BOX_W;
     if (g_x + boxw > DINK_SAY_PLAYX) {
         g_x -= (g_x + boxw - DINK_SAY_PLAYX);
-    }
-    if (g_x < 20) {
-        g_x = 20;
-    }
-    if (g_y < 0) {
-        g_y = 0;
     }
 }
 
@@ -224,6 +230,24 @@ int saybox_y(void)
     return g_y;
 }
 
+int saybox_line_x(const char *line)
+{
+    int cell, w, n = 0, boxw;
+    const char *p = line != NULL ? line : "";
+
+    saybox_place();
+    cell = font_advance('A');
+    if (cell < 1) {
+        cell = DINK_FONT_CELL;
+    }
+    while (p[n] != '\0' && p[n] != '\n') {
+        n++;
+    }
+    w = n * cell;
+    boxw = say_box_w();
+    return g_x + boxw / 2 - w / 2;
+}
+
 int saybox_color(void)
 {
     return g_color;
@@ -310,7 +334,7 @@ static void draw_ch(float x, float y, float z, int ch, uint32_t argb)
 void saybox_draw_pvr(float z)
 {
     const char *p;
-    float x, y, line0;
+    float x, y;
     uint32_t fg, bg;
 
     if (!g_on || g_tex == NULL) {
@@ -318,25 +342,24 @@ void saybox_draw_pvr(float z)
     }
     saybox_place();
     p = g_text;
-    x = (float)g_x;
     y = (float)g_y;
-    line0 = x;
     fg = saybox_argb(g_color);
     bg = 0xFF080E15u;
     while (*p != '\0') {
-        if (*p == '\n') {
-            x = line0;
-            y += (float)DINK_FONT_CELL;
+        x = (float)saybox_line_x(p);
+        while (*p != '\0' && *p != '\n') {
+            draw_ch(x - 1.0f, y, z, (unsigned char)*p, bg);
+            draw_ch(x + 1.0f, y, z, (unsigned char)*p, bg);
+            draw_ch(x, y - 1.0f, z, (unsigned char)*p, bg);
+            draw_ch(x, y + 1.0f, z, (unsigned char)*p, bg);
+            draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
+            x += (float)font_advance((unsigned char)*p);
             p++;
-            continue;
         }
-        draw_ch(x - 1.0f, y, z, (unsigned char)*p, bg);
-        draw_ch(x + 1.0f, y, z, (unsigned char)*p, bg);
-        draw_ch(x, y - 1.0f, z, (unsigned char)*p, bg);
-        draw_ch(x, y + 1.0f, z, (unsigned char)*p, bg);
-        draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
-        x += (float)font_advance((unsigned char)*p);
-        p++;
+        if (*p == '\n') {
+            p++;
+        }
+        y += (float)DINK_FONT_CELL;
     }
 }
 
