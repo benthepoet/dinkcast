@@ -4,6 +4,7 @@
 #include "dinkc_vm.h"
 #include "font.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -17,6 +18,34 @@ static struct Player *g_pl;
 static int (*g_live_xy)(int slot, int *x, int *y);
 static char g_text[200];
 static int g_on, g_owner, g_x, g_y, g_color;
+
+/* FreeDink gfx_fonts.cpp gfx_fonts_init_colors. Index 0 unused. */
+static const uint32_t g_font_argb[16] = {
+    0xFFFFFF02u, /* 0 unused, same yellow as 14 */
+    0xFFFFC6FFu, /* 1 Light Magenta 255,198,255 */
+    0xFF83B54Au, /* 2 Dark Green 131,181,74 */
+    0xFF63F2F7u, /* 3 Bold Cyan 99,242,247 */
+    0xFFFF9C4Au, /* 4 Orange 255,156,74 */
+    0xFFDEADFFu, /* 5 Magenta 222,173,255 */
+    0xFFF4BC49u, /* 6 Brown Orange 244,188,73 */
+    0xFFADADADu, /* 7 Light Gray 173,173,173 */
+    0xFF555555u, /* 8 Dark Gray 85,85,85 */
+    0xFF94C6FFu, /* 9 Sky Blue 148,198,255 */
+    0xFF00FF00u, /* 10 Bright Green 0,255,0 */
+    0xFFFFFF02u, /* 11 Yellow 255,255,2 */
+    0xFFFFFF02u, /* 12 Yellow 255,255,2 */
+    0xFFFF8484u, /* 13 Hot Pink 255,132,132 */
+    0xFFFFFF02u, /* 14 Yellow 255,255,2 */
+    0xFFFFFFFFu, /* 15 White 255,255,255 */
+};
+
+uint32_t saybox_argb(int color)
+{
+    if (color < 0 || color > 15) {
+        color = 14;
+    }
+    return g_font_argb[color];
+}
 
 #ifdef _arch_dreamcast
 static void *g_tex;
@@ -87,12 +116,19 @@ static void strip_color(const char *in, char *out, size_t n, int *color)
     while (p[0] == '`' && p[1] != '\0') {
         char c = p[1];
 
+        /* FreeDink text_draw (dversion >= 108). */
         if (c == '#') {
             *color = 13;
         } else if (c == '4') {
             *color = 4;
-        } else if (c == '$' || c == '%') {
-            *color = (c == '$') ? 14 : 15;
+        } else if (c == '$') {
+            *color = 14;
+        } else if (c == '%') {
+            *color = 15;
+        } else if (c == '@') {
+            *color = 12;
+        } else if (c == '!') {
+            *color = 11;
         } else if (c >= '1' && c <= '9') {
             *color = c - '0';
         } else if (c == '0') {
@@ -219,21 +255,6 @@ void saybox_evict(void)
     }
 }
 
-static uint32_t color_argb(int c)
-{
-    /* FreeDink font_colors (approx). */
-    if (c == 13) {
-        return 0xFFFF8484u;
-    }
-    if (c == 4) {
-        return 0xFFFF9C4Au;
-    }
-    if (c == 15) {
-        return 0xFFFFFFFFu;
-    }
-    return 0xFFFFFF02u; /* 14 yellow */
-}
-
 static void draw_ch(float x, float y, float z, int ch, uint32_t argb)
 {
     pvr_poly_cxt_t cxt;
@@ -298,7 +319,7 @@ void saybox_draw_pvr(float z)
     x = (float)g_x;
     y = (float)g_y;
     line0 = x;
-    fg = color_argb(g_color);
+    fg = saybox_argb(g_color);
     bg = 0xFF080E15u;
     while (*p != '\0') {
         if (*p == '\n') {
