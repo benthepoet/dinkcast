@@ -96,6 +96,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | #61 |
 | 2026-08-19 | First-open /cd hang retired in Flycast (3 clean cold boots) | requester report |
 | 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
+| 2026-08-20 | Drop `make chd-redream` / Redream CHD | master |
 
 ## Bites
 
