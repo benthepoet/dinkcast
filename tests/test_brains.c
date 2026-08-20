@@ -95,26 +95,41 @@ int main(void)
     scr.sprite[12].x = 30;
     scr.sprite[12].y = 30;
 
-    brains_enter(&scr, DINK_VISION_DEFAULT);
-    brains_apply(&scr);
-    expect((int)scr.sprite[20].seq == 86, "fire pseq overlay");
-    expect((int)scr.sprite[1].seq == 31, "type0 not live overlay");
+    {
+        struct EditorSprite snap[101];
 
-    brains_set_freeze(26, 1);
-    expect(brains_freeze(26) == 1, "mom freeze");
-    f1 = (int)scr.sprite[20].frame;
-    for (i = 0; i < 20; i++) {
-        brains_tick(&scr, seqs, &mask, i * 16, DINK_VISION_DEFAULT);
+        memcpy(snap, scr.sprite, sizeof(snap));
+        brains_enter(&scr, DINK_VISION_DEFAULT);
+        brains_apply(&scr);
+        expect((int)scr.sprite[20].seq == 86, "fire pseq overlay");
+        expect((int)scr.sprite[1].seq == 31, "type0 not live overlay");
+
+        brains_set_freeze(26, 1);
+        expect(brains_freeze(26) == 1, "mom freeze");
+        f1 = (int)scr.sprite[20].frame;
+        for (i = 0; i < 20; i++) {
+            brains_tick(&scr, seqs, &mask, i * 16, DINK_VISION_DEFAULT);
+        }
+        f2 = (int)scr.sprite[20].frame;
+        expect(f2 != f1, "fire frame advanced");
+        expect(f2 >= 1 && f2 <= 4, "fire frame in seq");
+        expect((int)scr.sprite[26].x == 202 && (int)scr.sprite[26].y == 157,
+               "frozen mom does not walk");
+        expect(brains_unimpl_count() == 4, "5/7/9/12 unimplemented once");
+        /* Do not reuse the old wrong map (9=bounce, 12=text). */
+        expect((int)scr.sprite[9].x == 100, "pillbug not bounce-moved");
+        expect((int)scr.sprite[12].x == 30, "brain 12 not text-moved");
+        expect((int)scr.sprite[10].seq == 1 && (int)scr.sprite[11].seq == 1,
+               "5/7 still drawn (not live=0)");
+
+        /* Play loop: memcpy editor snapshot then brains_apply. */
+        memcpy(scr.sprite, snap, sizeof(snap));
+        expect((int)scr.sprite[20].frame == 1, "snapshot wipes fire frame");
+        brains_apply(&scr);
+        expect((int)scr.sprite[20].frame == f2, "apply restores fire after snapshot");
+        expect((int)scr.sprite[20].seq == 86, "apply restores fire seq");
+        expect((int)scr.sprite[1].seq == 31, "type0 snapshot not overlaid");
     }
-    f2 = (int)scr.sprite[20].frame;
-    expect(f2 != f1, "fire frame advanced");
-    expect(f2 >= 1 && f2 <= 4, "fire frame in seq");
-    expect((int)scr.sprite[26].x == 202 && (int)scr.sprite[26].y == 157,
-           "frozen mom does not walk");
-    expect(brains_unimpl_count() == 4, "5/7/9/12 unimplemented once");
-    /* Do not reuse the old wrong map (9=bounce, 12=text). */
-    expect((int)scr.sprite[9].x == 100, "pillbug not bounce-moved");
-    expect((int)scr.sprite[12].x == 30, "brain 12 not text-moved");
 
     brains_set_freeze(26, 0);
     {
