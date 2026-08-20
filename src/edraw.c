@@ -98,8 +98,12 @@ static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
         return;
     }
+    /* nframes is 0 until frame 1 is decoded (create_sprite seqs). */
+    if (load_one(g, got, seqs, seq, 1) != 0) {
+        return;
+    }
     nfr = ini_seq_len(seq, seqs[seq].nframes);
-    for (f2 = 1; f2 <= nfr && *got < DINK_EDGFX_MAX; f2++) {
+    for (f2 = 2; f2 <= nfr && *got < DINK_EDGFX_MAX; f2++) {
         (void)load_one(g, got, seqs, seq, f2);
     }
 }
@@ -313,7 +317,12 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     /* Play path: decode only from a pack already opened at screen load. */
     pack_dir(&seqs[seq], dir, sizeof(dir));
     if (dir[0] == '\0' || !ff_is_cached(dir)) {
-        printf("edraw skip seq=%d fr=%d (pack not cached)\n", seq, frame);
+        static uint8_t noted[DINK_MAX_SEQ];
+
+        if (noted[seq] == 0) {
+            noted[seq] = 1;
+            printf("edraw skip seq=%d fr=%d (pack not cached)\n", seq, frame);
+        }
         return -1;
     }
     if (load_one(g, &got, seqs, seq, frame) != 0) {
