@@ -8,6 +8,8 @@
 #define DINK_MAX_FRAMES 50
 #define DINK_SSI_MAX 400
 #define DINK_SPECIAL_MAX 80
+#define DINK_ALIAS_MAX 128
+#define DINK_FDELAY_MAX 80
 
 struct SeqInfo {
     char prefix[128];
@@ -27,6 +29,12 @@ extern int ini_nframe;
 extern struct IniFrame ini_frame[DINK_SSI_MAX];
 /* SET_FRAME_SPECIAL last-wins (seq,frame) → 1. */
 int ini_frame_special(int seq, int frame);
+/* SET_FRAME_FRAME last-wins. Terminator dest_seq or dest_frame < 0.
+ * Returns 1 if this slot is a terminator (do not draw; wrap / end seq). */
+int ini_resolve_frame(int seq, int frame, int *oseq, int *ofr);
+int ini_frame_delay(int seq, int frame, int seq_default);
+/* bmp_nframes from dir.ff; aliases extend; terminator N means len N-1. */
+int ini_seq_len(int seq, int bmp_nframes);
 
 int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq);
 int ini_load(struct SeqInfo *seqs, int nseq);

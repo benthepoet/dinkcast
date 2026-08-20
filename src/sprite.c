@@ -61,6 +61,16 @@ int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
     if (seq == NULL || out == NULL || frame < 1 || seq->prefix[0] == '\0') {
         return -1;
     }
+    {
+        int dseq = seqn, dfr = frame;
+
+        if (ini_resolve_frame(seqn, frame, &dseq, &dfr) != 0) {
+            return -1;
+        }
+        if (dseq == seqn && dfr >= 1) {
+            frame = dfr;
+        }
+    }
     memset(out, 0, sizeof(*out));
     sl = strrchr(seq->prefix, '/');
     if (sl == NULL) {
@@ -88,8 +98,8 @@ int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
             }
             nf = fi;
         }
-        seq->nframes = nf;
-        printf("seq %d nframes %d\n", seqn, nf);
+        seq->nframes = ini_seq_len(seqn, nf);
+        printf("seq %d nframes %d\n", seqn, seq->nframes);
     }
     if (ff_find(ff, name, &bmp, &bn) != 0) {
         return -1;

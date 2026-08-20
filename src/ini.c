@@ -19,6 +19,20 @@ struct IniSpecial {
 static int ini_nspecial;
 static struct IniSpecial ini_special[DINK_SPECIAL_MAX];
 
+struct IniAlias {
+    int seq, frame, dest_seq, dest_frame;
+};
+
+static int ini_nalias;
+static struct IniAlias ini_alias[DINK_ALIAS_MAX];
+
+struct IniFDelay {
+    int seq, frame, delay;
+};
+
+static int ini_nfdelay;
+static struct IniFDelay ini_fdelay[DINK_FDELAY_MAX];
+
 int ini_frame_special(int seq, int frame)
 {
     int i;
@@ -29,6 +43,71 @@ int ini_frame_special(int seq, int frame)
         }
     }
     return 0;
+}
+
+int ini_resolve_frame(int seq, int frame, int *oseq, int *ofr)
+{
+    int i;
+
+    if (oseq != NULL) {
+        *oseq = seq;
+    }
+    if (ofr != NULL) {
+        *ofr = frame;
+    }
+    for (i = 0; i < ini_nalias; i++) {
+        if (ini_alias[i].seq == seq && ini_alias[i].frame == frame) {
+            if (ini_alias[i].dest_seq < 0 || ini_alias[i].dest_frame < 0) {
+                return 1;
+            }
+            if (oseq != NULL) {
+                *oseq = ini_alias[i].dest_seq;
+            }
+            if (ofr != NULL) {
+                *ofr = ini_alias[i].dest_frame;
+            }
+            return 0;
+        }
+    }
+    return 0;
+}
+
+int ini_frame_delay(int seq, int frame, int seq_default)
+{
+    int i;
+
+    for (i = 0; i < ini_nfdelay; i++) {
+        if (ini_fdelay[i].seq == seq && ini_fdelay[i].frame == frame) {
+            return ini_fdelay[i].delay > 0 ? ini_fdelay[i].delay : seq_default;
+        }
+    }
+    return seq_default;
+}
+
+int ini_seq_len(int seq, int bmp_nframes)
+{
+    int i, n, term;
+
+    n = bmp_nframes > 0 ? bmp_nframes : 0;
+    term = 0;
+    for (i = 0; i < ini_nalias; i++) {
+        if (ini_alias[i].seq != seq) {
+            continue;
+        }
+        if (ini_alias[i].dest_seq < 0 || ini_alias[i].dest_frame < 0) {
+            if (term == 0 || ini_alias[i].frame < term) {
+                term = ini_alias[i].frame;
+            }
+            continue;
+        }
+        if (ini_alias[i].frame > n) {
+            n = ini_alias[i].frame;
+        }
+    }
+    if (term > 0 && (n < 1 || term - 1 < n)) {
+        n = term - 1;
+    }
+    return n > 0 ? n : 0;
 }
 
 static void ini_store_special(int seq, int frame, int on)
@@ -51,6 +130,52 @@ static void ini_store_special(int seq, int frame, int on)
     ini_special[ini_nspecial].frame = frame;
     ini_special[ini_nspecial].on = on;
     ini_nspecial++;
+}
+
+static void ini_store_alias(int seq, int frame, int dest_seq, int dest_frame)
+{
+    int i;
+
+    if (seq < 1 || frame < 1) {
+        return;
+    }
+    for (i = 0; i < ini_nalias; i++) {
+        if (ini_alias[i].seq == seq && ini_alias[i].frame == frame) {
+            ini_alias[i].dest_seq = dest_seq;
+            ini_alias[i].dest_frame = dest_frame;
+            return;
+        }
+    }
+    if (ini_nalias >= DINK_ALIAS_MAX) {
+        return;
+    }
+    ini_alias[ini_nalias].seq = seq;
+    ini_alias[ini_nalias].frame = frame;
+    ini_alias[ini_nalias].dest_seq = dest_seq;
+    ini_alias[ini_nalias].dest_frame = dest_frame;
+    ini_nalias++;
+}
+
+static void ini_store_fdelay(int seq, int frame, int delay)
+{
+    int i;
+
+    if (seq < 1 || frame < 1) {
+        return;
+    }
+    for (i = 0; i < ini_nfdelay; i++) {
+        if (ini_fdelay[i].seq == seq && ini_fdelay[i].frame == frame) {
+            ini_fdelay[i].delay = delay;
+            return;
+        }
+    }
+    if (ini_nfdelay >= DINK_FDELAY_MAX) {
+        return;
+    }
+    ini_fdelay[ini_nfdelay].seq = seq;
+    ini_fdelay[ini_nfdelay].frame = frame;
+    ini_fdelay[ini_nfdelay].delay = delay;
+    ini_nfdelay++;
 }
 
 static void slash(char *s)
@@ -164,6 +289,10 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
     memset(ini_frame, 0, sizeof(ini_frame));
     ini_nspecial = 0;
     memset(ini_special, 0, sizeof(ini_special));
+    ini_nalias = 0;
+    memset(ini_alias, 0, sizeof(ini_alias));
+    ini_nfdelay = 0;
+    memset(ini_fdelay, 0, sizeof(ini_fdelay));
     while (i < n) {
         char line[256];
         size_t L = 0;
@@ -217,6 +346,25 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
                 if (tok_int(&p, &seq) == 0 && tok_int(&p, &fr) == 0) {
                     (void)tok_int(&p, &on);
                     ini_store_special(seq, fr, on);
+                }
+                continue;
+            }
+            if (strcmp(cmd, "set_frame_frame") == 0) {
+                int fr = 0, dseq = -1, dfr = -1;
+
+                if (tok_int(&p, &seq) == 0 && tok_int(&p, &fr) == 0) {
+                    (void)tok_int(&p, &dseq);
+                    (void)tok_int(&p, &dfr);
+                    ini_store_alias(seq, fr, dseq, dfr);
+                }
+                continue;
+            }
+            if (strcmp(cmd, "set_frame_delay") == 0) {
+                int fr = 0, dly = 0;
+
+                if (tok_int(&p, &seq) == 0 && tok_int(&p, &fr) == 0) {
+                    (void)tok_int(&p, &dly);
+                    ini_store_fdelay(seq, fr, dly);
                 }
                 continue;
             }
