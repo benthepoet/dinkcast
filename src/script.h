@@ -13,6 +13,11 @@ void script_on_main(int script_id);
 int script_preload_screen(void);
 /* 11.6: screen MAIN then type-1 sprite main() in rank order. */
 int script_attach_screen(void);
+/* draw_screen_game: *pvision=0, run screen MAIN. */
+void script_enter_vision(void);
+/* game_place_sprites / init_scripts for current &vision. */
+int script_attach_live(void);
+int script_play_vision(void);
 void script_on_talk(int sprite);
 void script_on_hit(int sprite);
 

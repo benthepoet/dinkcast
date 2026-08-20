@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_vm.h"
+#include "dinkc_var.h"
 #include "fs.h"
 #include "mapscr.h"
 #include "script.h"
@@ -90,6 +91,7 @@ int main(void)
             rec = (int)w.loc[DINK_START_PLAYER_MAP];
             expect(map_load_record(rec, &house) == 0, "house map");
             expect((int)sizeof(struct EditorSprite) == 108, "esz 108");
+            expect(strcmp(house.script, "s1-h1-s") == 0, "house screen script");
             expect(strcmp(house.sprite[26].script, "s1-h1-m") == 0, "mom name");
             expect(house.sprite[26].type == 1 && house.sprite[26].active,
                    "mom live");
@@ -97,6 +99,31 @@ int main(void)
             na = script_attach_screen();
             expect(na >= 1, "house attach");
             dinkc_vm_reset();
+            {
+                struct MapScreen gate;
+                int grec = (int)w.loc[408];
+
+                expect(grec >= 1 && map_load_record(grec, &gate) == 0,
+                       "gate map");
+                expect(strcmp(gate.script, "s1-gate") == 0, "gate screen script");
+                expect(gate.sprite[4].vision == 1 &&
+                           strcmp(gate.sprite[4].script, "s1-gg") == 0,
+                       "guard vis1 s1-gg");
+                dinkc_vm_reset();
+                dinkc_var_set("&story", 1, DINKC_GLOBAL_SCOPE, 1);
+                script_bind_screen(&gate);
+                script_enter_vision();
+                expect(script_play_vision() == 1, "s1-gate story1 vision");
+                expect(script_attach_live() >= 1, "guard script attaches");
+            }
+            {
+                struct MapScreen duck;
+                int drec = (int)w.loc[440];
+
+                expect(drec >= 1 && map_load_record(drec, &duck) == 0,
+                       "findduck map");
+                expect(strcmp(duck.script, "findduck") == 0, "findduck script");
+            }
         }
     }
 

@@ -21,7 +21,7 @@ struct EdGfx *edraw_gfx_alloc(void);
 void edraw_gfx_release(struct EdGfx *g);
 /* Unique (seq,frame) for active editor sprites. */
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
-                      struct EdGfx *g, int *n);
+                      struct EdGfx *g, int *n, int vision);
 #ifdef _arch_dreamcast
 /* After pvr_init (tiles_upload_pvr). Load is CPU-only. */
 int edraw_upload_pvr(struct EdGfx *g, int n);

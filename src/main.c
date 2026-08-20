@@ -317,6 +317,8 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_move(brains_move);
                 dinkc_cmd_bind_moving(brains_moving);
                 saybox_bind(&g_scr, &pl);
+                script_bind_screen(&g_scr);
+                script_enter_vision();
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
@@ -330,7 +332,8 @@ int main(int argc, char **argv)
                     printf("edraw start\n");
                     fflush(stdout);
                     if (seqs != NULL) {
-                        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
+                        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned,
+                                                script_play_vision());
                     }
                     /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
                     spr_restore("post-edraw");
@@ -340,7 +343,7 @@ int main(int argc, char **argv)
                         int hl, ht, hr, hb, cx, cy;
 
                         if (!editor_sprite_on_vision(&g_scr.sprite[si],
-                                                     DINK_VISION_DEFAULT) ||
+                                                     script_play_vision()) ||
                             g_scr.sprite[si].hard != 0) {
                             continue;
                         }
@@ -400,10 +403,9 @@ int main(int argc, char **argv)
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
                        g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
                        (int)g_scr.sprite[26].active);
-                script_bind_screen(&g_scr);
-                brains_enter(&g_scr, DINK_VISION_DEFAULT);
+                brains_enter(&g_scr, script_play_vision());
                 brains_apply(&g_scr);
-                script_on_main(0); /* also preloads unique sprite story files */
+                script_attach_live();
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
@@ -460,8 +462,12 @@ int main(int argc, char **argv)
                             printf("hard restamp fail\n");
                         }
                         spr_restore("swap-edraw");
+                        script_bind_screen(&g_scr);
+                        saybox_bind(&g_scr, &pl);
+                        script_enter_vision();
                         if (seqs != NULL) {
-                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned);
+                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned,
+                                                    script_play_vision());
                         }
                         spr_restore("swap-post-edraw");
                         printf("edraw unique %d\n", ned);
@@ -470,7 +476,7 @@ int main(int argc, char **argv)
                             int hl, ht, hr, hb, cx, cy, hid, seq, fr;
 
                             if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
-                                                         DINK_VISION_DEFAULT) ||
+                                                         script_play_vision()) ||
                                 g_scr.sprite[nstamp].hard != 0) {
                                 continue;
                             }
@@ -540,11 +546,9 @@ int main(int argc, char **argv)
                             printf("swap dink seq=%d\n", pl.seq);
                         }
                         spr_restore("swap-pre-attach");
-                        script_bind_screen(&g_scr);
-                        saybox_bind(&g_scr, &pl);
-                        brains_enter(&g_scr, DINK_VISION_DEFAULT);
+                        brains_enter(&g_scr, script_play_vision());
                         brains_apply(&g_scr);
-                        script_on_main(0);
+                        script_attach_live();
                         swap = 0;
                         continue;
                     }
@@ -582,7 +586,7 @@ int main(int argc, char **argv)
                     } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
-                                              pl.y, pl.dir);
+                                              pl.y, pl.dir, script_play_vision());
 
                         script_on_talk(slot);
                     }
@@ -597,7 +601,7 @@ int main(int argc, char **argv)
                     dinkc_cmd_thaw_if_idle();
                     if (seqs != NULL) {
                         brains_tick(&g_scr, seqs, &mask, now_ms,
-                                    DINK_VISION_DEFAULT);
+                                    script_play_vision());
                         {
                             int ei;
 
@@ -606,7 +610,7 @@ int main(int argc, char **argv)
                                 int fr = (int)g_scr.sprite[ei].frame;
 
                                 if (!editor_sprite_draw(&g_scr.sprite[ei],
-                                                        DINK_VISION_DEFAULT)) {
+                                                        script_play_vision())) {
                                     continue;
                                 }
                                 if (fr < 1) {
@@ -637,7 +641,8 @@ int main(int argc, char **argv)
                         }
                         if (pl.just_hit) {
                             int slot = hit_probe(&g_scr, g_edg, ned, seqs,
-                                                 pl.x, pl.y, pl.dir);
+                                                 pl.x, pl.y, pl.dir,
+                                                 script_play_vision());
 
                             script_on_hit(slot);
                         }
@@ -677,7 +682,7 @@ int main(int argc, char **argv)
                             struct SpriteFrame *ef;
 
                             if (!editor_sprite_draw(&g_scr.sprite[si],
-                                                    DINK_VISION_DEFAULT)) {
+                                                    script_play_vision())) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;

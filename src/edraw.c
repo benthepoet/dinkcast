@@ -146,7 +146,7 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
 }
 
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
-                      struct EdGfx *g, int *n)
+                      struct EdGfx *g, int *n, int vision)
 {
     struct EditorSprite *sp;
     int i, got = 0;
@@ -173,7 +173,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         for (i = 1; i <= 100; i++) {
             int seq, fr;
 
-            if (!editor_sprite_draw(&sp[i], DINK_VISION_DEFAULT)) {
+            if (!editor_sprite_draw(&sp[i], vision)) {
                 continue;
             }
             seq = (int)sp[i].seq;
@@ -271,7 +271,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             int br, ws[6], nw, w;
 
             if ((int)sp[i].type != 1 ||
-                !editor_sprite_on_vision(&sp[i], DINK_VISION_DEFAULT)) {
+                !editor_sprite_on_vision(&sp[i], vision)) {
                 continue;
             }
             br = (int)sp[i].brain;

@@ -10,6 +10,6 @@
  * whose hardbox+10, extended 50/35 in Dink's dir, contains (dx,dy).
  * Returns slot or 0. */
 int talk_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
-               struct SeqInfo *seqs, int dx, int dy, int dir);
+               struct SeqInfo *seqs, int dx, int dy, int dir, int vision);
 
 #endif

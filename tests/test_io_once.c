@@ -230,14 +230,14 @@ int main(void)
                 free(seqs);
                 return 1;
             }
-            if (edraw_load_screen(scr.sprite, seqs, g, &ned) != 0 || ned < 1) {
+            if (edraw_load_screen(scr.sprite, seqs, g, &ned, 0) != 0 || ned < 1) {
                 fprintf(stderr, "FAIL edraw n=%d\n", ned);
                 edraw_gfx_release(g);
                 free(seqs);
                 return 1;
             }
             o0 = dink_disc_opens();
-            if (edraw_load_screen(scr.sprite, seqs, g, &ned) != 0) {
+            if (edraw_load_screen(scr.sprite, seqs, g, &ned, 0) != 0) {
                 fprintf(stderr, "FAIL edraw again\n");
                 edraw_gfx_release(g);
                 free(seqs);

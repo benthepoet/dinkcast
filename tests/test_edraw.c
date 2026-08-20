@@ -53,7 +53,7 @@ int main(void)
         free(seqs);
         return 1;
     }
-    if (edraw_load_screen(scr.sprite, seqs, g, &n) != 0 || n < 17) {
+    if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0 || n < 17) {
         fprintf(stderr, "FAIL edraw n=%d act=%d\n", n, act);
         edraw_free(g, n);
         free(seqs);
@@ -155,7 +155,7 @@ int main(void)
         int loads1, loads2, n2 = n;
 
         loads1 = ff_disc_loads();
-        if (edraw_load_screen(scr.sprite, seqs, g, &n2) != 0) {
+        if (edraw_load_screen(scr.sprite, seqs, g, &n2, 0) != 0) {
             fprintf(stderr, "FAIL edraw reload\n");
             edraw_free(g, n2);
             free(seqs);

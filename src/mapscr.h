@@ -6,6 +6,9 @@
 #include <stdint.h>
 
 #define DINK_MAP_RECSIZE 31280
+/* load_screen_to: sprites at 8020, 101 * 220, then script. FreeDink
+ * comments 30204; the file field is 8020+22220 = 30240. */
+#define DINK_MAP_SCRIPT_OFF 30240
 #define DINK_SCREEN_TILES 96
 #define DINK_EDITOR_SPRITES 100
 #define DINK_SPR_TYPE_INVISIBLE 2

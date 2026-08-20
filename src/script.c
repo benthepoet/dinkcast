@@ -5,6 +5,7 @@
 #include "dinkc_file.h"
 #include "dinkc_lex.h"
 #include "dinkc_parse.h"
+#include "dinkc_var.h"
 #include "dinkc_vm.h"
 
 #include <stdio.h>
@@ -111,14 +112,20 @@ static int start_main(const char *name, int sprite)
     return 0;
 }
 
+int script_play_vision(void)
+{
+    return dinkc_var_get("&vision", DINKC_GLOBAL_SCOPE, 1);
+}
+
 int script_preload_screen(void)
 {
     char seen[32][16];
-    int nseen = 0, i, ok = 0;
+    int nseen = 0, i, ok = 0, vis;
 
     if (g_scr == NULL) {
         return 0;
     }
+    vis = script_play_vision();
     if (g_scr->script[0] != '\0') {
         strncpy(seen[nseen], g_scr->script, sizeof(seen[0]) - 1);
         seen[nseen][sizeof(seen[0]) - 1] = '\0';
@@ -131,7 +138,7 @@ int script_preload_screen(void)
         const char *nm = g_scr->sprite[i].script;
         int j, dup = 0;
 
-        if (!editor_sprite_on_vision(&g_scr->sprite[i], DINK_VISION_DEFAULT)) {
+        if (!editor_sprite_on_vision(&g_scr->sprite[i], vis)) {
             continue;
         }
         if (nm[0] == '\0') {
@@ -156,7 +163,7 @@ int script_preload_screen(void)
             ok++;
         }
     }
-    printf("dinkc preload ok=%d unique=%d\n", ok, nseen);
+    printf("dinkc preload ok=%d unique=%d vis=%d\n", ok, nseen, vis);
     if (nseen == 0 && g_scr != NULL) {
         printf("dinkc preload empty esz=%d spr26=%s act=%d vis=%d type=%d\n",
                (int)sizeof(struct EditorSprite), g_scr->sprite[26].script,
@@ -166,22 +173,33 @@ int script_preload_screen(void)
     return ok;
 }
 
-int script_attach_screen(void)
+void script_enter_vision(void)
+{
+    /* draw_screen_game: *pvision = 0, then screen MAIN. */
+    dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
+    if (g_scr == NULL) {
+        return;
+    }
+    (void)script_preload_screen();
+    if (start_main(g_scr->script, 0) == 0) {
+        printf("dinkc screen main %s vis=%d\n", g_scr->script,
+               script_play_vision());
+    }
+}
+
+int script_attach_live(void)
 {
     int rank[100];
-    int nrank = 0, i, a, nstart = 0;
+    int nrank = 0, i, a, nstart = 0, vis;
 
     if (g_scr == NULL) {
         return 0;
     }
+    vis = script_play_vision();
     (void)script_preload_screen();
-    /* draw_screen_game: screen script MAIN before game_place_sprites. */
-    if (start_main(g_scr->script, 0) == 0) {
-        nstart++;
-    }
-    /* game_place_sprites: type 1 + vision + strlen(script) > 1, rank order. */
+    /* game_place_sprites: type 1 + *pvision + strlen(script) > 1. */
     for (i = 1; i <= 99; i++) {
-        if (!editor_sprite_on_vision(&g_scr->sprite[i], DINK_VISION_DEFAULT)) {
+        if (!editor_sprite_on_vision(&g_scr->sprite[i], vis)) {
             continue;
         }
         if (g_scr->sprite[i].type != 1) {
@@ -209,8 +227,14 @@ int script_attach_screen(void)
             nstart++;
         }
     }
-    printf("dinkc attach n=%d\n", nstart);
+    printf("dinkc attach n=%d vis=%d\n", nstart, vis);
     return nstart;
+}
+
+int script_attach_screen(void)
+{
+    script_enter_vision();
+    return script_attach_live();
 }
 
 void script_on_main(int script_id)
