@@ -33,6 +33,9 @@ struct EditorSprite {
     int32_t alt_l, alt_t, alt_r, alt_b;
     int32_t vision;
     int32_t is_warp, warp_map, warp_x, warp_y, parm_seq;
+    /* load_screen_to +160 … +196 (after parm_seq, vision already +188). */
+    int32_t base_die, gold, hitpoints, strength, defense, exp, sound, nohit,
+        touch_damage;
     char script[16];
 };
 

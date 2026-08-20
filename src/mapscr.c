@@ -124,6 +124,18 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
             le_i32(p, n, off + 156, &out->sprite[i].parm_seq) != 0) {
             return -1;
         }
+        /* base_die +160 … touch_damage +196. vision is +188 (above). */
+        if (le_i32(p, n, off + 160, &out->sprite[i].base_die) != 0 ||
+            le_i32(p, n, off + 164, &out->sprite[i].gold) != 0 ||
+            le_i32(p, n, off + 168, &out->sprite[i].hitpoints) != 0 ||
+            le_i32(p, n, off + 172, &out->sprite[i].strength) != 0 ||
+            le_i32(p, n, off + 176, &out->sprite[i].defense) != 0 ||
+            le_i32(p, n, off + 180, &out->sprite[i].exp) != 0 ||
+            le_i32(p, n, off + 184, &out->sprite[i].sound) != 0 ||
+            le_i32(p, n, off + 192, &out->sprite[i].nohit) != 0 ||
+            le_i32(p, n, off + 196, &out->sprite[i].touch_damage) != 0) {
+            return -1;
+        }
         memcpy(out->sprite[i].script, p + off + 40, 13);
         out->sprite[i].script[13] = '\0';
         off += 220;

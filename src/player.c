@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "player.h"
 
+#include "hurt.h"
 #include "start_map.h"
 
 static void dir_delta(int dir, int *dx, int *dy)
@@ -35,13 +36,52 @@ void player_init(struct Player *p)
     p->freeze = 0;
     p->nocontrol = 0;
     p->just_hit = 0;
+    p->just_push = 0;
     p->base_attack = DINK_BASE_ATTACK;
     p->base_idle = DINK_BASE_IDLE;
+    p->base_push = DINK_BASE_PUSH;
     p->warp_hit = 0;
     p->move_active = 0;
     p->move_dir = 0;
     p->move_num = 0;
     p->move_nohard = 0;
+    p->hitpoints = 0;
+    p->defense = 0;
+    p->strength = 0;
+    p->nohit = 0;
+    p->range = 0;
+    p->damage = 0;
+    p->last_hit = 0;
+    p->push_active = 0;
+    p->push_dir = 0;
+    p->push_timer = 0;
+}
+
+int player_hurt(struct Player *p, int damage)
+{
+    int num;
+
+    if (p == NULL) {
+        return 0;
+    }
+    num = hurt_roll(damage, p->defense);
+    p->damage += num;
+    return num;
+}
+
+int player_apply_life(struct Player *p, int *life)
+{
+    if (p == NULL || life == NULL) {
+        return 0;
+    }
+    if (p->damage > 0) {
+        *life -= p->damage;
+        p->damage = 0;
+        if (*life < 0) {
+            *life = 0;
+        }
+    }
+    return *life < 1 ? 1 : 0;
 }
 
 void player_attack(struct Player *p, const struct SeqInfo *seqs)
@@ -83,14 +123,16 @@ void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
 }
 
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
-                 const struct SeqInfo *seqs)
+                 const struct SeqInfo *seqs, int now_ms)
 {
     int seq, delay, nfr, nx, ny, dx, dy;
+    int blocked = 0;
 
     if (p == NULL || seqs == NULL) {
         return;
     }
     p->just_hit = 0;
+    p->just_push = 0;
     p->warp_hit = 0;
     if (p->move_active) {
         int d = p->move_dir;
@@ -151,6 +193,19 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         }
         return;
     }
+    if (p->push_active) {
+        if (pad_dir == 0 || pad_dir != p->push_dir) {
+            p->push_active = 0;
+        }
+    }
+    if (p->push_active && now_ms > p->push_timer + 600) {
+        p->seq = p->base_push + p->dir;
+        p->frame = 1;
+        p->acc = 0;
+        p->nocontrol = 1;
+        p->just_push = 1;
+        return;
+    }
     if (pad_dir != 0) {
         p->dir = pad_dir;
     } else {
@@ -195,6 +250,8 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                         p->warp_hit = h - 100;
                     } else if (h == 0) {
                         p->x = nx;
+                    } else if (h != 2) {
+                        blocked = 1;
                     }
                 }
                 if (dy != 0) {
@@ -207,9 +264,24 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                         p->warp_hit = h - 100;
                     } else if (h == 0) {
                         p->y = ny;
+                    } else if (h != 2) {
+                        blocked = 1;
                     }
                 }
             }
+        }
+        /* check_if_move_is_legal: hardness starts push; clear on free walk. */
+        if (blocked && (p->dir == 2 || p->dir == 4 || p->dir == 6 ||
+                        p->dir == 8)) {
+            if (!p->push_active) {
+                p->push_active = 1;
+                p->push_dir = p->dir;
+                p->push_timer = now_ms;
+            } else if (p->push_dir != p->dir) {
+                p->push_active = 0;
+            }
+        } else if (!blocked) {
+            p->push_active = 0;
         }
     }
     delay = ini_frame_delay(seq, p->frame, seqs[seq].delay);

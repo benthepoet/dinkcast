@@ -21,6 +21,12 @@ int script_attach_live(void);
 int script_play_vision(void);
 void script_on_talk(int sprite);
 void script_on_hit(int sprite);
+void script_on_hit_from(int sprite, int attacker);
+void script_on_kill(int sprite, const char *proc);
+void script_on_push(int sprite);
+/* update_status: flife < 1 → dinfo DIE once. */
+int script_on_dink_die(void);
+void script_clear_dink_die(void);
 
 /* Last printf line (no newline). Host tests. */
 const char *script_stub_log(void);

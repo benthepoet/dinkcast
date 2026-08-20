@@ -161,6 +161,23 @@ static void list_cd_hud(void)
     }
 }
 
+static int g_need_restart;
+
+static void game_restart_cmd(void)
+{
+    g_need_restart = 1;
+}
+
+static void game_add_exp(int num)
+{
+    int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) + num;
+
+    if (exp > 99999) {
+        exp = 99999;
+    }
+    dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
+}
+
 int main(int argc, char **argv)
 {
     struct TitleStill title;
@@ -345,6 +362,14 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_create(brains_create);
                 dinkc_cmd_bind_move(brains_move);
                 dinkc_cmd_bind_moving(brains_moving);
+                dinkc_cmd_bind_hurt(brains_hurt);
+                dinkc_cmd_bind_restart(game_restart_cmd);
+                hit_bind_player(&pl);
+                hit_bind_hit(script_on_hit_from);
+                hit_bind_push(script_on_push);
+                brains_bind_kill(script_on_kill);
+                brains_bind_exp(game_add_exp);
+                brains_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
@@ -456,6 +481,18 @@ int main(int argc, char **argv)
                     for (;;) {
                         uint32_t buttons = 0;
                         int have, pdir;
+
+                    if (g_need_restart) {
+                        dinkc_vm_reset();
+                        dinkc_var_init();
+                        player_init(&pl);
+                        dinkc_cmd_bind_player(&pl);
+                        hit_bind_player(&pl);
+                        script_clear_dink_die();
+                        player_map = DINK_START_PLAYER_MAP;
+                        g_need_restart = 0;
+                        swap = 1;
+                    }
 
                     if (swap) {
                         int rec2, nstamp;
@@ -653,7 +690,7 @@ int main(int argc, char **argv)
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_X)) {
-                        /* magic_script==0 until 15.2 / arm_magic. */
+                        /* magic_script==0 until 15.4 / arm_magic. */
                         saybox_set(magic_miss_line((rand() % 6) + 1), 1);
                     }
                     if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
@@ -710,7 +747,7 @@ int main(int argc, char **argv)
                                 screen_warp_clear();
                             }
                         } else {
-                            player_step(&pl, pdir, &mask, seqs);
+                            player_step(&pl, pdir, &mask, seqs, now_ms);
                             if (pl.freeze == 0 && pl.warp_hit > 0) {
                                 int wr = screen_special_block(
                                     &g_world, &g_scr, pl.warp_hit, &player_map,
@@ -736,11 +773,45 @@ int main(int argc, char **argv)
                             }
                         }
                         if (pl.just_hit) {
-                            int slot = hit_probe(&g_scr, g_edg, ned, seqs,
-                                                 pl.x, pl.y, pl.dir,
-                                                 script_play_vision());
+                            int str = dinkc_var_get("&strength",
+                                                    DINKC_GLOBAL_SCOPE, 1);
 
-                            script_on_hit(slot);
+                            hit_tag_list(1, pl.x, pl.y, pl.dir, str, pl.range,
+                                         g_edg, ned, seqs);
+                        }
+                        if (pl.just_push) {
+                            hit_tag_list_push(pl.x, pl.y, g_edg, ned, seqs);
+                        }
+                        {
+                            int hi;
+
+                            for (hi = 2; hi <= 99; hi++) {
+                                if (brains_take_just_hit(hi)) {
+                                    int hx, hy;
+
+                                    if (brains_live_xy(hi, &hx, &hy)) {
+                                        hit_tag_list(hi, hx, hy,
+                                                     brains_change_prop(
+                                                         hi, DINKC_SP_DIR, -1),
+                                                     brains_strength(hi),
+                                                     brains_range(hi), g_edg,
+                                                     ned, seqs);
+                                    }
+                                }
+                            }
+                        }
+                        {
+                            int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE,
+                                                     1);
+
+                            if (player_apply_life(&pl, &life)) {
+                                dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE,
+                                              1);
+                                (void)script_on_dink_die();
+                            } else {
+                                dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE,
+                                              1);
+                            }
                         }
                         if (pl.seq != last_seq || pl.frame != last_frame) {
                             struct SpriteFrame nxt;

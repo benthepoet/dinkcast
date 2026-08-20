@@ -25,7 +25,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Start map 1, 334,161, dir 4 | `MAIN.c` / `starting_dink_*` / `START-1.c` | `start_map.h` | hold |
 | Idle `10+dir`, walk `70+dir` | `base_idle` / `base_walk` | `DINK_BASE_*` | hold |
 | Talk A | `run_through_tag_list_talk` | `talk_probe` | hold (10.1) |
-| Hit B | `item-fst` + `run_through_tag_list` | `player_attack` + `hit_probe` | hold (10.2) |
+| Hit B | `item-fst` + `run_through_tag_list` | `player_attack` + `hit_tag_list` | hold (15.2); `hit_probe` geometry only |
 | Talk/hit/main hooks | `locate` + `run_script` | `script_on_*` log stubs | hold (10.3); run in 11 |
 | `story/name.c` | `load_script` | `dinkc_load` 32 KB | hold (11.0) |
 | DinkC tokens | line + `get_word` | `dinkc_lex_*` | hold (11.1); `//` only |
@@ -72,9 +72,9 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Choice menu | `game_choice` / `game_choice_renderer` | seq 30 frames 2–4 + hcenter 184–463 + arrows 456/457 | hold (13.3); D-pad + A; `&result` official # |
 | Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; `parm_seq` wait; **14.3 leak check deferred** |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
-| Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE 15.2 |
+| Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE **15.2** |
 | Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); skip active editor; keep MAIN creates |
-| Push / death | `human_brain`, `die` | 15 |
+| Push / death | `hurt_thing`, `add_kill_sprite`, `human_brain` push, `dinfo` DIE | hold (15.2) |
 | Talk/magic miss say | `human_brain` `say_text` | hold (10.1); 6 talk + 6 magic lines; no `dnotalk` file |
 | Touch / inv / HUD / map bmp | `status`, `process_show_bmp` | 16 / V6 |
 | VMU save | `savegame` | 17 |

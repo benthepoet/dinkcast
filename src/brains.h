@@ -6,6 +6,8 @@
 #include "ini.h"
 #include "mapscr.h"
 
+struct Player;
+
 /* Bite 15.1: FreeDink update_frame switch (all stock ids). Player is spr[1] / player_step. */
 
 void brains_bind_screen(const struct MapScreen *scr);
@@ -33,5 +35,22 @@ int brains_create(int x, int y, int brain, int pseq, int pframe);
 int brains_move(int slot, int dir, int dest, int nohard);
 int brains_moving(int slot);
 int brains_unimpl_count(void);
+/* 15.2 combat. DIE / add_exp callbacks (optional). */
+void brains_bind_kill(void (*fn)(int slot, const char *proc));
+void brains_bind_exp(void (*fn)(int num));
+void brains_bind_player(struct Player *p);
+int brains_hurt(int slot, int damage);
+int brains_hitpoints(int slot);
+int brains_defense(int slot);
+int brains_strength(int slot);
+int brains_range(int slot);
+int brains_nohit(int slot);
+int brains_exp(int slot);
+int brains_base_attack(int slot);
+int brains_touch_damage(int slot);
+void brains_set_last_hit(int slot, int who);
+void brains_set_target(int slot, int who);
+int brains_take_just_hit(int slot);
+int brains_seq_frame(int slot, int *seq, int *frame);
 
 #endif

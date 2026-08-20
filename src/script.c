@@ -15,7 +15,9 @@
 static const struct MapScreen *g_scr;
 static void (*g_note_script)(int slot, const char *name);
 static char g_log[96];
+static int g_dink_dying;
 static int start_main(const char *name, int sprite);
+static int start_named(int sprite, const char *file, const char *proc);
 
 static int bind_sp_script(int slot, const char *name)
 {
@@ -117,6 +119,27 @@ static int start_main(const char *name, int sprite)
         return -1;
     }
     printf("dinkc attach spr=%d script=%s\n", sprite, name);
+    dinkc_free(buf);
+    return 0;
+}
+
+static int start_named(int sprite, const char *file, const char *proc)
+{
+    char *buf = NULL;
+    size_t n = 0;
+
+    if (file == NULL || file[0] == '\0' || proc == NULL) {
+        return -1;
+    }
+    if (dinkc_load(file, &buf, &n) != 0) {
+        return -1;
+    }
+    dinkc_vm_kill_sprite(sprite);
+    if (dinkc_vm_start_proc(buf, n, sprite, proc) < 0) {
+        printf("dinkc %s no proc %s\n", proc, file);
+        dinkc_free(buf);
+        return -1;
+    }
     dinkc_free(buf);
     return 0;
 }
@@ -285,8 +308,54 @@ void script_on_talk(int sprite)
 
 void script_on_hit(int sprite)
 {
-    snprintf(g_log, sizeof(g_log), "hit sprite=%d script=%s", sprite,
-             slot_script(sprite));
+    script_on_hit_from(sprite, 1);
+}
+
+void script_on_hit_from(int sprite, int attacker)
+{
+    const char *nm = slot_script(sprite);
+
+    snprintf(g_log, sizeof(g_log), "hit sprite=%d script=%s", sprite, nm);
     printf("%s\n", g_log);
-    try_load(slot_script(sprite));
+    if (attacker > 0) {
+        dinkc_var_set("&enemy_sprite", attacker, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&missle_source", attacker, DINKC_GLOBAL_SCOPE, 1);
+    }
+    (void)start_named(sprite, nm, "hit");
+}
+
+void script_on_kill(int sprite, const char *proc)
+{
+    const char *nm = slot_script(sprite);
+    const char *p = proc != NULL ? proc : "die";
+
+    snprintf(g_log, sizeof(g_log), "kill sprite=%d script=%s proc=%s", sprite,
+             nm, p);
+    printf("%s\n", g_log);
+    (void)start_named(sprite, nm, p);
+}
+
+void script_on_push(int sprite)
+{
+    const char *nm = slot_script(sprite);
+
+    snprintf(g_log, sizeof(g_log), "push sprite=%d script=%s", sprite, nm);
+    printf("%s\n", g_log);
+    (void)start_named(sprite, nm, "push");
+}
+
+int script_on_dink_die(void)
+{
+    if (g_dink_dying) {
+        return 0;
+    }
+    g_dink_dying = 1;
+    snprintf(g_log, sizeof(g_log), "dink die dinfo");
+    printf("%s\n", g_log);
+    return start_named(1000, "dinfo", "die") == 0 ? 1 : 0;
+}
+
+void script_clear_dink_die(void)
+{
+    g_dink_dying = 0;
 }

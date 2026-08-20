@@ -42,7 +42,7 @@ int main(void)
     player_init(&p);
     p.x = 100;
     p.y = 100;
-    player_step(&p, 6, &mask, seqs); /* right */
+    player_step(&p, 6, &mask, seqs, 0); /* right */
     if (p.x <= 100 || p.dir != 6 || p.seq != DINK_BASE_WALK + 6) {
         fprintf(stderr, "FAIL walk right %d seq %d\n", p.x, p.seq);
         hard_mask_free(&mask);
@@ -53,7 +53,7 @@ int main(void)
     p.y = 100;
     {
         int ox = p.x;
-        player_step(&p, 6, &mask, seqs);
+        player_step(&p, 6, &mask, seqs, 0);
         if (p.x != ox + 1) {
             fprintf(stderr, "FAIL stop at wall x %d from %d\n", p.x, ox);
             hard_mask_free(&mask);
@@ -62,7 +62,7 @@ int main(void)
     }
     {
         int ox = p.x;
-        player_step(&p, 6, &mask, seqs);
+        player_step(&p, 6, &mask, seqs, 0);
         if (p.x != ox) {
             fprintf(stderr, "FAIL walk into wall x %d\n", p.x);
             hard_mask_free(&mask);
@@ -74,7 +74,7 @@ int main(void)
             return 1;
         }
     }
-    player_step(&p, 0, &mask, seqs);
+    player_step(&p, 0, &mask, seqs, 0);
     if (p.seq != DINK_BASE_IDLE + p.dir) {
         fprintf(stderr, "FAIL idle seq %d\n", p.seq);
         hard_mask_free(&mask);
@@ -83,13 +83,13 @@ int main(void)
     player_init(&p);
     p.x = 100;
     p.y = 100;
-    player_step(&p, 9, &mask, seqs); /* up-right: speed-speed/3 = 2 */
+    player_step(&p, 9, &mask, seqs, 0); /* up-right: speed-speed/3 = 2 */
     if (p.x != 102 || p.y != 98) {
         fprintf(stderr, "FAIL diag 9 %d,%d\n", p.x, p.y);
         hard_mask_free(&mask);
         return 1;
     }
-    player_step(&p, 0, &mask, seqs);
+    player_step(&p, 0, &mask, seqs, 0);
     if (p.dir != 8 || p.seq != DINK_BASE_IDLE + 8) {
         fprintf(stderr, "FAIL idle snap 9→8 dir=%d seq=%d\n", p.dir, p.seq);
         hard_mask_free(&mask);
@@ -113,7 +113,7 @@ int main(void)
         p.y = 100;
         p.frame = 4;
         p.acc = 34;
-        player_step(&p, 0, &mask, seqs);
+        player_step(&p, 0, &mask, seqs, 0);
         if (p.frame != 5 || p.seq != DINK_BASE_IDLE + 4) {
             fprintf(stderr, "FAIL idle ping 4->5 got frame %d seq %d\n",
                     p.frame, p.seq);
@@ -122,7 +122,7 @@ int main(void)
         }
         p.frame = 6;
         p.acc = 34;
-        player_step(&p, 0, &mask, seqs);
+        player_step(&p, 0, &mask, seqs, 0);
         if (p.frame != 1) {
             fprintf(stderr, "FAIL idle ping 6->1 got %d\n", p.frame);
             hard_mask_free(&mask);
@@ -133,7 +133,7 @@ int main(void)
         int ox = p.x, oy = p.y;
 
         p.freeze = 1;
-        player_step(&p, 6, &mask, seqs);
+        player_step(&p, 6, &mask, seqs, 0);
         if (p.x != ox || p.y != oy) {
             fprintf(stderr, "FAIL freeze moved %d,%d\n", p.x, p.y);
             hard_mask_free(&mask);

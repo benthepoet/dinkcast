@@ -80,16 +80,16 @@ int main(void)
     {
         int ox = p.x;
 
-        player_step(&p, 6, &mask, seqs);
+        player_step(&p, 6, &mask, seqs, 0);
         expect(p.x == ox && p.nocontrol, "nocontrol no walk");
     }
     expect(!p.just_hit, "frame 1 not special");
     for (i = 0; i < 8 && !p.just_hit; i++) {
-        player_step(&p, 0, &mask, seqs);
+        player_step(&p, 0, &mask, seqs, 0);
     }
     expect(p.just_hit && p.frame == 3, "hit on special frame 3");
     while (p.nocontrol) {
-        player_step(&p, 0, &mask, seqs);
+        player_step(&p, 0, &mask, seqs, 0);
     }
     expect(p.seq == DINK_BASE_IDLE + 8, "idle after punch");
 
