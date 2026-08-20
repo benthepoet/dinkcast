@@ -22,6 +22,8 @@ struct EditorSprite {
     int32_t x, y, seq, frame, type, size;
     int32_t active;
     int32_t brain;
+    /* load_screen_to +92 / +96 / +112 */
+    int32_t speed, base_walk, timing;
     int32_t que;
     int32_t hard;
     /* get_box spr[].alt: trim src if left||top||right nonzero. */

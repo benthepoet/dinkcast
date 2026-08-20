@@ -1,0 +1,202 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "brains.h"
+#include "fs.h"
+#include "ini.h"
+#include "mapscr.h"
+#include "start_map.h"
+#include "world.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void expect(int cond, const char *msg)
+{
+    if (!cond) {
+        fprintf(stderr, "FAIL %s\n", msg);
+        exit(1);
+    }
+}
+
+int main(void)
+{
+    struct MapScreen scr;
+    struct SeqInfo seqs[DINK_MAX_SEQ];
+    struct HardMask mask;
+    int i, f1, f2;
+
+    memset(&scr, 0, sizeof(scr));
+    memset(&seqs, 0, sizeof(seqs));
+    memset(&mask, 0, sizeof(mask));
+    seqs[86].delay = 75;
+    seqs[86].nframes = 4;
+    strncpy(seqs[86].prefix, "graphics/inside/details/fire-",
+            sizeof(seqs[86].prefix) - 1);
+    seqs[351].delay = 100;
+    seqs[351].nframes = 2;
+    strncpy(seqs[351].prefix, "graphics/people/mom/c08w1-",
+            sizeof(seqs[351].prefix) - 1);
+    seqs[353].delay = 100;
+    strncpy(seqs[353].prefix, "graphics/people/mom/c08w3-",
+            sizeof(seqs[353].prefix) - 1);
+    seqs[357].delay = 100;
+    strncpy(seqs[357].prefix, "graphics/people/mom/c08w7-",
+            sizeof(seqs[357].prefix) - 1);
+    seqs[359].delay = 100;
+    strncpy(seqs[359].prefix, "graphics/people/mom/c08w9-",
+            sizeof(seqs[359].prefix) - 1);
+
+    scr.sprite[20].active = 1;
+    scr.sprite[20].type = 1;
+    scr.sprite[20].brain = 6;
+    scr.sprite[20].seq = 86;
+    scr.sprite[20].frame = 1;
+    scr.sprite[20].x = 309;
+    scr.sprite[20].y = 114;
+    scr.sprite[20].timing = 33;
+    scr.sprite[26].active = 1;
+    scr.sprite[26].type = 1;
+    scr.sprite[26].brain = 16;
+    scr.sprite[26].seq = 351;
+    scr.sprite[26].frame = 1;
+    scr.sprite[26].x = 202;
+    scr.sprite[26].y = 157;
+    scr.sprite[26].speed = 1;
+    scr.sprite[26].base_walk = 350;
+    scr.sprite[26].timing = 66;
+    scr.sprite[1].active = 1;
+    scr.sprite[1].type = 0;
+    scr.sprite[1].brain = 0;
+    scr.sprite[1].seq = 31;
+    scr.sprite[1].x = 199;
+    scr.sprite[1].y = 88;
+    scr.sprite[9].active = 1;
+    scr.sprite[9].type = 1;
+    scr.sprite[9].brain = 9;
+    scr.sprite[9].seq = 131;
+    scr.sprite[9].x = 100;
+    scr.sprite[9].y = 100;
+    scr.sprite[9].speed = 1;
+    scr.sprite[9].base_walk = 130;
+    scr.sprite[10].active = 1;
+    scr.sprite[10].type = 1;
+    scr.sprite[10].brain = 5;
+    scr.sprite[10].seq = 1;
+    scr.sprite[10].x = 10;
+    scr.sprite[10].y = 10;
+    scr.sprite[11].active = 1;
+    scr.sprite[11].type = 1;
+    scr.sprite[11].brain = 7;
+    scr.sprite[11].seq = 1;
+    scr.sprite[11].x = 20;
+    scr.sprite[11].y = 20;
+    scr.sprite[12].active = 1;
+    scr.sprite[12].type = 1;
+    scr.sprite[12].brain = 12;
+    scr.sprite[12].seq = 1;
+    scr.sprite[12].size = 100;
+    scr.sprite[12].x = 30;
+    scr.sprite[12].y = 30;
+
+    {
+        struct EditorSprite snap[101];
+
+        memcpy(snap, scr.sprite, sizeof(snap));
+        brains_enter(&scr, DINK_VISION_DEFAULT);
+        brains_apply(&scr);
+        expect((int)scr.sprite[20].seq == 86, "fire pseq overlay");
+        expect((int)scr.sprite[1].seq == 31, "type0 not live overlay");
+
+        brains_set_freeze(26, 1);
+        expect(brains_freeze(26) == 1, "mom freeze");
+        f1 = (int)scr.sprite[20].frame;
+        for (i = 0; i < 20; i++) {
+            brains_tick(&scr, seqs, &mask, i * 16, DINK_VISION_DEFAULT);
+        }
+        f2 = (int)scr.sprite[20].frame;
+        expect(f2 != f1, "fire frame advanced");
+        expect(f2 >= 1 && f2 <= 4, "fire frame in seq");
+        expect((int)scr.sprite[26].x == 202 && (int)scr.sprite[26].y == 157,
+               "frozen mom does not walk");
+        expect(brains_unimpl_count() == 0, "stock brains grafted");
+        expect((int)scr.sprite[12].x == 30, "brain 12 not text-moved");
+        expect((int)scr.sprite[10].seq == 1 || (int)scr.sprite[10].frame >= 1,
+               "5 stays after one-time");
+
+        /* Play loop: memcpy editor snapshot then brains_apply. */
+        memcpy(scr.sprite, snap, sizeof(snap));
+        expect((int)scr.sprite[20].frame == 1, "snapshot wipes fire frame");
+        brains_apply(&scr);
+        expect((int)scr.sprite[20].frame == f2, "apply restores fire after snapshot");
+        expect((int)scr.sprite[20].seq == 86, "apply restores fire seq");
+        expect((int)scr.sprite[1].seq == 31, "type0 snapshot not overlaid");
+    }
+
+    brains_set_freeze(26, 0);
+    {
+        struct World w;
+        struct MapScreen house;
+
+        if (dink_fs_init() == 0 && world_load(&w) == 0) {
+            int rec = (int)w.loc[DINK_START_PLAYER_MAP];
+
+            expect(rec >= 1, "start loc");
+            expect(map_load_record(rec, &house) == 0, "house map");
+            expect(house.sprite[20].brain == 6 && house.sprite[20].seq == 86,
+                   "house fireplace brain 6 seq 86");
+            expect(house.sprite[26].brain == 16 && house.sprite[26].speed == 1 &&
+                       house.sprite[26].base_walk == 350,
+                   "mom brain 16 speed/base_walk");
+            expect(house.sprite[20].timing == 33, "fire timing 33");
+            {
+                struct MapScreen pig;
+                int prec = (int)w.loc[407];
+                int moved = 0, j;
+
+                expect(prec >= 1 && map_load_record(prec, &pig) == 0, "pig map");
+                expect(pig.sprite[2].brain == 4 && pig.sprite[2].speed == 1 &&
+                           pig.sprite[2].base_walk == 40,
+                       "pig brain 4");
+                brains_enter(&pig, DINK_VISION_DEFAULT);
+                for (j = 0; j < 400; j++) {
+                    brains_tick(&pig, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+                }
+                if ((int)pig.sprite[2].x != 250 || (int)pig.sprite[2].y != 225) {
+                    moved = 1;
+                }
+                if ((int)pig.sprite[5].x != 289 || (int)pig.sprite[5].y != 302) {
+                    moved = 1;
+                }
+                if ((int)pig.sprite[6].x != 397 || (int)pig.sprite[6].y != 211) {
+                    moved = 1;
+                }
+                expect(moved, "pig_brain walked");
+                expect(brains_unimpl_count() == 0, "pig screen no unimplemented");
+            }
+            {
+                struct MapScreen pill;
+                int prec = (int)w.loc[378];
+                int ox, oy, j;
+
+                expect(prec >= 1 && map_load_record(prec, &pill) == 0,
+                       "pill map 378");
+                expect(pill.sprite[7].brain == 0 && pill.sprite[7].speed == 0 &&
+                           pill.sprite[7].base_walk == 130,
+                       "editor pill is brain 0");
+                brains_enter(&pill, DINK_VISION_DEFAULT);
+                expect(brains_change_prop(7, 1, 9) == 9, "sp_brain 9");
+                expect(brains_change_prop(7, 2, 1) == 1, "sp_speed 1");
+                expect(brains_change_prop(7, 3, 130) == 130, "sp_base_walk");
+                ox = (int)pill.sprite[7].x;
+                oy = (int)pill.sprite[7].y;
+                for (j = 0; j < 400; j++) {
+                    brains_tick(&pill, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+                }
+                expect((int)pill.sprite[7].x != ox || (int)pill.sprite[7].y != oy,
+                       "en-pill main then pill_brain walks");
+            }
+        }
+    }
+    printf("OK test_brains\n");
+    return 0;
+}

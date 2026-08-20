@@ -34,6 +34,7 @@ def main() -> int:
         ("saybox", "saybox_draw_pvr" in text),
         ("choice menu", "saybox_draw_choices_pvr" in text),
         ("screen swap", "screen_try_cross" in text),
+        ("brains", "brains_tick" in text and "brains_enter" in text),
         ("sprite snap", "spr_snap" in text),
         ("edg heap", "edraw_gfx_alloc" in text),
         ("leave pvr", "tiles_draw_clear_pvr" in text),

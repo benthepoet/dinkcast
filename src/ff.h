@@ -25,6 +25,8 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out);
 int ff_load_rel(const char *rel, struct FfFile *out);
 /* Keep idle+walk resident. Re-fread of walk/dir.ff from /cd can hang. */
 int ff_cached(const char *rel, struct FfFile **out);
+/* 1 if this pack is already in the session cache (no fopen). */
+int ff_is_cached(const char *rel);
 int ff_disc_loads(void);
 void ff_cache_clear(void);
 void ff_cache_drop_unpinned(void);

@@ -27,6 +27,8 @@ static int is_cmd(const char *a, const char *b)
 }
 
 static struct Player *g_pl;
+static void (*g_spr_freeze)(int slot, int on);
+static int (*g_spr_change)(int slot, int prop, int val);
 static int g_hp[100];
 static int g_def[100];
 static int g_touch[100];
@@ -143,6 +145,7 @@ static const struct {
     {"sp_editor_num", 0},
     {"sp_custom", 0},
     {"sp", 0},
+    {"random", 0},
     {"move", 0},
     {"create_sprite", 0},
     {"script_attach", 0},
@@ -259,6 +262,16 @@ void dinkc_cmd_bind_player(struct Player *p)
     }
 }
 
+void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on))
+{
+    g_spr_freeze = fn;
+}
+
+void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val))
+{
+    g_spr_change = fn;
+}
+
 static int spr_is_dink(int id)
 {
     return id == 1;
@@ -314,6 +327,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (spr_is_dink(a0) && g_pl != NULL) {
             g_pl->freeze = 1;
             printf("freeze 1\n");
+        } else if (a0 >= 2 && a0 <= 99 && g_spr_freeze != NULL) {
+            g_spr_freeze(a0, 1);
+            printf("freeze %d\n", a0);
         }
         return 1;
     }
@@ -321,6 +337,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (spr_is_dink(a0) && g_pl != NULL) {
             g_pl->freeze = 0;
             printf("unfreeze 1\n");
+        } else if (a0 >= 2 && a0 <= 99 && g_spr_freeze != NULL) {
+            g_spr_freeze(a0, 0);
+            printf("unfreeze %d\n", a0);
         }
         return 1;
     }
@@ -385,14 +404,40 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "sp_base_walk") || is_cmd(name, "sp_base_idle") ||
-        is_cmd(name, "sp_speed") || is_cmd(name, "sp_timing") ||
-        is_cmd(name, "sp_pseq") || is_cmd(name, "sp_pframe") ||
-        is_cmd(name, "sp_brain") || is_cmd(name, "sp_script") ||
+    if (is_cmd(name, "sp_brain") || is_cmd(name, "sp_speed") ||
+        is_cmd(name, "sp_base_walk") || is_cmd(name, "sp_timing")) {
+        int prop = DINKC_SP_BRAIN;
+        int v;
+
+        if (is_cmd(name, "sp_speed")) {
+            prop = DINKC_SP_SPEED;
+        } else if (is_cmd(name, "sp_base_walk")) {
+            prop = DINKC_SP_BASE_WALK;
+        } else if (is_cmd(name, "sp_timing")) {
+            prop = DINKC_SP_TIMING;
+        }
+        if (a0 >= 2 && a0 <= 99 && g_spr_change != NULL) {
+            v = g_spr_change(a0, prop, nargs < 2 ? -1 : a1);
+            if (ret != NULL) {
+                *ret = v;
+            }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "sp_base_idle") || is_cmd(name, "sp_pseq") ||
+        is_cmd(name, "sp_pframe") || is_cmd(name, "sp_script") ||
         is_cmd(name, "sp_active") || is_cmd(name, "sp_kill") ||
         is_cmd(name, "move") || is_cmd(name, "create_sprite") ||
         is_cmd(name, "script_attach") || is_cmd(name, "external") ||
         is_cmd(name, "set_callback_random")) {
+        return 1;
+    }
+    if (is_cmd(name, "random")) {
+        int range = a0 > 0 ? a0 : 1;
+
+        if (ret != NULL) {
+            *ret = (rand() % range) + a1;
+        }
         return 1;
     }
     if (is_cmd(name, "force_vision")) {

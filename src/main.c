@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "boot.h"
+#include "brains.h"
 #include "dinkdat.h"
 #include "fs.h"
 #include "edraw.h"
@@ -310,6 +311,8 @@ int main(int argc, char **argv)
                 /* Keep hard.dat: swap reopen of the 2 MiB file hangs on /cd. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
+                dinkc_cmd_bind_sprite_freeze(brains_set_freeze);
+                dinkc_cmd_bind_sprite_change(brains_change_prop);
                 saybox_bind(&g_scr, &pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
@@ -395,6 +398,8 @@ int main(int argc, char **argv)
                        g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
                        (int)g_scr.sprite[26].active);
                 script_bind_screen(&g_scr);
+                brains_enter(&g_scr, DINK_VISION_DEFAULT);
+                brains_apply(&g_scr);
                 script_on_main(0); /* also preloads unique sprite story files */
                 {
                     uint32_t prev_buttons = 0;
@@ -534,6 +539,8 @@ int main(int argc, char **argv)
                         spr_restore("swap-pre-attach");
                         script_bind_screen(&g_scr);
                         saybox_bind(&g_scr, &pl);
+                        brains_enter(&g_scr, DINK_VISION_DEFAULT);
+                        brains_apply(&g_scr);
                         script_on_main(0);
                         swap = 0;
                         continue;
@@ -549,6 +556,7 @@ int main(int argc, char **argv)
                     if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }
+                    brains_apply(&g_scr);
                     have = (pad_poll_port0(&buttons) == 0);
                     if (have && dinkc_vm_waiting_say() &&
                         (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
@@ -584,6 +592,30 @@ int main(int argc, char **argv)
                     dinkc_vm_set_now(now_ms);
                     dinkc_vm_tick(now_ms);
                     dinkc_cmd_thaw_if_idle();
+                    if (seqs != NULL) {
+                        brains_tick(&g_scr, seqs, &mask, now_ms,
+                                    DINK_VISION_DEFAULT);
+                        {
+                            int ei;
+
+                            for (ei = 1; ei <= 100; ei++) {
+                                int sq = (int)g_scr.sprite[ei].seq;
+                                int fr = (int)g_scr.sprite[ei].frame;
+
+                                if (!editor_sprite_draw(&g_scr.sprite[ei],
+                                                        DINK_VISION_DEFAULT)) {
+                                    continue;
+                                }
+                                if (fr < 1) {
+                                    fr = 1;
+                                }
+                                if (edraw_find(g_edg, ned, sq, fr) == NULL) {
+                                    (void)edraw_ensure_frame(g_edg, &ned, seqs,
+                                                             sq, fr);
+                                }
+                            }
+                        }
+                    }
                     now_ms += DINKC_TICK_MS;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
@@ -635,6 +667,7 @@ int main(int argc, char **argv)
                         if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }
+                        brains_apply(&g_scr);
                         for (si = 1; si <= 100 && nd < 100; si++) {
                             int seq, fr;
                             struct SpriteFrame *ef;
