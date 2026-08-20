@@ -10,7 +10,7 @@
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
-**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14 → 15 → 16 → 12 → 17 → 18**. **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
+**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14 → 15.1 → 11.10 → 15.2–15.4 → 16 → 12 → 17 → 18**. **11.10** is the leftover wave-1 sprite commands; it needs live `BrainSpr` from **15.1** and comes **before** damage (**15.2**). **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
 
 **FreeDink is the implementation, not a hint.** This is a **graft**. When a behavior already exists in GNU FreeDink (`live_screen.cpp`, `gfx_sprites.cpp`, `dinkini.cpp`, `brain.cpp` `move` / `check_if_move_is_legal`, `game_place_sprites`), **copy that rule**. Do not invent a “simpler” hardbox, center, vision filter, or move test. If the port and FreeDink disagree, the port is wrong unless this plan names a Dreamcast-only exception (PVR lists, ISO 8.3, Maple). Patch this plan in the same PR if we must diverge.
 
@@ -415,6 +415,7 @@ These **are** the FreeDink systems needed to finish the retail freeware campaign
 | `&vision` / `force_vision` | `draw_screen_game`, DinkC | **11.5 / 11.8** | burned house, many quests |
 | `freeze` nest, yields | `spr[].freeze`, `wait` / `say_stop` / `move_stop` / `choice` | **11.3** | |
 | Unimplemented command | log + no-op | **11.9** | never skip the `.c` file |
+| Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | **11.10** | after 15.1; before 15.2. Essential, not village-only |
 | SFX + one music stream | `sfx`, `bgm`; MIDI id from `dink.dat` | **12 (after 16)** | silent `playsound` until then |
 | Font / say / choice | brain 8, `game_choice` | **13** | V5 |
 | Edge walk + swap | `did_player_cross_screen` | **14.1–14.2** | |
@@ -422,7 +423,7 @@ These **are** the FreeDink systems needed to finish the retail freeware campaign
 | `screenlock` | `get_hard` clamp + DinkC | **14.2** | |
 | Indoor flag | `dink.dat` `indoor[]` | **14.2** | only if stock scripts/engine use it |
 | `play.spmap` editor_type | `fix_dead_sprites`, `update_play_changes` | **14.2 + 17.1** | dead monsters stay dead 1–5 min |
-| Brains 0–17 | `brain_*.cpp` / `update_frame` | **15.1** | all stock ids this bite; damage 15.2 |
+| Brains 0–17 | `brain_*.cpp` / `update_frame` | **15.1** | all stock ids this bite; then 11.10; damage 15.2 |
 | Combat / weapons / magic | `hurt`, `arm_weapon`, missiles | **15** | |
 | Push | `human_brain` / `dink_base_push` | **15** / walk polish | |
 | Death / game over | `die` script, life 0 | **15.2** | |
@@ -519,6 +520,8 @@ Wire `say*` to a **serial + later Bite 13 box**.
 
 **Done when:** unmodified start-screen `main()` runs; a stock `talk()` that only `say_stop`s works with A advancing (box can be ugly).
 
+**Leftover (not this bite):** several names above stayed **silent `return 1`** so they would not log `unimplemented`. NPC `sp_x` / `sp_y` / `sp_dir` / `sp_seq` / `sp_frame` / `sp_base_attack` are **sprite 1 only**. Those are **11.10** (needs 15.1 live sprites). `playsound` stays stub until **12.3**. `set_callback_random` may still no-op here if unused on start screens; make it real in **11.10**.
+
 #### Bite 11.6 — Attach on screen enter
 
 - Screen script from `map.dat` → `locate`/`MAIN` (`game_screen_init_scripts`).
@@ -539,6 +542,25 @@ Depends on Bite 13 for the menu.
 
 - Every dispatch through one table. Startup can `DINKC_DUMP_FNS=1` to print implemented vs called-but-missing after a play session.
 - Opening-hours gate: walk Stonebrook, talk to 3 stock NPCs, no `unimplemented` that aborts a quest.
+
+#### Bite 11.10 — Wave 1 live sprite commands (after 15.1)
+
+**Do not start until 15.1 is merged** and the requester says go. **Before 15.2.** Stock scripts need these; they are not optional village polish. Graft FreeDink `dinkc_bindings` + `spr[]` (`change_sprite`, `move` / `check_if_move_is_legal`, `add_sprite` / `create_sprite`, `sp_kill`). Write **live `BrainSpr`**, not the editor snapshot.
+
+Make **real** (no silent `return 1`):
+
+- `sp_x`, `sp_y`, `sp_dir`, `sp_seq`, `sp_frame`, `sp_base_attack`, `sp_base_idle`, `sp_pseq`, `sp_pframe` — slots **1–99**, read (`-1`) and write
+- `sp_active`, `sp_kill` — hide/remove as FreeDink
+- `move`, `move_stop` — set velocity; `move_stop` **yields until dest** (not resume next tick)
+- `create_sprite` — allocate a live slot + seq/brain as FreeDink
+- `sp_script` — attach `main()` to that sprite
+- `script_attach`, `external`, `set_callback_random`
+
+Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_death` / `sp_base_die`, `hurt` applying) stays **15.2**. `sp_sound` is sprite SFX — not this bite (no AICA until 12).
+
+**Host check:** NPC `sp_x` write moves `BrainSpr`; `create_sprite` returns a live slot; `move_stop` does not complete in one 16 ms tick unless already at dest.
+
+**Done when:** a stock script that `create_sprite`s or `move_stop`s an NPC does that on Flycast/hardware (not only “no unimplemented log”).
 
 ---
 
@@ -612,15 +634,18 @@ Implement as FreeDink `update_frame` switch (`brain_*.cpp`). Graft **all** ids 0
 
 Do **not** reuse the old wrong map (9=bounce, 12=text).
 
+**Next:** **11.10** (live `move` / `create_sprite` / `sp_kill` / NPC `sp_*`), then **15.2**.
+
 #### Bite 15.2 — Damage
 
 - `hurt()` and hit probe write `&life` / enemy hp. Death → `die()` script + corpse seq. Life 0 → game-over / restart as FreeDink.
 - Push: `dink_base_push` when walking into hardness (`human_brain`).
+- Depends on **11.10** for `sp_kill` / `sp_active` (corpses, remove). `sp_exp` / `sp_base_death` (alias `sp_base_die`) land here with DIE — they are **not** in 11.10.
 
 #### Bite 15.3 — Weapons
 
 - `add_item` / inventory slot / `arm_weapon` changes `base_attack` seq (sword, bow). Fists default.
-- Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one.
+- Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one. Needs **11.10** `create_sprite`.
 
 #### Bite 15.4 — Magic
 
@@ -789,7 +814,7 @@ dinkcast/
                          → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
                          → 13.1–13.3 text → 11.7 wave 2
                          → 14.1–14.2 transitions (14.3 leak check deferred)
-                         → 15.1–15.4 + 11.8 wave 3
+                         → 15.1 brains → 11.10 live sprite cmds → 15.2–15.4 + 11.8 wave 3
                          → 14.3 leak check (after 15.x / with 18.x)
                          → 16.1–16.3 inventory / HUD (V6)
                          → 12.1–12.4 audio (after 16; playsound was stub)
