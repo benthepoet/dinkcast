@@ -36,7 +36,12 @@ void player_init(struct Player *p)
     p->nocontrol = 0;
     p->just_hit = 0;
     p->base_attack = DINK_BASE_ATTACK;
+    p->base_idle = DINK_BASE_IDLE;
     p->warp_hit = 0;
+    p->move_active = 0;
+    p->move_dir = 0;
+    p->move_num = 0;
+    p->move_nohard = 0;
 }
 
 void player_attack(struct Player *p, const struct SeqInfo *seqs)
@@ -87,7 +92,31 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     }
     p->just_hit = 0;
     p->warp_hit = 0;
-    if (p->freeze > 0) {
+    if (p->move_active) {
+        int d = p->move_dir;
+        int done = 0;
+
+        if ((d == 4 || d == 1 || d == 7) && p->x <= p->move_num) {
+            done = 1;
+        }
+        if ((d == 6 || d == 9 || d == 3) && p->x >= p->move_num) {
+            done = 1;
+        }
+        if (d == 2 && p->y >= p->move_num) {
+            done = 1;
+        }
+        if (d == 8 && p->y <= p->move_num) {
+            done = 1;
+        }
+        if (done) {
+            p->move_active = 0;
+            p->move_nohard = 0;
+            return;
+        }
+        pad_dir = d;
+        p->dir = d;
+        /* Scripted move: ignore freeze for motion (FreeDink process_move). */
+    } else if (p->freeze > 0) {
         pad_dir = 0;
     }
     if (p->nocontrol) {
@@ -157,8 +186,11 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                 nx = p->x + dx;
                 ny = p->y + dy;
                 if (dx != 0) {
-                    int h = hard_get(mask, nx, p->y);
+                    int h = 0;
 
+                    if (!p->move_nohard) {
+                        h = hard_get(mask, nx, p->y);
+                    }
                     if (h >= 100) {
                         p->warp_hit = h - 100;
                     } else if (h == 0) {
@@ -166,8 +198,11 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                     }
                 }
                 if (dy != 0) {
-                    int h = hard_get(mask, p->x, ny);
+                    int h = 0;
 
+                    if (!p->move_nohard) {
+                        h = hard_get(mask, p->x, ny);
+                    }
                     if (h >= 100) {
                         p->warp_hit = h - 100;
                     } else if (h == 0) {

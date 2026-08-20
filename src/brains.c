@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "brains.h"
 
+#include "dinkc_cmd.h"
 #include "tiles.h"
 
 #include <stdio.h>
@@ -53,6 +54,16 @@ struct BrainSpr {
     int brain_parm;
     int brain;
     int logged;
+    int created;
+    int hidden;
+    int base_idle;
+    int base_attack;
+    int move_active;
+    int move_dir;
+    int move_num;
+    int move_nohard;
+    int kill_ttl;
+    int kill_start;
 };
 
 static struct BrainSpr g_b[101];
@@ -295,6 +306,39 @@ static int automove(struct BrainSpr *s, const struct HardMask *mask)
         oy = s->y;
     }
     return hit;
+}
+
+static void done_moving(struct BrainSpr *s)
+{
+    s->move_active = 0;
+    s->move_nohard = 0;
+}
+
+/* FreeDink process_move. destination_limit is x (dirs 1/3/4/6/7/9) or y (2/8). */
+static void process_move(struct BrainSpr *s, const struct SeqInfo *seqs,
+                         const struct HardMask *mask)
+{
+    int d = s->move_dir;
+    const struct HardMask *m = s->move_nohard ? NULL : mask;
+
+    if ((d == 4 || d == 1 || d == 7) && s->x <= s->move_num) {
+        done_moving(s);
+        return;
+    }
+    if ((d == 6 || d == 9 || d == 3) && s->x >= s->move_num) {
+        done_moving(s);
+        return;
+    }
+    if (d == 2 && s->y >= s->move_num) {
+        done_moving(s);
+        return;
+    }
+    if (d == 8 && s->y <= s->move_num) {
+        done_moving(s);
+        return;
+    }
+    changedir(d, s, s->base_walk, seqs);
+    (void)automove(s, m);
 }
 
 static int autoreverse(struct BrainSpr *s)
@@ -829,10 +873,14 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].size = (int)es->size;
         g_b[i].pseq = (int)es->seq;
         g_b[i].pframe = (int)es->frame < 1 ? 1 : (int)es->frame;
-        /* add_sprite_dumb: seq=0, frame=0 */
+        /* add_sprite_dumb: seq=0, frame=0; base_* = -1 */
         g_b[i].seq = 0;
         g_b[i].frame = 0;
         g_b[i].seq_orig = 0;
+        g_b[i].base_idle = -1;
+        g_b[i].base_attack = -1;
+        g_b[i].created = 0;
+        g_b[i].hidden = 0;
     }
 }
 
@@ -846,8 +894,18 @@ void brains_apply(struct MapScreen *scr)
     for (i = 1; i <= 100; i++) {
         struct BrainSpr *s = &g_b[i];
 
+        if (s->hidden && !s->live) {
+            scr->sprite[i].active = 0;
+            continue;
+        }
         if (!s->live) {
             continue;
+        }
+        if (s->created) {
+            scr->sprite[i].active = 1;
+            scr->sprite[i].type = 1;
+            scr->sprite[i].vision = 0;
+            scr->sprite[i].brain = s->brain;
         }
         scr->sprite[i].x = s->x;
         scr->sprite[i].y = s->y;
@@ -865,6 +923,7 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
 {
     int i;
 
+    (void)vision;
     if (scr == NULL) {
         return;
     }
@@ -875,8 +934,20 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
         if (!s->live) {
             continue;
         }
-        if (!editor_sprite_on_vision(es, vision) && es->type == 1) {
-            /* vision can hide a live sprite; keep state */
+        if (s->kill_ttl > 0) {
+            if (s->kill_start == 0) {
+                s->kill_start = now_ms;
+            }
+            if (now_ms > s->kill_start + s->kill_ttl) {
+                s->live = 0;
+                s->hidden = 1;
+                continue;
+            }
+        }
+        if (s->move_active) {
+            process_move(s, seqs, mask);
+            (void)brain_animate(s, seqs, now_ms);
+            continue;
         }
         /* update_frame timing: skip AI, still animate */
         if (s->timing > 0) {
@@ -918,6 +989,15 @@ int brains_change_prop(int slot, int prop, int val)
         return -1;
     }
     s = &g_b[slot];
+    if (prop == DINKC_SP_KILL) {
+        s->kill_ttl = val;
+        s->kill_start = 0;
+        return val;
+    }
+    if (!s->live && val != -1 && prop != DINKC_SP_ACTIVE) {
+        /* change_sprite on inactive: -1 */
+        return -1;
+    }
     if (prop == 1) {
         p = &s->brain;
     } else if (prop == 2) {
@@ -926,6 +1006,36 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->base_walk;
     } else if (prop == 4) {
         p = &s->timing;
+    } else if (prop == DINKC_SP_X) {
+        p = &s->x;
+    } else if (prop == DINKC_SP_Y) {
+        p = &s->y;
+    } else if (prop == DINKC_SP_DIR) {
+        p = &s->dir;
+    } else if (prop == DINKC_SP_SEQ) {
+        p = &s->seq;
+    } else if (prop == DINKC_SP_FRAME) {
+        p = &s->frame;
+    } else if (prop == DINKC_SP_BASE_ATTACK) {
+        p = &s->base_attack;
+    } else if (prop == DINKC_SP_BASE_IDLE) {
+        p = &s->base_idle;
+    } else if (prop == DINKC_SP_PSEQ) {
+        p = &s->pseq;
+    } else if (prop == DINKC_SP_PFRAME) {
+        p = &s->pframe;
+    } else if (prop == DINKC_SP_ACTIVE) {
+        if (val == -1) {
+            return s->live ? 1 : 0;
+        }
+        if (val == 0) {
+            s->live = 0;
+            s->hidden = 1;
+            return 0;
+        }
+        s->live = 1;
+        s->hidden = 0;
+        return 1;
     }
     if (p == NULL) {
         return -1;
@@ -933,8 +1043,63 @@ int brains_change_prop(int slot, int prop, int val)
     if (val != -1) {
         *p = val;
         s->live = 1;
+        if (prop == DINKC_SP_SEQ && val > 0) {
+            s->frame = 0;
+        }
+        if (prop == DINKC_SP_DIR && s->base_walk > 0) {
+            /* changedir needs seqs; seq = base_walk+dir is applied on tick. */
+            s->seq = s->base_walk + val;
+            s->frame = 0;
+        }
     }
     return *p;
+}
+
+int brains_create(int x, int y, int brain, int pseq, int pframe)
+{
+    int i;
+
+    for (i = 2; i <= 100; i++) {
+        if (!g_b[i].live) {
+            memset(&g_b[i], 0, sizeof(g_b[i]));
+            g_b[i].live = 1;
+            g_b[i].created = 1;
+            g_b[i].hidden = 0;
+            g_b[i].x = x;
+            g_b[i].y = y;
+            g_b[i].brain = brain;
+            g_b[i].pseq = pseq;
+            g_b[i].pframe = pframe < 1 ? 1 : pframe;
+            g_b[i].seq = 0;
+            g_b[i].frame = 0;
+            g_b[i].size = 100;
+            g_b[i].base_walk = -1;
+            g_b[i].base_idle = -1;
+            g_b[i].base_attack = -1;
+            return i;
+        }
+    }
+    return 0;
+}
+
+int brains_move(int slot, int dir, int dest, int nohard)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return -1;
+    }
+    g_b[slot].move_active = 1;
+    g_b[slot].move_dir = dir;
+    g_b[slot].move_num = dest;
+    g_b[slot].move_nohard = nohard ? 1 : 0;
+    return 1;
+}
+
+int brains_moving(int slot)
+{
+    if (slot < 1 || slot > 100) {
+        return 0;
+    }
+    return g_b[slot].move_active;
 }
 
 int brains_unimpl_count(void)

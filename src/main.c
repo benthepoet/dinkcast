@@ -313,6 +313,9 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_player(&pl);
                 dinkc_cmd_bind_sprite_freeze(brains_set_freeze);
                 dinkc_cmd_bind_sprite_change(brains_change_prop);
+                dinkc_cmd_bind_create(brains_create);
+                dinkc_cmd_bind_move(brains_move);
+                dinkc_cmd_bind_moving(brains_moving);
                 saybox_bind(&g_scr, &pl);
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
@@ -620,6 +623,7 @@ int main(int argc, char **argv)
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         player_step(&pl, pdir, &mask, seqs);
+                        dinkc_vm_resume_move();
                         if (pl.freeze == 0 && pl.warp_hit > 0 &&
                             screen_try_warp(&g_world, &g_scr, pl.warp_hit,
                                             &player_map, &pl) == 0) {

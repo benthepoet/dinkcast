@@ -15,12 +15,18 @@ enum DinkcState {
     DINKC_WAIT_MS,
     DINKC_WAIT_SAY,
     DINKC_WAIT_MOVE,
-    DINKC_WAIT_CHOICE
+    DINKC_WAIT_CHOICE,
+    DINKC_WAIT_EXT
 };
 
 /* Copy src, locate void proc (default main), run until yield. */
 int dinkc_vm_start(const char *src, size_t n, int sprite);
 int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc);
+void dinkc_vm_set_args(int slot, const int *args, int n);
+int dinkc_vm_arg(int slot, int n1);
+int dinkc_vm_used(int slot);
+void dinkc_vm_resume_move(void);
+void dinkc_vm_tick_callbacks(int now_ms);
 int dinkc_vm_waiting_choice(void);
 void dinkc_vm_choice_pick(int result);
 int dinkc_vm_choice_n(void);

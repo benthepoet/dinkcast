@@ -13,10 +13,38 @@
 
 static const struct MapScreen *g_scr;
 static char g_log[96];
+static int start_main(const char *name, int sprite);
+
+static int bind_sp_script(int slot, const char *name)
+{
+    dinkc_vm_kill_sprite(slot);
+    return start_main(name, slot) == 0 ? 1 : 0;
+}
+
+static int bind_external(int sprite, const char *file, const char *proc,
+                         const int *args, int nargs)
+{
+    char *buf = NULL;
+    size_t n = 0;
+    int slot;
+
+    if (dinkc_load(file, &buf, &n) != 0) {
+        printf("dinkc external miss %s\n", file != NULL ? file : "");
+        return 0;
+    }
+    slot = dinkc_vm_start_proc(buf, n, sprite, proc);
+    if (slot > 0 && args != NULL && nargs > 2) {
+        dinkc_vm_set_args(slot, args + 2, nargs - 2);
+    }
+    dinkc_free(buf);
+    return slot > 0 ? slot : 0;
+}
 
 void script_bind_screen(const struct MapScreen *scr)
 {
     g_scr = scr;
+    dinkc_cmd_bind_sp_script(bind_sp_script);
+    dinkc_cmd_bind_external(bind_external);
     printf("script bind esz=%d spr26=%s type=%d\n",
            (int)sizeof(struct EditorSprite),
            (scr != NULL) ? scr->sprite[26].script : "",
