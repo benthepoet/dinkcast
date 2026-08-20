@@ -194,26 +194,25 @@ void hit_tag_list(int attacker, int ax, int ay, int dir, int strength,
     for (i = 1; i <= 99; i++) {
         int l, t, r, b, nohit;
 
-        if (i == attacker) {
-            continue;
-        }
         if (i == 1) {
-            if (g_pl == NULL || attacker == 1) {
-                continue;
+            if (g_pl != NULL && attacker != 1 && g_pl->nohit != 1) {
+                int hl, ht, hr, hb;
+
+                seq_hardbox(g_pl->seq, g_pl->frame, edg, ned, seqs, &hl, &ht,
+                            &hr, &hb);
+                l = g_pl->x + hl;
+                t = g_pl->y + ht;
+                r = g_pl->x + hr;
+                b = g_pl->y + hb;
+                inflate_hit(&l, &t, &r, &b, dir, range);
+                if (inside_box(ax, ay, l, t, r, b)) {
+                    g_pl->last_hit = attacker;
+                    (void)player_hurt(g_pl, punch_damage(strength));
+                }
             }
-            l = g_pl->x - 10;
-            t = g_pl->y - 10;
-            r = g_pl->x + 10;
-            b = g_pl->y + 10;
-            inflate_hit(&l, &t, &r, &b, dir, range);
-            if (!inside_box(ax, ay, l, t, r, b)) {
-                continue;
-            }
-            if (g_pl->nohit == 1) {
-                continue;
-            }
-            g_pl->last_hit = attacker;
-            (void)player_hurt(g_pl, punch_damage(strength));
+            /* Editor slot 1 is not Dink (g_b[1] / en-pill). Fall through. */
+        }
+        if (i == attacker && i != 1) {
             continue;
         }
         if (!brains_slot_live(i)) {
@@ -234,7 +233,7 @@ void hit_tag_list(int attacker, int ax, int ay, int dir, int strength,
         if (brains_base_attack(i) != -1 || brains_touch_damage(i) > 0) {
             brains_set_target(i, attacker);
         }
-        if (strength != 0 && (brains_hitpoints(i) > 0 || i == 1)) {
+        if (strength != 0 && brains_hitpoints(i) > 0) {
             brains_set_last_hit(i, attacker);
             (void)brains_hurt(i, punch_damage(strength));
         }
@@ -249,7 +248,7 @@ void hit_tag_list_push(int ax, int ay, struct EdGfx *edg, int ned,
 {
     int i;
 
-    for (i = 2; i <= 99; i++) {
+    for (i = 1; i <= 99; i++) {
         int l, t, r, b;
 
         if (!brains_slot_live(i)) {

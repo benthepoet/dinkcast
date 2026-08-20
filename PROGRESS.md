@@ -155,7 +155,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
-| 15.2 | Damage | source | `hurt_thing` + hit tag list; DIE/corpse; push 310; `dinfo` DIE; `sp_strength`; missile `ini_frame_geom`; die- preload; this PR |
+| 15.2 | Damage | source | `hurt_thing` + hit tag list; DIE/corpse; push 310; `dinfo` DIE; `sp_strength`; missile `get_box`; `DUCKDIE`; slot 1 NPC; this PR |
 | 15.3–15.4 | Weapons / magic | pending | after **15.2** |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |

@@ -8,6 +8,7 @@
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -123,6 +124,37 @@ static int start_main(const char *name, int sprite)
     return 0;
 }
 
+static int proc_eq(const char *a, const char *b)
+{
+    if (a == NULL || b == NULL) {
+        return 0;
+    }
+    while (*a != '\0' && *b != '\0') {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {
+            return 0;
+        }
+        a++;
+        b++;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static int src_has_proc(const char *src, size_t n, const char *proc)
+{
+    struct DinkcProg p;
+    int i;
+
+    if (dinkc_parse(src, n, &p, NULL, 0) != 0) {
+        return 0;
+    }
+    for (i = 0; i < p.nproc; i++) {
+        if (proc_eq(p.proc[i].name, proc)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int start_named(int sprite, const char *file, const char *proc)
 {
     char *buf = NULL;
@@ -132,6 +164,11 @@ static int start_named(int sprite, const char *file, const char *proc)
         return -1;
     }
     if (dinkc_load(file, &buf, &n) != 0) {
+        return -1;
+    }
+    /* FreeDink locate then kill_returning_stuff. Do not abort wait/say. */
+    if (!src_has_proc(buf, n, proc)) {
+        dinkc_free(buf);
         return -1;
     }
     dinkc_vm_kill_sprite(sprite);
@@ -194,6 +231,10 @@ int script_preload_screen(void)
         if (try_load(nm) == 0) {
             ok++;
         }
+    }
+    /* update_status dinfo DIE is a play-path load; cache it with the screen. */
+    if (try_load("dinfo") == 0) {
+        ok++;
     }
     printf("dinkc preload ok=%d unique=%d vis=%d\n", ok, nseen, vis);
     if (nseen == 0 && g_scr != NULL) {

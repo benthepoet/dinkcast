@@ -652,7 +652,7 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
     if (s->damage > 0 && in_this_base(s->pseq, 110)) {
         if (g_on_kill != NULL) {
-            g_on_kill(spr_i(s), "ducklie");
+            g_on_kill(spr_i(s), "duckdie");
         }
         (void)brains_create(s->x, s->y, 7, 164, 1);
         add_exp_if_player(s);
@@ -974,7 +974,7 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             return;
         }
     }
-    for (j = 2; j <= 99; j++) {
+    for (j = 1; j <= 99; j++) {
         int l, t, r, b;
 
         if (j == h || !g_b[j].live || g_b[j].nohit == 1) {
@@ -989,8 +989,23 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             continue;
         }
         if (g_b[j].hitpoints > 0 && s->strength != 0) {
-            g_b[j].last_hit = h;
-            g_b[j].damage += hurt_roll(s->strength, g_b[j].defense);
+            int hit, half;
+
+            /* FreeDink missile_brain, not hurt_thing. last_hit is Dink. */
+            if ((rand() % 2) + 1 == 1) {
+                hit = s->strength - g_b[j].defense;
+            } else {
+                half = s->strength / 2;
+                if (half < 1) {
+                    half = 1;
+                }
+                hit = half + ((rand() % half) + 1) - g_b[j].defense;
+            }
+            if (hit < 0) {
+                hit = 0;
+            }
+            g_b[j].last_hit = 1;
+            g_b[j].damage += hit;
         }
         s->live = 0;
         break;
@@ -1146,7 +1161,7 @@ void brains_reset(void)
 
 int brains_live_xy(int slot, int *x, int *y)
 {
-    if (slot < 2 || slot > 99 || !g_b[slot].live || x == NULL || y == NULL) {
+    if (slot < 1 || slot > 99 || !g_b[slot].live || x == NULL || y == NULL) {
         return 0;
     }
     *x = g_b[slot].x;

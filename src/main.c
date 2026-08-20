@@ -330,6 +330,20 @@ int main(int argc, char **argv)
                     seqs[wseq].nframes = ini_seq_len(
                         wseq, ini_count_ff_frames(seqs[wseq].prefix));
                 }
+                {
+                    static const int pd[4] = {2, 4, 6, 8};
+                    int pi;
+
+                    for (pi = 0; pi < 4; pi++) {
+                        int ps = DINK_BASE_PUSH + pd[pi];
+
+                        if (ps > 0 && ps < DINK_MAX_SEQ &&
+                            seqs[ps].prefix[0] != '\0') {
+                            seqs[ps].nframes = ini_seq_len(
+                                ps, ini_count_ff_frames(seqs[ps].prefix));
+                        }
+                    }
+                }
                 printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
                        seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
@@ -703,6 +717,8 @@ int main(int argc, char **argv)
                     dinkc_vm_tick(now_ms);
                     dinkc_cmd_thaw_if_idle();
                     if (seqs != NULL) {
+                        pl.defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE,
+                                                   1);
                         brains_tick(&g_scr, seqs, &mask, now_ms,
                                     script_play_vision());
                         {
@@ -785,7 +801,7 @@ int main(int argc, char **argv)
                         {
                             int hi;
 
-                            for (hi = 2; hi <= 99; hi++) {
+                            for (hi = 1; hi <= 99; hi++) {
                                 if (brains_take_just_hit(hi)) {
                                     int hx, hy;
 
