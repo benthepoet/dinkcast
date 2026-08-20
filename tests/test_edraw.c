@@ -88,6 +88,31 @@ int main(void)
         free(seqs);
         return 1;
     }
+    if (edraw_find(g, n, 351, 1) == NULL || edraw_find(g, n, 353, 1) == NULL ||
+        edraw_find(g, n, 357, 1) == NULL || edraw_find(g, n, 359, 1) == NULL) {
+        fprintf(stderr, "FAIL no mom walk seq 351/353/357/359\n");
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
+    {
+        int loads1, n2 = n;
+
+        loads1 = ff_disc_loads();
+        if (edraw_ensure_frame(g, &n2, seqs, 93, 1) == 0) {
+            fprintf(stderr, "FAIL ensure opened uncached pig pack\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        if (ff_disc_loads() != loads1) {
+            fprintf(stderr, "FAIL ensure_frame disc %d -> %d\n", loads1,
+                    ff_disc_loads());
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+    }
     {
         struct SpriteFrame *plank = edraw_find(g, n, 31, 22);
 

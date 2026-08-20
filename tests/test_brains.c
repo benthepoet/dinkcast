@@ -76,6 +76,24 @@ int main(void)
     scr.sprite[9].seq = 131;
     scr.sprite[9].x = 100;
     scr.sprite[9].y = 100;
+    scr.sprite[10].active = 1;
+    scr.sprite[10].type = 1;
+    scr.sprite[10].brain = 5;
+    scr.sprite[10].seq = 1;
+    scr.sprite[10].x = 10;
+    scr.sprite[10].y = 10;
+    scr.sprite[11].active = 1;
+    scr.sprite[11].type = 1;
+    scr.sprite[11].brain = 7;
+    scr.sprite[11].seq = 1;
+    scr.sprite[11].x = 20;
+    scr.sprite[11].y = 20;
+    scr.sprite[12].active = 1;
+    scr.sprite[12].type = 1;
+    scr.sprite[12].brain = 12;
+    scr.sprite[12].seq = 1;
+    scr.sprite[12].x = 30;
+    scr.sprite[12].y = 30;
 
     brains_enter(&scr, DINK_VISION_DEFAULT);
     brains_apply(&scr);
@@ -93,9 +111,10 @@ int main(void)
     expect(f2 >= 1 && f2 <= 4, "fire frame in seq");
     expect((int)scr.sprite[26].x == 202 && (int)scr.sprite[26].y == 157,
            "frozen mom does not walk");
-    expect(brains_unimpl_count() == 1, "pillbug unimplemented once");
-    /* Do not reuse the old wrong map (9=bounce). */
+    expect(brains_unimpl_count() == 4, "5/7/9/12 unimplemented once");
+    /* Do not reuse the old wrong map (9=bounce, 12=text). */
     expect((int)scr.sprite[9].x == 100, "pillbug not bounce-moved");
+    expect((int)scr.sprite[12].x == 30, "brain 12 not text-moved");
 
     brains_set_freeze(26, 0);
     {

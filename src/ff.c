@@ -170,6 +170,22 @@ void ff_cache_drop_unpinned(void)
     /* Large packs stay. Reopening trees/home/walls hangs /cd. */
 }
 
+int ff_is_cached(const char *rel)
+{
+    int i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return 0;
+    }
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
+            g_slot[i].ff.data != NULL) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int ff_cached(const char *rel, struct FfFile **out)
 {
     int i, hit = -1, empty = -1, victim = -1, pin;

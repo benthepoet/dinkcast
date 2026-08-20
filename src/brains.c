@@ -330,13 +330,6 @@ static void repeat_brain(struct BrainSpr *s, const struct EditorSprite *es)
     }
 }
 
-static void one_time_brain(struct BrainSpr *s)
-{
-    if (s->seq == 0) {
-        s->live = 0;
-    }
-}
-
 static void find_action(struct BrainSpr *s, const struct SeqInfo *seqs,
                         int now_ms)
 {
@@ -442,10 +435,6 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
     }
     if (b == DINK_BRAIN_REPEAT) {
         repeat_brain(s, es);
-        return;
-    }
-    if (b == DINK_BRAIN_ONETIME || b == DINK_BRAIN_ONETIME_STAY) {
-        one_time_brain(s);
         return;
     }
     if (b == DINK_BRAIN_TEXT) {

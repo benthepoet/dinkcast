@@ -141,7 +141,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
-| 15.1 | Brains | source | `update_frame` switch; 0/6/16; log unimplemented; 14.3 still deferred |
+| 15.1 | Brains | source | `update_frame` switch; 0/6/16; 5/7 log unimplemented; preload mom walk; 14.3 still deferred |
 | 15.2–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |

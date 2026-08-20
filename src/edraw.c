@@ -46,6 +46,95 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame)
     return NULL;
 }
 
+static int need_has(const int *ns, const int *nf, int n, int seq, int fr)
+{
+    int d;
+
+    for (d = 0; d < n; d++) {
+        if (ns[d] == seq && nf[d] == fr) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void need_push(int *ns, int *nf, int *n, int seq, int fr)
+{
+    if (*n >= DINK_EDGFX_MAX || need_has(ns, nf, *n, seq, fr)) {
+        return;
+    }
+    ns[*n] = seq;
+    nf[*n] = fr;
+    (*n)++;
+}
+
+static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
+                    int frame)
+{
+    if (edraw_find(g, *got, seq, frame) != NULL) {
+        return 0;
+    }
+    if (*got >= DINK_EDGFX_MAX) {
+        printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+        return -1;
+    }
+    printf("edraw load seq=%d fr=%d\n", seq, frame);
+    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
+        printf("edraw skip seq=%d frame=%d\n", seq, frame);
+        return -1;
+    }
+    g[*got].seq = seq;
+    g[*got].frame = frame;
+    g[*got].live = 1;
+    (*got)++;
+    return 0;
+}
+
+static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq)
+{
+    int nfr, f2;
+
+    if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
+        return;
+    }
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
+    for (f2 = 1; f2 <= nfr && *got < DINK_EDGFX_MAX; f2++) {
+        (void)load_one(g, got, seqs, seq, f2);
+    }
+}
+
+/* people_brain find_action: base_walk+1,3,7,9 */
+static void people_walk_seqs(int base, int *out, int *n)
+{
+    static const int d[4] = {1, 3, 7, 9};
+    int i;
+
+    *n = 0;
+    if (base < 0) {
+        return;
+    }
+    for (i = 0; i < 4; i++) {
+        out[i] = base + d[i];
+        (*n)++;
+    }
+}
+
+static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
+{
+    const char *sl;
+
+    dir[0] = '\0';
+    if (seq == NULL || seq->prefix[0] == '\0') {
+        return;
+    }
+    sl = strrchr(seq->prefix, '/');
+    if (sl == NULL) {
+        return;
+    }
+    snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
+}
+
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n)
 {
@@ -71,8 +160,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
-        for (i = 1; i <= 100 && nneed < DINK_EDGFX_MAX; i++) {
-            int seq, fr, d;
+        for (i = 1; i <= 100; i++) {
+            int seq, fr;
 
             if (!editor_sprite_draw(&sp[i], DINK_VISION_DEFAULT)) {
                 continue;
@@ -82,36 +171,31 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
                 continue;
             }
-            for (d = 0; d < nneed; d++) {
-                if (need_s[d] == seq && need_f[d] == fr) {
-                    break;
-                }
-            }
-            if (d < nneed) {
-                continue;
-            }
-            need_s[nneed] = seq;
-            need_f[nneed] = fr;
-            nneed++;
+            need_push(need_s, need_f, &nneed, seq, fr);
             /* Repeat brains cycle the whole seq (fireplace). */
             if ((int)sp[i].type == 1 && (int)sp[i].brain == 6) {
                 int nfr, f2;
 
                 nfr = ini_seq_len(seq, seqs[seq].nframes);
-                for (f2 = 1; f2 <= nfr && nneed < DINK_EDGFX_MAX; f2++) {
-                    int d2;
+                for (f2 = 1; f2 <= nfr; f2++) {
+                    need_push(need_s, need_f, &nneed, seq, f2);
+                }
+            }
+            /* people_brain walk dirs share the sprite's dir.ff. */
+            if ((int)sp[i].type == 1 && (int)sp[i].brain == 16) {
+                int ws[4], nw, w, f2, nfr;
 
-                    for (d2 = 0; d2 < nneed; d2++) {
-                        if (need_s[d2] == seq && need_f[d2] == f2) {
-                            break;
-                        }
-                    }
-                    if (d2 < nneed) {
+                people_walk_seqs((int)sp[i].base_walk, ws, &nw);
+                for (w = 0; w < nw; w++) {
+                    if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
+                        seqs[ws[w]].prefix[0] == '\0') {
                         continue;
                     }
-                    need_s[nneed] = seq;
-                    need_f[nneed] = f2;
-                    nneed++;
+                    need_push(need_s, need_f, &nneed, ws[w], 1);
+                    nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
+                    for (f2 = 1; f2 <= nfr; f2++) {
+                        need_push(need_s, need_f, &nneed, ws[w], f2);
+                    }
                 }
             }
         }
@@ -168,34 +252,23 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].live = 1;
             got++;
         }
-        /* After frame 1 decode, seq.nframes is known. Load the rest of
-         * brain-6 seqs while the pack is still open. */
+        /* After frame 1 decode, seq.nframes is known. Load remaining
+         * brain-6 (fireplace) and brain-16 walk frames while packs stay open. */
         for (i = 1; i <= 100; i++) {
-            int seq, nfr, f2;
+            int ws[4], nw, w;
 
-            if ((int)sp[i].type != 1 || (int)sp[i].brain != 6 ||
+            if ((int)sp[i].type != 1 ||
                 !editor_sprite_on_vision(&sp[i], DINK_VISION_DEFAULT)) {
                 continue;
             }
-            seq = (int)sp[i].seq;
-            if (seq < 1 || seq >= DINK_MAX_SEQ) {
-                continue;
+            if ((int)sp[i].brain == 6) {
+                load_seq_frames(g, &got, seqs, (int)sp[i].seq);
             }
-            nfr = ini_seq_len(seq, seqs[seq].nframes);
-            for (f2 = 1; f2 <= nfr && got < DINK_EDGFX_MAX; f2++) {
-                if (edraw_find(g, got, seq, f2) != NULL) {
-                    continue;
+            if ((int)sp[i].brain == 16) {
+                people_walk_seqs((int)sp[i].base_walk, ws, &nw);
+                for (w = 0; w < nw; w++) {
+                    load_seq_frames(g, &got, seqs, ws[w]);
                 }
-                printf("edraw load seq=%d fr=%d\n", seq, f2);
-                if (sprite_load_seq_frame(&seqs[seq], seq, f2, &g[got].fr) !=
-                    0) {
-                    printf("edraw skip seq=%d frame=%d\n", seq, f2);
-                    continue;
-                }
-                g[got].seq = seq;
-                g[got].frame = f2;
-                g[got].live = 1;
-                got++;
             }
         }
     }
@@ -209,6 +282,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame)
 {
+    char dir[160];
     int got;
 
     if (g == NULL || n == NULL || seqs == NULL || seq < 1 ||
@@ -222,20 +296,19 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     if (edraw_find(g, got, seq, frame) != NULL) {
         return 0;
     }
-    if (got >= DINK_EDGFX_MAX) {
-        printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+    /* Play path: decode only from a pack already opened at screen load. */
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] == '\0' || !ff_is_cached(dir)) {
+        printf("edraw skip seq=%d fr=%d (pack not cached)\n", seq, frame);
         return -1;
     }
-    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[got].fr) != 0) {
+    if (load_one(g, &got, seqs, seq, frame) != 0) {
         return -1;
     }
-    g[got].seq = seq;
-    g[got].frame = frame;
-    g[got].live = 1;
 #ifdef _arch_dreamcast
-    (void)sprite_upload_pvr(&g[got].fr);
+    (void)sprite_upload_pvr(&g[got - 1].fr);
 #endif
-    *n = got + 1;
+    *n = got;
     return 0;
 }
 
