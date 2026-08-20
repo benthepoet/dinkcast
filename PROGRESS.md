@@ -95,6 +95,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | Sector-pad staged disc files + boot binary (KOS #1492 stream abort) | #61 |
 | 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | #61 |
 | 2026-08-19 | First-open /cd hang retired in Flycast (3 clean cold boots) | requester report |
+| 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
 
 ## Bites
 
@@ -115,7 +116,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 6.1–6.3 | Atlas + 96 quads | done | V2 accepted |
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
-| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted |
+| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted; `SET_FRAME_FRAME` ping-pong this PR |
 | 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
 | 10.1 | Talk probe | done | #29; requester accepted |

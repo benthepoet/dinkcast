@@ -15,6 +15,11 @@ int main(void)
         "SET_SPRITE_INFO 31 22 79 88 -75 1 21 12\n"
         "Set_Sprite_Info 31 22 79 88 -94 -36 21 19\n"
         "set_frame_special 106 3 1\n"
+        "set_frame_frame 14 5 14 3\n"
+        "set_frame_frame 14 6 14 2\n"
+        "set_frame_delay 14 5 250\n"
+        "set_frame_delay 14 6 250\n"
+        "set_frame_frame 111 5 -1\n"
         "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
@@ -56,6 +61,37 @@ int main(void)
     if (!ini_frame_special(106, 3) || ini_frame_special(106, 1)) {
         fprintf(stderr, "FAIL SET_FRAME_SPECIAL\n");
         return 1;
+    }
+    {
+        int dseq = 0, dfr = 0;
+
+        if (ini_resolve_frame(14, 5, &dseq, &dfr) != 0 || dseq != 14 ||
+            dfr != 3) {
+            fprintf(stderr, "FAIL alias 14.5 -> %d %d\n", dseq, dfr);
+            return 1;
+        }
+        if (ini_resolve_frame(14, 6, &dseq, &dfr) != 0 || dseq != 14 ||
+            dfr != 2) {
+            fprintf(stderr, "FAIL alias 14.6\n");
+            return 1;
+        }
+        if (ini_resolve_frame(111, 5, &dseq, &dfr) != 1) {
+            fprintf(stderr, "FAIL terminator 111.5\n");
+            return 1;
+        }
+        if (ini_frame_delay(14, 5, 50) != 250 ||
+            ini_frame_delay(14, 1, 250) != 250) {
+            fprintf(stderr, "FAIL frame delay\n");
+            return 1;
+        }
+        if (ini_seq_len(14, 4) != 6) {
+            fprintf(stderr, "FAIL idle seq len %d\n", ini_seq_len(14, 4));
+            return 1;
+        }
+        if (ini_seq_len(111, 4) != 4) {
+            fprintf(stderr, "FAIL punch seq len %d\n", ini_seq_len(111, 4));
+            return 1;
+        }
     }
     printf("OK test_ini\n");
     return 0;

@@ -91,13 +91,22 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         pad_dir = 0;
     }
     if (p->nocontrol) {
-        delay = seqs[p->seq].delay > 0 ? seqs[p->seq].delay : 50;
-        nfr = seqs[p->seq].nframes > 0 ? seqs[p->seq].nframes : 1;
+        delay = ini_frame_delay(p->seq, p->frame, seqs[p->seq].delay);
+        if (delay < 1) {
+            delay = 50;
+        }
+        nfr = ini_seq_len(p->seq, seqs[p->seq].nframes);
+        if (nfr < 1) {
+            nfr = 1;
+        }
         p->acc += 16;
         if (p->acc >= delay) {
+            int dseq, dfr;
+
             p->acc = 0;
             p->frame++;
-            if (p->frame > nfr) {
+            if (p->frame > nfr ||
+                ini_resolve_frame(p->seq, p->frame, &dseq, &dfr) != 0) {
                 p->nocontrol = 0;
                 if (p->dir == 1 || p->dir == 3) {
                     p->dir = 2;
@@ -168,13 +177,22 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
             }
         }
     }
-    delay = seqs[seq].delay > 0 ? seqs[seq].delay : 50;
-    nfr = seqs[seq].nframes > 0 ? seqs[seq].nframes : 1;
+    delay = ini_frame_delay(seq, p->frame, seqs[seq].delay);
+    if (delay < 1) {
+        delay = 50;
+    }
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
+    if (nfr < 1) {
+        nfr = 1;
+    }
     p->acc += 16;
     if (p->acc >= delay) {
+        int dseq, dfr;
+
         p->acc = 0;
         p->frame++;
-        if (p->frame > nfr) {
+        if (p->frame > nfr ||
+            ini_resolve_frame(seq, p->frame, &dseq, &dfr) != 0) {
             p->frame = 1;
         }
     }

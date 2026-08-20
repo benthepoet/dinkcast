@@ -96,6 +96,40 @@ int main(void)
         return 1;
     }
     {
+        const char *ini =
+            "set_frame_frame 14 5 14 3\n"
+            "set_frame_frame 14 6 14 2\n";
+        if (ini_parse_mem(ini, strlen(ini), seqs, DINK_MAX_SEQ) != 0) {
+            fprintf(stderr, "FAIL idle alias parse\n");
+            hard_mask_free(&mask);
+            return 1;
+        }
+        for (i = 1; i < DINK_MAX_SEQ; i++) {
+            seqs[i].delay = 50;
+            seqs[i].nframes = 4;
+        }
+        player_init(&p);
+        p.x = 100;
+        p.y = 100;
+        p.frame = 4;
+        p.acc = 34;
+        player_step(&p, 0, &mask, seqs);
+        if (p.frame != 5 || p.seq != DINK_BASE_IDLE + 4) {
+            fprintf(stderr, "FAIL idle ping 4->5 got frame %d seq %d\n",
+                    p.frame, p.seq);
+            hard_mask_free(&mask);
+            return 1;
+        }
+        p.frame = 6;
+        p.acc = 34;
+        player_step(&p, 0, &mask, seqs);
+        if (p.frame != 1) {
+            fprintf(stderr, "FAIL idle ping 6->1 got %d\n", p.frame);
+            hard_mask_free(&mask);
+            return 1;
+        }
+    }
+    {
         int ox = p.x, oy = p.y;
 
         p.freeze = 1;

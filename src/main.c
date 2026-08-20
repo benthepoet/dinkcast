@@ -277,13 +277,14 @@ int main(int argc, char **argv)
                  * bow). Pin idle+walk now: first walk after mom unfreeze
                  * opened walk/dir.ff after the house dir.ff storm and hung. */
                 if (seqs[DINK_IDLE_SEQ].prefix[0] != '\0') {
-                    seqs[DINK_IDLE_SEQ].nframes =
-                        ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix);
+                    seqs[DINK_IDLE_SEQ].nframes = ini_seq_len(
+                        DINK_IDLE_SEQ,
+                        ini_count_ff_frames(seqs[DINK_IDLE_SEQ].prefix));
                 }
                 if (wseq > 0 && wseq < DINK_MAX_SEQ &&
                     seqs[wseq].prefix[0] != '\0') {
-                    seqs[wseq].nframes =
-                        ini_count_ff_frames(seqs[wseq].prefix);
+                    seqs[wseq].nframes = ini_seq_len(
+                        wseq, ini_count_ff_frames(seqs[wseq].prefix));
                 }
                 printf("ini seq %d prefix %s frames %d cx %d cy %d\n",
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
