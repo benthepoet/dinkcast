@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "saybox.h"
 
+#include "choice.h"
 #include "dinkc_vm.h"
 #include "font.h"
+#include "sprite.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -338,37 +340,119 @@ void saybox_draw_pvr(float z)
     }
 }
 
+static void draw_str_shadow(float x, float y, float z, const char *s,
+                            uint32_t fg, int title)
+{
+    const char *p = s;
+    uint32_t bg = 0xFF080E15u;
+
+    while (p != NULL && *p != '\0' && *p != '\n') {
+        unsigned char ch = (unsigned char)*p;
+
+        if (title) {
+            draw_ch(x, y, z, ch, bg);
+            draw_ch(x + 1.0f, y + 1.0f, z + 0.01f, ch, fg);
+        } else {
+            draw_ch(x, y, z, ch, bg);
+            draw_ch(x - 2.0f, y - 2.0f, z, ch, bg);
+            draw_ch(x - 1.0f, y - 1.0f, z + 0.01f, ch, fg);
+        }
+        x += (float)font_advance(ch);
+        p++;
+    }
+}
+
+static void draw_wrapped_center(float y, float z, const char *s, uint32_t fg,
+                                int title)
+{
+    char buf[256];
+    const char *p;
+
+    if (s == NULL) {
+        s = "";
+    }
+    strncpy(buf, s, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    choice_wrap(buf, DINK_CHOICE_BOX_R - DINK_CHOICE_BOX_L);
+    p = buf;
+    while (*p != '\0') {
+        float x = (float)choice_center_x(p);
+
+        draw_str_shadow(x, y, z, p, fg, title);
+        while (*p != '\0' && *p != '\n') {
+            p++;
+        }
+        if (*p == '\n') {
+            p++;
+        }
+        y += (float)DINK_FONT_CELL;
+    }
+}
+
 void saybox_draw_choices_pvr(float z)
 {
-    int n, i, cur;
-    float y;
+    int n, i, cur, h[21];
+    struct ChoiceLayout lay;
+    struct SpriteFrame *fr;
+    int cf, curyl, curyr, y;
 
     n = dinkc_vm_choice_n();
     cur = dinkc_vm_choice_cur();
     if (n < 1) {
         return;
     }
-    y = 140.0f;
+    fr = choice_frame(DINK_CHOICE_SEQ, 2);
+    if (fr != NULL) {
+        sprite_blit_pvr(fr, (float)DINK_CHOICE_PX, (float)DINK_CHOICE_PY, z);
+    }
+    fr = choice_frame(DINK_CHOICE_SEQ, 3);
+    if (fr != NULL) {
+        sprite_blit_pvr(fr, (float)(DINK_CHOICE_PX + 169),
+                        (float)(DINK_CHOICE_PY + 42), z);
+    }
+    fr = choice_frame(DINK_CHOICE_SEQ, 4);
+    if (fr != NULL) {
+        sprite_blit_pvr(fr, (float)(DINK_CHOICE_PX + 169 + 180),
+                        (float)(DINK_CHOICE_PY + 1), z);
+    }
+    if (dinkc_vm_choice_title()[0] != '\0') {
+        uint32_t tfg;
+        int col = dinkc_vm_choice_color();
+
+        if (col >= 1 && col <= 15) {
+            tfg = saybox_argb(col);
+        } else {
+            tfg = 0xFFFFFFFFu;
+        }
+        draw_wrapped_center(94.0f, z + 0.05f, dinkc_vm_choice_title(), tfg, 1);
+    }
+    memset(h, 0, sizeof(h));
     for (i = 1; i <= n; i++) {
-        const char *s = dinkc_vm_choice_line(i);
-        uint32_t fg = (i == cur) ? 0xFFFFFF02u : 0xFFFFFFFFu;
-        float x = 80.0f;
+        h[i] = choice_wrap_height(dinkc_vm_choice_line(i));
+    }
+    choice_layout(n, cur, h, dinkc_vm_choice_newy(), &lay);
+    y = lay.choices_y;
+    curyl = 200;
+    curyr = 200;
+    for (i = lay.view_lo; i <= lay.view_hi && i <= n; i++) {
+        uint32_t fg = (i == cur) ? 0xFFFFFFFFu : 0xFFFFFF02u;
 
         if (i == cur) {
-            draw_ch(x - 12.0f, y, z, '>', fg);
+            curyl = y - 4;
+            curyr = y - 4;
         }
-        {
-            const char *p = s;
-
-            while (*p != '\0') {
-                draw_ch(x - 1.0f, y, z, (unsigned char)*p, 0xFF080E15u);
-                draw_ch(x + 1.0f, y, z, (unsigned char)*p, 0xFF080E15u);
-                draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
-                x += (float)font_advance((unsigned char)*p);
-                p++;
-            }
-        }
-        y += 12.0f;
+        draw_wrapped_center((float)y, z + 0.05f, dinkc_vm_choice_line(i), fg,
+                            0);
+        y += h[i];
+    }
+    cf = choice_curf();
+    fr = choice_frame(DINK_CHOICE_AROWL, cf);
+    if (fr != NULL) {
+        sprite_blit_pvr(fr, (float)DINK_CHOICE_CURXL, (float)curyl, z + 0.08f);
+    }
+    fr = choice_frame(DINK_CHOICE_AROWR, cf);
+    if (fr != NULL) {
+        sprite_blit_pvr(fr, (float)DINK_CHOICE_CURXR, (float)curyr, z + 0.08f);
     }
 }
 #endif

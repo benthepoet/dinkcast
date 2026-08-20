@@ -9,6 +9,7 @@
 
 #include "boot.h"
 #include "brains.h"
+#include "choice.h"
 #include "dinkdat.h"
 #include "fs.h"
 #include "edraw.h"
@@ -316,6 +317,9 @@ int main(int argc, char **argv)
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
                        seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
+                if (choice_load(seqs) != 0) {
+                    printf("choice gfx load fail\n");
+                }
             }
             {
                 struct HardMask mask;
@@ -426,6 +430,9 @@ int main(int argc, char **argv)
                            font_atlas_h(), font_atlas_bytes());
                     if (saybox_upload() != 0) {
                         printf("saybox upload fail\n");
+                    }
+                    if (choice_upload_pvr() != 0) {
+                        printf("choice upload fail\n");
                     }
                 }
                 spr_restore("pre-attach");
@@ -618,10 +625,14 @@ int main(int argc, char **argv)
                         }
                     } else if (have && dinkc_vm_waiting_choice()) {
                         if (pad_just_pressed(prev_buttons, buttons,
-                                             DINK_PAD_UP)) {
+                                             DINK_PAD_UP) ||
+                            pad_just_pressed(prev_buttons, buttons,
+                                             DINK_PAD_LEFT)) {
                             dinkc_vm_choice_move(-1);
                         } else if (pad_just_pressed(prev_buttons, buttons,
-                                                    DINK_PAD_DOWN)) {
+                                                    DINK_PAD_DOWN) ||
+                                   pad_just_pressed(prev_buttons, buttons,
+                                                    DINK_PAD_RIGHT)) {
                             dinkc_vm_choice_move(1);
                         } else if (pad_just_pressed(prev_buttons, buttons,
                                                     DINK_PAD_A)) {
@@ -679,6 +690,9 @@ int main(int argc, char **argv)
                         }
                     }
                     now_ms += DINKC_TICK_MS;
+                    if (dinkc_vm_waiting_choice()) {
+                        choice_tick(now_ms);
+                    }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
                         int wed = screen_process_warp();

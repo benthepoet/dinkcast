@@ -145,6 +145,19 @@ int main(void)
         expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2, "pick B");
     }
     {
+        const char *titled =
+            "void main(void) { choice_start(); set_y 240; set_title_color 5; "
+            "title_start(); Hello title_end(); \"A\"; choice_end(); }";
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(titled, strlen(titled), 1);
+        expect(slot > 0 && dinkc_vm_waiting_choice(), "titled");
+        expect(dinkc_vm_choice_newy() == 240, "set_y");
+        expect(dinkc_vm_choice_color() == 5, "title color");
+        expect(strstr(dinkc_vm_choice_title(), "Hello") != NULL, "title text");
+        dinkc_vm_choice_pick(1);
+    }
+    {
         const char *talk2 =
             "void talk(void) { freeze(1); choice_start(); \"A\"; "
             "choice_end(); unfreeze(1); }";

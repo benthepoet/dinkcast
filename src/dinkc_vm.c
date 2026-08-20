@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_vm.h"
 
+#include "choice.h"
 #include "dinkc_cmd.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
@@ -48,6 +49,9 @@ static struct Fiber g_f[DINKC_MAX_LIVE + 1];
 static int g_ops_ovf;
 static int g_now_ms;
 static int g_var_ready;
+static char g_choice_title[3000];
+static int g_choice_newy = DINK_CHOICE_NEWY_NONE;
+static int g_choice_color;
 
 static int fiber_slot(const struct Fiber *f)
 {
@@ -67,6 +71,99 @@ static void skip_balanced(struct Fiber *f, enum DinkcKind open,
                           enum DinkcKind close);
 static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
                        size_t strsz, char *str2, size_t str2sz);
+
+static void choice_meta_clear(void)
+{
+    g_choice_title[0] = '\0';
+    g_choice_newy = DINK_CHOICE_NEWY_NONE;
+    g_choice_color = 0;
+}
+
+static void replace_str(char *s, const char *from, const char *to)
+{
+    size_t fl, tl;
+    char *p;
+
+    if (s == NULL || from == NULL || to == NULL || from[0] == '\0') {
+        return;
+    }
+    fl = strlen(from);
+    tl = strlen(to);
+    p = s;
+    while ((p = strstr(p, from)) != NULL) {
+        memmove(p + tl, p + fl, strlen(p + fl) + 1);
+        memcpy(p, to, tl);
+        p += tl != 0 ? tl : 1;
+    }
+}
+
+static void title_from_src(const char *beg, const char *end)
+{
+    char raw[3000];
+    size_t n, o = 0;
+    int i, ls;
+
+    g_choice_title[0] = '\0';
+    if (beg == NULL || end == NULL || end <= beg) {
+        return;
+    }
+    n = (size_t)(end - beg);
+    if (n >= sizeof(raw)) {
+        n = sizeof(raw) - 1;
+    }
+    memcpy(raw, beg, n);
+    raw[n] = '\0';
+    i = 0;
+    while (raw[i] != '\0' && o + 2 < sizeof(g_choice_title)) {
+        ls = i;
+        while (raw[i] != '\0' && raw[i] != '\n' && raw[i] != '\r') {
+            i++;
+        }
+        while (ls < i && (raw[ls] == ' ' || raw[ls] == '\t')) {
+            ls++;
+        }
+        while (o + (size_t)(i - ls) + 2 < sizeof(g_choice_title)) {
+            int k;
+
+            for (k = ls; k < i; k++) {
+                g_choice_title[o++] = raw[k];
+            }
+            g_choice_title[o++] = '\n';
+            break;
+        }
+        if (raw[i] == '\r') {
+            i++;
+        }
+        if (raw[i] == '\n') {
+            i++;
+        }
+    }
+    g_choice_title[o] = '\0';
+    replace_str(g_choice_title, "\n\n\n\n", "\n \n");
+    replace_str(g_choice_title, "\n\n", "\n");
+}
+
+static int parse_choice_int(struct Fiber *f)
+{
+    char buf[32];
+
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
+        int v;
+
+        f->ip++;
+        v = eval_expr(f);
+        if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_RPAREN) {
+            f->ip++;
+        }
+        return v;
+    }
+    if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_NUMBER) {
+        copy_tok(&f->tok[f->ip], buf, sizeof(buf));
+        f->ip++;
+        return atoi(buf);
+    }
+    return 0;
+}
 
 static int eval_prim(struct Fiber *f)
 {
@@ -496,29 +593,37 @@ static void run_fiber(struct Fiber *f, int now_ms)
                 parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                            sizeof(sarg2));
                 f->nchoice = 0;
+                choice_meta_clear();
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
                     int ok = 1;
 
-                    if (tok_is(&f->tok[f->ip], "set_y") ||
-                        tok_is(&f->tok[f->ip], "set_title_color")) {
+                    if (tok_is(&f->tok[f->ip], "set_y")) {
                         f->ip++;
-                        if (f->ip < f->ntok &&
-                            f->tok[f->ip].kind == DINKC_LPAREN) {
-                            skip_balanced(f, DINKC_LPAREN, DINKC_RPAREN);
-                        } else if (f->ip < f->ntok &&
-                                   f->tok[f->ip].kind == DINKC_NUMBER) {
-                            f->ip++;
-                        }
+                        g_choice_newy = parse_choice_int(f);
+                        eat_semi(f);
+                        continue;
+                    }
+                    if (tok_is(&f->tok[f->ip], "set_title_color")) {
+                        f->ip++;
+                        g_choice_color = parse_choice_int(f);
                         eat_semi(f);
                         continue;
                     }
                     if (tok_is(&f->tok[f->ip], "title_start")) {
+                        const char *beg = NULL;
+
                         f->ip++;
                         skip_call(f);
+                        if (f->ip < f->ntok) {
+                            beg = f->tok[f->ip].p;
+                        }
                         while (f->ip < f->ntok &&
                                !tok_is(&f->tok[f->ip], "title_end")) {
                             f->ip++;
+                        }
+                        if (beg != NULL && f->ip < f->ntok) {
+                            title_from_src(beg, f->tok[f->ip].p);
                         }
                         if (f->ip < f->ntok) {
                             f->ip++;
@@ -928,6 +1033,7 @@ void dinkc_vm_reset(void)
     dinkc_var_init();
     g_var_ready = 1;
     dinkc_cmd_bind_callback(vm_add_cb);
+    choice_meta_clear();
 }
 
 void dinkc_vm_tick(int now_ms)
@@ -1008,6 +1114,21 @@ const char *dinkc_vm_choice_line(int vis1)
         return "";
     }
     return f->choice_line[i];
+}
+
+const char *dinkc_vm_choice_title(void)
+{
+    return g_choice_title;
+}
+
+int dinkc_vm_choice_newy(void)
+{
+    return g_choice_newy;
+}
+
+int dinkc_vm_choice_color(void)
+{
+    return g_choice_color;
 }
 
 void dinkc_vm_choice_move(int delta)

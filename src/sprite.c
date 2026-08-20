@@ -3,6 +3,7 @@
 
 #include "bmp.h"
 #include "ff.h"
+#include "fs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +81,35 @@ int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
     snprintf(base, sizeof(base), "%s", sl + 1);
     snprintf(name, sizeof(name), frame < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
              frame);
+    /* Loose BMPs (seq 456/457 arrows) have no dir.ff. Try those first so
+     * we do not fopen a missing pack once per frame. */
+    if (!ff_is_cached(dir)) {
+        char rel[160];
+        int fi, nf = 0;
+
+        snprintf(rel, sizeof(rel), frame < 10 ? "%s0%d.bmp" : "%s%d.bmp",
+                 seq->prefix, frame);
+        if (dink_blob_get(rel, &bmp, &bn) == 0 && bmp != NULL && bn > 0) {
+            if (seq->nframes < 1) {
+                for (fi = 1; fi < DINK_MAX_FRAMES; fi++) {
+                    const uint8_t *p;
+                    size_t ln;
+                    char r2[160];
+
+                    snprintf(r2, sizeof(r2),
+                             fi < 10 ? "%s0%d.bmp" : "%s%d.bmp", seq->prefix,
+                             fi);
+                    if (dink_blob_get(r2, &p, &ln) != 0) {
+                        break;
+                    }
+                    nf = fi;
+                }
+                seq->nframes = ini_seq_len(seqn, nf);
+                printf("seq %d nframes %d\n", seqn, seq->nframes);
+            }
+            goto decode;
+        }
+    }
     if (ff_cached(dir, &ff) != 0 || ff == NULL) {
         return -1;
     }
@@ -104,6 +134,7 @@ int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
     if (ff_find(ff, name, &bmp, &bn) != 0) {
         return -1;
     }
+decode:
     memset(&bm, 0, sizeof(bm));
     if (bitmap_load_mem(bmp, bn, &bm) != 0) {
         return -1;
@@ -282,6 +313,53 @@ void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
     vert.x = x0;
     vert.y = y1;
     vert.u = u0;
+    vert.v = v1;
+    pvr_prim(&vert, sizeof(vert));
+    vert.flags = PVR_CMD_VERTEX_EOL;
+    vert.x = x1;
+    vert.y = y1;
+    vert.u = u1;
+    vert.v = v1;
+    pvr_prim(&vert, sizeof(vert));
+}
+
+void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z)
+{
+    pvr_poly_cxt_t cxt;
+    pvr_poly_hdr_t hdr;
+    pvr_vertex_t vert;
+    float u1, v1, x1, y1;
+
+    if (f == NULL || f->tex == NULL || f->w < 1 || f->h < 1) {
+        return;
+    }
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+                     (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
+    cxt.gen.alpha = PVR_ALPHA_ENABLE;
+    cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
+    pvr_poly_compile(&hdr, &cxt);
+    pvr_prim(&hdr, sizeof(hdr));
+    u1 = (float)f->w / (float)f->tw;
+    v1 = (float)f->h / (float)f->th;
+    x1 = dx + (float)f->w;
+    y1 = dy + (float)f->h;
+    vert.argb = 0xffffffff;
+    vert.oargb = 0;
+    vert.z = z;
+    vert.flags = PVR_CMD_VERTEX;
+    vert.x = dx;
+    vert.y = dy;
+    vert.u = 0.0f;
+    vert.v = 0.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = x1;
+    vert.y = dy;
+    vert.u = u1;
+    vert.v = 0.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = dx;
+    vert.y = y1;
+    vert.u = 0.0f;
     vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
     vert.flags = PVR_CMD_VERTEX_EOL;
