@@ -102,7 +102,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Sequence **11.10** (wave-1 live sprite cmds) after 15.1, before 15.2 | #65 |
 | 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | #66 |
 | 2026-08-20 | Screen `script` at 30240; `s1-gate`/`findduck` + `&vision` place | #67 |
-| 2026-08-20 | Say box follows owner (`text_brain`) | this PR |
+| 2026-08-20 | Say box follows owner (`text_brain`) | #68 |
+| 2026-08-20 | Keep `create_sprite`; skip editor-active slots; NPC say follow | this PR |
 
 ## Bites
 
@@ -139,7 +140,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43 |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
-| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66 |
+| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow this PR |
@@ -205,3 +206,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (11.10 source) | **~90%** | Live `BrainSpr` cmds + `move_stop` yield. Next **15.2**. |
 | 2026-08-20 (screen script) | **~90%** | `map.dat` screen `script` was 30204 (zeros). Guard/`findduck` need 30240 + `*pvision`. |
 | 2026-08-20 (say follow) | **~90%** | `say` snapshot-once; FreeDink `text_brain` follows owner each frame (`FINDDUCK`). |
+| 2026-08-20 (gate girl) | **~90%** | `create_sprite` during MAIN was memset by `brains_enter` and stole type-0 slots. `s1-lg` text without sprite. |

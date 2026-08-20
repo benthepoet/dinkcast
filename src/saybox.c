@@ -14,6 +14,7 @@
 
 static const struct MapScreen *g_scr;
 static struct Player *g_pl;
+static int (*g_live_xy)(int slot, int *x, int *y);
 static char g_text[200];
 static int g_on, g_owner, g_x, g_y, g_color;
 
@@ -27,6 +28,11 @@ void saybox_bind(const struct MapScreen *scr, struct Player *pl)
     g_pl = pl;
 }
 
+void saybox_bind_live_xy(int (*fn)(int slot, int *x, int *y))
+{
+    g_live_xy = fn;
+}
+
 static void owner_xy(int sprite, int *x, int *y)
 {
     *x = 100;
@@ -37,6 +43,9 @@ static void owner_xy(int sprite, int *x, int *y)
     if (sprite == 1 && g_pl != NULL) {
         *x = g_pl->x;
         *y = g_pl->y;
+        return;
+    }
+    if (g_live_xy != NULL && g_live_xy(sprite, x, y)) {
         return;
     }
     if (g_scr != NULL && sprite >= 1 && sprite <= 99 &&

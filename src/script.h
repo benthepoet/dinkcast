@@ -6,6 +6,7 @@
 
 /* Bind editor screen so talk/hit stubs can print script[16]. */
 void script_bind_screen(const struct MapScreen *scr);
+void script_bind_note_script(void (*fn)(int slot, const char *name));
 
 /* Bite 10.3 stubs: log only. DinkC is 11. */
 void script_on_main(int script_id);

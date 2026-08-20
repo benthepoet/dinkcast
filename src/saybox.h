@@ -14,6 +14,7 @@
 #define DINK_SAY_PLAYX 620
 
 void saybox_bind(const struct MapScreen *scr, struct Player *pl);
+void saybox_bind_live_xy(int (*fn)(int slot, int *x, int *y));
 void saybox_set(const char *text, int sprite);
 void saybox_clear(void);
 int saybox_active(void);

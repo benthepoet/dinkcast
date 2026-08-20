@@ -95,6 +95,19 @@ int main(void)
         free(seqs);
         return 1;
     }
+    if (seqs[331].nframes != 0) {
+        fprintf(stderr, "FAIL girl nframes already %d\n", seqs[331].nframes);
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
+    edraw_load_seq(g, &n, seqs, 331);
+    if (edraw_find(g, n, 331, 1) == NULL) {
+        fprintf(stderr, "FAIL create_sprite seq 331 frame 1\n");
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
     {
         int loads1, n2 = n;
 
