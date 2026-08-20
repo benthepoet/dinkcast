@@ -97,6 +97,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-19 | First-open /cd hang retired in Flycast (3 clean cold boots) | requester report |
 | 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
 | 2026-08-20 | Drop `make chd-redream` / Redream CHD | master |
+| 2026-08-20 | Defer **14.3** leak check until after 15.x | this PR |
 
 ## Bites
 
@@ -138,7 +139,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
-| 14.3 | Leak check 20 crossings | pending | |
+| 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -161,13 +162,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-19)
+### Current (2026-08-20)
 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
-| **Next picture (V6 inv/HUD)** | **~40%** | After 14–15 |
-| **Hardest remaining** | Screen change + brains | 14 / 15 |
+| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16; **14.3 leak check deferred** |
+| **Hardest remaining** | Brains / DinkC | **15.1** next (when requester says go) |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -192,3 +193,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-18 (V5 say) | **~88%** / say **~95%** | On-screen `say_stop` + freeze thaw. Next picture V6. |
 | 2026-08-19 (CD hang root cause) | **~88%** (unmoved) | First-open /cd hang = KOS fs_iso9660 stream abort on non-2048-multiple files (KOS #1492, hardware-confirmed there). Images now sector-padded at build; hang retirement pending Flycast/hardware confirmation. |
 | 2026-08-19 (CD hang retired) | **~90%** | 3 consecutive clean cold boots after #61 sector padding (leave-title, house door, village). Random-lockup class gone from the dev loop; hardware/ODE confirmation still open. DinkC coverage back as the pole. |
+| 2026-08-20 (defer 14.3) | **~90%** | Leak check after 20 crossings postponed until after 15.x (or 18.x). Sequence next: 15.1 brains. |

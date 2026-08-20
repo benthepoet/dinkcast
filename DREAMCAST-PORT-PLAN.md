@@ -574,10 +574,12 @@ Depends on Bite 13 for the menu.
 
 #### Bite 14.3 — Leak check
 
+**Deferred (requester 2026-08-20).** Do not start this until after **15.x** (brains/combat) unless the requester says otherwise. Not a visual gate. May land with **18.x** disc/perf.
+
 - `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB**.
 - Log `swap_ms` on hardware; same-tileset neighbor must stay in the § screen-delay table.
 
-**Done when:** Walk start screen into a real neighbor; tiles + Dink; counters stable; delay matches the binding table (Flycast may be ~0).
+**14.1–14.2 done when:** Walk start screen into a real neighbor; tiles + Dink. **14.3 done when:** counters stable; delay matches the binding table (Flycast may be ~0).
 
 ---
 
@@ -786,8 +788,9 @@ dinkcast/
                 ↘ 8.1–8.5 → 8.6 editor sprites → 9.1–9.3 walk
                          → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
                          → 13.1–13.3 text → 11.7 wave 2
-                         → 14.1–14.3 transitions
+                         → 14.1–14.2 transitions (14.3 leak check deferred)
                          → 15.1–15.4 + 11.8 wave 3
+                         → 14.3 leak check (after 15.x / with 18.x)
                          → 16.1–16.3 inventory / HUD (V6)
                          → 12.1–12.4 audio (after 16; playsound was stub)
                          → 17.1–17.3 VMU

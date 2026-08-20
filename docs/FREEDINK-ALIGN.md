@@ -70,7 +70,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Font atlas | TTF LiberationSans | embedded IBM VGA 8x8 | hold (13.1); no stock BMP in official data |
 | Say box | `say_text` / `text_draw` | `saybox_*` | hold (13.2); x-75 y-100 wrap 150 |
 | Choice menu | `game_choice` | `dinkc_vm_choice_*` + draw | hold (13.3); D-pad + A; `&result` official # |
-| Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock |
+| Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; **14.3 leak check deferred** |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
 | Brains 0–17 (stock names) | `update_frame` | 15.1 |
 | Push / death | `human_brain`, `die` | 15 |
