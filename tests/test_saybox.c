@@ -50,6 +50,25 @@ int main(void)
     expect(saybox_y() == 180 - DINK_SAY_YOFF, "yoff");
     saybox_set("Mother, how do I feed the pigs?  I forgot!", 1);
     expect(strchr(saybox_text(), '\n') != NULL, "wrap");
+    {
+        const char *t = saybox_text();
+        const char *nl = strchr(t, '\n');
+        int n0, n1, box = 334 - DINK_SAY_XOFF;
+
+        expect(nl != NULL, "wrap nl");
+        n0 = (int)(nl - t);
+        n1 = 0;
+        while (nl[1 + n1] != '\0' && nl[1 + n1] != '\n') {
+            n1++;
+        }
+        expect(n0 != n1 && n0 > 0 && n1 > 0, "wrap two lengths");
+        expect(saybox_line_x(t) == box + DINK_SAY_BOX_W / 2 -
+                                       (n0 * DINK_FONT_CELL) / 2,
+               "hcenter wrap line 0");
+        expect(saybox_line_x(nl + 1) == box + DINK_SAY_BOX_W / 2 -
+                                            (n1 * DINK_FONT_CELL) / 2,
+               "hcenter wrap line 1");
+    }
     saybox_set("hi", 0);
     expect(saybox_x() == 334 - DINK_SAY_XOFF, "sprite 0 is Dink");
     /* print_text_wrap hcenter: box left + 150/2 - line_w/2. "hi" is 16px. */
@@ -64,6 +83,20 @@ int main(void)
                (400 - DINK_SAY_XOFF) + DINK_SAY_BOX_W / 2 -
                    (2 * DINK_FONT_CELL) / 2,
            "hcenter follows");
+    pl.x = 580;
+    expect(saybox_x() == 470, "right-edge box 470");
+    expect(saybox_line_x("hi") == 470 + DINK_SAY_BOX_W / 2 -
+                                     (2 * DINK_FONT_CELL) / 2,
+           "hcenter in shifted box");
+    pl.x = 50;
+    pl.y = 50;
+    expect(saybox_x() == 1, "text_brain clamp x");
+    expect(saybox_y() == 1, "text_brain clamp y");
+    expect(saybox_line_x("hi") == 1 + DINK_SAY_BOX_W / 2 -
+                                     (2 * DINK_FONT_CELL) / 2,
+           "hcenter after clamp");
+    pl.x = 400;
+    pl.y = 200;
     saybox_set("`#YES, NOW.", 26);
     scr.sprite[26].x = 250;
     scr.sprite[26].y = 220;
@@ -71,8 +104,16 @@ int main(void)
     expect(saybox_y() == 220 - DINK_SAY_YOFF, "follows editor y");
     saybox_set("narrator", 1000);
     expect(saybox_x() == 100, "narrator x");
+    expect(saybox_line_x("narrator") ==
+               100 + (DINK_SAY_PLAYX - 20) / 2 -
+                   (8 * DINK_FONT_CELL) / 2,
+           "narrator hcenter wide box");
     pl.x = 500;
     expect(saybox_x() == 100, "narrator does not follow");
+    expect(saybox_line_x("narrator") ==
+               100 + (DINK_SAY_PLAYX - 20) / 2 -
+                   (8 * DINK_FONT_CELL) / 2,
+           "narrator line stays");
     saybox_bind_live_xy(stub_live_xy);
     g_lx = 300;
     g_ly = 160;
