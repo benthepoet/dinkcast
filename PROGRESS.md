@@ -98,8 +98,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
 | 2026-08-20 | Drop `make chd-redream` / Redream CHD | master |
 | 2026-08-20 | Defer **14.3** leak check until after 15.x | this PR |
-| 2026-08-20 | **15.1** brains (`update_frame`; pigs/ducks/people/repeat + rest; damage 15.2) | this PR |
-| 2026-08-20 | Sequence **11.10** (wave-1 live sprite cmds) after 15.1, before 15.2 | this PR |
+| 2026-08-20 | **15.1** brains (`update_frame`; pigs/ducks/people/repeat + rest) | #65 |
+| 2026-08-20 | Sequence **11.10** (wave-1 live sprite cmds) after 15.1, before 15.2 | #65 |
+| 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | this PR |
 
 ## Bites
 
@@ -136,14 +137,14 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43 |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
-| 11.10 | Wave 1 live sprite cmds | pending | after 15.1, before 15.2; `move`/`create_sprite`/`sp_kill`/NPC `sp_*` |
+| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
-| 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; next **11.10** then 15.2; 14.3 still deferred |
+| 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65. Next **15.2** after 11.10 |
 | 15.2–15.4 | Combat | pending | after **11.10** |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -172,7 +173,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
 | **Next picture (V6 inv/HUD)** | **~40%** | After 15–16; **14.3 leak check deferred** |
-| **Hardest remaining** | Brains / DinkC | **15.1** then **11.10** (`move`/`create_sprite`) then **15.2** |
+| **Hardest remaining** | Combat / DinkC | **15.2** |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -199,3 +200,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-19 (CD hang retired) | **~90%** | 3 consecutive clean cold boots after #61 sector padding (leave-title, house door, village). Random-lockup class gone from the dev loop; hardware/ODE confirmation still open. DinkC coverage back as the pole. |
 | 2026-08-20 (defer 14.3) | **~90%** | Leak check after 20 crossings postponed until after 15.x (or 18.x). Sequence next: 15.1 brains. |
 | 2026-08-20 (11.10 sequenced) | **~90%** | Wave-1 live sprite cmds (`move`/`create_sprite`/`sp_kill`/NPC `sp_*`) after 15.1, before 15.2. |
+| 2026-08-20 (11.10 source) | **~90%** | Live `BrainSpr` cmds + `move_stop` yield. Next **15.2**. |

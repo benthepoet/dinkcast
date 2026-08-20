@@ -6,15 +6,38 @@ struct Player;
 
 void dinkc_cmd_bind_player(struct Player *p);
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
-/* prop: 1 brain, 2 speed, 3 base_walk, 4 timing. val -1 = read. */
+/* prop: change_sprite. val -1 = read (except kill). */
 #define DINKC_SP_BRAIN 1
 #define DINKC_SP_SPEED 2
 #define DINKC_SP_BASE_WALK 3
 #define DINKC_SP_TIMING 4
+#define DINKC_SP_X 5
+#define DINKC_SP_Y 6
+#define DINKC_SP_DIR 7
+#define DINKC_SP_SEQ 8
+#define DINKC_SP_FRAME 9
+#define DINKC_SP_BASE_ATTACK 10
+#define DINKC_SP_BASE_IDLE 11
+#define DINKC_SP_PSEQ 12
+#define DINKC_SP_PFRAME 13
+#define DINKC_SP_ACTIVE 14
+#define DINKC_SP_KILL 15
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
-/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 2 choice. */
+void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
+void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
+void dinkc_cmd_bind_moving(int (*fn)(int slot));
+void dinkc_cmd_bind_sp_script(int (*fn)(int slot, const char *name));
+void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
+                                       const char *proc, const int *args,
+                                       int nargs));
+void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
+                                       int fiber, int sprite));
+void dinkc_cmd_bind_fiber(int fiber, int sprite);
+/* 1 if move()/move_stop still running. */
+int dinkc_cmd_move_busy(int slot);
+/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 3 kill, 5 external. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
-              int *yield, int *ret);
+              const char *str2, int *yield, int *ret);
 /* 11.9: one table. DINKC_DUMP_FNS=1 prints implemented + missing. */
 void dinkc_cmd_dump(void);
 int dinkc_cmd_implemented_count(void);

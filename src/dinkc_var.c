@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_var.h"
+#include "dinkc_vm.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -195,12 +196,29 @@ int dinkc_var_get(const char *name, int scope, int sprite)
     if (name_eq(name, "&return")) {
         return g_returnint;
     }
-    if (name_eq(name, "&arg1") || name_eq(name, "&arg2") ||
-        name_eq(name, "&arg3") || name_eq(name, "&arg4") ||
-        name_eq(name, "&arg5") || name_eq(name, "&arg6") ||
-        name_eq(name, "&arg7") || name_eq(name, "&arg8") ||
-        name_eq(name, "&arg9")) {
-        return 0;
+    if (name_eq(name, "&arg1")) {
+        return dinkc_vm_arg(scope, 1);
+    }
+    if (name_eq(name, "&arg2")) {
+        return dinkc_vm_arg(scope, 2);
+    }
+    if (name_eq(name, "&arg3")) {
+        return dinkc_vm_arg(scope, 3);
+    }
+    if (name_eq(name, "&arg4")) {
+        return dinkc_vm_arg(scope, 4);
+    }
+    if (name_eq(name, "&arg5")) {
+        return dinkc_vm_arg(scope, 5);
+    }
+    if (name_eq(name, "&arg6")) {
+        return dinkc_vm_arg(scope, 6);
+    }
+    if (name_eq(name, "&arg7")) {
+        return dinkc_vm_arg(scope, 7);
+    }
+    if (name_eq(name, "&arg8") || name_eq(name, "&arg9")) {
+        return dinkc_vm_arg(scope, 8);
     }
     i = lookup_108(name, scope);
     if (i == 0) {

@@ -132,6 +132,27 @@ int main(void)
         expect((int)scr.sprite[1].seq == 31, "type0 snapshot not overlaid");
     }
 
+    {
+        int c, j;
+
+        brains_enter(&scr, DINK_VISION_DEFAULT);
+        c = brains_create(40, 50, 0, 32, 1);
+        expect(c >= 2 && c <= 100, "create_sprite slot");
+        expect(brains_change_prop(c, 2, 3) == 3, "created speed");
+        expect(brains_change_prop(c, 5, 80) == 80, "sp_x created");
+        brains_apply(&scr);
+        expect((int)scr.sprite[c].active == 1 && (int)scr.sprite[c].type == 1 &&
+                   (int)scr.sprite[c].x == 80,
+               "created overlay after apply");
+        expect(brains_move(c, 6, 200, 1) == 1, "move");
+        for (j = 0; j < 80; j++) {
+            brains_tick(&scr, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+        }
+        expect((int)scr.sprite[c].x > 80, "move walked east");
+        expect(!brains_moving(c) || (int)scr.sprite[c].x >= 200,
+               "move toward dest");
+    }
+
     brains_set_freeze(26, 0);
     {
         struct World w;

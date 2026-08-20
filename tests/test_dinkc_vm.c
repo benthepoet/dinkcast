@@ -9,16 +9,53 @@
 #include <string.h>
 
 static int g_stub_brain[100];
+static int g_stub_x[100];
+static int g_move_on;
 
 static int stub_sp_change(int slot, int prop, int val)
 {
-    if (slot < 1 || slot > 99 || prop != DINKC_SP_BRAIN) {
+    int *p = NULL;
+
+    if (slot < 1 || slot > 99) {
+        return -1;
+    }
+    if (prop == DINKC_SP_BRAIN) {
+        p = &g_stub_brain[slot];
+    } else if (prop == DINKC_SP_X) {
+        p = &g_stub_x[slot];
+    } else {
         return -1;
     }
     if (val != -1) {
-        g_stub_brain[slot] = val;
+        *p = val;
     }
-    return g_stub_brain[slot];
+    return *p;
+}
+
+static int stub_create(int x, int y, int brain, int seq, int fr)
+{
+    (void)y;
+    (void)brain;
+    (void)seq;
+    (void)fr;
+    g_stub_x[5] = x;
+    return 5;
+}
+
+static int stub_move(int slot, int dir, int dest, int nohard)
+{
+    (void)slot;
+    (void)dir;
+    (void)dest;
+    (void)nohard;
+    g_move_on = 1;
+    return 1;
+}
+
+static int stub_moving(int slot)
+{
+    (void)slot;
+    return g_move_on;
 }
 
 static void expect(int cond, const char *msg)
@@ -172,16 +209,52 @@ int main(void)
         int yld = 0, rv = 0, args[2] = {0, 0};
 
         expect(impl >= 60, "table size");
-        expect(dinkc_cmd("no_such_fn_zz", args, 0, "", &yld, &rv) == 0,
+        expect(dinkc_cmd("no_such_fn_zz", args, 0, "", "", &yld, &rv) == 0,
                "unknown");
         expect(dinkc_cmd_missing_count() == miss0 + 1, "miss logged");
-        expect(dinkc_cmd("draw_status", args, 0, "", &yld, &rv) == 1, "known");
+        expect(dinkc_cmd("draw_status", args, 0, "", "", &yld, &rv) == 1, "known");
         dinkc_cmd_bind_sprite_change(stub_sp_change);
         args[0] = 7;
         args[1] = 9;
-        expect(dinkc_cmd("sp_brain", args, 2, "", &yld, &rv) == 1 && rv == 9,
+        expect(dinkc_cmd("sp_brain", args, 2, "", "", &yld, &rv) == 1 && rv == 9,
                "sp_brain writes");
         dinkc_cmd_dump();
+    }
+    {
+        const char *mv =
+            "void main(void) { move_stop(5, 6, 400, 1); kill_this_task(); }";
+        const char *cr =
+            "void main(void) { create_sprite(10, 20, 0, 32, 1); }";
+
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        dinkc_cmd_bind_create(stub_create);
+        dinkc_cmd_bind_move(stub_move);
+        dinkc_cmd_bind_moving(stub_moving);
+        g_move_on = 0;
+        dinkc_vm_reset();
+        dinkc_cmd_bind_move(stub_move);
+        dinkc_cmd_bind_moving(stub_moving);
+        slot = dinkc_vm_start(mv, strlen(mv), 1);
+        expect(slot > 0 && dinkc_vm_state(slot) == DINKC_WAIT_MOVE, "move_stop yield");
+        dinkc_vm_tick(16);
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MOVE, "not done in 16ms");
+        dinkc_vm_resume_move();
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MOVE, "still busy");
+        g_move_on = 0;
+        dinkc_vm_resume_move();
+        expect(dinkc_vm_live() == 0, "move_stop resumes when dest reached");
+        dinkc_vm_reset();
+        dinkc_cmd_bind_create(stub_create);
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        slot = dinkc_vm_start(cr, strlen(cr), 1);
+        expect(dinkc_var_get("&return", DINKC_GLOBAL_SCOPE, 1) == 5,
+               "create_sprite slot");
+        dinkc_vm_reset();
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        slot = dinkc_vm_start(
+            "void main(void) { sp_x(5, 77); }",
+            strlen("void main(void) { sp_x(5, 77); }"), 1);
+        expect(g_stub_x[5] == 77, "sp_x npc write");
     }
 
     printf("OK test_dinkc_vm\n");

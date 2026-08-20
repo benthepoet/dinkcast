@@ -29,6 +29,16 @@ static int is_cmd(const char *a, const char *b)
 static struct Player *g_pl;
 static void (*g_spr_freeze)(int slot, int on);
 static int (*g_spr_change)(int slot, int prop, int val);
+static int (*g_create)(int x, int y, int brain, int seq, int fr);
+static int (*g_move)(int slot, int dir, int dest, int nohard);
+static int (*g_moving)(int slot);
+static int (*g_sp_script)(int slot, const char *name);
+static int (*g_external)(int sprite, const char *file, const char *proc,
+                         const int *args, int nargs);
+static int (*g_callback)(const char *proc, int base, int range, int fiber,
+                         int sprite);
+static int g_fiber;
+static int g_cmd_sprite;
 static int g_hp[100];
 static int g_def[100];
 static int g_touch[100];
@@ -272,16 +282,117 @@ void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val))
     g_spr_change = fn;
 }
 
+void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr))
+{
+    g_create = fn;
+}
+
+void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard))
+{
+    g_move = fn;
+}
+
+void dinkc_cmd_bind_moving(int (*fn)(int slot))
+{
+    g_moving = fn;
+}
+
+void dinkc_cmd_bind_sp_script(int (*fn)(int slot, const char *name))
+{
+    g_sp_script = fn;
+}
+
+void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
+                                       const char *proc, const int *args,
+                                       int nargs))
+{
+    g_external = fn;
+}
+
+void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
+                                       int fiber, int sprite))
+{
+    g_callback = fn;
+}
+
+void dinkc_cmd_bind_fiber(int fiber, int sprite)
+{
+    g_fiber = fiber;
+    g_cmd_sprite = sprite;
+}
+
+int dinkc_cmd_move_busy(int slot)
+{
+    if (slot == 1 && g_pl != NULL) {
+        return g_pl->move_active;
+    }
+    if (g_moving != NULL) {
+        return g_moving(slot);
+    }
+    return 0;
+}
+
 static int spr_is_dink(int id)
 {
     return id == 1;
 }
 
+static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
+{
+    int val = nargs < 2 ? -1 : setv;
+    int *p = NULL;
+    int v;
+
+    if (spr_is_dink(slot) && g_pl != NULL) {
+        if (prop == DINKC_SP_X) {
+            p = &g_pl->x;
+        } else if (prop == DINKC_SP_Y) {
+            p = &g_pl->y;
+        } else if (prop == DINKC_SP_DIR) {
+            p = &g_pl->dir;
+        } else if (prop == DINKC_SP_SEQ) {
+            p = &g_pl->seq;
+        } else if (prop == DINKC_SP_FRAME) {
+            p = &g_pl->frame;
+        } else if (prop == DINKC_SP_BASE_ATTACK) {
+            p = &g_pl->base_attack;
+        } else if (prop == DINKC_SP_BASE_IDLE) {
+            p = &g_pl->base_idle;
+        } else if (prop == DINKC_SP_PSEQ) {
+            p = &g_pl->seq;
+        } else if (prop == DINKC_SP_PFRAME) {
+            p = &g_pl->frame;
+        }
+        if (p != NULL) {
+            if (val != -1) {
+                *p = val;
+                if (prop == DINKC_SP_SEQ) {
+                    g_pl->frame = 1;
+                }
+            }
+            if (ret != NULL) {
+                *ret = *p;
+            }
+            return 1;
+        }
+    }
+    if (slot >= 1 && slot <= 99 && g_spr_change != NULL) {
+        v = g_spr_change(slot, prop, val);
+        if (ret != NULL) {
+            *ret = v;
+        }
+    }
+    return 1;
+}
+
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
-              int *yield, int *ret)
+              const char *str2, int *yield, int *ret)
 {
     int a0 = nargs > 0 ? args[0] : 0;
     int a1 = nargs > 1 ? args[1] : 0;
+    int a2 = nargs > 2 ? args[2] : 0;
+    int a3 = nargs > 3 ? args[3] : 0;
+    int a4 = nargs > 4 ? args[4] : 0;
 
     if (yield != NULL) {
         *yield = 0;
@@ -350,64 +461,26 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_x")) {
-        if (spr_is_dink(a0) && g_pl != NULL) {
-            if (nargs < 2 || a1 == -1) {
-                if (ret != NULL) {
-                    *ret = g_pl->x;
-                }
-            } else {
-                g_pl->x = a1;
-            }
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_X, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_y")) {
-        if (spr_is_dink(a0) && g_pl != NULL) {
-            if (nargs < 2 || a1 == -1) {
-                if (ret != NULL) {
-                    *ret = g_pl->y;
-                }
-            } else {
-                g_pl->y = a1;
-            }
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_Y, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_dir")) {
-        if (spr_is_dink(a0) && g_pl != NULL) {
-            if (nargs < 2 || a1 == -1) {
-                if (ret != NULL) {
-                    *ret = g_pl->dir;
-                }
-            } else {
-                g_pl->dir = a1;
-            }
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_DIR, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_seq")) {
-        if (spr_is_dink(a0) && g_pl != NULL && nargs >= 2 && a1 != -1) {
-            g_pl->seq = a1;
-            g_pl->frame = 1;
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_SEQ, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_frame")) {
-        if (spr_is_dink(a0) && g_pl != NULL && nargs >= 2 && a1 != -1) {
-            g_pl->frame = a1;
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_FRAME, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_base_attack")) {
-        if (spr_is_dink(a0) && g_pl != NULL && nargs >= 2 && a1 != -1) {
-            g_pl->base_attack = a1;
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_BASE_ATTACK, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_brain") || is_cmd(name, "sp_speed") ||
         is_cmd(name, "sp_base_walk") || is_cmd(name, "sp_timing")) {
         int prop = DINKC_SP_BRAIN;
-        int v;
 
         if (is_cmd(name, "sp_speed")) {
             prop = DINKC_SP_SPEED;
@@ -416,20 +489,83 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         } else if (is_cmd(name, "sp_timing")) {
             prop = DINKC_SP_TIMING;
         }
-        if (a0 >= 2 && a0 <= 99 && g_spr_change != NULL) {
-            v = g_spr_change(a0, prop, nargs < 2 ? -1 : a1);
+        return change_sp(a0, prop, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_base_idle")) {
+        return change_sp(a0, DINKC_SP_BASE_IDLE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_pseq")) {
+        return change_sp(a0, DINKC_SP_PSEQ, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_pframe")) {
+        return change_sp(a0, DINKC_SP_PFRAME, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_active")) {
+        return change_sp(a0, DINKC_SP_ACTIVE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_kill")) {
+        return change_sp(a0, DINKC_SP_KILL, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_script")) {
+        if (g_sp_script != NULL && str != NULL && str[0] != '\0') {
+            int ok = g_sp_script(a0, str);
+
             if (ret != NULL) {
-                *ret = v;
+                *ret = ok;
             }
         }
         return 1;
     }
-    if (is_cmd(name, "sp_base_idle") || is_cmd(name, "sp_pseq") ||
-        is_cmd(name, "sp_pframe") || is_cmd(name, "sp_script") ||
-        is_cmd(name, "sp_active") || is_cmd(name, "sp_kill") ||
-        is_cmd(name, "move") || is_cmd(name, "create_sprite") ||
-        is_cmd(name, "script_attach") || is_cmd(name, "external") ||
-        is_cmd(name, "set_callback_random")) {
+    if (is_cmd(name, "move")) {
+        if (spr_is_dink(a0) && g_pl != NULL) {
+            g_pl->move_active = 1;
+            g_pl->move_dir = a1;
+            g_pl->move_num = a2;
+            g_pl->move_nohard = a3 ? 1 : 0;
+        } else if (g_move != NULL) {
+            g_move(a0, a1, a2, a3);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "create_sprite")) {
+        int slot = 0;
+
+        if (g_create != NULL) {
+            slot = g_create(a0, a1, a2, a3, a4);
+        }
+        if (ret != NULL) {
+            *ret = slot;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "script_attach")) {
+        if (ret != NULL) {
+            *ret = a0;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "external")) {
+        if (g_external != NULL && str != NULL && str2 != NULL &&
+            str[0] != '\0' && str2[0] != '\0') {
+            int child = g_external(g_cmd_sprite, str, str2, args, nargs);
+
+            if (ret != NULL) {
+                *ret = child;
+            }
+            if (child > 0 && yield != NULL) {
+                *yield = 5;
+            }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "set_callback_random")) {
+        if (g_callback != NULL && str != NULL && str[0] != '\0') {
+            int cb = g_callback(str, a1, a2, g_fiber, g_cmd_sprite);
+
+            if (ret != NULL) {
+                *ret = cb;
+            }
+        }
         return 1;
     }
     if (is_cmd(name, "random")) {

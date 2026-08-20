@@ -17,6 +17,11 @@ void brains_set_freeze(int slot, int on);
 int brains_freeze(int slot);
 /* FreeDink change_sprite: val -1 reads. prop = DINKC_SP_* in dinkc_cmd.h. */
 int brains_change_prop(int slot, int prop, int val);
+/* add_sprite_dumb: first free slot 2..100. 0 if full. */
+int brains_create(int x, int y, int brain, int pseq, int pframe);
+/* process_move setup (FreeDink dc_move). */
+int brains_move(int slot, int dir, int dest, int nohard);
+int brains_moving(int slot);
 int brains_unimpl_count(void);
 
 #endif
