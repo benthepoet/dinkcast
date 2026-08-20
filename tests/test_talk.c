@@ -80,6 +80,17 @@ int main(void)
 
     expect(talk_probe(NULL, NULL, 0, seqs, 0, 0, 4, 0) == 0, "null screen");
 
+    expect(strcmp(talk_miss_line(1), "`$I don't see anything here.") == 0,
+           "notalk 1");
+    expect(strcmp(talk_miss_line(6), "`$Not much happening here.") == 0,
+           "notalk 6");
+    expect(talk_miss_line(0)[0] == '\0' && talk_miss_line(7)[0] == '\0',
+           "notalk range");
+    expect(strcmp(magic_miss_line(2), "`$I'm no wizard!") == 0, "nomagic 2");
+    expect(strcmp(magic_miss_line(1), "`$I don't know any magic.") == 0,
+           "nomagic 1");
+    expect(strcmp(magic_miss_line(6), "`$Hocus pocus!") == 0, "nomagic 6");
+
     expect(pad_just_pressed(0, DINK_PAD_A, DINK_PAD_A) == 1, "A edge");
     expect(pad_just_pressed(DINK_PAD_A, DINK_PAD_A, DINK_PAD_A) == 0, "A hold");
     expect(pad_just_pressed(DINK_PAD_A, 0, DINK_PAD_A) == 0, "A release");

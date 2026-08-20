@@ -11,5 +11,8 @@
  * Returns slot or 0. */
 int talk_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
                struct SeqInfo *seqs, int dx, int dy, int dir, int vision);
+/* FreeDink human_brain: r is 1..6 (rand()%6)+1. */
+const char *talk_miss_line(int r);
+const char *magic_miss_line(int r);
 
 #endif

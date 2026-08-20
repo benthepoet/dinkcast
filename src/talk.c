@@ -79,3 +79,39 @@ int talk_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
     }
     return 0;
 }
+
+/* human_brain talk miss / magic_script==0. Official data has no
+ * dnotalk.c / dnomagic.c so the 1.08 script hook never runs. */
+static const char *k_notalk[6] = {
+    "`$I don't see anything here.",
+    "`$Huh?",
+    "`$I'm fairly sure I can't talk to or use that.",
+    "`$What?",
+    "`$I'm bored.",
+    "`$Not much happening here.",
+};
+
+static const char *k_nomagic[6] = {
+    "`$I don't know any magic.",
+    "`$I'm no wizard!",
+    "`$I need to learn magic before trying this.",
+    "`$I'm gesturing wildly to no avail!",
+    "`$Nothing happened.",
+    "`$Hocus pocus!",
+};
+
+const char *talk_miss_line(int r)
+{
+    if (r < 1 || r > 6) {
+        return "";
+    }
+    return k_notalk[r - 1];
+}
+
+const char *magic_miss_line(int r)
+{
+    if (r < 1 || r > 6) {
+        return "";
+    }
+    return k_nomagic[r - 1];
+}

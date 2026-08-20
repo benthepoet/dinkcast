@@ -27,6 +27,10 @@ int main(void)
     expect(pad_dir_from_buttons(DINK_PAD_LEFT) == 4, "left");
     expect(pad_just_pressed(0, DINK_PAD_A, DINK_PAD_A) == 1, "A down");
     expect(pad_just_pressed(DINK_PAD_A, DINK_PAD_A, DINK_PAD_A) == 0, "A hold");
+    expect(pad_just_pressed(0, DINK_PAD_X, DINK_PAD_X) == 1, "X down");
+    expect((DINK_PAD_X & DINK_PAD_A) == 0, "X not A");
+    expect((DINK_PAD_X & DINK_PAD_B) == 0, "X not B");
+    expect((DINK_PAD_Y & DINK_PAD_X) == 0, "Y not X");
     printf("OK test_pad\n");
     return 0;
 }
