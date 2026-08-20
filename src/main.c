@@ -670,18 +670,45 @@ int main(int argc, char **argv)
                     now_ms += DINKC_TICK_MS;
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
-                        player_step(&pl, pdir, &mask, seqs);
+                        int wed = screen_process_warp();
+
                         dinkc_vm_resume_move();
-                        if (pl.freeze == 0 && pl.warp_hit > 0 &&
-                            screen_try_warp(&g_world, &g_scr, pl.warp_hit,
-                                            &player_map, &pl) == 0) {
-                            swap = 1;
-                            continue;
-                        }
-                        if (pl.freeze == 0 &&
-                            screen_try_cross(&g_world, &player_map, &pl)) {
-                            swap = 1;
-                            continue;
+                        if (wed > 0) {
+                            /* process_warp_man: anim done or sprite gone. */
+                            if (!brains_slot_live(wed) ||
+                                brains_slot_seq(wed) == 0) {
+                                if (screen_try_warp(&g_world, &g_scr, wed,
+                                                    &player_map, &pl) == 0) {
+                                    swap = 1;
+                                    continue;
+                                }
+                                screen_warp_clear();
+                            }
+                        } else {
+                            player_step(&pl, pdir, &mask, seqs);
+                            if (pl.freeze == 0 && pl.warp_hit > 0) {
+                                int wr = screen_special_block(
+                                    &g_world, &g_scr, pl.warp_hit, &player_map,
+                                    &pl);
+
+                                if (wr == 0) {
+                                    swap = 1;
+                                    continue;
+                                }
+                                if (wr == 1) {
+                                    int pseq = (int)g_scr.sprite[pl.warp_hit]
+                                                   .parm_seq;
+
+                                    (void)brains_change_prop(pl.warp_hit,
+                                                             DINKC_SP_SEQ,
+                                                             pseq);
+                                }
+                            }
+                            if (pl.freeze == 0 &&
+                                screen_try_cross(&g_world, &player_map, &pl)) {
+                                swap = 1;
+                                continue;
+                            }
                         }
                         if (pl.just_hit) {
                             int slot = hit_probe(&g_scr, g_edg, ned, seqs,

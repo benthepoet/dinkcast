@@ -3,6 +3,18 @@
 
 #include <stdio.h>
 
+static int g_process_warp;
+
+int screen_process_warp(void)
+{
+    return g_process_warp;
+}
+
+void screen_warp_clear(void)
+{
+    g_process_warp = 0;
+}
+
 int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
 {
     int m;
@@ -75,6 +87,33 @@ int screen_try_warp(const struct World *w, const struct MapScreen *scr,
     *player_map = dest;
     p->x = (int)es->warp_x;
     p->y = (int)es->warp_y;
+    g_process_warp = 0;
     printf("warp ed=%d map=%d xy=%d,%d\n", editor, *player_map, p->x, p->y);
     return 0;
+}
+
+/* FreeDink special_block: parm_seq plays on the live sprite first. */
+int screen_special_block(const struct World *w, const struct MapScreen *scr,
+                         int editor, int *player_map, struct Player *p)
+{
+    const struct EditorSprite *es;
+    int dest;
+
+    if (w == NULL || scr == NULL || player_map == NULL || p == NULL ||
+        editor < 1 || editor > 100) {
+        return -1;
+    }
+    es = &scr->sprite[editor];
+    if (!es->is_warp) {
+        return -1;
+    }
+    dest = (int)es->warp_map;
+    if (dest < 1 || dest > 24 * 32 || w->loc[dest] < 1) {
+        return -1;
+    }
+    if (es->parm_seq != 0) {
+        g_process_warp = editor;
+        return 1;
+    }
+    return screen_try_warp(w, scr, editor, player_map, p);
 }

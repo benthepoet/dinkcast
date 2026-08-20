@@ -15,6 +15,8 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
                  const struct HardMask *mask, int now_ms, int vision);
 /* 1 if slot is a live BrainSpr; writes x/y. Slot 1 is Player, not this. */
 int brains_live_xy(int slot, int *x, int *y);
+int brains_slot_live(int slot);
+int brains_slot_seq(int slot);
 int brains_slot_created(int slot);
 int brains_slot_pseq(int slot);
 int brains_slot_base_walk(int slot);

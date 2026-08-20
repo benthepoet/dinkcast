@@ -871,6 +871,19 @@ int brains_live_xy(int slot, int *x, int *y)
     return 1;
 }
 
+int brains_slot_live(int slot)
+{
+    return slot >= 1 && slot <= 100 && g_b[slot].live;
+}
+
+int brains_slot_seq(int slot)
+{
+    if (!brains_slot_live(slot)) {
+        return 0;
+    }
+    return g_b[slot].seq;
+}
+
 int brains_slot_created(int slot)
 {
     return slot >= 2 && slot <= 99 && g_b[slot].live && g_b[slot].created;
