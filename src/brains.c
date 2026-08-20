@@ -898,6 +898,51 @@ static void dragon_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
 }
 
+/* FreeDink missile_brain: k[getpic(j)].hardbox + offset, then range inflate.
+ * ini_frame_geom is get_box without a decoded frame (same fallback as hit.c). */
+static void geom_hardbox(const struct SeqInfo *seqs, int seq, int fr, int x,
+                         int y, int range, int *l, int *t, int *r, int *b)
+{
+    int hl, ht, hr, hb, cx, cy;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    if (seqs != NULL && seq > 0 && seq < DINK_MAX_SEQ) {
+        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
+                       &hb);
+    } else {
+        hl = ht = -10;
+        hr = hb = 10;
+    }
+    *l = x + hl;
+    *t = y + ht;
+    *r = x + hr;
+    *b = y + hb;
+    if (range != 0) {
+        *l -= range;
+        *t -= range;
+        *r += range;
+        *b += range;
+    }
+}
+
+static int spr_draw_seq(const struct BrainSpr *s)
+{
+    if (s->seq > 0) {
+        return s->seq;
+    }
+    return s->pseq;
+}
+
+static int spr_draw_frame(const struct BrainSpr *s)
+{
+    if (s->frame > 0) {
+        return s->frame;
+    }
+    return s->pframe;
+}
+
 static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                           const struct HardMask *mask, int repeat)
 {
@@ -917,9 +962,10 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
     h = spr_i(s);
     if (g_pl != NULL && g_pl->nohit != 1) {
-        int l = g_pl->x - 10, t = g_pl->y - 10, r = g_pl->x + 10,
-            b = g_pl->y + 10;
+        int l, t, r, b;
 
+        geom_hardbox(seqs, g_pl->seq, g_pl->frame, g_pl->x, g_pl->y, s->range,
+                     &l, &t, &r, &b);
         if (s->x >= l && s->x <= r && s->y >= t && s->y <= b &&
             s->strength != 0) {
             g_pl->last_hit = h;
@@ -937,10 +983,8 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         if (s->brain_parm == j) {
             continue;
         }
-        l = g_b[j].x - 10;
-        t = g_b[j].y - 10;
-        r = g_b[j].x + 10;
-        b = g_b[j].y + 10;
+        geom_hardbox(seqs, spr_draw_seq(&g_b[j]), spr_draw_frame(&g_b[j]),
+                     g_b[j].x, g_b[j].y, s->range, &l, &t, &r, &b);
         if (s->x < l || s->x > r || s->y < t || s->y > b) {
             continue;
         }
@@ -951,7 +995,6 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         s->live = 0;
         break;
     }
-    (void)seqs;
 }
 
 static void scale_brain(struct BrainSpr *s, const struct SeqInfo *seqs,

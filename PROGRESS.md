@@ -155,7 +155,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
-| 15.2 | Damage | source | `hurt_thing` + hit tag list; DIE/corpse; push 310; `dinfo` DIE; this PR |
+| 15.2 | Damage | source | `hurt_thing` + hit tag list; DIE/corpse; push 310; `dinfo` DIE; `sp_strength`; missile `ini_frame_geom`; die- preload; this PR |
 | 15.3–15.4 | Weapons / magic | pending | after **15.2** |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -220,4 +220,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (miss say) | **~90%** | A miss and X with no magic were silence; `human_brain` 6+6 `say_text` lines. |
 | 2026-08-20 (choice overlay) | **~90%** | Choice list was left-aligned `>` with inverted colors. FreeDink centers over seq 30 `main-` + arrows 456/457. |
 | 2026-08-20 (VRAM occupancy) | **~90%** | Start house ~42% of 8 MB / 42% of `sprite_tex`. Choice overlay 696 KB pinned. Per-frame POT atlas is a wash; residency (choice-on-open, current walk facing) is the pack. 14.3 still deferred. See [docs/canvases/](docs/canvases/). |
-| 2026-08-20 (15.2 source) | **~90%** | Fists `hurt_thing` / HIT / DIE / corpse / push / life 0 `dinfo`. Next **15.3** weapons. |
+| 2026-08-20 (15.2 source) | **~90%** | Fists `hurt_thing` / HIT / DIE / corpse / push / life 0 `dinfo`. `sp_strength` bound; missile `get_box`; seq 164 preload. Next **15.3** weapons. |

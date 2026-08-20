@@ -147,6 +147,7 @@ static const struct {
     {"sp_kill", 0},
     {"sp_hitpoints", 0},
     {"sp_defense", 0},
+    {"sp_strength", 0},
     {"sp_touch_damage", 0},
     {"sp_nohit", 0},
     {"sp_range", 0},
@@ -639,6 +640,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "sp_defense")) {
         return change_sp(a0, DINKC_SP_DEFENSE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_strength")) {
+        return change_sp(a0, DINKC_SP_STRENGTH, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_touch_damage")) {
         int s = spr_slot(a0);

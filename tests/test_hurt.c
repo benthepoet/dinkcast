@@ -150,6 +150,69 @@ int main(void)
     brains_tick(&scr, seqs, &mask, 32, 0);
     expect(brains_hitpoints(8) < 6, "hp dropped");
 
+    brains_reset();
+    memset(&scr, 0, sizeof(scr));
+    seqs[20].hl = -5;
+    seqs[20].ht = -5;
+    seqs[20].hr = 40;
+    seqs[20].hb = 5;
+    scr.sprite[3].active = 1;
+    scr.sprite[3].type = 1;
+    scr.sprite[3].brain = 11;
+    scr.sprite[3].x = 220;
+    scr.sprite[3].y = 200;
+    scr.sprite[3].strength = 5;
+    scr.sprite[8].active = 1;
+    scr.sprite[8].type = 1;
+    scr.sprite[8].brain = 9;
+    scr.sprite[8].x = 200;
+    scr.sprite[8].y = 200;
+    scr.sprite[8].seq = 20;
+    scr.sprite[8].hitpoints = 20;
+    brains_bind_screen(&scr);
+    brains_enter(&scr, 0);
+    brains_tick(&scr, seqs, &mask, 16, 0);
+    expect(brains_hitpoints(8) == 15, "missile seq hardbox");
+
+    player_init(&pl);
+    pl.x = 200;
+    pl.y = 200;
+    seqs[pl.seq].hl = -5;
+    seqs[pl.seq].ht = -5;
+    seqs[pl.seq].hr = 40;
+    seqs[pl.seq].hb = 5;
+    brains_bind_player(&pl);
+    brains_reset();
+    memset(&scr, 0, sizeof(scr));
+    scr.sprite[3].active = 1;
+    scr.sprite[3].type = 1;
+    scr.sprite[3].brain = 11;
+    scr.sprite[3].x = 220;
+    scr.sprite[3].y = 200;
+    scr.sprite[3].strength = 4;
+    brains_bind_screen(&scr);
+    brains_enter(&scr, 0);
+    brains_tick(&scr, seqs, &mask, 16, 0);
+    expect(pl.damage > 0, "missile dink hardbox");
+
+    brains_reset();
+    memset(&scr, 0, sizeof(scr));
+    scr.sprite[5].active = 1;
+    scr.sprite[5].type = 1;
+    scr.sprite[5].brain = 16;
+    scr.sprite[5].x = 200;
+    scr.sprite[5].y = 200;
+    brains_bind_screen(&scr);
+    brains_enter(&scr, 0);
+    dinkc_cmd_bind_sprite_change(brains_change_prop);
+    {
+        int yld = 0, rv = 0, args[2] = {5, 4};
+
+        expect(dinkc_cmd("sp_strength", args, 2, "", "", &yld, &rv) == 1,
+               "sp_strength cmd");
+        expect(brains_strength(5) == 4, "sp_strength npc");
+    }
+
     dinkc_var_init();
     player_init(&pl);
     dinkc_cmd_bind_player(&pl);

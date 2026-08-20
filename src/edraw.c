@@ -134,6 +134,26 @@ static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
     }
 }
 
+/* 15.2 default corpse seq 164. Only screens that can spawn one. */
+static int screen_wants_die(const struct EditorSprite *sp, int vision)
+{
+    int i;
+
+    for (i = 1; i <= 100; i++) {
+        int br;
+
+        if ((int)sp[i].type != 1 || !editor_sprite_on_vision(&sp[i], vision)) {
+            continue;
+        }
+        br = (int)sp[i].brain;
+        if ((int)sp[i].hitpoints > 0 || (int)sp[i].base_die > 0 || br == 3 ||
+            br == 4 || br == 9 || br == 10) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
 {
     const char *sl;
@@ -215,6 +235,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     }
                 }
             }
+        }
+        /* 15.2 default corpse seq 164: frame 1 pins the pack (official
+         * graphics/effects/magic/dir.ff ~600 KB). Remaining frames decode
+         * from ff_cached on kill — do not spend 14 EdGfx slots. */
+        if (seqs[164].prefix[0] != '\0' && screen_wants_die(sp, vision)) {
+            need_push(need_s, need_f, &nneed, 164, 1);
         }
         old = *n;
         if (old < 0) {
