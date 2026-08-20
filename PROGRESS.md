@@ -105,7 +105,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Say box follows owner (`text_brain`) | #68 |
 | 2026-08-20 | Keep `create_sprite`; skip editor-active slots; NPC say follow | #69 |
 | 2026-08-20 | Say `font_colors` 1–15 (`` `5 `` Chealse magenta, not Dink yellow) | #70 |
-| 2026-08-20 | Warp `parm_seq` before swap (house door `odor1-` 61) | this PR |
+| 2026-08-20 | Warp `parm_seq` before swap (house door `odor1-` 61) | #71 |
+| 2026-08-20 | Talk/magic miss say (`human_brain` 6+6 lines; X mapped) | this PR |
 
 ## Bites
 
@@ -129,7 +130,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted; `SET_FRAME_FRAME` ping-pong this PR |
 | 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
-| 10.1 | Talk probe | done | #29; requester accepted |
+| 10.1 | Talk probe | done | #29; requester accepted; miss say this PR |
 | 10.2 | Hit probe | done | #30; punch ghost #31 |
 | 10.3 | Hook table stubs | done | #32 |
 | 11.0 | DinkC files on disc | source | preload unique sprite `.c`; screen `script` at 30240 |
@@ -147,7 +148,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow; `font_colors` 1–15 this PR |
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
-| 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait this PR |
+| 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65. Next **15.2** after 11.10 |
 | 15.2–15.4 | Combat | pending | after **11.10** |
@@ -211,3 +212,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (gate girl) | **~90%** | `create_sprite` during MAIN was memset by `brains_enter` and stole type-0 slots. `s1-lg` text without sprite. |
 | 2026-08-20 (say colors) | **~90%** | Draw only mapped 13/4/15; `` `5 `` Chealse fell through to Dink yellow. Full FreeDink `font_colors` 1–15. |
 | 2026-08-20 (door parm_seq) | **~90%** | Instant warp skipped type-1 `parm_seq` 61 (village house door). `special_block` wait + preload frames. |
+| 2026-08-20 (miss say) | **~90%** | A miss and X with no magic were silence; `human_brain` 6+6 `say_text` lines. |

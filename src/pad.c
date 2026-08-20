@@ -78,6 +78,12 @@ int pad_poll_port0(uint32_t *out_buttons)
     if (st->buttons & CONT_B) {
         bits |= DINK_PAD_B;
     }
+    if (st->buttons & CONT_X) {
+        bits |= DINK_PAD_X;
+    }
+    if (st->buttons & CONT_Y) {
+        bits |= DINK_PAD_Y;
+    }
     if (st->buttons & CONT_START) {
         bits |= DINK_PAD_START;
     }

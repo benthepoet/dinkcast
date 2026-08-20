@@ -7,6 +7,8 @@
 /* Portable bits used by host tests and the DC mapper. */
 #define DINK_PAD_A (1u << 0)
 #define DINK_PAD_B (1u << 6)
+#define DINK_PAD_X (1u << 7)
+#define DINK_PAD_Y (1u << 8)
 #define DINK_PAD_START (1u << 1)
 #define DINK_PAD_LEAVE (DINK_PAD_A | DINK_PAD_START)
 #define DINK_PAD_UP (1u << 2)

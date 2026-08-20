@@ -632,7 +632,18 @@ int main(int argc, char **argv)
                         int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
                                               pl.y, pl.dir, script_play_vision());
 
-                        script_on_talk(slot);
+                        if (slot < 1) {
+                            saybox_set(talk_miss_line((rand() % 6) + 1), 1);
+                        } else {
+                            script_on_talk(slot);
+                        }
+                    }
+                    if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                        !dinkc_vm_waiting_say() &&
+                        !dinkc_vm_waiting_choice() &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_X)) {
+                        /* magic_script==0 until 15.2 / arm_magic. */
+                        saybox_set(magic_miss_line((rand() % 6) + 1), 1);
                     }
                     if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
