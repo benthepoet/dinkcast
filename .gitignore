@@ -42,6 +42,7 @@ tests/test_dinkc_vm
 tests/test_dinkc_var
 tests/test_font
 tests/test_saybox
+tests/test_choice
 tests/test_screen
 tests/test_brains
 

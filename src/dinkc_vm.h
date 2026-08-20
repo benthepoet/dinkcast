@@ -32,6 +32,9 @@ void dinkc_vm_choice_pick(int result);
 int dinkc_vm_choice_n(void);
 int dinkc_vm_choice_cur(void);
 const char *dinkc_vm_choice_line(int vis1);
+const char *dinkc_vm_choice_title(void);
+int dinkc_vm_choice_newy(void);
+int dinkc_vm_choice_color(void);
 void dinkc_vm_choice_move(int delta);
 void dinkc_vm_kill(int slot);
 /* FreeDink: one instance per sprite; locate talk() on it. */

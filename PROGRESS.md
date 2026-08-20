@@ -106,7 +106,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Keep `create_sprite`; skip editor-active slots; NPC say follow | #69 |
 | 2026-08-20 | Say `font_colors` 1–15 (`` `5 `` Chealse magenta, not Dink yellow) | #70 |
 | 2026-08-20 | Warp `parm_seq` before swap (house door `odor1-` 61) | #71 |
-| 2026-08-20 | Talk/magic miss say (`human_brain` 6+6 lines; X mapped) | this PR |
+| 2026-08-20 | Talk/magic miss say (`human_brain` 6+6 lines; X mapped) | #72 |
+| 2026-08-20 | Choice overlay: seq 30 box, hcenter, one-page vertical center, arrows 456/457 | this PR |
 
 ## Bites
 
@@ -147,7 +148,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow; `font_colors` 1–15 this PR |
-| 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
+| 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65. Next **15.2** after 11.10 |
@@ -213,3 +214,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (say colors) | **~90%** | Draw only mapped 13/4/15; `` `5 `` Chealse fell through to Dink yellow. Full FreeDink `font_colors` 1–15. |
 | 2026-08-20 (door parm_seq) | **~90%** | Instant warp skipped type-1 `parm_seq` 61 (village house door). `special_block` wait + preload frames. |
 | 2026-08-20 (miss say) | **~90%** | A miss and X with no magic were silence; `human_brain` 6+6 `say_text` lines. |
+| 2026-08-20 (choice overlay) | **~90%** | Choice list was left-aligned `>` with inverted colors. FreeDink centers over seq 30 `main-` + arrows 456/457. |
