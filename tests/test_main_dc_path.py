@@ -25,7 +25,7 @@ def main() -> int:
         ("walk", "player_step" in text),
         ("edraw", "edraw_load_screen" in text),
         ("talk", "talk_probe" in text),
-        ("hit", "hit_probe" in text),
+        ("hit", "hit_tag_list" in text),
         ("script hooks", "script_on_talk" in text and "script_on_hit" in text),
         ("dinkc file", "script_enter_vision" in text or "script_on_main" in text),
         ("dinkc vm", "dinkc_vm_tick" in text),

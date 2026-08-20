@@ -45,6 +45,7 @@ tests/test_saybox
 tests/test_choice
 tests/test_screen
 tests/test_brains
+tests/test_hurt
 
 # Toolchain / local
 .kosenv

@@ -3,6 +3,7 @@
 
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "hurt.h"
 #include "player.h"
 #include "saybox.h"
 
@@ -37,14 +38,13 @@ static int (*g_external)(int sprite, const char *file, const char *proc,
                          const int *args, int nargs);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
+static int (*g_hurt)(int slot, int damage);
+static void (*g_restart)(void);
 static int g_fiber;
 static int g_cmd_sprite;
-static int g_hp[100];
-static int g_def[100];
 static int g_touch[100];
 static int g_nitem;
 static int g_nmagic;
-static int g_range[100];
 static int g_target[100];
 static int g_atkwait[100];
 static int g_midi;
@@ -147,11 +147,15 @@ static const struct {
     {"sp_kill", 0},
     {"sp_hitpoints", 0},
     {"sp_defense", 0},
+    {"sp_strength", 0},
     {"sp_touch_damage", 0},
     {"sp_nohit", 0},
     {"sp_range", 0},
     {"sp_target", 0},
     {"sp_attack_wait", 0},
+    {"sp_exp", 0},
+    {"sp_base_death", 0},
+    {"sp_base_die", 0},
     {"sp_editor_num", 0},
     {"sp_custom", 0},
     {"sp", 0},
@@ -164,6 +168,9 @@ static const struct {
     {"force_vision", 0},
     {"hurt", 0},
     {"add_exp", 0},
+    {"set_dink_base_push", 0},
+    {"restart_game", 0},
+    {"kill_game", 0},
     {"add_item", 0},
     {"add_magic", 0},
     {"initfont", 0},
@@ -321,6 +328,31 @@ void dinkc_cmd_bind_fiber(int fiber, int sprite)
     g_cmd_sprite = sprite;
 }
 
+void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage))
+{
+    g_hurt = fn;
+}
+
+void dinkc_cmd_bind_restart(void (*fn)(void))
+{
+    g_restart = fn;
+}
+
+void dinkc_cmd_set_dink_base_push(int seq)
+{
+    if (g_pl != NULL) {
+        g_pl->base_push = seq;
+    }
+}
+
+int dinkc_cmd_dink_base_push(void)
+{
+    if (g_pl != NULL) {
+        return g_pl->base_push;
+    }
+    return DINK_BASE_PUSH;
+}
+
 int dinkc_cmd_move_busy(int slot)
 {
     if (slot == 1 && g_pl != NULL) {
@@ -356,12 +388,22 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->frame;
         } else if (prop == DINKC_SP_BASE_ATTACK) {
             p = &g_pl->base_attack;
-        } else if (prop == DINKC_SP_BASE_IDLE) {
+            } else if (prop == DINKC_SP_BASE_IDLE) {
             p = &g_pl->base_idle;
         } else if (prop == DINKC_SP_PSEQ) {
             p = &g_pl->seq;
         } else if (prop == DINKC_SP_PFRAME) {
             p = &g_pl->frame;
+        } else if (prop == DINKC_SP_HITPOINTS) {
+            p = &g_pl->hitpoints;
+        } else if (prop == DINKC_SP_DEFENSE) {
+            p = &g_pl->defense;
+        } else if (prop == DINKC_SP_NOHIT) {
+            p = &g_pl->nohit;
+        } else if (prop == DINKC_SP_STRENGTH) {
+            p = &g_pl->strength;
+        } else if (prop == DINKC_SP_RANGE) {
+            p = &g_pl->range;
         }
         if (p != NULL) {
             if (val != -1) {
@@ -594,20 +636,13 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_hitpoints")) {
-        int s = spr_slot(a0);
-
-        if (s != 0) {
-            change_i(&g_hp[s], nargs, a1, ret);
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_HITPOINTS, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_defense")) {
-        int s = spr_slot(a0);
-
-        if (s != 0) {
-            change_i(&g_def[s], nargs, a1, ret);
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_DEFENSE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_strength")) {
+        return change_sp(a0, DINKC_SP_STRENGTH, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_touch_damage")) {
         int s = spr_slot(a0);
@@ -615,27 +650,45 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (s != 0) {
             /* FreeDink change_sprite_noreturn: -1 is a real set. */
             if (nargs >= 2) {
-                g_touch[s] = a1;
+                if (g_spr_change != NULL) {
+                    (void)g_spr_change(s, DINKC_SP_TOUCH, a1);
+                } else {
+                    g_touch[s] = a1;
+                }
                 if (ret != NULL) {
                     *ret = a1;
                 }
             } else if (ret != NULL) {
-                *ret = g_touch[s];
+                if (g_spr_change != NULL) {
+                    *ret = g_spr_change(s, DINKC_SP_TOUCH, -1);
+                } else {
+                    *ret = g_touch[s];
+                }
             }
         }
         return 1;
     }
     if (is_cmd(name, "hurt")) {
+        /* dc_hurt 1.08: damage < 0 is a no-op. */
+        if (a1 < 0) {
+            return 1;
+        }
         if (spr_is_dink(a0)) {
             int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
 
-            if (a1 > 0) {
+            if (g_pl != NULL) {
+                g_pl->defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1);
+                (void)player_hurt(g_pl, a1);
+                (void)player_apply_life(g_pl, &life);
+            } else if (a1 > 0) {
                 life -= a1;
                 if (life < 0) {
                     life = 0;
                 }
-                dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
             }
+            dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
+        } else if (g_hurt != NULL) {
+            (void)g_hurt(a0, a1);
         }
         return 1;
     }
@@ -647,6 +700,29 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             exp = 99999;
         }
         dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
+        return 1;
+    }
+    if (is_cmd(name, "sp_exp")) {
+        return change_sp(a0, DINKC_SP_EXP, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_base_die") || is_cmd(name, "sp_base_death")) {
+        return change_sp(a0, DINKC_SP_BASE_DIE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "set_dink_base_push")) {
+        dinkc_cmd_set_dink_base_push(a0);
+        return 1;
+    }
+    if (is_cmd(name, "restart_game")) {
+        if (g_restart != NULL) {
+            g_restart();
+        }
+        if (yield != NULL) {
+            *yield = 1;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "kill_game")) {
+        printf("kill_game\n");
         return 1;
     }
     if (is_cmd(name, "add_item")) {
@@ -664,7 +740,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_nohit")) {
-        return 1;
+        return change_sp(a0, DINKC_SP_NOHIT, nargs, a1, ret);
     }
     /* 11.8 wave 3: dispatch so stock scripts do not log unimplemented. */
     if (is_cmd(name, "playmidi")) {
@@ -689,12 +765,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_range")) {
-        int s = spr_slot(a0);
-
-        if (s != 0) {
-            change_i(&g_range[s], nargs, a1, ret);
-        }
-        return 1;
+        return change_sp(a0, DINKC_SP_RANGE, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_target")) {
         int s = spr_slot(a0);

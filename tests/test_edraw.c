@@ -95,6 +95,12 @@ int main(void)
         free(seqs);
         return 1;
     }
+    if (seqs[164].prefix[0] != '\0' && edraw_find(g, n, 164, 1) == NULL) {
+        fprintf(stderr, "FAIL house mom hp but no seq 164 pin\n");
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
     if (seqs[331].nframes != 0) {
         fprintf(stderr, "FAIL girl nframes already %d\n", seqs[331].nframes);
         edraw_free(g, n);
@@ -162,6 +168,28 @@ int main(void)
             edraw_free(g, n);
             free(seqs);
             return 1;
+        }
+        {
+            struct EdGfx *pg = edraw_gfx_alloc();
+            int pn = 0;
+
+            if (pg == NULL ||
+                edraw_load_screen(pig.sprite, seqs, pg, &pn, 0) != 0) {
+                fprintf(stderr, "FAIL pig edraw\n");
+                edraw_gfx_release(pg);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            if (seqs[164].prefix[0] != '\0' &&
+                edraw_find(pg, pn, 164, 1) == NULL) {
+                fprintf(stderr, "FAIL pig no seq 164 preload\n");
+                edraw_gfx_release(pg);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            edraw_gfx_release(pg);
         }
     }
     {
