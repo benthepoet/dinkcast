@@ -82,6 +82,12 @@ int main(void)
             return 1;
         }
     }
+    if (edraw_find(g, n, 86, 1) == NULL) {
+        fprintf(stderr, "FAIL no fireplace seq 86\n");
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
     {
         struct SpriteFrame *plank = edraw_find(g, n, 31, 22);
 

@@ -5,6 +5,7 @@
 struct Player;
 
 void dinkc_cmd_bind_player(struct Player *p);
+void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 /* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 2 choice. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
               int *yield, int *ret);

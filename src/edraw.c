@@ -93,6 +93,27 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             need_s[nneed] = seq;
             need_f[nneed] = fr;
             nneed++;
+            /* Repeat brains cycle the whole seq (fireplace). */
+            if ((int)sp[i].type == 1 && (int)sp[i].brain == 6) {
+                int nfr, f2;
+
+                nfr = ini_seq_len(seq, seqs[seq].nframes);
+                for (f2 = 1; f2 <= nfr && nneed < DINK_EDGFX_MAX; f2++) {
+                    int d2;
+
+                    for (d2 = 0; d2 < nneed; d2++) {
+                        if (need_s[d2] == seq && need_f[d2] == f2) {
+                            break;
+                        }
+                    }
+                    if (d2 < nneed) {
+                        continue;
+                    }
+                    need_s[nneed] = seq;
+                    need_f[nneed] = f2;
+                    nneed++;
+                }
+            }
         }
         old = *n;
         if (old < 0) {
@@ -147,11 +168,74 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].live = 1;
             got++;
         }
+        /* After frame 1 decode, seq.nframes is known. Load the rest of
+         * brain-6 seqs while the pack is still open. */
+        for (i = 1; i <= 100; i++) {
+            int seq, nfr, f2;
+
+            if ((int)sp[i].type != 1 || (int)sp[i].brain != 6 ||
+                !editor_sprite_on_vision(&sp[i], DINK_VISION_DEFAULT)) {
+                continue;
+            }
+            seq = (int)sp[i].seq;
+            if (seq < 1 || seq >= DINK_MAX_SEQ) {
+                continue;
+            }
+            nfr = ini_seq_len(seq, seqs[seq].nframes);
+            for (f2 = 1; f2 <= nfr && got < DINK_EDGFX_MAX; f2++) {
+                if (edraw_find(g, got, seq, f2) != NULL) {
+                    continue;
+                }
+                printf("edraw load seq=%d fr=%d\n", seq, f2);
+                if (sprite_load_seq_frame(&seqs[seq], seq, f2, &g[got].fr) !=
+                    0) {
+                    printf("edraw skip seq=%d frame=%d\n", seq, f2);
+                    continue;
+                }
+                g[got].seq = seq;
+                g[got].frame = f2;
+                g[got].live = 1;
+                got++;
+            }
+        }
     }
     ff_cache_drop_unpinned();
     memcpy(spr, sp, 101u * sizeof(*sp));
     free(sp);
     *n = got;
+    return 0;
+}
+
+int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
+                       int frame)
+{
+    int got;
+
+    if (g == NULL || n == NULL || seqs == NULL || seq < 1 ||
+        seq >= DINK_MAX_SEQ || frame < 1) {
+        return -1;
+    }
+    got = *n;
+    if (got < 0) {
+        got = 0;
+    }
+    if (edraw_find(g, got, seq, frame) != NULL) {
+        return 0;
+    }
+    if (got >= DINK_EDGFX_MAX) {
+        printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+        return -1;
+    }
+    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[got].fr) != 0) {
+        return -1;
+    }
+    g[got].seq = seq;
+    g[got].frame = frame;
+    g[got].live = 1;
+#ifdef _arch_dreamcast
+    (void)sprite_upload_pvr(&g[got].fr);
+#endif
+    *n = got + 1;
     return 0;
 }
 

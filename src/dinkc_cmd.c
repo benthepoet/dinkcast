@@ -27,6 +27,7 @@ static int is_cmd(const char *a, const char *b)
 }
 
 static struct Player *g_pl;
+static void (*g_spr_freeze)(int slot, int on);
 static int g_hp[100];
 static int g_def[100];
 static int g_touch[100];
@@ -259,6 +260,11 @@ void dinkc_cmd_bind_player(struct Player *p)
     }
 }
 
+void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on))
+{
+    g_spr_freeze = fn;
+}
+
 static int spr_is_dink(int id)
 {
     return id == 1;
@@ -314,6 +320,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (spr_is_dink(a0) && g_pl != NULL) {
             g_pl->freeze = 1;
             printf("freeze 1\n");
+        } else if (a0 >= 2 && a0 <= 99 && g_spr_freeze != NULL) {
+            g_spr_freeze(a0, 1);
+            printf("freeze %d\n", a0);
         }
         return 1;
     }
@@ -321,6 +330,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (spr_is_dink(a0) && g_pl != NULL) {
             g_pl->freeze = 0;
             printf("unfreeze 1\n");
+        } else if (a0 >= 2 && a0 <= 99 && g_spr_freeze != NULL) {
+            g_spr_freeze(a0, 0);
+            printf("unfreeze %d\n", a0);
         }
         return 1;
     }

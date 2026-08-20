@@ -27,5 +27,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 int edraw_upload_pvr(struct EdGfx *g, int n);
 #endif
 struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame);
+/* Decode (and on DC upload) a frame if missing. *n may grow. */
+int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
+                       int frame);
 
 #endif
