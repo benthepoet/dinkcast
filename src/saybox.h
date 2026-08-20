@@ -5,6 +5,8 @@
 #include "mapscr.h"
 #include "player.h"
 
+#include <stdint.h>
+
 /* FreeDink say_text + text_brain: owner.x-75, owner.y-100 each
  * frame (narrator 1000 stays put). Wrap 150. */
 #define DINK_SAY_XOFF 75
@@ -22,6 +24,8 @@ const char *saybox_text(void);
 int saybox_x(void);
 int saybox_y(void);
 int saybox_color(void);
+/* FreeDink gfx_fonts_init_colors index 0–15 as 0xAARRGGBB. */
+uint32_t saybox_argb(int color);
 
 #ifdef _arch_dreamcast
 int saybox_upload(void);

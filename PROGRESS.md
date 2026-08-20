@@ -103,7 +103,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | #66 |
 | 2026-08-20 | Screen `script` at 30240; `s1-gate`/`findduck` + `&vision` place | #67 |
 | 2026-08-20 | Say box follows owner (`text_brain`) | #68 |
-| 2026-08-20 | Keep `create_sprite`; skip editor-active slots; NPC say follow | this PR |
+| 2026-08-20 | Keep `create_sprite`; skip editor-active slots; NPC say follow | #69 |
+| 2026-08-20 | Say `font_colors` 1–15 (`` `5 `` Chealse magenta, not Dink yellow) | this PR |
 
 ## Bites
 
@@ -143,7 +144,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
-| 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow this PR |
+| 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow; `font_colors` 1–15 this PR |
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
@@ -207,3 +208,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (screen script) | **~90%** | `map.dat` screen `script` was 30204 (zeros). Guard/`findduck` need 30240 + `*pvision`. |
 | 2026-08-20 (say follow) | **~90%** | `say` snapshot-once; FreeDink `text_brain` follows owner each frame (`FINDDUCK`). |
 | 2026-08-20 (gate girl) | **~90%** | `create_sprite` during MAIN was memset by `brains_enter` and stole type-0 slots. `s1-lg` text without sprite. |
+| 2026-08-20 (say colors) | **~90%** | Draw only mapped 13/4/15; `` `5 `` Chealse fell through to Dink yellow. Full FreeDink `font_colors` 1–15. |
