@@ -13,12 +13,16 @@
 #include <string.h>
 
 static const struct MapScreen *g_scr;
+static void (*g_note_script)(int slot, const char *name);
 static char g_log[96];
 static int start_main(const char *name, int sprite);
 
 static int bind_sp_script(int slot, const char *name)
 {
     dinkc_vm_kill_sprite(slot);
+    if (g_note_script != NULL) {
+        g_note_script(slot, name);
+    }
     return start_main(name, slot) == 0 ? 1 : 0;
 }
 
@@ -50,6 +54,11 @@ void script_bind_screen(const struct MapScreen *scr)
            (int)sizeof(struct EditorSprite),
            (scr != NULL) ? scr->sprite[26].script : "",
            (scr != NULL) ? (int)scr->sprite[26].type : -1);
+}
+
+void script_bind_note_script(void (*fn)(int slot, const char *name))
+{
+    g_note_script = fn;
 }
 
 const char *script_stub_log(void)

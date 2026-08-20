@@ -18,6 +18,7 @@ int brains_live_xy(int slot, int *x, int *y);
 int brains_slot_created(int slot);
 int brains_slot_pseq(int slot);
 int brains_slot_base_walk(int slot);
+void brains_set_script(int slot, const char *name);
 /* Copy live x/y/pseq/pframe onto editor slots after a snapshot restore. */
 void brains_apply(struct MapScreen *scr);
 void brains_set_freeze(int slot, int on);

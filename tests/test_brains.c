@@ -145,6 +145,11 @@ int main(void)
         expect((int)scr.sprite[c].active == 1 && (int)scr.sprite[c].type == 1 &&
                    (int)scr.sprite[c].x == 80,
                "created overlay after apply");
+        brains_set_script(c, "s1-lg");
+        scr.sprite[c].script[0] = '\0';
+        brains_apply(&scr);
+        expect(strcmp(scr.sprite[c].script, "s1-lg") == 0,
+               "apply copies sp_script for talk");
         expect(brains_move(c, 6, 200, 1) == 1, "move");
         for (j = 0; j < 80; j++) {
             brains_tick(&scr, seqs, &mask, j * 16, DINK_VISION_DEFAULT);

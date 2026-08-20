@@ -344,6 +344,7 @@ int main(int argc, char **argv)
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
+                script_bind_note_script(brains_set_script);
                 brains_bind_screen(&g_scr);
                 brains_reset();
                 script_enter_vision();
@@ -497,6 +498,7 @@ int main(int argc, char **argv)
                         }
                         spr_restore("swap-edraw");
                         script_bind_screen(&g_scr);
+                        script_bind_note_script(brains_set_script);
                         saybox_bind(&g_scr, &pl);
                         brains_bind_screen(&g_scr);
                         brains_reset();

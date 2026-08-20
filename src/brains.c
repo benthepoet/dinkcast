@@ -64,6 +64,7 @@ struct BrainSpr {
     int move_nohard;
     int kill_ttl;
     int kill_start;
+    char script[16];
 };
 
 static struct BrainSpr g_b[101];
@@ -891,6 +892,15 @@ int brains_slot_base_walk(int slot)
     return g_b[slot].base_walk;
 }
 
+void brains_set_script(int slot, const char *name)
+{
+    if (slot < 1 || slot > 99 || name == NULL) {
+        return;
+    }
+    strncpy(g_b[slot].script, name, sizeof(g_b[slot].script) - 1u);
+    g_b[slot].script[sizeof(g_b[slot].script) - 1u] = '\0';
+}
+
 void brains_enter(const struct MapScreen *scr, int vision)
 {
     int i;
@@ -961,6 +971,12 @@ void brains_apply(struct MapScreen *scr)
             scr->sprite[i].type = 1;
             scr->sprite[i].vision = 0;
             scr->sprite[i].brain = s->brain;
+            if (s->script[0] != '\0') {
+                strncpy(scr->sprite[i].script, s->script,
+                        sizeof(scr->sprite[i].script) - 1u);
+                scr->sprite[i].script[sizeof(scr->sprite[i].script) - 1u] =
+                    '\0';
+            }
         }
         scr->sprite[i].x = s->x;
         scr->sprite[i].y = s->y;
