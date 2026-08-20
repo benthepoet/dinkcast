@@ -67,6 +67,7 @@ struct BrainSpr {
 };
 
 static struct BrainSpr g_b[101];
+static const struct MapScreen *g_map;
 static int g_unimpl;
 
 static int seq_on(const struct SeqInfo *seqs, int seq)
@@ -848,18 +849,72 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
     log_unimpl(s);
 }
 
+void brains_bind_screen(const struct MapScreen *scr)
+{
+    g_map = scr;
+}
+
+void brains_reset(void)
+{
+    memset(g_b, 0, sizeof(g_b));
+    g_unimpl = 0;
+}
+
+int brains_live_xy(int slot, int *x, int *y)
+{
+    if (slot < 2 || slot > 99 || !g_b[slot].live || x == NULL || y == NULL) {
+        return 0;
+    }
+    *x = g_b[slot].x;
+    *y = g_b[slot].y;
+    return 1;
+}
+
+int brains_slot_created(int slot)
+{
+    return slot >= 2 && slot <= 99 && g_b[slot].live && g_b[slot].created;
+}
+
+int brains_slot_pseq(int slot)
+{
+    if (!brains_slot_created(slot)) {
+        return 0;
+    }
+    return g_b[slot].pseq;
+}
+
+int brains_slot_base_walk(int slot)
+{
+    if (!brains_slot_created(slot)) {
+        return -1;
+    }
+    return g_b[slot].base_walk;
+}
+
 void brains_enter(const struct MapScreen *scr, int vision)
 {
     int i;
 
-    memset(g_b, 0, sizeof(g_b));
     g_unimpl = 0;
+    if (scr != NULL) {
+        g_map = scr;
+    }
+    /* Keep create_sprite from screen MAIN (draw_screen_game order). */
+    for (i = 1; i <= 100; i++) {
+        if (g_b[i].live && g_b[i].created) {
+            continue;
+        }
+        memset(&g_b[i], 0, sizeof(g_b[i]));
+    }
     if (scr == NULL) {
         return;
     }
     for (i = 1; i <= 100; i++) {
         const struct EditorSprite *es = &scr->sprite[i];
 
+        if (g_b[i].live) {
+            continue;
+        }
         if (es->type != 1 || !editor_sprite_on_vision(es, vision)) {
             continue;
         }
@@ -1059,25 +1114,30 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
 {
     int i;
 
-    for (i = 2; i <= 100; i++) {
-        if (!g_b[i].live) {
-            memset(&g_b[i], 0, sizeof(g_b[i]));
-            g_b[i].live = 1;
-            g_b[i].created = 1;
-            g_b[i].hidden = 0;
-            g_b[i].x = x;
-            g_b[i].y = y;
-            g_b[i].brain = brain;
-            g_b[i].pseq = pseq;
-            g_b[i].pframe = pframe < 1 ? 1 : pframe;
-            g_b[i].seq = 0;
-            g_b[i].frame = 0;
-            g_b[i].size = 100;
-            g_b[i].base_walk = -1;
-            g_b[i].base_idle = -1;
-            g_b[i].base_attack = -1;
-            return i;
+    for (i = 2; i <= 99; i++) {
+        if (g_b[i].live) {
+            continue;
         }
+        /* add_sprite_dumb skips spr[].active. Type 0 stays in g_scr. */
+        if (g_map != NULL && g_map->sprite[i].active) {
+            continue;
+        }
+        memset(&g_b[i], 0, sizeof(g_b[i]));
+        g_b[i].live = 1;
+        g_b[i].created = 1;
+        g_b[i].hidden = 0;
+        g_b[i].x = x;
+        g_b[i].y = y;
+        g_b[i].brain = brain;
+        g_b[i].pseq = pseq;
+        g_b[i].pframe = pframe < 1 ? 1 : pframe;
+        g_b[i].seq = 0;
+        g_b[i].frame = 0;
+        g_b[i].size = 100;
+        g_b[i].base_walk = -1;
+        g_b[i].base_idle = -1;
+        g_b[i].base_attack = -1;
+        return i;
     }
     return 0;
 }

@@ -15,6 +15,18 @@ static void expect(int cond, const char *msg)
     }
 }
 
+static int g_lx, g_ly;
+
+static int stub_live_xy(int slot, int *x, int *y)
+{
+    if (slot != 7 || x == NULL || y == NULL) {
+        return 0;
+    }
+    *x = g_lx;
+    *y = g_ly;
+    return 1;
+}
+
 int main(void)
 {
     struct MapScreen scr;
@@ -52,6 +64,15 @@ int main(void)
     expect(saybox_x() == 100, "narrator x");
     pl.x = 500;
     expect(saybox_x() == 100, "narrator does not follow");
+    saybox_bind_live_xy(stub_live_xy);
+    g_lx = 300;
+    g_ly = 160;
+    saybox_set("`5La la laaa La La", 7);
+    expect(saybox_x() == 300 - DINK_SAY_XOFF, "npc live x");
+    g_lx = 410;
+    g_ly = 190;
+    expect(saybox_x() == 410 - DINK_SAY_XOFF, "follows live npc");
+    expect(saybox_y() == 190 - DINK_SAY_YOFF, "follows live npc y");
     saybox_clear();
     expect(!saybox_active(), "off");
     printf("OK test_saybox\n");

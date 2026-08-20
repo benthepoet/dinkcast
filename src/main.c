@@ -77,6 +77,31 @@ static void spr_restore(const char *tag)
            (int)g_scr.sprite[1].active, g_scr.sprite[26].script);
 }
 
+static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
+{
+    int i, seq, bw, d;
+    static const int walkd[4] = {1, 3, 7, 9};
+
+    if (seqs == NULL || ned == NULL || g_edg == NULL) {
+        return;
+    }
+    for (i = 2; i <= 99; i++) {
+        if (!brains_slot_created(i)) {
+            continue;
+        }
+        seq = brains_slot_pseq(i);
+        if (seq > 0) {
+            edraw_load_seq(g_edg, ned, seqs, seq);
+        }
+        bw = brains_slot_base_walk(i);
+        if (bw > 0) {
+            for (d = 0; d < 4; d++) {
+                edraw_load_seq(g_edg, ned, seqs, bw + walkd[d]);
+            }
+        }
+    }
+}
+
 static void hud(const char *line0, const char *line1, const char *line2)
 {
     /* 12×24 BIOS font; opaque so it is readable on red/brown. */
@@ -317,7 +342,10 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_move(brains_move);
                 dinkc_cmd_bind_moving(brains_moving);
                 saybox_bind(&g_scr, &pl);
+                saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
+                brains_bind_screen(&g_scr);
+                brains_reset();
                 script_enter_vision();
                 if (seqs != NULL) {
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
@@ -405,6 +433,12 @@ int main(int argc, char **argv)
                        (int)g_scr.sprite[26].active);
                 brains_enter(&g_scr, script_play_vision());
                 brains_apply(&g_scr);
+                if (seqs != NULL) {
+                    edraw_created_sprites(seqs, &ned);
+                    if (edraw_upload_pvr(g_edg, ned) != 0) {
+                        printf("edraw created upload none\n");
+                    }
+                }
                 script_attach_live();
                 {
                     uint32_t prev_buttons = 0;
@@ -464,6 +498,8 @@ int main(int argc, char **argv)
                         spr_restore("swap-edraw");
                         script_bind_screen(&g_scr);
                         saybox_bind(&g_scr, &pl);
+                        brains_bind_screen(&g_scr);
+                        brains_reset();
                         script_enter_vision();
                         if (seqs != NULL) {
                             (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned,
@@ -548,6 +584,12 @@ int main(int argc, char **argv)
                         spr_restore("swap-pre-attach");
                         brains_enter(&g_scr, script_play_vision());
                         brains_apply(&g_scr);
+                        if (seqs != NULL) {
+                            edraw_created_sprites(seqs, &ned);
+                            if (edraw_upload_pvr(g_edg, ned) != 0) {
+                                printf("swap created upload fail\n");
+                            }
+                        }
                         script_attach_live();
                         swap = 0;
                         continue;

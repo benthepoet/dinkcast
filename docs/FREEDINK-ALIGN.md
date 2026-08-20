@@ -73,7 +73,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; **14.3 leak check deferred** |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
 | Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE 15.2 |
-| Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); `add_sprite_dumb` slots 2–100; `process_move` |
+| Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); skip active editor; keep MAIN creates |
 | Push / death | `human_brain`, `die` | 15 |
 | Touch / inv / HUD / map bmp | `status`, `process_show_bmp` | 16 / V6 |
 | VMU save | `savegame` | 17 |

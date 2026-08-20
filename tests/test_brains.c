@@ -133,8 +133,9 @@ int main(void)
     }
 
     {
-        int c, j;
+        int c, j, kept;
 
+        brains_bind_screen(&scr);
         brains_enter(&scr, DINK_VISION_DEFAULT);
         c = brains_create(40, 50, 0, 32, 1);
         expect(c >= 2 && c <= 100, "create_sprite slot");
@@ -151,6 +152,10 @@ int main(void)
         expect((int)scr.sprite[c].x > 80, "move walked east");
         expect(!brains_moving(c) || (int)scr.sprite[c].x >= 200,
                "move toward dest");
+        kept = brains_change_prop(c, 5, -1);
+        brains_enter(&scr, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, 5, -1) == kept, "enter keeps create");
+        expect(brains_slot_created(c), "still created");
     }
 
     brains_set_freeze(26, 0);
@@ -169,6 +174,21 @@ int main(void)
                        house.sprite[26].base_walk == 350,
                    "mom brain 16 speed/base_walk");
             expect(house.sprite[20].timing == 33, "fire timing 33");
+            {
+                int c;
+
+                brains_bind_screen(&house);
+                brains_reset();
+                c = brains_create(630, 180, 9, 331, 4);
+                expect(c >= 2 && c <= 99, "house create slot");
+                expect(!house.sprite[c].active, "empty editor slot");
+                if (house.sprite[2].active) {
+                    expect(c != 2, "not type0 wall 2");
+                }
+                brains_enter(&house, DINK_VISION_DEFAULT);
+                expect(brains_slot_created(c), "house enter keeps girl");
+                expect(brains_change_prop(c, 5, -1) == 630, "girl x");
+            }
             {
                 struct MapScreen pig;
                 int prec = (int)w.loc[407];

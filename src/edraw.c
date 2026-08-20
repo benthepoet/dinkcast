@@ -326,6 +326,21 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     return 0;
 }
 
+void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
+{
+    int got;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return;
+    }
+    got = *n;
+    if (got < 0) {
+        got = 0;
+    }
+    load_seq_frames(g, &got, seqs, seq);
+    *n = got;
+}
+
 #ifdef _arch_dreamcast
 int edraw_upload_pvr(struct EdGfx *g, int n)
 {

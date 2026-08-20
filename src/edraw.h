@@ -31,5 +31,7 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame);
  * Refuses to fopen: the seq's dir.ff must already be in the ff cache. */
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame);
+/* Enter path: may fopen. Load all frames of seq into g (girl create, etc.). */
+void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq);
 
 #endif
