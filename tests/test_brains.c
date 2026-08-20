@@ -78,6 +78,42 @@ int main(void)
     scr.sprite[9].y = 100;
     scr.sprite[9].speed = 1;
     scr.sprite[9].base_walk = 130;
+    brains_enter(&scr, DINK_VISION_DEFAULT);
+
+    seqs[61].delay = 75;
+    seqs[61].nframes = 4;
+    strncpy(seqs[61].prefix, "graphics/struct/details/door/odor1-",
+            sizeof(seqs[61].prefix) - 1);
+    {
+        struct MapScreen door;
+        int j, saw = 0;
+
+        memset(&door, 0, sizeof(door));
+        door.sprite[13].active = 1;
+        door.sprite[13].type = 1;
+        door.sprite[13].brain = 0;
+        door.sprite[13].seq = 61;
+        door.sprite[13].frame = 1;
+        door.sprite[13].is_warp = 1;
+        door.sprite[13].parm_seq = 61;
+        door.sprite[13].x = 368;
+        door.sprite[13].y = 280;
+        brains_enter(&door, DINK_VISION_DEFAULT);
+        expect(brains_slot_live(13), "door live");
+        expect(brains_slot_seq(13) == 0, "door idle seq 0");
+        expect(brains_change_prop(13, 8, 61) == 61, "play parm_seq");
+        for (j = 0; j < 80; j++) {
+            brains_tick(&door, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+            if ((int)door.sprite[13].frame > 1) {
+                saw = 1;
+            }
+            if (j > 2 && brains_slot_seq(13) == 0) {
+                break;
+            }
+        }
+        expect(saw, "door frames advanced");
+        expect(brains_slot_seq(13) == 0, "parm_seq finished");
+    }
     scr.sprite[10].active = 1;
     scr.sprite[10].type = 1;
     scr.sprite[10].brain = 5;

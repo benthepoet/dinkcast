@@ -53,6 +53,21 @@ int main(void)
         expect(screen_try_warp(&w, &s, 100, &map, &p) == 0, "ed 100");
         s.sprite[7].warp_map = 5;
         expect(screen_try_warp(&w, &s, 7, &map, &p) != 0, "empty dest");
+        s.sprite[7].warp_map = 3;
+        s.sprite[7].parm_seq = 61;
+        map = 1;
+        p.x = 10;
+        p.y = 160;
+        expect(screen_special_block(&w, &s, 7, &map, &p) == 1, "wait parm_seq");
+        expect(map == 1 && p.x == 10, "no teleport yet");
+        expect(screen_process_warp() == 7, "process_warp");
+        expect(screen_try_warp(&w, &s, 7, &map, &p) == 0, "commit after anim");
+        expect(map == 3 && p.x == 100 && p.y == 200, "warped");
+        expect(screen_process_warp() == 0, "cleared");
+        s.sprite[7].parm_seq = 0;
+        map = 1;
+        expect(screen_special_block(&w, &s, 7, &map, &p) == 0, "no parm instant");
+        expect(map == 3, "instant dest");
     }
     printf("OK test_screen\n");
     return 0;

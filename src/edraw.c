@@ -282,6 +282,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (br == 6) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].seq);
             }
+            /* special_block parm_seq (outdoor door odor1- 61, etc.). */
+            if ((int)sp[i].is_warp && (int)sp[i].parm_seq > 0) {
+                load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
+            }
             if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
