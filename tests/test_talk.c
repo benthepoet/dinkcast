@@ -41,43 +41,44 @@ int main(void)
 
     fill_npc(&scr.sprite[1], 200, 200, "s1-h1-m");
     fill_npc(&scr.sprite[2], 200, 200, "later");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 1, "first slot");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 1, "first slot");
 
     scr.sprite[1].type = 0;
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip type 0");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip type 0");
     scr.sprite[1].type = 1;
 
     scr.sprite[1].brain = 8;
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip brain 8");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip brain 8");
     scr.sprite[1].brain = 0;
 
     scr.sprite[1].script[0] = '\0';
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip empty script");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip empty script");
     strncpy(scr.sprite[1].script, "s1-h1-m", sizeof(scr.sprite[1].script) - 1);
 
     scr.sprite[1].active = 0;
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip inactive");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip inactive");
     scr.sprite[1].active = 1;
 
     scr.sprite[1].vision = 2;
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip vision 2");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip vision 2");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200, 4, 2) == 1, "vision 2 talk");
     scr.sprite[1].vision = 0;
 
     /* Default hardbox ±10 + inflate 10 → [x-20,y-20]–[x+20,y+20];
      * dir 4 (right) extends r by 50. */
-    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 40, 200, 4) == 1,
+    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 40, 200, 4, 0) == 1,
            "dir 4 reach +40");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 40, 200, 6) == 0,
+    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 40, 200, 6, 0) == 0,
            "dir 6 no +40");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200 - 40, 200, 6) == 1,
+    expect(talk_probe(&scr, NULL, 0, seqs, 200 - 40, 200, 6, 0) == 1,
            "dir 6 reach -40");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200 + 40, 8) == 1,
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200 + 40, 8, 0) == 1,
            "dir 8 reach +40 y");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200 - 40, 2) == 1,
+    expect(talk_probe(&scr, NULL, 0, seqs, 200, 200 - 40, 2, 0) == 1,
            "dir 2 reach -40 y");
-    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 90, 200, 4) == 0, "too far");
+    expect(talk_probe(&scr, NULL, 0, seqs, 200 + 90, 200, 4, 0) == 0, "too far");
 
-    expect(talk_probe(NULL, NULL, 0, seqs, 0, 0, 4) == 0, "null screen");
+    expect(talk_probe(NULL, NULL, 0, seqs, 0, 0, 4, 0) == 0, "null screen");
 
     expect(pad_just_pressed(0, DINK_PAD_A, DINK_PAD_A) == 1, "A edge");
     expect(pad_just_pressed(DINK_PAD_A, DINK_PAD_A, DINK_PAD_A) == 0, "A hold");

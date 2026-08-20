@@ -128,7 +128,7 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         out->sprite[i].script[13] = '\0';
         off += 220;
     }
-    memcpy(out->script, p + 30204, 20);
+    memcpy(out->script, p + DINK_MAP_SCRIPT_OFF, 20);
     out->script[20] = '\0';
     return 0;
 }

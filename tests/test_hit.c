@@ -44,22 +44,22 @@ int main(void)
 
     fill_npc(&scr.sprite[1], 200, 200, "s1-h1-m");
     fill_npc(&scr.sprite[2], 200, 200, "later");
-    expect(hit_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 1, "first slot");
+    expect(hit_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 1, "first slot");
 
     scr.sprite[1].type = 0;
-    expect(hit_probe(&scr, NULL, 0, seqs, 200, 200, 4) == 2, "skip type 0");
+    expect(hit_probe(&scr, NULL, 0, seqs, 200, 200, 4, 0) == 2, "skip type 0");
     scr.sprite[1].type = 1;
 
     /* default ±10 + inflate 5/5/5/10 → [x-15,y-15]–[x+15,y+20];
      * dir 4 adds +28 on r. */
-    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 30, 200, 4) == 1,
+    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 30, 200, 4, 0) == 1,
            "dir 4 reach +30");
-    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 30, 200, 6) == 0,
+    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 30, 200, 6, 0) == 0,
            "dir 6 no +30");
-    expect(hit_probe(&scr, NULL, 0, seqs, 200 - 30, 200, 6) == 1,
+    expect(hit_probe(&scr, NULL, 0, seqs, 200 - 30, 200, 6, 0) == 1,
            "dir 6 reach -30");
-    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 80, 200, 4) == 0, "too far");
-    expect(hit_probe(NULL, NULL, 0, seqs, 0, 0, 4) == 0, "null screen");
+    expect(hit_probe(&scr, NULL, 0, seqs, 200 + 80, 200, 4, 0) == 0, "too far");
+    expect(hit_probe(NULL, NULL, 0, seqs, 0, 0, 4, 0) == 0, "null screen");
 
     expect(ini_parse_mem(ini, strlen(ini), seqs, DINK_MAX_SEQ) == 0, "ini");
     expect(ini_frame_special(108, 3) == 1, "special 108.3");

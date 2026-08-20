@@ -10,6 +10,6 @@
  * hardbox (inflate 5/5/5/10 + dir range 28/36) contains (dx,dy).
  * Returns slot or 0. */
 int hit_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
-              struct SeqInfo *seqs, int dx, int dy, int dir);
+              struct SeqInfo *seqs, int dx, int dy, int dir, int vision);
 
 #endif

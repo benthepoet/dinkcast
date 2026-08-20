@@ -39,7 +39,7 @@ static void sprite_hardbox(const struct EditorSprite *es, struct EdGfx *edg,
 }
 
 int talk_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
-               struct SeqInfo *seqs, int dx, int dy, int dir)
+               struct SeqInfo *seqs, int dx, int dy, int dir, int vision)
 {
     int i;
 
@@ -50,7 +50,7 @@ int talk_probe(const struct MapScreen *scr, struct EdGfx *edg, int ned,
         const struct EditorSprite *es = &scr->sprite[i];
         int hl, ht, hr, hb, l, t, r, b;
 
-        if (!editor_sprite_on_vision(es, DINK_VISION_DEFAULT)) {
+        if (!editor_sprite_on_vision(es, vision)) {
             continue;
         }
         if (es->type != 1 || es->brain == 8 || es->script[0] == '\0') {

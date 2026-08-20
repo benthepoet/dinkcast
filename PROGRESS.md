@@ -100,7 +100,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Defer **14.3** leak check until after 15.x | this PR |
 | 2026-08-20 | **15.1** brains (`update_frame`; pigs/ducks/people/repeat + rest) | #65 |
 | 2026-08-20 | Sequence **11.10** (wave-1 live sprite cmds) after 15.1, before 15.2 | #65 |
-| 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | this PR |
+| 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | #66 |
+| 2026-08-20 | Screen `script` at 30240; `s1-gate`/`findduck` + `&vision` place | this PR |
 
 ## Bites
 
@@ -127,17 +128,17 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 10.1 | Talk probe | done | #29; requester accepted |
 | 10.2 | Hit probe | done | #30; punch ghost #31 |
 | 10.3 | Hook table stubs | done | #32 |
-| 11.0 | DinkC files on disc | source | preload unique sprite `.c`; start screen script empty |
+| 11.0 | DinkC files on disc | source | preload unique sprite `.c`; screen `script` at 30240 |
 | 11.1 | DinkC lexer | source | `//` comments; hyphen `&name` |
 | 11.2 | DinkC parser | source | 0 fail on 381 stock `story/*.c` |
 | 11.3 | DinkC VM yield | source | max 20; `wait` / say_stop / choice; no attach |
 | 11.4 | DinkC variables | source | 1.08 local-then-global; MAIN.c list |
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39. Live sprite cmds leftover → **11.10** |
-| 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40 |
+| 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40. Script field 30240 this PR |
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43 |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
-| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; this PR |
+| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66 |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B |
@@ -201,3 +202,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (defer 14.3) | **~90%** | Leak check after 20 crossings postponed until after 15.x (or 18.x). Sequence next: 15.1 brains. |
 | 2026-08-20 (11.10 sequenced) | **~90%** | Wave-1 live sprite cmds (`move`/`create_sprite`/`sp_kill`/NPC `sp_*`) after 15.1, before 15.2. |
 | 2026-08-20 (11.10 source) | **~90%** | Live `BrainSpr` cmds + `move_stop` yield. Next **15.2**. |
+| 2026-08-20 (screen script) | **~90%** | `map.dat` screen `script` was 30204 (zeros). Guard/`findduck` need 30240 + `*pvision`. |

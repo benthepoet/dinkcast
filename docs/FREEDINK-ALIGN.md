@@ -11,7 +11,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Item | FreeDink | Dinkcast | Status |
 |---|---|---|---|
 | `dink.dat` 20+769×3 i32+2240 | `EditorMap::load` | `world_parse_mem` | hold |
-| `map.dat` 31280, tile 80 B, sprite 220 B | `load_screen_to` | `map_parse_mem` | hold |
+| `map.dat` 31280, tile 80 B, sprite 220 B | `load_screen_to` | `map_parse_mem` | hold; screen `script` **30240** |
 | `vision` +188, `hard` +120 (`0`=solid), `que` +116 | `screen_rank_*` | sort by `que?:y`; **draw at map x,y** | hold |
 | Type 0 draw, 1 live, 2 hard-only | `game_place_sprites` | `editor_sprite_draw` | hold |
 | `SET_SPRITE_INFO` last-wins | `program_idata` | `ini_store_frame` | hold (400 unique; official 207) |
@@ -40,7 +40,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Cmd table | `dinkc_bindings` hash | `k_fn[]` + `DINKC_DUMP_FNS` | hold (11.9) |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
-| `&vision` starts 0 | `MAIN.c` / `draw_screen_game` | `DINK_VISION_DEFAULT` | hold |
+| `&vision` starts 0 | `draw_screen_game` `*pvision=0` then screen MAIN | `script_enter_vision` | hold (11.6); then place with `&vision` |
 | ini commands case-insensitive | `compare()` | `tolower` cmd | hold |
 
 ## House leftovers (not blocking 10.x)
