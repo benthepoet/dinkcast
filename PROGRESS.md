@@ -107,7 +107,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Say `font_colors` 1–15 (`` `5 `` Chealse magenta, not Dink yellow) | #70 |
 | 2026-08-20 | Warp `parm_seq` before swap (house door `odor1-` 61) | #71 |
 | 2026-08-20 | Talk/magic miss say (`human_brain` 6+6 lines; X mapped) | #72 |
-| 2026-08-20 | Choice overlay: seq 30 box, hcenter, one-page vertical center, arrows 456/457 | this PR |
+| 2026-08-20 | Choice overlay: seq 30 box, hcenter, one-page vertical center, arrows 456/457 | #73 |
+| 2026-08-20 | Start-house VRAM snapshot + sprite_tex packing notes | this PR |
 
 ## Bites
 
@@ -215,3 +216,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (door parm_seq) | **~90%** | Instant warp skipped type-1 `parm_seq` 61 (village house door). `special_block` wait + preload frames. |
 | 2026-08-20 (miss say) | **~90%** | A miss and X with no magic were silence; `human_brain` 6+6 `say_text` lines. |
 | 2026-08-20 (choice overlay) | **~90%** | Choice list was left-aligned `>` with inverted colors. FreeDink centers over seq 30 `main-` + arrows 456/457. |
+| 2026-08-20 (VRAM occupancy) | **~90%** | Start house ~42% of 8 MB / 42% of `sprite_tex`. Choice overlay 696 KB pinned. Per-frame POT atlas is a wash; residency (choice-on-open, current walk facing) is the pack. 14.3 still deferred. See [docs/canvases/](docs/canvases/). |
