@@ -108,7 +108,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Warp `parm_seq` before swap (house door `odor1-` 61) | #71 |
 | 2026-08-20 | Talk/magic miss say (`human_brain` 6+6 lines; X mapped) | #72 |
 | 2026-08-20 | Choice overlay: seq 30 box, hcenter, one-page vertical center, arrows 456/457 | #73 |
-| 2026-08-20 | Start-house VRAM snapshot + sprite_tex packing notes | this PR |
+| 2026-08-20 | Start-house VRAM snapshot + sprite_tex packing notes | #74 |
+| 2026-08-20 | Say `print_text_wrap` hcenter in the 150 box | this PR |
 
 ## Bites
 
@@ -148,7 +149,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
-| 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; A/B; `text_brain` follow; `font_colors` 1–15 this PR |
+| 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
