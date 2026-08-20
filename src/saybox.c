@@ -15,7 +15,7 @@
 static const struct MapScreen *g_scr;
 static struct Player *g_pl;
 static char g_text[200];
-static int g_on, g_x, g_y, g_color;
+static int g_on, g_owner, g_x, g_y, g_color;
 
 #ifdef _arch_dreamcast
 static void *g_tex;
@@ -43,6 +43,29 @@ static void owner_xy(int sprite, int *x, int *y)
         g_scr->sprite[sprite].active) {
         *x = (int)g_scr->sprite[sprite].x;
         *y = (int)g_scr->sprite[sprite].y;
+    }
+}
+
+/* text_brain: non-narrator text takes owner x/y every frame. */
+static void saybox_place(void)
+{
+    int ox, oy, boxw;
+
+    if (!g_on || g_owner == 1000) {
+        return;
+    }
+    owner_xy(g_owner, &ox, &oy);
+    g_x = ox - DINK_SAY_XOFF;
+    g_y = oy - DINK_SAY_YOFF;
+    boxw = DINK_SAY_BOX_W;
+    if (g_x + boxw > DINK_SAY_PLAYX) {
+        g_x -= (g_x + boxw - DINK_SAY_PLAYX);
+    }
+    if (g_x < 20) {
+        g_x = 20;
+    }
+    if (g_y < 0) {
+        g_y = 0;
     }
 }
 
@@ -108,32 +131,27 @@ void saybox_set(const char *text, int sprite)
 {
     int ox, oy, boxw;
 
+    g_owner = sprite;
+    if (g_owner == 0) {
+        g_owner = 1;
+    }
     strip_color(text, g_text, sizeof(g_text), &g_color);
-    owner_xy(sprite, &ox, &oy);
-    g_x = ox - DINK_SAY_XOFF;
-    g_y = oy - DINK_SAY_YOFF;
     boxw = DINK_SAY_BOX_W;
-    if (sprite == 1000) {
+    if (g_owner == 1000) {
+        owner_xy(g_owner, &ox, &oy);
         boxw = DINK_SAY_PLAYX - 20;
         g_x = ox;
         g_y = oy;
     }
-    if (g_x + boxw > DINK_SAY_PLAYX) {
-        g_x -= (g_x + boxw - DINK_SAY_PLAYX);
-    }
-    if (g_x < 20) {
-        g_x = 20;
-    }
-    if (g_y < 0) {
-        g_y = 0;
-    }
     wrap_line(g_text, boxw);
     g_on = 1;
+    saybox_place();
 }
 
 void saybox_clear(void)
 {
     g_on = 0;
+    g_owner = 0;
     g_text[0] = '\0';
 }
 
@@ -149,11 +167,13 @@ const char *saybox_text(void)
 
 int saybox_x(void)
 {
+    saybox_place();
     return g_x;
 }
 
 int saybox_y(void)
 {
+    saybox_place();
     return g_y;
 }
 
@@ -264,6 +284,7 @@ void saybox_draw_pvr(float z)
     if (!g_on || g_tex == NULL) {
         return;
     }
+    saybox_place();
     p = g_text;
     x = (float)g_x;
     y = (float)g_y;

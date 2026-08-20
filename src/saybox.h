@@ -5,7 +5,8 @@
 #include "mapscr.h"
 #include "player.h"
 
-/* FreeDink say_text: owner.x-75, owner.y-100, wrap 150. */
+/* FreeDink say_text + text_brain: owner.x-75, owner.y-100 each
+ * frame (narrator 1000 stays put). Wrap 150. */
 #define DINK_SAY_XOFF 75
 #define DINK_SAY_YOFF 100
 #define DINK_SAY_BOX_W 150
