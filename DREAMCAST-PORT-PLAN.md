@@ -422,7 +422,7 @@ These **are** the FreeDink systems needed to finish the retail freeware campaign
 | `screenlock` | `get_hard` clamp + DinkC | **14.2** | |
 | Indoor flag | `dink.dat` `indoor[]` | **14.2** | only if stock scripts/engine use it |
 | `play.spmap` editor_type | `fix_dead_sprites`, `update_play_changes` | **14.2 + 17.1** | dead monsters stay dead 1–5 min |
-| Brains 0–17 | `brain_*.cpp` / `update_frame` | **15.1** | add when that sprite appears |
+| Brains 0–17 | `brain_*.cpp` / `update_frame` | **15.1** | all stock ids this bite; damage 15.2 |
 | Combat / weapons / magic | `hurt`, `arm_weapon`, missiles | **15** | |
 | Push | `human_brain` / `dink_base_push` | **15** / walk polish | |
 | Death / game over | `die` script, life 0 | **15.2** | |
@@ -587,7 +587,7 @@ Depends on Bite 13 for the menu.
 
 #### Bite 15.1 — Brains (engine, not DinkC)
 
-Implement as FreeDink `update_frame` switch (`brain_*.cpp`). **Log `brain unimplemented: N`.** Add a type when a **stock** sprite uses it (not all at once).
+Implement as FreeDink `update_frame` switch (`brain_*.cpp`). Graft **all** ids 0–17 this bite (stock campaign), not “add when the start house uses it.” **Log `brain unimplemented: N`** only for leftover/title ids that the pad-only port cannot run (mouse 13) or that need DinkC/hardbox not yet wired (button 14). Damage, `DIE`, missiles hitting, and `hurt()` stay **15.2**.
 
 | brain | FreeDink |
 |---|---|

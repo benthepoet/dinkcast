@@ -17,7 +17,15 @@
 #define DINK_BRAIN_ONETIME_STAY 7
 #define DINK_BRAIN_TEXT 8
 #define DINK_BRAIN_PILL 9
+#define DINK_BRAIN_DRAGON 10
+#define DINK_BRAIN_MISSILE 11
+#define DINK_BRAIN_SCALE 12
+#define DINK_BRAIN_MOUSE 13
+#define DINK_BRAIN_BUTTON 14
+#define DINK_BRAIN_SHADOW 15
 #define DINK_BRAIN_PEOPLE 16
+#define DINK_BRAIN_MISS_EXPIRE 17
+#define DINK_GFX_W 640
 
 #define DINK_PLAYX (DINK_PLAY_LEFT + DINK_PLAY_W)
 #define DINK_PLAYY DINK_PLAY_H
@@ -41,6 +49,8 @@ struct BrainSpr {
     int speed;
     int base_walk;
     int timing;
+    int size;
+    int brain_parm;
     int brain;
     int logged;
 };
@@ -140,7 +150,7 @@ static void changedir(int dir1, struct BrainSpr *s, int base,
         return;
     }
     hold = s->speed;
-    if (s->brain != DINK_BRAIN_PILL && s->brain != 10) {
+    if (s->brain != DINK_BRAIN_PILL && s->brain != DINK_BRAIN_DRAGON) {
         hspeed = s->speed * (DINK_BASE_TIMING / 4);
         if (hspeed > 49) {
             s->speed = 49;
@@ -287,6 +297,26 @@ static int automove(struct BrainSpr *s, const struct HardMask *mask)
     return hit;
 }
 
+static int autoreverse(struct BrainSpr *s)
+{
+    int r = (rand() % 2) + 1;
+    int d = s->dir;
+
+    if (d == 1 || d == 2) {
+        return r == 1 ? 8 : 6;
+    }
+    if (d == 3 || d == 6) {
+        return r == 1 ? 2 : 4;
+    }
+    if (d == 9 || d == 8) {
+        return r == 1 ? 2 : 6;
+    }
+    if (d == 7 || d == 4) {
+        return r == 1 ? 8 : 6;
+    }
+    return 0;
+}
+
 static int autoreverse_diag(struct BrainSpr *s)
 {
     int r = (rand() % 2) + 1;
@@ -410,6 +440,282 @@ static void people_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
 }
 
+/* FreeDink bounce_brain. getpic box is 0 (off-screen a little). */
+static void bounce_brain(struct BrainSpr *s)
+{
+    if (s->y > DINK_PLAYY) {
+        s->my -= s->my * 2;
+    }
+    if (s->x > DINK_GFX_W) {
+        s->mx -= s->mx * 2;
+    }
+    if (s->y < 0) {
+        s->my -= s->my * 2;
+    }
+    if (s->x < 0) {
+        s->mx -= s->mx * 2;
+    }
+    s->x += s->mx;
+    s->y += s->my;
+}
+
+/* FreeDink duck_brain without damage / sfx / follow (15.2 / 12). */
+static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                       const struct HardMask *mask, int now_ms)
+{
+    int hold;
+
+    if (s->freeze) {
+        return;
+    }
+    if (s->seq == 0) {
+        if ((rand() % 12) + 1 == 1) {
+            hold = (rand() % 9) + 1;
+            if (hold != 2 && hold != 8 && hold != 5) {
+                changedir(hold, s, s->base_walk, seqs);
+            } else {
+                s->mx = 0;
+                s->my = 0;
+                s->wait = now_ms + (rand() % 300) + 200;
+            }
+            return;
+        }
+        if (s->mx != 0 || s->my != 0) {
+            s->seq = s->seq_orig;
+        }
+    }
+    if (s->y > DINK_PLAYY) {
+        changedir(9, s, s->base_walk, seqs);
+    }
+    if (s->x > DINK_PLAYX - 30) {
+        changedir(7, s, s->base_walk, seqs);
+    }
+    if (s->y < 10) {
+        changedir(1, s, s->base_walk, seqs);
+    }
+    if (s->x < 30) {
+        changedir(3, s, s->base_walk, seqs);
+    }
+    if (automove(s, mask) != 0 && s->dir != 0) {
+        changedir(autoreverse_diag(s), s, s->base_walk, seqs);
+    }
+}
+
+/* FreeDink pig_brain without damage / sfx. */
+static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                      const struct HardMask *mask, int now_ms)
+{
+    int hold;
+
+    if (s->freeze) {
+        return;
+    }
+    if (s->seq == 0) {
+        if ((rand() % 12) + 1 == 1) {
+            hold = (rand() % 9) + 1;
+            if (hold != 4 && hold != 6 && hold != 2 && hold != 8 &&
+                hold != 5) {
+                changedir(hold, s, s->base_walk, seqs);
+            } else {
+                s->mx = 0;
+                s->my = 0;
+                s->wait = now_ms + (rand() % 300) + 200;
+            }
+        } else if (s->mx != 0 || s->my != 0) {
+            s->seq = s->seq_orig;
+        }
+    }
+    if (s->y > DINK_PLAYY) {
+        changedir(9, s, s->base_walk, seqs);
+    }
+    if (s->x > DINK_GFX_W - 10) {
+        changedir(1, s, s->base_walk, seqs);
+    }
+    if (s->y < 10) {
+        changedir(1, s, s->base_walk, seqs);
+    }
+    if (s->x < 10) {
+        changedir(3, s, s->base_walk, seqs);
+    }
+    if (automove(s, mask) != 0) {
+        changedir(autoreverse_diag(s), s, s->base_walk, seqs);
+    }
+}
+
+/* 5: play once then keep last frame (bg blit). 7: play once then remove. */
+static void one_time_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                           const struct HardMask *mask, int stay)
+{
+    if (s->seq == 0 && s->seq_orig == 0 && s->pseq > 0) {
+        s->seq = s->pseq;
+        return;
+    }
+    if (s->seq == 0) {
+        if (!stay) {
+            s->live = 0;
+        }
+        return;
+    }
+    if (s->dir > 0) {
+        changedir(s->dir, s, -1, seqs);
+        (void)automove(s, mask);
+    }
+}
+
+/* FreeDink pill_brain walk_normal only (target/hit is 15.2). */
+static void pill_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                       const struct HardMask *mask, int now_ms)
+{
+    int hold;
+
+    if (s->freeze) {
+        return;
+    }
+    if (s->base_walk != -1 && s->seq == 0) {
+        goto recal;
+    }
+    if (s->seq == 0 && s->move_wait < now_ms) {
+    recal:
+        if ((rand() % 12) + 1 == 1) {
+            hold = (rand() % 9) + 1;
+            if (hold != 4 && hold != 6 && hold != 2 && hold != 8 &&
+                hold != 5) {
+                changedir(hold, s, s->base_walk, seqs);
+                s->move_wait = now_ms + (rand() % 2000) + 200;
+            }
+        } else {
+            s->seq = s->seq_orig;
+            if (s->seq_orig == 0) {
+                goto recal;
+            }
+        }
+    }
+    if (s->y > DINK_PLAYY - 15) {
+        changedir(9, s, s->base_walk, seqs);
+    }
+    if (s->x > DINK_PLAYX - 15) {
+        changedir(1, s, s->base_walk, seqs);
+    }
+    if (s->y < 18) {
+        changedir(1, s, s->base_walk, seqs);
+    }
+    if (s->x < 18) {
+        changedir(3, s, s->base_walk, seqs);
+    }
+    if (automove(s, mask) != 0) {
+        s->move_wait = now_ms + 400;
+        changedir(autoreverse_diag(s), s, s->base_walk, seqs);
+    }
+}
+
+/* FreeDink dragon_brain without damage / ATTACK script. */
+static void dragon_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                         const struct HardMask *mask)
+{
+    int hold;
+
+    if (s->freeze) {
+        return;
+    }
+    if (s->seq == 0) {
+    recal:
+        if ((rand() % 12) + 1 == 1) {
+            hold = (rand() % 9) + 1;
+            if (hold != 1 && hold != 3 && hold != 7 && hold != 9 &&
+                hold != 5) {
+                changedir(hold, s, s->base_walk, seqs);
+            }
+        } else {
+            s->seq = s->seq_orig;
+            if (s->seq_orig == 0) {
+                goto recal;
+            }
+        }
+    }
+    if (s->y > DINK_PLAYY) {
+        changedir(8, s, s->base_walk, seqs);
+    }
+    if (s->x > DINK_GFX_W) {
+        changedir(4, s, s->base_walk, seqs);
+    }
+    if (s->y < 0) {
+        changedir(2, s, s->base_walk, seqs);
+    }
+    if (s->x < 0) {
+        changedir(6, s, s->base_walk, seqs);
+    }
+    if (automove(s, mask) != 0) {
+        changedir(autoreverse(s), s, s->base_walk, seqs);
+    }
+}
+
+static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                          const struct HardMask *mask, int repeat)
+{
+    int hit;
+
+    hit = automove(s, mask);
+    if (repeat && s->seq == 0) {
+        s->seq = s->seq_orig;
+    }
+    if (hit) {
+        s->live = 0;
+        return;
+    }
+    if (s->x > 1000 || s->y > 700 || s->y < -500 || s->x < -500) {
+        s->live = 0;
+    }
+    (void)seqs;
+}
+
+static void scale_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                        const struct HardMask *mask)
+{
+    int num = 5 * (DINK_BASE_TIMING / 4);
+
+    if (s->size == s->brain_parm) {
+        s->live = 0;
+        return;
+    }
+    if (s->size > s->brain_parm) {
+        if (s->size - num < s->brain_parm) {
+            num = s->size - s->brain_parm;
+        }
+        s->size -= num;
+    }
+    if (s->size < s->brain_parm) {
+        if (s->size + num > s->brain_parm) {
+            num = s->brain_parm - s->size;
+        }
+        s->size += num;
+    }
+    if (s->dir > 0) {
+        changedir(s->dir, s, -1, seqs);
+        (void)automove(s, mask);
+    }
+}
+
+static void shadow_brain(struct BrainSpr *s)
+{
+    struct BrainSpr *o;
+
+    if (s->brain_parm < 1 || s->brain_parm > 100) {
+        s->live = 0;
+        return;
+    }
+    o = &g_b[s->brain_parm];
+    if (!o->live) {
+        s->live = 0;
+        return;
+    }
+    s->x = o->x;
+    s->y = o->y;
+    s->size = o->size;
+    if (s->seq == 0 && s->seq_orig != 0) {
+        s->seq = s->seq_orig;
+    }
+}
+
 static void log_unimpl(struct BrainSpr *s)
 {
     if (s->logged) {
@@ -433,15 +739,66 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         no_brain(s);
         return;
     }
+    if (b == DINK_BRAIN_BOUNCE) {
+        bounce_brain(s);
+        return;
+    }
+    if (b == DINK_BRAIN_DUCK) {
+        duck_brain(s, seqs, mask, now_ms);
+        return;
+    }
+    if (b == DINK_BRAIN_PIG) {
+        pig_brain(s, seqs, mask, now_ms);
+        return;
+    }
+    if (b == DINK_BRAIN_ONETIME) {
+        one_time_brain(s, seqs, mask, 1);
+        return;
+    }
     if (b == DINK_BRAIN_REPEAT) {
         repeat_brain(s, es);
+        return;
+    }
+    if (b == DINK_BRAIN_ONETIME_STAY) {
+        one_time_brain(s, seqs, mask, 0);
         return;
     }
     if (b == DINK_BRAIN_TEXT) {
         return;
     }
+    if (b == DINK_BRAIN_PILL) {
+        pill_brain(s, seqs, mask, now_ms);
+        return;
+    }
+    if (b == DINK_BRAIN_DRAGON) {
+        dragon_brain(s, seqs, mask);
+        return;
+    }
+    if (b == DINK_BRAIN_MISSILE) {
+        missile_brain(s, seqs, mask, 1);
+        return;
+    }
+    if (b == DINK_BRAIN_SCALE) {
+        scale_brain(s, seqs, mask);
+        return;
+    }
+    if (b == DINK_BRAIN_SHADOW) {
+        shadow_brain(s);
+        return;
+    }
     if (b == DINK_BRAIN_PEOPLE) {
         people_brain(s, seqs, mask, now_ms);
+        return;
+    }
+    if (b == DINK_BRAIN_MISS_EXPIRE) {
+        missile_brain(s, seqs, mask, 0);
+        if (s->seq == 0) {
+            s->live = 0;
+        }
+        return;
+    }
+    if (b == DINK_BRAIN_MOUSE || b == DINK_BRAIN_BUTTON) {
+        log_unimpl(s);
         return;
     }
     log_unimpl(s);
@@ -469,6 +826,7 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].speed = (int)es->speed;
         g_b[i].base_walk = (int)es->base_walk;
         g_b[i].timing = (int)es->timing;
+        g_b[i].size = (int)es->size;
         g_b[i].pseq = (int)es->seq;
         g_b[i].pframe = (int)es->frame < 1 ? 1 : (int)es->frame;
         /* add_sprite_dumb: seq=0, frame=0 */

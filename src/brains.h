@@ -6,7 +6,7 @@
 #include "ini.h"
 #include "mapscr.h"
 
-/* Bite 15.1: FreeDink update_frame switch. Player is spr[1] / player_step. */
+/* Bite 15.1: FreeDink update_frame switch (all stock ids). Player is spr[1] / player_step. */
 
 void brains_enter(const struct MapScreen *scr, int vision);
 void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,

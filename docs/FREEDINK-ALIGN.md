@@ -72,7 +72,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Choice menu | `game_choice` | `dinkc_vm_choice_*` + draw | hold (13.3); D-pad + A; `&result` official # |
 | Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; **14.3 leak check deferred** |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
-| Brains 0–17 (stock names) | `update_frame` | hold (15.1); log unimplemented; 0/6/16 on start house |
+| Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; damage/DIE 15.2 |
 | Push / death | `human_brain`, `die` | 15 |
 | Touch / inv / HUD / map bmp | `status`, `process_show_bmp` | 16 / V6 |
 | VMU save | `savegame` | 17 |

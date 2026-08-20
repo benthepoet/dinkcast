@@ -76,6 +76,8 @@ int main(void)
     scr.sprite[9].seq = 131;
     scr.sprite[9].x = 100;
     scr.sprite[9].y = 100;
+    scr.sprite[9].speed = 1;
+    scr.sprite[9].base_walk = 130;
     scr.sprite[10].active = 1;
     scr.sprite[10].type = 1;
     scr.sprite[10].brain = 5;
@@ -92,6 +94,7 @@ int main(void)
     scr.sprite[12].type = 1;
     scr.sprite[12].brain = 12;
     scr.sprite[12].seq = 1;
+    scr.sprite[12].size = 100;
     scr.sprite[12].x = 30;
     scr.sprite[12].y = 30;
 
@@ -115,12 +118,10 @@ int main(void)
         expect(f2 >= 1 && f2 <= 4, "fire frame in seq");
         expect((int)scr.sprite[26].x == 202 && (int)scr.sprite[26].y == 157,
                "frozen mom does not walk");
-        expect(brains_unimpl_count() == 4, "5/7/9/12 unimplemented once");
-        /* Do not reuse the old wrong map (9=bounce, 12=text). */
-        expect((int)scr.sprite[9].x == 100, "pillbug not bounce-moved");
+        expect(brains_unimpl_count() == 0, "stock brains grafted");
         expect((int)scr.sprite[12].x == 30, "brain 12 not text-moved");
-        expect((int)scr.sprite[10].seq == 1 && (int)scr.sprite[11].seq == 1,
-               "5/7 still drawn (not live=0)");
+        expect((int)scr.sprite[10].seq == 1 || (int)scr.sprite[10].frame >= 1,
+               "5 stays after one-time");
 
         /* Play loop: memcpy editor snapshot then brains_apply. */
         memcpy(scr.sprite, snap, sizeof(snap));
@@ -147,6 +148,31 @@ int main(void)
                        house.sprite[26].base_walk == 350,
                    "mom brain 16 speed/base_walk");
             expect(house.sprite[20].timing == 33, "fire timing 33");
+            {
+                struct MapScreen pig;
+                int prec = (int)w.loc[407];
+                int moved = 0, j;
+
+                expect(prec >= 1 && map_load_record(prec, &pig) == 0, "pig map");
+                expect(pig.sprite[2].brain == 4 && pig.sprite[2].speed == 1 &&
+                           pig.sprite[2].base_walk == 40,
+                       "pig brain 4");
+                brains_enter(&pig, DINK_VISION_DEFAULT);
+                for (j = 0; j < 400; j++) {
+                    brains_tick(&pig, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+                }
+                if ((int)pig.sprite[2].x != 250 || (int)pig.sprite[2].y != 225) {
+                    moved = 1;
+                }
+                if ((int)pig.sprite[5].x != 289 || (int)pig.sprite[5].y != 302) {
+                    moved = 1;
+                }
+                if ((int)pig.sprite[6].x != 397 || (int)pig.sprite[6].y != 211) {
+                    moved = 1;
+                }
+                expect(moved, "pig_brain walked");
+                expect(brains_unimpl_count() == 0, "pig screen no unimplemented");
+            }
         }
     }
     printf("OK test_brains\n");

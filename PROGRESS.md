@@ -98,7 +98,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
 | 2026-08-20 | Drop `make chd-redream` / Redream CHD | master |
 | 2026-08-20 | Defer **14.3** leak check until after 15.x | this PR |
-| 2026-08-20 | **15.1** brains (`update_frame` switch; 0/6/16 on start house) | this PR |
+| 2026-08-20 | **15.1** brains (`update_frame`; pigs/ducks/people/repeat + rest; damage 15.2) | this PR |
 
 ## Bites
 
@@ -141,7 +141,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad highlight; A → official `&result` |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
-| 15.1 | Brains | source | `update_frame` switch; 0/6/16; 5/7 log unimplemented; preload mom walk; 14.3 still deferred |
+| 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; damage 15.2; 14.3 still deferred |
 | 15.2–15.4 | Combat | pending | |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -170,7 +170,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
 | **Next picture (V6 inv/HUD)** | **~40%** | After 15–16; **14.3 leak check deferred** |
-| **Hardest remaining** | Brains / DinkC | **15.1** source (fireplace/mom); 15.2 next |
+| **Hardest remaining** | Brains / DinkC | **15.1** source (all stock brains); 15.2 next |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |

@@ -104,17 +104,27 @@ static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     }
 }
 
-/* people_brain find_action: base_walk+1,3,7,9 */
-static void people_walk_seqs(int base, int *out, int *n)
+/* people/pig/pill: +1,3,7,9. duck: those plus 4,6. dragon: 2,4,6,8. */
+static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
 {
-    static const int d[4] = {1, 3, 7, 9};
-    int i;
+    static const int diag[4] = {1, 3, 7, 9};
+    static const int card[4] = {2, 4, 6, 8};
+    static const int duck[6] = {1, 3, 4, 6, 7, 9};
+    const int *d = diag;
+    int nd = 4, i;
 
     *n = 0;
     if (base < 0) {
         return;
     }
-    for (i = 0; i < 4; i++) {
+    if (brain == 10) {
+        d = card;
+        nd = 4;
+    } else if (brain == 3) {
+        d = duck;
+        nd = 6;
+    }
+    for (i = 0; i < nd; i++) {
         out[i] = base + d[i];
         (*n)++;
     }
@@ -181,20 +191,23 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     need_push(need_s, need_f, &nneed, seq, f2);
                 }
             }
-            /* people_brain walk dirs share the sprite's dir.ff. */
-            if ((int)sp[i].type == 1 && (int)sp[i].brain == 16) {
-                int ws[4], nw, w, f2, nfr;
+            /* Walk brains share that sprite's dir.ff. */
+            if ((int)sp[i].type == 1) {
+                int br = (int)sp[i].brain;
+                int ws[6], nw, w, f2, nfr;
 
-                people_walk_seqs((int)sp[i].base_walk, ws, &nw);
-                for (w = 0; w < nw; w++) {
-                    if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
-                        seqs[ws[w]].prefix[0] == '\0') {
-                        continue;
-                    }
-                    need_push(need_s, need_f, &nneed, ws[w], 1);
-                    nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
-                    for (f2 = 1; f2 <= nfr; f2++) {
-                        need_push(need_s, need_f, &nneed, ws[w], f2);
+                if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
+                    walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
+                    for (w = 0; w < nw; w++) {
+                        if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
+                            seqs[ws[w]].prefix[0] == '\0') {
+                            continue;
+                        }
+                        need_push(need_s, need_f, &nneed, ws[w], 1);
+                        nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
+                        for (f2 = 1; f2 <= nfr; f2++) {
+                            need_push(need_s, need_f, &nneed, ws[w], f2);
+                        }
                     }
                 }
             }
@@ -253,19 +266,20 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             got++;
         }
         /* After frame 1 decode, seq.nframes is known. Load remaining
-         * brain-6 (fireplace) and brain-16 walk frames while packs stay open. */
+         * brain-6 seqs and walk dirs while packs stay open. */
         for (i = 1; i <= 100; i++) {
-            int ws[4], nw, w;
+            int br, ws[6], nw, w;
 
             if ((int)sp[i].type != 1 ||
                 !editor_sprite_on_vision(&sp[i], DINK_VISION_DEFAULT)) {
                 continue;
             }
-            if ((int)sp[i].brain == 6) {
+            br = (int)sp[i].brain;
+            if (br == 6) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].seq);
             }
-            if ((int)sp[i].brain == 16) {
-                people_walk_seqs((int)sp[i].base_walk, ws, &nw);
+            if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
+                walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
                     load_seq_frames(g, &got, seqs, ws[w]);
                 }
