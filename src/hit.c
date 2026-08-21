@@ -241,7 +241,13 @@ void hit_tag_list(int attacker, int ax, int ay, int dir, int strength,
         }
         if (strength != 0 && brains_hitpoints(i) > 0) {
             brains_set_last_hit(i, attacker);
-            (void)brains_hurt(i, punch_damage(strength));
+            if (brains_hurt(i, punch_damage(strength)) > 0) {
+                int hx, hy;
+
+                if (brains_live_xy(i, &hx, &hy)) {
+                    brains_random_blood(hx, hy - 40, i);
+                }
+            }
         }
         if (g_on_hit != NULL) {
             g_on_hit(i, attacker);

@@ -71,6 +71,7 @@ struct BrainSpr {
     int kill_start;
     int hitpoints, defense, strength, exp, base_die, nohit, range;
     int touch_damage, damage, last_hit, target, just_hit;
+    int hard, notouch, bloodseq, bloodnum;
     char script[16];
 };
 
@@ -205,13 +206,87 @@ static void add_kill_sprite(struct BrainSpr *s, const struct SeqInfo *seqs)
     add_exp_if_player(s);
 }
 
+static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
+{
+    int slot, x, y, seq, fr, cx = 0, cy = 0, hl = 0, ht = 0, hr = 50, hb = 50;
+
+    if (s == NULL || s->damage <= 0) {
+        return;
+    }
+    x = s->x;
+    y = s->y;
+    seq = s->pseq > 0 ? s->pseq : s->seq;
+    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
+    if (seqs != NULL && seq > 0 && seq < DINK_MAX_SEQ) {
+        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
+                       &hb);
+        y -= cy;
+        x -= cx;
+        y -= hb / 3;
+        x += hr / 5;
+    } else {
+        y -= 40;
+    }
+    slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
+    if (slot < 1) {
+        return;
+    }
+    g_b[slot].speed = 1;
+    g_b[slot].hard = 1;
+    g_b[slot].brain_parm = spr_i(s);
+    g_b[slot].my = -1;
+    g_b[slot].mx = 0;
+    g_b[slot].kill_ttl = 1000;
+    g_b[slot].dir = 8;
+    g_b[slot].damage = s->damage;
+    g_b[slot].seq = 0;
+    g_b[slot].pseq = 0;
+}
+
+void brains_draw_damage(int slot, const struct SeqInfo *seqs)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return;
+    }
+    draw_damage(&g_b[slot], seqs);
+}
+
+void brains_random_blood(int mx, int my, int sprite)
+{
+    int myseq = 187;
+    int randy = 3;
+    int slot;
+
+    if (sprite >= 1 && sprite <= 100 && g_b[sprite].live &&
+        g_b[sprite].bloodseq > 0 && g_b[sprite].bloodnum > 0) {
+        myseq = g_b[sprite].bloodseq;
+        randy = g_b[sprite].bloodnum;
+    }
+    if (randy < 1) {
+        randy = 1;
+    }
+    myseq += (rand() % randy);
+    slot = brains_create(mx, my, DINK_BRAIN_ONETIME, myseq, 1);
+    if (slot < 1) {
+        return;
+    }
+    g_b[slot].speed = 0;
+    g_b[slot].base_walk = -1;
+    g_b[slot].nohit = 1;
+    g_b[slot].seq = myseq;
+    if (sprite >= 1 && sprite <= 100 && g_b[sprite].live) {
+        g_b[slot].que = g_b[sprite].y + 1;
+    }
+}
+
 /* people/pill/dragon: draw_damage then hp. 1 if killed this tick. */
-static int apply_hp_kill(struct BrainSpr *s)
+static int apply_hp_kill(struct BrainSpr *s, const struct SeqInfo *seqs)
 {
     if (s->damage <= 0) {
         return 0;
     }
     if (s->hitpoints > 0) {
+        draw_damage(s, seqs);
         if (s->damage > s->hitpoints) {
             s->damage = s->hitpoints;
         }
@@ -577,7 +652,7 @@ static void find_action(struct BrainSpr *s, const struct SeqInfo *seqs,
 static void people_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                          const struct HardMask *mask, int now_ms)
 {
-    if (apply_hp_kill(s)) {
+    if (apply_hp_kill(s, seqs)) {
         if (s->brain == DINK_BRAIN_PEOPLE) {
             if (s->dir == 0) {
                 s->dir = 3;
@@ -658,6 +733,7 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             g_on_kill(spr_i(s), "duckdie");
         }
         (void)brains_create(s->x, s->y, 7, 164, 1);
+        draw_damage(s, seqs);
         add_exp_if_player(s);
         s->damage = 0;
         kill_sprite(s);
@@ -666,6 +742,7 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->damage > 0 && in_this_base(s->pseq, s->base_walk)) {
         int head;
 
+        draw_damage(s, seqs);
         add_exp_if_player(s);
         s->damage = 0;
         if (g_on_kill != NULL) {
@@ -740,6 +817,7 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     int hold;
 
     if (s->damage > 0) {
+        draw_damage(s, seqs);
         s->hitpoints -= s->damage;
         s->damage = 0;
         if (s->hitpoints < 1) {
@@ -815,7 +893,7 @@ static void pill_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 {
     int hold;
 
-    if (apply_hp_kill(s)) {
+    if (apply_hp_kill(s, seqs)) {
         if (s->brain == DINK_BRAIN_PILL) {
             if (s->dir == 0) {
                 s->dir = 3;
@@ -872,7 +950,7 @@ static void dragon_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 {
     int hold;
 
-    if (apply_hp_kill(s)) {
+    if (apply_hp_kill(s, seqs)) {
         if (s->brain == DINK_BRAIN_DRAGON) {
             add_kill_sprite(s, seqs);
             kill_sprite(s);
@@ -1125,6 +1203,14 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         return;
     }
     if (b == DINK_BRAIN_TEXT) {
+        /* FreeDink text_brain: say follow is saybox; damage/exp float up. */
+        if (s->damage != -1) {
+            s->x += s->mx;
+            s->y += s->my;
+            if (s->y < 0) {
+                s->y = 0;
+            }
+        }
         return;
     }
     if (b == DINK_BRAIN_PILL) {
@@ -1272,6 +1358,9 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].base_walk = (int)es->base_walk;
         g_b[i].timing = (int)es->timing;
         g_b[i].size = (int)es->size;
+        if (g_b[i].size < 1) {
+            g_b[i].size = 100;
+        }
         g_b[i].pseq = (int)es->seq;
         g_b[i].pframe = (int)es->frame < 1 ? 1 : (int)es->frame;
         /* add_sprite_dumb: seq=0, frame=0; base_* = -1 */
@@ -1290,6 +1379,7 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].exp = (int)es->exp;
         g_b[i].nohit = (int)es->nohit;
         g_b[i].touch_damage = (int)es->touch_damage;
+        g_b[i].hard = (int)es->hard;
         g_b[i].created = 0;
         g_b[i].hidden = 0;
     }
@@ -1332,6 +1422,8 @@ void brains_apply(struct MapScreen *scr)
         if (s->pframe > 0) {
             scr->sprite[i].frame = s->pframe;
         }
+        scr->sprite[i].size = s->size;
+        scr->sprite[i].hard = s->hard;
     }
 }
 
@@ -1481,6 +1573,12 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->brain_parm2;
     } else if (prop == DINKC_SP_QUE) {
         p = &s->que;
+    } else if (prop == DINKC_SP_SIZE) {
+        p = &s->size;
+    } else if (prop == DINKC_SP_HARD) {
+        p = &s->hard;
+    } else if (prop == DINKC_SP_NOTOUCH) {
+        p = &s->notouch;
     }
     if (p == NULL) {
         return -1;
@@ -1704,6 +1802,45 @@ int brains_seq_frame(int slot, int *seq, int *frame)
     }
     if (frame != NULL) {
         *frame = fr;
+    }
+    return 1;
+}
+
+int brains_slot_size(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 100;
+    }
+    if (g_b[slot].size < 1) {
+        return 100;
+    }
+    return g_b[slot].size;
+}
+
+int brains_slot_hard(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].hard;
+}
+
+int brains_floater_num(int slot, int *x, int *y, int *num)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    if (g_b[slot].brain != DINK_BRAIN_TEXT || g_b[slot].damage < 0) {
+        return 0;
+    }
+    if (x != NULL) {
+        *x = g_b[slot].x;
+    }
+    if (y != NULL) {
+        *y = g_b[slot].y;
+    }
+    if (num != NULL) {
+        *num = g_b[slot].damage;
     }
     return 1;
 }

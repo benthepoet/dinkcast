@@ -40,6 +40,9 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_BRAIN_PARM2 29
 #define DINKC_SP_QUE 30
 #define DINKC_SP_DISTANCE 31
+#define DINKC_SP_SIZE 32
+#define DINKC_SP_HARD 33
+#define DINKC_SP_NOTOUCH 34
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
@@ -85,5 +88,8 @@ int dinkc_cmd_weapon_use(void);
 int dinkc_cmd_magic_use(void);
 void dinkc_cmd_reset_inv(void);
 void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map);
+void dinkc_cmd_bind_blood(void (*fn)(int slot));
+void dinkc_cmd_bind_hard_redraw(void (*fn)(void));
+int dinkc_cmd_hard_redraw_take(void);
 
 #endif

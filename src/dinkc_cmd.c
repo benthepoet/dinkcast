@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,9 @@ static int (*g_external)(int sprite, const char *file, const char *proc,
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
+static void (*g_blood)(int slot);
+static void (*g_hard_redraw)(void);
+static int g_hard_redraw_pending;
 static void (*g_restart)(void);
 static int (*g_item_arm)(const char *name);
 static int (*g_item_locate)(int slot, const char *proc);
@@ -77,8 +81,10 @@ static struct {
     int val;
     char key[20];
 } g_custom[32];
-/* play.spmap[].type — editor_type 1 kills that editor sprite (16.1). */
+/* play.spmap — editor_type/seq/frame. Type 1 is gone on re-enter, not this frame. */
 static unsigned char g_spmap_type[DINK_WORLD_SLOTS][101];
+static int16_t g_spmap_seq[DINK_WORLD_SLOTS][101];
+static unsigned char g_spmap_frame[DINK_WORLD_SLOTS][101];
 
 static int name_eq(const char *a, const char *b)
 {
@@ -244,6 +250,13 @@ static const struct {
     {"compare_weapon", 0},
     {"compare_magic", 0},
     {"editor_type", 0},
+    {"editor_seq", 0},
+    {"editor_frame", 0},
+    {"inside_box", 0},
+    {"sp_size", 0},
+    {"sp_hard", 0},
+    {"sp_notouch", 0},
+    {"draw_hard_sprite", 0},
     {"show_inventory", 0},
     {"show_bmp", 0},
 };
@@ -507,6 +520,8 @@ void dinkc_cmd_reset_inv(void)
     pin_clear(0);
     pin_clear(1);
     memset(g_spmap_type, 0, sizeof(g_spmap_type));
+    memset(g_spmap_seq, 0, sizeof(g_spmap_seq));
+    memset(g_spmap_frame, 0, sizeof(g_spmap_frame));
 }
 
 void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
@@ -517,9 +532,39 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
         return;
     }
     for (i = 1; i <= 99; i++) {
-        if (g_spmap_type[player_map][i] == 1) {
+        unsigned char t = g_spmap_type[player_map][i];
+
+        if (t == 0) {
+            continue;
+        }
+        /* FreeDink update_play_changes: only on screen load. Types 6/7/8
+         * also clear active; timers that restore them are 17. */
+        if (t == 1 || t == 6 || t == 7 || t == 8) {
             scr->sprite[i].active = 0;
         }
+        if (t == 3) {
+            scr->sprite[i].type = 0;
+            scr->sprite[i].hard = 1;
+        }
+        if (t == 2) {
+            scr->sprite[i].type = 1;
+            scr->sprite[i].hard = 1;
+        }
+        if (t == 4) {
+            scr->sprite[i].type = 1;
+            scr->sprite[i].hard = 0;
+        }
+        if (t == 5) {
+            scr->sprite[i].type = 0;
+            scr->sprite[i].hard = 0;
+        }
+        if (g_spmap_seq[player_map][i] != 0) {
+            scr->sprite[i].seq = g_spmap_seq[player_map][i];
+        }
+        if (g_spmap_frame[player_map][i] != 0) {
+            scr->sprite[i].frame = (int32_t)g_spmap_frame[player_map][i];
+        }
+        scr->sprite[i].script[0] = '\0';
     }
 }
 
@@ -575,6 +620,24 @@ void dinkc_cmd_bind_fiber(int fiber, int sprite)
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage))
 {
     g_hurt = fn;
+}
+
+void dinkc_cmd_bind_blood(void (*fn)(int slot))
+{
+    g_blood = fn;
+}
+
+void dinkc_cmd_bind_hard_redraw(void (*fn)(void))
+{
+    g_hard_redraw = fn;
+}
+
+int dinkc_cmd_hard_redraw_take(void)
+{
+    int n = g_hard_redraw_pending;
+
+    g_hard_redraw_pending = 0;
+    return n;
 }
 
 void dinkc_cmd_bind_restart(void (*fn)(void))
@@ -683,6 +746,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     int a2 = nargs > 2 ? args[2] : 0;
     int a3 = nargs > 3 ? args[3] : 0;
     int a4 = nargs > 4 ? args[4] : 0;
+    int a5 = nargs > 5 ? args[5] : 0;
 
     if (yield != NULL) {
         *yield = 0;
@@ -936,7 +1000,11 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             }
             dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
         } else if (g_hurt != NULL) {
-            (void)g_hurt(a0, a1);
+            int n = g_hurt(a0, a1);
+
+            if (n > 0 && g_blood != NULL) {
+                g_blood(a0);
+            }
         }
         return 1;
     }
@@ -1130,6 +1198,15 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "sp_que")) {
         return change_sp(a0, DINKC_SP_QUE, nargs, a1, ret);
     }
+    if (is_cmd(name, "sp_size")) {
+        return change_sp(a0, DINKC_SP_SIZE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_hard")) {
+        return change_sp(a0, DINKC_SP_HARD, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_notouch")) {
+        return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);
+    }
     if (is_cmd(name, "sp_kill_wait") || is_cmd(name, "sp_attack_hit_sound") ||
         is_cmd(name, "sp_attack_hit_sound_speed")) {
         return 1;
@@ -1205,12 +1282,65 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         if (nargs >= 2 && type != -1) {
             g_spmap_type[map][ed] = (unsigned char)type;
-            if (type == 1 && g_spr_change != NULL) {
-                (void)g_spr_change(ed, DINKC_SP_ACTIVE, 0);
-            }
+            /* update_play_changes is screen-load only. Do not kill live. */
         }
         if (ret != NULL) {
             *ret = (int)g_spmap_type[map][ed];
+        }
+        return 1;
+    }
+    if (is_cmd(name, "editor_seq")) {
+        int map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+        int ed = a0;
+
+        if (ed < 1 || ed > 99 || map < 1 || map >= DINK_WORLD_SLOTS) {
+            if (ret != NULL) {
+                *ret = 0;
+            }
+            return 1;
+        }
+        if (nargs >= 2 && a1 != -1) {
+            g_spmap_seq[map][ed] = a1;
+        }
+        if (ret != NULL) {
+            *ret = g_spmap_seq[map][ed];
+        }
+        return 1;
+    }
+    if (is_cmd(name, "editor_frame")) {
+        int map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+        int ed = a0;
+
+        if (ed < 1 || ed > 99 || map < 1 || map >= DINK_WORLD_SLOTS) {
+            if (ret != NULL) {
+                *ret = 0;
+            }
+            return 1;
+        }
+        if (nargs >= 2 && a1 != -1) {
+            g_spmap_frame[map][ed] = (unsigned char)a1;
+        }
+        if (ret != NULL) {
+            *ret = (int)g_spmap_frame[map][ed];
+        }
+        return 1;
+    }
+    if (is_cmd(name, "inside_box")) {
+        int ok = 1;
+
+        /* FreeDink rect.cpp: reject if outside inclusive edges. */
+        if (a0 > a4 || a0 < a2 || a1 > a5 || a1 < a3) {
+            ok = 0;
+        }
+        if (ret != NULL) {
+            *ret = ok;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "draw_hard_sprite")) {
+        g_hard_redraw_pending = 1;
+        if (g_hard_redraw != NULL) {
+            g_hard_redraw();
         }
         return 1;
     }

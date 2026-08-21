@@ -132,7 +132,16 @@ int main(void)
     hit_touch_list(pl.x, pl.y, 1, NULL, 0, seqs);
     dinkc_vm_tick(1);
     expect(has_item("item-pig"), "add_item item-pig");
-    expect(!brains_slot_live(5), "editor_type killed sack");
+    expect(brains_slot_live(5), "sack still live for scale_brain");
+    expect(brains_change_prop(5, DINKC_SP_BRAIN, -1) == 12, "brain 12");
+    {
+        int t;
+
+        for (t = 0; t < 40; t++) {
+            brains_tick(&scr, seqs, NULL, 16 + t * 16, 0);
+        }
+        expect(!brains_slot_live(5), "scale_brain removed sack");
+    }
     dinkc_cmd_apply_spmap(&scr, DINK_START_PLAYER_MAP);
     expect(scr.sprite[5].active == 0, "spmap type 1");
 

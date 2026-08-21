@@ -376,8 +376,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
         /* Combat pixels first: 164, then duck 110/120 (punch is play-path).
-         * People walk dirs must not fill the 96-slot table first — Ethel's
-         * house + oldman + duck hit unique 96 and skipped seq 117/123. */
+         * People/pig walk dirs must not fill the 96-slot table first — Ethel's
+         * house + oldman + duck hit unique 96 and skipped seq 117/123.
+         * Pig pen: walk frame 1 only (play-path ensure); all-frames skipped
+         * the pigs on first enter. */
         if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
             (screen_wants_die(sp, vision) ||
              edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
@@ -402,8 +404,19 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 push_walk_frames(need_s, need_f, &nneed, seqs, 3, 120, 1);
             }
         }
+        /* Blood pack is ~28 KB. Queue frame 1 with combat pixels so Ethel /
+         * pig-pen occupancy cannot drop it off the 96-slot need list. */
+        if (screen_wants_die(sp, vision)) {
+            int bseq;
+
+            for (bseq = 187; bseq <= 189; bseq++) {
+                if (bseq < DINK_MAX_SEQ && seqs[bseq].prefix[0] != '\0') {
+                    need_push(need_s, need_f, &nneed, bseq, 1);
+                }
+            }
+        }
         for (i = 1; i <= 100; i++) {
-            int seq, fr;
+            int seq, fr, br;
 
             if (!editor_sprite_draw(&sp[i], vision)) {
                 continue;
@@ -414,7 +427,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 continue;
             }
             need_push(need_s, need_f, &nneed, seq, fr);
-            if ((int)sp[i].type == 1 && (int)sp[i].brain == 6) {
+            br = (int)sp[i].brain;
+            if ((int)sp[i].type == 1 && br == 6) {
                 int nfr, f2;
 
                 nfr = ini_seq_len(seq, seqs[seq].nframes);
@@ -422,14 +436,35 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     need_push(need_s, need_f, &nneed, seq, f2);
                 }
             }
-            if ((int)sp[i].type == 1 &&
-                brain_needs_death_walk((int)sp[i].brain)) {
-                push_walk_frames(need_s, need_f, &nneed, seqs,
-                                 (int)sp[i].brain, (int)sp[i].base_walk, 1);
+            if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
+                push_walk_frames(need_s, need_f, &nneed, seqs, br,
+                                 (int)sp[i].base_walk, 0);
             }
-            if ((int)sp[i].type == 1 && (int)sp[i].brain == 16) {
+            if ((int)sp[i].type == 1 && br == 16) {
                 push_walk_frames(need_s, need_f, &nneed, seqs, 16,
                                  (int)sp[i].base_walk, 0);
+            }
+        }
+        /* Type-1 still sprites (barrels seq 173): remaining frames after
+         * walk frame 1s so Ethel oldman still opens the people pack. */
+        for (i = 1; i <= 100; i++) {
+            int seq, nfr, f2, br;
+
+            if ((int)sp[i].type != 1 ||
+                !editor_sprite_on_vision(&sp[i], vision)) {
+                continue;
+            }
+            br = (int)sp[i].brain;
+            if (br != 0) {
+                continue;
+            }
+            seq = (int)sp[i].seq;
+            if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
+                continue;
+            }
+            nfr = ini_seq_len(seq, seqs[seq].nframes);
+            for (f2 = 2; f2 <= nfr; f2++) {
+                need_push(need_s, need_f, &nneed, seq, f2);
             }
         }
         old = *n;
@@ -508,9 +543,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (brain_needs_death_walk(br)) {
                 int ws[6], nw, w;
 
+                /* Same as people: frame 1 opens the pack. Play-path ensure. */
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    load_seq_frames(g, &got, seqs, ws[w]);
+                    (void)load_one(g, &got, seqs, ws[w], 1);
                 }
             }
             if (br == 16) {

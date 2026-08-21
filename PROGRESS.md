@@ -125,7 +125,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Duck death seqs 117/123 before people walks (Ethel house 96-slot) | #88 |
 | 2026-08-21 | Name **14.4c** pixel class eviction (not seq-id `EdGfx` victims) | #89 |
 | 2026-08-21 | **14.4c** Always/Screen/Sticky `EdGfx` victims; `cpu_pixels` cap | #90 |
-| 2026-08-21 | **14.3** 20-crossing leak check; `swap_ms` / `vram_free` | this PR |
+| 2026-08-21 | **14.3** 20-crossing leak check; `swap_ms` / `vram_free` | #91 |
+| 2026-08-21 | Pickup shrink / blood / barrel smash / pig-pen enter | this PR |
 
 ## Bites
 
@@ -176,7 +177,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims Always/Screen/Sticky (**14.4c**) |
 | 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
-| 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1. Y grid is 16.2 |
+| 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1 on **re-enter**; live `scale_brain` |
 | 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
 | 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6 |
 | 17.1–17.3 | VMU save | pending | |
@@ -189,7 +190,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | Native `KOS_BASE` | optional; Docker image used for ELF/CDI |
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
-| Human / visual gates | V1–**V5 accepted**. **8.6 house accepted**. Next picture gate **V6 (inv/HUD)**. |
+| Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -204,8 +205,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture (V6 inv/HUD)** | **~90%** | **16.3** source this PR (status bar + L map). Human must see inv+HUD in Flycast/hardware |
-| **Hardest remaining** | Inventory / HUD | **16** then 12 |
+| **Next picture** | **none named** | V6 inv/HUD accepted. Silent campaign playtest is the check |
+| **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -215,8 +216,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | Walk + hardness (V4) | ~95% | Accepted |
 | Say box (V5) | ~95% | Accepted |
 | Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
-| Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
-| Weapons / magic / inventory | ~95% | 16.2 Y grid + 16.3 HUD source; V6 visual still human |
+| Talk/hit + opening-village DinkC | ~75–80% | Interpreter live; coverage is the pole |
+| Weapons / magic / inventory / HUD | ~95% | V6 accepted; bow still instant-100 |
 | Full campaign + every MIDI | ~55–65% | Long tail |
 | Real hardware / AICA / VMU | unknown | Not run |
 
@@ -258,3 +259,5 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (16.1 source) | **~90%** | Walk-into-sprite `TOUCH` (`s1-sack` → `item-pig`). `editor_type` 1 persists kill. Y inventory is **16.2**. |
 | 2026-08-21 (16.2 source) | **~90%** | Y toggles `process_item` grid (seq 423). A arms `item-pig`. HUD is **16.3**. |
 | 2026-08-21 (16.3 source) | **~90%** | Status bar from official BMPs (`draw_status_all`). Digit atlas 128 KB. Hold X fills `&magic_level`. L is `ACTION_MAP` / `button6.c`. V6 waiting on Flycast/hardware. |
+| 2026-08-21 (V6 accepted) | **~90%** | Inventory + HUD accepted. Next picture column empty. DinkC coverage is the pole. |
+| 2026-08-21 (playtest graft) | **~90%** | `editor_type` 1 is re-enter only (`scale_brain` shrink). `draw_damage` / `random_blood`. Barrel smash frames. Pig/pill/dragon walk **frame 1** on enter (`need_push` + post-decode). Blood 187–189 with combat pixels. `inside_box`. `g_spmap_seq` is int16 (~155 KB BSS). |

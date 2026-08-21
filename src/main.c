@@ -122,6 +122,54 @@ static void spr_restore(const char *tag)
            (int)g_scr.sprite[1].active, g_scr.sprite[26].script);
 }
 
+static void on_blood(int slot)
+{
+    int x, y;
+
+    if (brains_live_xy(slot, &x, &y)) {
+        brains_random_blood(x, y - 40, slot);
+    }
+}
+
+static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
+{
+    int si;
+
+    if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
+        return;
+    }
+    for (si = 1; si <= 100; si++) {
+        struct SpriteFrame *ef;
+        int hl, ht, hr, hb, cx, cy, hid, seq, fr;
+
+        if (!editor_sprite_on_vision(&g_scr.sprite[si],
+                                     script_play_vision()) ||
+            g_scr.sprite[si].hard != 0) {
+            continue;
+        }
+        seq = (int)g_scr.sprite[si].seq;
+        fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
+        if (seq < 1 || seq >= DINK_MAX_SEQ) {
+            continue;
+        }
+        hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
+        ef = edraw_find(g_edg, g_ned, seq, fr);
+        if (ef != NULL) {
+            hard_stamp_box(mask, (int)g_scr.sprite[si].x,
+                           (int)g_scr.sprite[si].y, ef->hl, ef->ht, ef->hr,
+                           ef->hb, hid);
+            continue;
+        }
+        if (seqs == NULL) {
+            continue;
+        }
+        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
+                       &hb);
+        hard_stamp_box(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
+                       hl, ht, hr, hb, hid);
+    }
+}
+
 static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
 {
     int i, seq, bw, d, br, k;
@@ -450,6 +498,7 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_move(brains_move);
                 dinkc_cmd_bind_moving(brains_moving);
                 dinkc_cmd_bind_hurt(brains_hurt);
+                dinkc_cmd_bind_blood(on_blood);
                 dinkc_cmd_bind_restart(game_restart_cmd);
                 hit_bind_player(&pl);
                 hit_bind_hit(script_on_hit_from);
@@ -899,6 +948,9 @@ int main(int argc, char **argv)
                                                    1);
                         brains_tick(&g_scr, seqs, &mask, now_ms,
                                     script_play_vision());
+                        if (dinkc_cmd_hard_redraw_take()) {
+                            stamp_editor_hard(&mask, seqs);
+                        }
                         {
                             int ei, sq, fr;
 
@@ -1034,9 +1086,9 @@ int main(int argc, char **argv)
                                 sprite_frame_free(&spr);
                                 spr = nxt;
                                 (void)sprite_upload_pvr(&spr);
-                                last_seq = pl.seq;
-                                last_frame = pl.frame;
                             }
+                            last_seq = pl.seq;
+                            last_frame = pl.frame;
                         }
                     }
                     pvr_scene_begin();
@@ -1046,7 +1098,7 @@ int main(int argc, char **argv)
                     pvr_list_begin(PVR_LIST_PT_POLY);
                     {
                         struct {
-                            int rank, x, y, bg;
+                            int rank, x, y, bg, size;
                             int al, at, ar, ab;
                             struct SpriteFrame *fr;
                         } draw[101];
@@ -1079,6 +1131,9 @@ int main(int argc, char **argv)
                             draw[nd].x = (int)g_scr.sprite[si].x;
                             draw[nd].y = (int)g_scr.sprite[si].y;
                             draw[nd].bg = (g_scr.sprite[si].type == 0);
+                            draw[nd].size = brains_slot_live(si)
+                                                ? brains_slot_size(si)
+                                                : (int)g_scr.sprite[si].size;
                             draw[nd].al = (int)g_scr.sprite[si].alt_l;
                             draw[nd].at = (int)g_scr.sprite[si].alt_t;
                             draw[nd].ar = (int)g_scr.sprite[si].alt_r;
@@ -1091,6 +1146,7 @@ int main(int argc, char **argv)
                             draw[nd].x = pl.x;
                             draw[nd].y = pl.y;
                             draw[nd].bg = 0;
+                            draw[nd].size = 100;
                             draw[nd].al = draw[nd].at = 0;
                             draw[nd].ar = draw[nd].ab = 0;
                             draw[nd].fr = &spr;
@@ -1104,7 +1160,8 @@ int main(int argc, char **argv)
                                 if (bb < ba ||
                                     (bb == ba && draw[b].rank < draw[a].rank)) {
                                     int tr = draw[a].rank, tx = draw[a].x,
-                                        ty = draw[a].y, tb = draw[a].bg;
+                                        ty = draw[a].y, tb = draw[a].bg,
+                                        tsz = draw[a].size;
                                     int tal = draw[a].al, tat = draw[a].at,
                                         tar = draw[a].ar, tab = draw[a].ab;
                                     struct SpriteFrame *tf = draw[a].fr;
@@ -1113,6 +1170,7 @@ int main(int argc, char **argv)
                                     draw[a].x = draw[b].x;
                                     draw[a].y = draw[b].y;
                                     draw[a].bg = draw[b].bg;
+                                    draw[a].size = draw[b].size;
                                     draw[a].al = draw[b].al;
                                     draw[a].at = draw[b].at;
                                     draw[a].ar = draw[b].ar;
@@ -1122,6 +1180,7 @@ int main(int argc, char **argv)
                                     draw[b].x = tx;
                                     draw[b].y = ty;
                                     draw[b].bg = tb;
+                                    draw[b].size = tsz;
                                     draw[b].al = tal;
                                     draw[b].at = tat;
                                     draw[b].ar = tar;
@@ -1131,11 +1190,20 @@ int main(int argc, char **argv)
                             }
                         }
                         for (a = 0; a < nd; a++) {
-                            sprite_draw_pvr_alt(draw[a].fr, (float)draw[a].x,
-                                                (float)draw[a].y,
-                                                1.5f + (float)a * 0.01f,
-                                                draw[a].al, draw[a].at,
-                                                draw[a].ar, draw[a].ab);
+                            sprite_draw_pvr_alt_size(
+                                draw[a].fr, (float)draw[a].x,
+                                (float)draw[a].y, 1.5f + (float)a * 0.01f,
+                                draw[a].al, draw[a].at, draw[a].ar, draw[a].ab,
+                                draw[a].size);
+                        }
+                        {
+                            int fi, fx, fy, fnum;
+
+                            for (fi = 1; fi <= 99; fi++) {
+                                if (brains_floater_num(fi, &fx, &fy, &fnum)) {
+                                    saybox_draw_num_pvr(fx, fy, fnum, 2.8f);
+                                }
+                            }
                         }
                         saybox_draw_pvr(3.0f);
                         saybox_draw_choices_pvr(3.1f);
