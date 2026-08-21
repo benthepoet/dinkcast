@@ -3,6 +3,7 @@
 
 #include "fs.h"
 #include "le.h"
+#include "residency.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -108,7 +109,6 @@ int ff_load_rel(const char *rel, struct FfFile *out)
 }
 
 #define DINK_FF_SLOTS 32
-#define DINK_FF_PIN_BYTES (80u * 1024u)
 
 static struct {
     char rel[160];
@@ -117,35 +117,6 @@ static struct {
     int tick;
 } g_slot[DINK_FF_SLOTS];
 static int g_tick;
-
-static int rel_has(const char *rel, const char *needle)
-{
-    size_t i, j;
-
-    if (rel == NULL || needle == NULL) {
-        return 0;
-    }
-    for (i = 0; rel[i] != '\0'; i++) {
-        for (j = 0; needle[j] != '\0'; j++) {
-            char a = rel[i + j];
-            char b = needle[j];
-
-            if (a >= 'A' && a <= 'Z') {
-                a = (char)(a - 'A' + 'a');
-            }
-            if (b >= 'A' && b <= 'Z') {
-                b = (char)(b - 'A' + 'a');
-            }
-            if (a != b) {
-                break;
-            }
-        }
-        if (needle[j] == '\0') {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 int ff_disc_loads(void)
 {
@@ -167,7 +138,7 @@ void ff_cache_clear(void)
 
 void ff_cache_drop_unpinned(void)
 {
-    /* Large packs stay. Reopening trees/home/walls hangs /cd. */
+    residency_swap_end();
 }
 
 void ff_cache_release(const char *rel)
@@ -214,7 +185,7 @@ int ff_cached(const char *rel, struct FfFile **out)
     if (rel == NULL || rel[0] == '\0' || out == NULL) {
         return -1;
     }
-    pin = rel_has(rel, "dink/idle") || rel_has(rel, "dink/walk");
+    pin = residency_is_always(rel);
     g_tick++;
     for (i = 0; i < DINK_FF_SLOTS; i++) {
         if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
@@ -232,6 +203,7 @@ int ff_cached(const char *rel, struct FfFile **out)
     }
     if (hit >= 0) {
         g_slot[hit].tick = g_tick;
+        residency_touch(g_slot[hit].rel);
         *out = &g_slot[hit].ff;
         return 0;
     }
@@ -249,9 +221,6 @@ int ff_cached(const char *rel, struct FfFile **out)
     if (ff_load_rel(rel, &g_slot[empty].ff) != 0) {
         g_slot[empty].rel[0] = '\0';
         return -1;
-    }
-    if (g_slot[empty].ff.n >= DINK_FF_PIN_BYTES) {
-        pin = 1;
     }
     snprintf(g_slot[empty].rel, sizeof(g_slot[empty].rel), "%s", rel);
     g_slot[empty].pin = pin;

@@ -27,6 +27,8 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n);
 int dink_blob_try_drop(const char *rel);
 size_t dink_blob_bytes(void);
 int dink_blob_slot(int i, const char **rel, size_t *n);
+void dink_blob_set_cls(const char *rel, int cls, int age_out);
+int dink_blob_get_cls(const char *rel, int *cls, int *age_out);
 int dink_disc_opens(void);
 void dink_disc_note_open(void);
 void dink_blob_clear(void);

@@ -9,7 +9,7 @@
 #define DINK_MEM_TS_RGB (1310720u) /* 1.25 MiB */
 #define DINK_MEM_ATLAS_BSS (524288u) /* 512×512 RGB565 */
 
-/* 14.4a: print pools. Does not change pin/evict. */
+/* 14.4b: Always/Screen/Prev. mem refuse over file_blob cap during swap. */
 void mem_note_peak(size_t n);
 void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
              int sheets);

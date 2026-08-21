@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "fs.h"
 
+#include "mem.h"
+#include "residency.h"
+
 #include <ctype.h>
 #include <dirent.h>
 #include <stdint.h>
@@ -452,7 +455,6 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
 }
 
 #define DINK_BLOB_INIT 64
-#define DINK_BLOB_PIN (80u * 1024u)
 
 /* Session cache. Never free a live slot to insert another — ff/hard borrow
  * these pointers until dink_blob_clear. Grow when full. */
@@ -460,7 +462,8 @@ static struct {
     char rel[DINK_FS_PATH_MAX];
     uint8_t *data;
     size_t n;
-    int pin;
+    int cls;
+    int age_out;
 } *g_blob;
 static int g_nblob;
 static int g_disc_opens;
@@ -533,7 +536,8 @@ void dink_blob_clear(void)
         free(g_blob[i].data);
         g_blob[i].data = NULL;
         g_blob[i].n = 0;
-        g_blob[i].pin = 0;
+        g_blob[i].cls = 0;
+        g_blob[i].age_out = 0;
         g_blob[i].rel[0] = '\0';
     }
     g_disc_opens = 0;
@@ -577,6 +581,47 @@ int dink_blob_slot(int i, const char **rel, size_t *n)
     return -1;
 }
 
+void dink_blob_set_cls(const char *rel, int cls, int age_out)
+{
+    char key[DINK_FS_PATH_MAX];
+    int i;
+
+    if (rel == NULL) {
+        return;
+    }
+    rel_key(key, sizeof(key), rel);
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] != '\0' && strcmp(g_blob[i].rel, key) == 0) {
+            g_blob[i].cls = cls;
+            g_blob[i].age_out = age_out;
+            return;
+        }
+    }
+}
+
+int dink_blob_get_cls(const char *rel, int *cls, int *age_out)
+{
+    char key[DINK_FS_PATH_MAX];
+    int i;
+
+    if (rel == NULL) {
+        return -1;
+    }
+    rel_key(key, sizeof(key), rel);
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] != '\0' && strcmp(g_blob[i].rel, key) == 0) {
+            if (cls != NULL) {
+                *cls = g_blob[i].cls;
+            }
+            if (age_out != NULL) {
+                *age_out = g_blob[i].age_out;
+            }
+            return 0;
+        }
+    }
+    return -1;
+}
+
 int dink_blob_try_drop(const char *rel)
 {
     char key[DINK_FS_PATH_MAX];
@@ -593,7 +638,8 @@ int dink_blob_try_drop(const char *rel)
             free(g_blob[i].data);
             g_blob[i].data = NULL;
             g_blob[i].n = 0;
-            g_blob[i].pin = 0;
+            g_blob[i].cls = 0;
+            g_blob[i].age_out = 0;
             g_blob[i].rel[0] = '\0';
             return 0;
         }
@@ -620,6 +666,7 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
             g_blob[i].data != NULL) {
             *ptr = g_blob[i].data;
             *n = g_blob[i].n;
+            residency_touch(g_blob[i].rel);
             return 0;
         }
     }
@@ -637,11 +684,21 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
         free(raw);
         return -1;
     }
+    if (residency_swap_open() && !residency_is_always(key) &&
+        dink_blob_bytes() + got > (size_t)DINK_MEM_BLOB_PEAK) {
+        printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",
+               (unsigned)got, (unsigned)dink_blob_bytes(),
+               (unsigned)DINK_MEM_BLOB_PEAK);
+        free(raw);
+        return -1;
+    }
     g_disc_opens++;
     snprintf(g_blob[empty].rel, sizeof(g_blob[empty].rel), "%s", key);
     g_blob[empty].data = raw;
     g_blob[empty].n = got;
-    g_blob[empty].pin = got >= DINK_BLOB_PIN;
+    g_blob[empty].cls = 0;
+    g_blob[empty].age_out = 0;
+    residency_touch(g_blob[empty].rel);
     *ptr = raw;
     *n = got;
     return 0;

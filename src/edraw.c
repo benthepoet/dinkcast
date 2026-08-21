@@ -4,6 +4,7 @@
 #include "ff.h"
 #include "fs.h"
 #include "mem.h"
+#include "residency.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,30 +190,35 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
     snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
 }
 
-static int die_seq_complete(struct EdGfx *g, int n, struct SeqInfo *seqs)
+/* Sticky seq (164): decode all frames, then drop the pack. Pixels stay. */
+static int seq_complete(struct EdGfx *g, int n, struct SeqInfo *seqs, int seq)
 {
     int nfr, f;
 
-    if (g == NULL || seqs == NULL || seqs[164].prefix[0] == '\0') {
+    if (g == NULL || seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ ||
+        seqs[seq].prefix[0] == '\0') {
         return 0;
     }
-    nfr = ini_seq_len(164, seqs[164].nframes);
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
     if (nfr < 1) {
         return 0;
     }
     for (f = 1; f <= nfr; f++) {
-        if (edraw_find(g, n, 164, f) == NULL) {
+        if (edraw_find(g, n, seq, f) == NULL) {
             return 0;
         }
     }
     return 1;
 }
 
-static void drop_die_pack(const struct SeqInfo *seqs)
+static void drop_seq_pack(const struct SeqInfo *seqs, int seq)
 {
     char dir[160];
 
-    pack_dir(&seqs[164], dir, sizeof(dir));
+    if (seqs == NULL || seq < 1) {
+        return;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
     if (dir[0] != '\0') {
         ff_cache_release(dir);
     }
@@ -233,6 +239,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         return -1;
     }
     memcpy(sp, spr, 101u * sizeof(*sp));
+    residency_swap_begin();
     printf("edraw in sprite1 seq=%d y=%d act=%d keep=%d\n", (int)sp[1].seq,
            (int)sp[1].y, (int)sp[1].active, *n);
     for (i = 1; i <= 8; i++) {
@@ -243,9 +250,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
-        /* Reserve 164 first so a full sprite list cannot starve explode
-         * frames, then drop the 600 KB pack. */
-        if (seqs[164].prefix[0] != '\0' &&
+        /* Sticky explode (seq 164): reserve frames first, drop pack after. */
+        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
             (screen_wants_die(sp, vision) ||
              edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
             int nfr, f2;
@@ -401,12 +407,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
         }
-        if (seqs[164].prefix[0] != '\0' &&
+        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
             (screen_wants_die(sp, vision) ||
              edraw_find(g, got, 164, 1) != NULL)) {
             load_seq_frames(g, &got, seqs, 164);
-            if (die_seq_complete(g, got, seqs)) {
-                drop_die_pack(seqs);
+            if (seq_complete(g, got, seqs, 164)) {
+                drop_seq_pack(seqs, 164);
             }
         }
     }

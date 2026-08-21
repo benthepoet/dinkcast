@@ -334,6 +334,38 @@ int main(void)
         }
         n = n2;
     }
+    {
+        struct MapScreen a, b;
+        char walls[160];
+        int ra = (int)w.loc[439], rb = (int)w.loc[440];
+
+        seq_dir(&seqs[31], walls, sizeof(walls));
+        if (ra < 1 || rb < 1 || map_load_record(ra, &a) != 0 ||
+            map_load_record(rb, &b) != 0) {
+            fprintf(stderr, "FAIL 439/440 map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(a.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL 439 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(b.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL 440 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (walls[0] != '\0' && ff_is_cached(walls)) {
+            fprintf(stderr, "FAIL house walls still pinned after 439+440\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);
