@@ -12,10 +12,11 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Grain USE no longer spams / hitch | 2026-08-21 | `test_distill` s1-sack → 430/431 |
 | Grain sprite + spreading (seq 430/431) on the first outdoor screen | 2026-08-21 | `test_distill` + PVR upload after `preload_seq` |
 | Feeding the pigs (map 407 box) and Milder dialogue | 2026-08-21 | (Flycast; no host lock yet) |
+| Pigs visible on the **first** visit north from the first outdoor screen | 2026-08-21 | `test_edraw` house → 439 → 407 seq 41 |
 
 ## Open
 
-- Pigs missing on the **first** visit north from the first outdoor screen (map 407). They show on later visits. This PR: drop two-screens-old packs before fopen Screen.
+- Dink left/right walk looks jerky **only with grain equipped**. This PR: `ini_frame_geom` must keep seq cx/cy when `item-pig` ARM omits the hardbox (seq 74/76).
 - Barrel smash on the **first** outdoor screen (second screen had worked).
 - Old man sprite in his house.
 - Start-house textures after walking back.
