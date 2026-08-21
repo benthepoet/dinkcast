@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _arch_dreamcast
+#include <kos.h>
+#include <dc/pvr.h>
+#endif
+
 void edraw_free(struct EdGfx *g, int n)
 {
     int i;
@@ -102,20 +107,125 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
     snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
 }
 
+enum {
+    PIX_SCREEN = 0,
+    PIX_ALWAYS = 1,
+    PIX_STICKY = 2
+};
+
+static int pixel_class(const struct SeqInfo *seqs, int seq)
+{
+    char dir[160];
+
+    if (seq < 1 || seq >= DINK_MAX_SEQ) {
+        return PIX_SCREEN;
+    }
+    if (residency_is_sticky_seq(seq)) {
+        return PIX_STICKY;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] != '\0' && residency_is_always(dir)) {
+        return PIX_ALWAYS;
+    }
+    return PIX_SCREEN;
+}
+
+static const char *pixel_class_name(int cls)
+{
+    if (cls == PIX_ALWAYS) {
+        return "always";
+    }
+    if (cls == PIX_STICKY) {
+        return "sticky";
+    }
+    return "screen";
+}
+
+/* Screen pixels only. Prefer a frame whose pack is still cached. */
+static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                      int keep_seq, int gpu_wait)
+{
+    int i, pick = -1, pick_cached = 0, pick_unused = 0;
+    char dir[160];
+
+    for (i = 0; i < *got; i++) {
+        int s = g[i].seq;
+        int cls, cached, unused;
+
+        if (s == keep_seq) {
+            continue;
+        }
+        cls = pixel_class(seqs, s);
+        if (cls == PIX_ALWAYS || cls == PIX_STICKY) {
+            continue;
+        }
+        pack_dir(&seqs[s], dir, sizeof(dir));
+        cached = dir[0] != '\0' && ff_is_cached(dir);
+        unused = !g[i].live;
+        if (pick < 0 || (unused && !pick_unused) ||
+            (unused == pick_unused && cached && !pick_cached)) {
+            pick = i;
+            pick_cached = cached;
+            pick_unused = unused;
+        }
+    }
+    if (pick < 0) {
+        return -1;
+    }
+#ifdef _arch_dreamcast
+    if (gpu_wait) {
+        pvr_wait_ready();
+    }
+#else
+    (void)gpu_wait;
+#endif
+    printf("edraw evict class=%s seq=%d fr=%d for seq=%d\n",
+           pixel_class_name(pixel_class(seqs, g[pick].seq)), g[pick].seq,
+           g[pick].frame, keep_seq);
+    sprite_frame_free(&g[pick].fr);
+    (*got)--;
+    if (pick < *got) {
+        g[pick] = g[*got];
+        memset(&g[*got], 0, sizeof(g[0]));
+    } else {
+        memset(&g[pick], 0, sizeof(g[0]));
+    }
+    return 0;
+}
+
+/* Cache dir.ff even when EdGfx is full so play-path ensure can fopen-not. */
+static int open_seq_pack(struct SeqInfo *seqs, int seq)
+{
+    char dir[160];
+    struct FfFile *ff = NULL;
+
+    if (seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ) {
+        return -1;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] == '\0') {
+        return -1;
+    }
+    return ff_cached(dir, &ff);
+}
+
 static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
-                    int frame)
+                    int frame, int may_evict)
 {
     static uint8_t full_noted[DINK_MAX_SEQ];
 
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
     }
+    (void)open_seq_pack(seqs, seq);
     if (*got >= DINK_EDGFX_MAX) {
-        if (full_noted[seq] == 0) {
-            full_noted[seq] = 1;
-            printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+        if (!may_evict || evict_slot(g, got, seqs, seq, 0) != 0) {
+            if (full_noted[seq] == 0) {
+                full_noted[seq] = 1;
+                printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+            }
+            return -1;
         }
-        return -1;
     }
     printf("edraw load seq=%d fr=%d\n", seq, frame);
     if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
@@ -150,13 +260,16 @@ static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
         return;
     }
+    (void)open_seq_pack(seqs, seq);
     /* nframes is 0 until frame 1 is decoded (create_sprite seqs). */
-    if (load_one(g, got, seqs, seq, 1) != 0) {
+    if (load_one(g, got, seqs, seq, 1, 1) != 0) {
         return;
     }
     nfr = ini_seq_len(seq, seqs[seq].nframes);
-    for (f2 = 2; f2 <= nfr && *got < DINK_EDGFX_MAX; f2++) {
-        (void)load_one(g, got, seqs, seq, f2);
+    for (f2 = 2; f2 <= nfr; f2++) {
+        if (load_one(g, got, seqs, seq, f2, 0) != 0) {
+            break;
+        }
     }
 }
 
@@ -212,85 +325,6 @@ static void push_walk_frames(int *ns, int *nf, int *n, struct SeqInfo *seqs,
             need_push(ns, nf, n, ws[w], f2);
         }
     }
-}
-
-enum {
-    PIX_SCREEN = 0,
-    PIX_ALWAYS = 1,
-    PIX_STICKY = 2
-};
-
-static int pixel_class(const struct SeqInfo *seqs, int seq)
-{
-    char dir[160];
-
-    if (seq < 1 || seq >= DINK_MAX_SEQ) {
-        return PIX_SCREEN;
-    }
-    if (residency_is_sticky_seq(seq)) {
-        return PIX_STICKY;
-    }
-    pack_dir(&seqs[seq], dir, sizeof(dir));
-    if (dir[0] != '\0' && residency_is_always(dir)) {
-        return PIX_ALWAYS;
-    }
-    return PIX_SCREEN;
-}
-
-static const char *pixel_class_name(int cls)
-{
-    if (cls == PIX_ALWAYS) {
-        return "always";
-    }
-    if (cls == PIX_STICKY) {
-        return "sticky";
-    }
-    return "screen";
-}
-
-/* Screen pixels only. Prefer a frame whose pack is still cached. */
-static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
-                      int keep_seq)
-{
-    int i, pick = -1, pick_cached = 0, pick_unused = 0;
-    char dir[160];
-
-    for (i = 0; i < *got; i++) {
-        int s = g[i].seq;
-        int cls, cached, unused;
-
-        if (s == keep_seq) {
-            continue;
-        }
-        cls = pixel_class(seqs, s);
-        if (cls == PIX_ALWAYS || cls == PIX_STICKY) {
-            continue;
-        }
-        pack_dir(&seqs[s], dir, sizeof(dir));
-        cached = dir[0] != '\0' && ff_is_cached(dir);
-        unused = !g[i].live;
-        if (pick < 0 || (unused && !pick_unused) ||
-            (unused == pick_unused && cached && !pick_cached)) {
-            pick = i;
-            pick_cached = cached;
-            pick_unused = unused;
-        }
-    }
-    if (pick < 0) {
-        return -1;
-    }
-    printf("edraw evict class=%s seq=%d fr=%d for seq=%d\n",
-           pixel_class_name(pixel_class(seqs, g[pick].seq)), g[pick].seq,
-           g[pick].frame, keep_seq);
-    sprite_frame_free(&g[pick].fr);
-    (*got)--;
-    if (pick < *got) {
-        g[pick] = g[*got];
-        memset(&g[*got], 0, sizeof(g[0]));
-    } else {
-        memset(&g[pick], 0, sizeof(g[0]));
-    }
-    return 0;
 }
 
 /* Default corpse seq 164. People with hitpoints (mom) must not pin
@@ -375,14 +409,11 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
-        /* Combat pixels first: 164, then duck 110/120 (punch is play-path).
-         * People/pig walk dirs must not fill the 96-slot table first — Ethel's
-         * house + oldman + duck hit unique 96 and skipped seq 117/123.
-         * Pig pen: walk frame 1 only (play-path ensure); all-frames skipped
-         * the pigs on first enter. */
+        /* Combat pixels first on die screens: 164, then duck 110/120.
+         * Do not prepend leftover sticky 164 onto a non-die screen (start
+         * house unique already fills the table). Keep those pixels live=0. */
         if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
-            (screen_wants_die(sp, vision) ||
-             edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
+            screen_wants_die(sp, vision)) {
             int nfr, f2;
 
             need_push(need_s, need_f, &nneed, 164, 1);
@@ -405,7 +436,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
         }
         /* Blood pack is ~28 KB. Queue frame 1 with combat pixels so Ethel /
-         * pig-pen occupancy cannot drop it off the 96-slot need list. */
+         * pig-pen occupancy cannot drop it off the need list. */
         if (screen_wants_die(sp, vision)) {
             int bseq;
 
@@ -445,28 +476,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
-        /* Type-1 still sprites (barrels seq 173): remaining frames after
-         * walk frame 1s so Ethel oldman still opens the people pack. */
-        for (i = 1; i <= 100; i++) {
-            int seq, nfr, f2, br;
-
-            if ((int)sp[i].type != 1 ||
-                !editor_sprite_on_vision(&sp[i], vision)) {
-                continue;
-            }
-            br = (int)sp[i].brain;
-            if (br != 0) {
-                continue;
-            }
-            seq = (int)sp[i].seq;
-            if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
-                continue;
-            }
-            nfr = ini_seq_len(seq, seqs[seq].nframes);
-            for (f2 = 2; f2 <= nfr; f2++) {
-                need_push(need_s, need_f, &nneed, seq, f2);
-            }
-        }
         old = *n;
         if (old < 0) {
             old = 0;
@@ -474,11 +483,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         if (old > DINK_EDGFX_MAX) {
             old = DINK_EDGFX_MAX;
         }
-        /* Free unused pixels. Pinned dir.ff still supplies other frames
-         * without /cd. Keeping 96 decoded frames OOMs the 16 MB heap. */
+        /* Free unused Screen pixels. Sticky 164 stays (live=0) so explode
+         * does not reopen magic/dir.ff. Byte cap is cpu_pixels, not slots. */
         i = 0;
         while (i < old) {
             int keep = 0;
+            int sticky = residency_is_sticky_seq(g[i].seq);
 
             for (k = 0; k < nneed; k++) {
                 if (g[i].seq == need_s[k] && g[i].frame == need_f[k]) {
@@ -486,8 +496,11 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     break;
                 }
             }
-            g[i].live = keep;
             if (keep) {
+                g[i].live = 1;
+                i++;
+            } else if (sticky) {
+                g[i].live = 0;
                 i++;
             } else {
                 sprite_frame_free(&g[i].fr);
@@ -502,7 +515,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         }
         got = old;
         for (k = 0; k < nneed; k++) {
-            (void)load_one(g, &got, seqs, need_s[k], need_f[k]);
+            (void)load_one(g, &got, seqs, need_s[k], need_f[k], 0);
         }
         /* After frame 1 decode, seq.nframes is known. Duck death before
          * people/fireplace leftover fills. */
@@ -546,7 +559,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 /* Same as people: frame 1 opens the pack. Play-path ensure. */
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    (void)load_one(g, &got, seqs, ws[w], 1);
+                    (void)load_one(g, &got, seqs, ws[w], 1, 0);
                 }
             }
             if (br == 16) {
@@ -554,14 +567,14 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 
                 walk_seqs_for_brain(16, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    (void)load_one(g, &got, seqs, ws[w], 1);
+                    (void)load_one(g, &got, seqs, ws[w], 1, 0);
                 }
             }
         }
-        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
-            (screen_wants_die(sp, vision) ||
-             edraw_find(g, got, 164, 1) != NULL)) {
-            load_seq_frames(g, &got, seqs, 164);
+        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0') {
+            if (screen_wants_die(sp, vision)) {
+                load_seq_frames(g, &got, seqs, 164);
+            }
             if (seq_complete(g, got, seqs, 164)) {
                 drop_seq_pack(seqs, 164);
             }
@@ -604,32 +617,40 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         }
         return -1;
     }
-    if (got >= DINK_EDGFX_MAX) {
-        if (evict_slot(g, &got, seqs, seq) != 0) {
-            static uint8_t full_noted[DINK_MAX_SEQ];
-
-            if (full_noted[seq] == 0) {
-                full_noted[seq] = 1;
-                printf("edraw full skip seq=%d fr=%d\n", seq, frame);
-            }
-            *n = got;
-            return -1;
-        }
-    }
     {
-        int rc = load_one(g, &got, seqs, seq, frame);
+        int waited = 0;
 
-        /* Evict only for slot-full (above) or cpu_pixels refuse, not a
-         * decode miss — that would eat Screen pixels every tick. */
-        if (rc == -2) {
-            if (evict_slot(g, &got, seqs, seq) != 0 ||
-                load_one(g, &got, seqs, seq, frame) != 0) {
+        if (got >= DINK_EDGFX_MAX) {
+            if (evict_slot(g, &got, seqs, seq, 1) != 0) {
+                static uint8_t full_noted[DINK_MAX_SEQ];
+
+                if (full_noted[seq] == 0) {
+                    full_noted[seq] = 1;
+                    printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+                }
                 *n = got;
                 return -1;
             }
-        } else if (rc != 0) {
-            *n = got;
-            return -1;
+            waited = 1;
+        }
+        {
+            int rc, tries = 0;
+
+            for (;;) {
+                rc = load_one(g, &got, seqs, seq, frame, 1);
+                if (rc == 0) {
+                    break;
+                }
+                /* One victim can be smaller than the new frame. Keep evicting
+                 * Screen until it fits or none remain. */
+                if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
+                    evict_slot(g, &got, seqs, seq, waited ? 0 : 1) == 0) {
+                    waited = 1;
+                    continue;
+                }
+                *n = got;
+                return -1;
+            }
         }
     }
 #ifdef _arch_dreamcast
@@ -666,7 +687,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     if (got < 0) {
         got = 0;
     }
-    (void)load_one(g, &got, seqs, seq, frame);
+    (void)load_one(g, &got, seqs, seq, frame, 1);
     *n = got;
 }
 

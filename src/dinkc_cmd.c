@@ -426,6 +426,7 @@ static void pin_seq(int seq)
     if (prefix_dir_ff(g_seqs[seq].prefix, dir, sizeof(dir)) != 0) {
         return;
     }
+    /* Open the pack even if EdGfx is full (play-path must not fopen). */
     if (ff_cached(dir, &ff) != 0) {
         return;
     }

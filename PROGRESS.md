@@ -261,3 +261,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (16.3 source) | **~90%** | Status bar from official BMPs (`draw_status_all`). Digit atlas 128 KB. Hold X fills `&magic_level`. L is `ACTION_MAP` / `button6.c`. V6 waiting on Flycast/hardware. |
 | 2026-08-21 (V6 accepted) | **~90%** | Inventory + HUD accepted. Next picture column empty. DinkC coverage is the pole. |
 | 2026-08-21 (playtest graft) | **~90%** | `editor_type` 1 is re-enter only (`scale_brain` shrink). `draw_damage` / `random_blood`. Barrel smash frames. Pig/pill/dragon walk **frame 1** on enter (`need_push` + post-decode). Blood 187–189 with combat pixels. `inside_box`. `g_spmap_seq` is int16 (~155 KB BSS). |
+| 2026-08-21 (occupancy graft) | **~90%** | Enter-path opens `dir.ff` even when `EdGfx` is full. Sticky 164 not prepended on non-die screens. Slot bound 128 under `cpu_pixels`. |
