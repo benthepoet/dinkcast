@@ -4,6 +4,7 @@
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "residency.h"
 #include "start_map.h"
 #include "world.h"
 
@@ -393,6 +394,72 @@ int main(void)
             edraw_free(g, n);
             free(seqs);
             return 1;
+        }
+        {
+            int s, n2, nfill = n;
+            char dir[160];
+
+            for (s = 1; s < DINK_MAX_SEQ && nfill < DINK_EDGFX_MAX; s++) {
+                if (seqs[s].prefix[0] == '\0' || residency_is_sticky_seq(s) ||
+                    s == 63) {
+                    continue;
+                }
+                if (strstr(seqs[s].prefix, "oldman") != NULL) {
+                    continue;
+                }
+                seq_dir(&seqs[s], dir, sizeof(dir));
+                if (dir[0] != '\0' && residency_is_always(dir)) {
+                    continue;
+                }
+                edraw_load_seq(g, &nfill, seqs, s);
+            }
+            n = nfill;
+            if (n >= DINK_EDGFX_MAX) {
+                if (seqs[231].prefix[0] == '\0' ||
+                    edraw_find(g, n, 231, 2) != NULL) {
+                    fprintf(stderr, "FAIL 14.4c oldman fr2 already in table\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                seq_dir(&seqs[231], dir, sizeof(dir));
+                if (dir[0] == '\0' || !ff_is_cached(dir)) {
+                    fprintf(stderr, "FAIL 14.4c oldman pack not cached\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                n2 = n;
+                if (edraw_ensure_frame(g, &n2, seqs, 231, 2) != 0 ||
+                    edraw_find(g, n2, 231, 2) == NULL) {
+                    fprintf(stderr, "FAIL 14.4c ensure screen class after full\n");
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                if (seqs[164].prefix[0] != '\0' &&
+                    edraw_find(g, n2, 164, 1) == NULL) {
+                    fprintf(stderr, "FAIL 14.4c evicted sticky 164\n");
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                if (seqs[117].prefix[0] != '\0' &&
+                    edraw_find(g, n2, 117, 1) == NULL) {
+                    fprintf(stderr, "FAIL 14.4c lost duck death 117\n");
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                if (seqs[123].prefix[0] != '\0' &&
+                    edraw_find(g, n2, 123, 1) == NULL) {
+                    fprintf(stderr, "FAIL 14.4c lost flying-head 123\n");
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                n = n2;
+            }
         }
     }
     printf("edraw unique %d actives %d\n", n, act);
