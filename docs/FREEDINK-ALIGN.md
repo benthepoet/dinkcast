@@ -70,7 +70,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Font atlas | TTF LiberationSans | embedded IBM VGA 8x8 | hold (13.1); no stock BMP in official data |
 | Say box | `say_text` / `text_brain` / `text_draw` | `saybox_*` | hold (13.2); x-75 y-100 wrap 150; `print_text_wrap` hcenter; follow owner; `font_colors` 1–15 |
 | Choice menu | `game_choice` / `game_choice_renderer` | seq 30 frames 2–4 + hcenter 184–463 + arrows 456/457 | hold (13.3); D-pad + A; `&result` official # |
-| Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; `parm_seq` wait; **14.3 leak check deferred until 14.4c** |
+| Screen edge + warp + `screenlock` | `did_player_cross_screen`, `special_block` | hold (14.1–14.2); no fade / screenlock; `parm_seq` wait; **14.3** 20-crossing `mem_log` / `swap_ms` (this PR) |
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
 | Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE **15.2** |
 | Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); skip active editor; keep MAIN creates |
