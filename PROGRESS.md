@@ -123,7 +123,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Distill used frames from every nonempty campaign screen | #86 |
 | 2026-08-21 | Defer per-frame `dir.ff` reads to **14.6** (after 16 / full campaign) | #87 |
 | 2026-08-21 | Duck death seqs 117/123 before people walks (Ethel house 96-slot) | #88 |
-| 2026-08-21 | Name **14.4c** pixel class eviction (not seq-id `EdGfx` victims) | this PR |
+| 2026-08-21 | Name **14.4c** pixel class eviction (not seq-id `EdGfx` victims) | #89 |
+| 2026-08-21 | **14.4c** Always/Screen/Sticky `EdGfx` victims; `cpu_pixels` cap | this PR |
 
 ## Bites
 
@@ -166,14 +167,14 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
-| 14.3 | Leak check 20 crossings | pending | after **14.4c** (pack policy + distill are not enough while pixel victims are seq ids) |
-| 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev packs #82. **14.4c** pixels still pending (row below). 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
-| 14.4c | Pixel working set | pending | Always/Screen/Sticky `EdGfx` victims (not Prev — packs only; not LRU). `cpu_pixels` bytes not 96 slots. Requester go; before **14.3**. Distill/14.6 do not skip this |
+| 14.3 | Leak check 20 crossings | pending | after **14.4c** |
+| 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** packs #82. **14.4c** pixels this PR |
+| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Flycast punch still the human check |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
-| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims still seq-id until **14.4c** |
-| 15.3–15.4 | Weapons / magic | pending | after **14.4c** (14.5 disc is not enough while seq-id pixel victims are live). 15.2 already landed. **14.6** is not this gate |
+| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims Always/Screen/Sticky (**14.4c**) |
+| 15.3–15.4 | Weapons / magic | pending | after **14.4c**. 15.2 already landed. **14.6** is not this gate |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
@@ -200,8 +201,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4c** pixel classes before 14.3 leak check; 15.3 after **14.4c** (14.5 disc is not enough) |
-| **Hardest remaining** | Weapons / magic / inventory **and** main-RAM residency | **14.4c** pixels then 15.3 then 16 |
+| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4c** host this PR. **14.3** leak check when requester go; 15.3 after 14.4c |
+| **Hardest remaining** | Weapons / magic / inventory **and** 20-crossing leak | **14.3** then 15.3 then 16 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -247,4 +248,5 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (14.5 campaign distill) | **~90%** | Distill + catalog campaign scan use every nonempty `map.dat` screen (~644). Village-only used-frame union is not the disc policy. |
 | 2026-08-21 (14.6 deferred) | **~90%** | Per-frame `dir.ff` TOC/offset reads wait until base (through 16) and a human full-campaign go. Not the next 14.5 patch. |
 | 2026-08-21 (ethel duck full skip) | **~90%** | Killing the returned duck in Ethel’s house (map 2 vis 1) printed `edraw full skip` seq 117/123 every tick: oldman walk frames filled the 96-slot table before duck death. Combat 110/120 first; people walks frame 1 + `ensure_frame`. Seq-id `EdGfx` eviction (`110..129`, `>= 200`) is a stopgap — **14.4c**. |
-| 2026-08-21 (14.4c named) | **~90%** | 14.4b is packs (Always/Screen/Prev). Pixel working set is Always/Screen/Sticky class eviction (not LRU, not Prev), `cpu_pixels` bytes not 96 slots — **14.4c**, before 14.3, requester go. Distill/14.6 do not skip it. |
+| 2026-08-21 (14.4c named) | **~90%** | 14.4b is packs (Always/Screen/Prev). Pixel working set is Always/Screen/Sticky class eviction (not LRU, not Prev), `cpu_pixels` bytes not 96 slots — **14.4c**, before 14.3. Distill/14.6 do not skip it. |
+| 2026-08-21 (14.4c source) | **~90%** | Play-path `ensure_frame` evicts Screen (prefer unused, cached pack), never Always/Sticky, never seq-id ranges. `mem refuse pool=cpu_pixels`. Created people walk frame 1 only. Host Ethel 117/123 + full-table ensure. |

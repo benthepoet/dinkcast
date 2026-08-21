@@ -81,11 +81,22 @@ static void spr_restore(const char *tag)
 
 static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
 {
-    int i, seq, bw, d;
+    int i, seq, bw, d, br, k;
     static const int walkd[4] = {1, 3, 7, 9};
+    static const int duckd[6] = {1, 3, 4, 6, 7, 9};
 
     if (seqs == NULL || ned == NULL || g_edg == NULL) {
         return;
+    }
+    /* Combat death pixels first (same class order as edraw_load_screen). */
+    for (i = 2; i <= 99; i++) {
+        if (!brains_slot_created(i) || brains_slot_brain(i) != 3) {
+            continue;
+        }
+        for (k = 0; k < 6; k++) {
+            edraw_load_seq(g_edg, ned, seqs, 110 + duckd[k]);
+            edraw_load_seq(g_edg, ned, seqs, 120 + duckd[k]);
+        }
     }
     for (i = 2; i <= 99; i++) {
         if (!brains_slot_created(i)) {
@@ -95,19 +106,22 @@ static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
         if (seq > 0) {
             edraw_load_seq(g_edg, ned, seqs, seq);
         }
+        br = brains_slot_brain(i);
         bw = brains_slot_base_walk(i);
-        if (bw > 0) {
+        if (bw <= 0) {
+            continue;
+        }
+        if (br == 3) {
+            for (k = 0; k < 6; k++) {
+                edraw_load_seq(g_edg, ned, seqs, bw + duckd[k]);
+            }
+        } else if (br == 4 || br == 9 || br == 10) {
             for (d = 0; d < 4; d++) {
                 edraw_load_seq(g_edg, ned, seqs, bw + walkd[d]);
             }
-        }
-        if (brains_slot_brain(i) == 3) {
-            static const int duckd[6] = {1, 3, 4, 6, 7, 9};
-            int k;
-
-            for (k = 0; k < 6; k++) {
-                edraw_load_seq(g_edg, ned, seqs, 110 + duckd[k]);
-                edraw_load_seq(g_edg, ned, seqs, 120 + duckd[k]);
+        } else {
+            for (d = 0; d < 4; d++) {
+                edraw_load_frame(g_edg, ned, seqs, bw + walkd[d], 1);
             }
         }
     }

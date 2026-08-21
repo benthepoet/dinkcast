@@ -170,6 +170,7 @@ check:
 	$(PYTHON) tests/test_main_dc_path.py
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_pack_catalog.py
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
+	$(PYTHON) tests/test_edraw_policy.py
 
 # Optional: needs DINK_DATA (env or local.mk). Not part of `make host`.
 data-check:
