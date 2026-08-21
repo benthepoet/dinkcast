@@ -43,7 +43,8 @@ int residency_is_always(const char *rel)
     return 0;
 }
 
-static int g_open;
+static int g_open; /* stays set after first swap_begin so tiles after
+                    * edraw swap_end still mem-refuse over file_blob cap */
 
 int residency_is_sticky_seq(int seq)
 {
@@ -91,33 +92,34 @@ void residency_swap_begin(void)
 
 void residency_swap_end(void)
 {
+    char key[DINK_FS_PATH_MAX];
     const char *rel;
     size_t n;
-    int i, cls, age;
-    char drop[64][DINK_FS_PATH_MAX];
-    int ndrop = 0;
+    int i, cls, age, found;
 
-    for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
-        if (residency_is_always(rel)) {
-            continue;
-        }
-        dink_blob_get_cls(rel, &cls, &age);
-        if (cls == RES_SCREEN || (cls == RES_PREV && !age)) {
-            continue;
-        }
-        if (age && cls != RES_SCREEN) {
-            if (ndrop < 64) {
-                snprintf(drop[ndrop], sizeof(drop[ndrop]), "%s", rel);
-                ndrop++;
+    do {
+        found = 0;
+        key[0] = '\0';
+        for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
+            if (residency_is_always(rel)) {
+                continue;
+            }
+            dink_blob_get_cls(rel, &cls, &age);
+            if (cls == RES_SCREEN || (cls == RES_PREV && !age)) {
+                continue;
+            }
+            if (age && cls != RES_SCREEN) {
+                snprintf(key, sizeof(key), "%s", rel);
+                found = 1;
+                break;
             }
         }
-    }
-    for (i = 0; i < ndrop; i++) {
-        printf("residency drop %s\n", drop[i]);
-        ff_cache_release(drop[i]);
-        dink_blob_try_drop(drop[i]);
-    }
-    g_open = 0;
+        if (found) {
+            printf("residency drop %s\n", key);
+            ff_cache_release(key);
+            dink_blob_try_drop(key);
+        }
+    } while (found);
 }
 
 static size_t sum_cls(int want, int age_prev_only)
