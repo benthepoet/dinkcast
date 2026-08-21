@@ -14,6 +14,7 @@ SCRIPT = ROOT / "tools" / "pack_catalog.py"
 
 def main() -> int:
     env = os.environ.copy()
+    env.pop("DINK_DISTILL", None)
     if not env.get("DINK_DATA", "").strip():
         print("SKIP test_pack_catalog: DINK_DATA unset")
         return 0

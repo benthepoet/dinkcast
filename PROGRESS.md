@@ -117,7 +117,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | One Adversarial reviewer (Dreamcast); drop spec/mem/perf/flaws agents | #80 |
 | 2026-08-21 | **14.4a** host catalog + `mem_log`; size-pin unchanged; 164 drop stays | #81 |
 | 2026-08-21 | **14.4b** Always/Screen/Prev; retire size-pin; sticky 164 pack drop | #82 |
-| 2026-08-21 | Reopen-hang never confirmed; treat as KOS #1492 sector-pad | this PR |
+| 2026-08-21 | Reopen-hang never confirmed; treat as KOS #1492 sector-pad | #83 |
+| 2026-08-21 | **14.5** subset dir.ff of used 8-bit BMPs; CDI/DINK_DISTILL overlay | this PR |
 
 ## Bites
 
@@ -162,7 +163,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev #82. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
-| 14.5 | Distill frames (gated) | pending | only if 14.4a prints `14.5: needed` |
+| 14.5 | Distill frames (gated) | source | subset `dir.ff` of used 8-bit BMPs; `DINK_DISTILL` / CDI stage; this PR. Undistilled catalog still prints `14.5: needed` for whole packs |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
 | 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 done**; 15.2 already landed |
@@ -234,3 +235,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (die pack OOM) | **~90%** | After the duck kill, walking to the pig pen hit `Out of memory` 200704 (`swap atlas fail`) then seq 63 425984. House mom hp had pinned `magic/dir.ff` (~600 KB) for the session. Decode 164 into EdGfx and drop the pack; people hp is not a die preload. |
 | 2026-08-21 (14.4b policy) | **~90%** | Size-pin retired. Always named list + Screen + one Prev. Sticky 164 still drops the pack after frames complete. 14.4a already printed `14.5: needed`; this bite does not claim the opening-village `file_blob` peak is under 4.5 MB. |
 | 2026-08-21 (reopen hang unconfirmed) | **~90%** | “Third `trees/dir.ff` reopen hang” was never confirmed. Hangs match KOS #1492 (non-2048 sizes); sector-pad retired that class in Flycast. 14.4b Prev is RAM, not hang insurance. 14.5 stays gated on catalog over-cap. |
+| 2026-08-21 (14.5 distill) | **~90%** | Subset `dir.ff` of used 8-bit BMPs. Distilled village `file_blob` peak under 4.5 MB. `DINK_DATA` unchanged. Catalog without overlay still prints whole-pack `14.5: needed`. |

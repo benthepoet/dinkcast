@@ -22,6 +22,7 @@
 #endif
 
 static char g_root[DINK_FS_PATH_MAX];
+static char g_distill[DINK_FS_PATH_MAX];
 static const char *g_pc = "/pc/dink";
 static const char *g_cd = "/cd/dink";
 static const char *g_fallback = DINK_DATA_DEFAULT;
@@ -129,6 +130,14 @@ int dink_fs_init(void)
     char *slash;
 
     g_root[0] = '\0';
+    g_distill[0] = '\0';
+    {
+        const char *dist = getenv("DINK_DISTILL");
+
+        if (dist != NULL && dist[0] != '\0' && dink_fs_exists_dir(dist)) {
+            snprintf(g_distill, sizeof(g_distill), "%s", dist);
+        }
+    }
     dink_blob_clear();
     if (dink_fs_try_root(g_pc) == 0 || dink_fs_try_root("/pc/DINK") == 0) {
         return 0;
@@ -300,41 +309,55 @@ static void cd_lock(void) {}
 static void cd_unlock(void) {}
 #endif
 
-FILE *dink_fopen(const char *rel, const char *mode)
+static FILE *fopen_under(const char *root, const char *rel, const char *mode)
 {
     char cur[DINK_FS_PATH_MAX];
     char next[DINK_FS_PATH_MAX];
     char relnorm[DINK_FS_PATH_MAX];
     char *save = NULL;
     char *tok;
-    FILE *fp;
 
-    if (g_root[0] == '\0' || rel == NULL || mode == NULL) {
+    if (root == NULL || root[0] == '\0' || rel == NULL || mode == NULL) {
         return NULL;
     }
     snprintf(relnorm, sizeof(relnorm), "%s", rel);
     slashes(relnorm);
-    snprintf(cur, sizeof(cur), "%s", g_root);
+    snprintf(cur, sizeof(cur), "%s", root);
 
     tok = strtok_r(relnorm, "/", &save);
     if (tok == NULL) {
         return NULL;
     }
-    cd_lock();
     do {
         if (strcmp(tok, "..") == 0 || strcmp(tok, ".") == 0) {
-            cd_unlock();
             return NULL;
         }
         if (resolve_comp(cur, tok, next, sizeof(next)) != 0) {
-            cd_unlock();
             return NULL;
         }
         memcpy(cur, next, strlen(next) + 1);
         tok = strtok_r(NULL, "/", &save);
     } while (tok != NULL);
 
-    fp = fopen(cur, mode);
+    return fopen(cur, mode);
+}
+
+FILE *dink_fopen(const char *rel, const char *mode)
+{
+    FILE *fp;
+
+    if (g_root[0] == '\0' || rel == NULL || mode == NULL) {
+        return NULL;
+    }
+    cd_lock();
+    if (g_distill[0] != '\0') {
+        fp = fopen_under(g_distill, rel, mode);
+        if (fp != NULL) {
+            cd_unlock();
+            return fp;
+        }
+    }
+    fp = fopen_under(g_root, rel, mode);
     cd_unlock();
     return fp;
 }

@@ -28,6 +28,11 @@ ALWAYS_SEQ += [30, 456, 457]
 
 
 def find_ci(root: Path, rel: str) -> Path | None:
+    dist = os.environ.get("DINK_DISTILL", "").strip()
+    if dist and root.resolve() != Path(dist).resolve():
+        hit = find_ci(Path(dist), rel)
+        if hit is not None:
+            return hit
     cur = root
     for part in rel.replace("\\", "/").split("/"):
         if part == "":
@@ -231,14 +236,14 @@ def ff_entries(data: bytes) -> list[tuple[str, int]]:
     return ents
 
 
-def pack_frame_pots(root: Path, prefix: str, cache: dict) -> list[int]:
+def pack_named_pots(root: Path, prefix: str, cache: dict) -> dict[str, int]:
     rel = pack_rel(prefix)
     key = rel.lower()
     if key not in cache:
         path = find_ci(root, rel)
         cache[key] = path.read_bytes() if path is not None else b""
     data = cache[key]
-    pots: list[int] = []
+    pots: dict[str, int] = {}
     if data:
         ents = ff_entries(data)
         for i, (name, eoff) in enumerate(ents):
@@ -247,7 +252,7 @@ def pack_frame_pots(root: Path, prefix: str, cache: dict) -> list[int]:
                 continue
             wh = bmp_wh(data[eoff:end])
             if wh:
-                pots.append(pot1555(wh[0], wh[1]))
+                pots[name.lower()] = pot1555(wh[0], wh[1])
         return pots
     for fr in range(1, 50):
         bp = find_ci(root, loose_bmp_rel(prefix, fr))
@@ -255,8 +260,14 @@ def pack_frame_pots(root: Path, prefix: str, cache: dict) -> list[int]:
             break
         wh = bmp_wh(bp.read_bytes())
         if wh:
-            pots.append(pot1555(wh[0], wh[1]))
+            pots[Path(loose_bmp_rel(prefix, fr)).name.lower()] = pot1555(
+                wh[0], wh[1]
+            )
     return pots
+
+
+def pack_frame_pots(root: Path, prefix: str, cache: dict) -> list[int]:
+    return list(pack_named_pots(root, prefix, cache).values())
 
 
 def seq_pack_bytes(root: Path, prefix: str, cache: dict) -> tuple[str, int]:
@@ -288,36 +299,72 @@ def walk_seqs(seqs: dict[int, str], base: int) -> set[int]:
     return out
 
 
-def screen_seqs(
+def bmp_stem(prefix: str) -> str:
+    p = prefix.replace("\\", "/")
+    slash = p.rfind("/")
+    return p[slash + 1 :] if slash >= 0 else p
+
+
+def frame_bmp_name(prefix: str, frame: int) -> str:
+    stem = bmp_stem(prefix)
+    return f"{stem}0{frame}.bmp" if frame < 10 else f"{stem}{frame}.bmp"
+
+
+def screen_need(
     sprites: list[dict], script: str, root: Path, seqs: dict[int, str], vision: int
-) -> set[int]:
-    need: set[int] = set()
+) -> dict[int, set[int] | None]:
+    """seq -> frames, or None = every frame of that seq (walk / anim / script)."""
+    frames: dict[int, set[int] | None] = {}
+
+    def add(seq: int, frs: set[int] | None) -> None:
+        if seq not in seqs:
+            return
+        if frs is None:
+            frames[seq] = None
+            return
+        cur = frames.get(seq)
+        if cur is None and seq in frames:
+            return
+        if cur is None:
+            frames[seq] = set(frs)
+        else:
+            cur.update(frs)
+
     names = [script]
     for sp in sprites:
         if not sp["active"]:
             continue
         if sp["vision"] not in (0, vision):
             continue
-        if sp["type"] != 2 and sp["seq"] > 0:
-            need.add(sp["seq"])
-        if sp["parm_seq"] > 0:
-            need.add(sp["parm_seq"])
-        need |= walk_seqs(seqs, sp["base_walk"])
-        if sp["base_die"] > 0:
-            need.add(sp["base_die"])
         br = sp["brain"]
+        if sp["type"] != 2 and sp["seq"] > 0:
+            if br in (5, 6, 7):
+                add(sp["seq"], None)
+            else:
+                add(sp["seq"], {sp["frame"]})
+        if sp["parm_seq"] > 0:
+            add(sp["parm_seq"], None)
+        for s in walk_seqs(seqs, sp["base_walk"]):
+            add(s, None)
+        if sp["base_die"] > 0:
+            add(sp["base_die"], None)
         if br in (3, 4, 9, 10):
-            need.add(164)
+            add(164, None)
         if br == 3:
-            need |= walk_seqs(seqs, 110)
-            need |= walk_seqs(seqs, 120)
+            for s in walk_seqs(seqs, 110) | walk_seqs(seqs, 120):
+                add(s, None)
         if sp["script"]:
             names.append(sp["script"])
-    # Facings only from editor base_walk and sp_base_walk (in script_seqs).
-    # Do not decade-walk preload_seq / create_sprite ids (422 is paper, not base 420).
     for nm in names:
-        need |= script_seqs(root, nm)
-    return {s for s in need if s in seqs}
+        for s in script_seqs(root, nm):
+            add(s, None)
+    return frames
+
+
+def screen_seqs(
+    sprites: list[dict], script: str, root: Path, seqs: dict[int, str], vision: int
+) -> set[int]:
+    return set(screen_need(sprites, script, root, seqs, vision).keys())
 
 
 def sheet_info(root: Path, sheet0: int) -> tuple[int, int]:
@@ -365,19 +412,33 @@ def catalog_screen(
     if raw is None:
         return {"error": f"no map rec for {player_map}"}
     sprites, script, sheets = parse_screen(raw)
-    need = screen_seqs(sprites, script, root, seqs, vision)
+    need = screen_need(sprites, script, root, seqs, vision)
     packs: dict[str, int] = {}
     cpu = 0
     seq_rows = []
-    counted_pots: set[str] = set()
+    counted_bmp: set[tuple[str, str]] = set()
     for s in sorted(need):
         rel, nbytes = seq_pack_bytes(root, seqs[s], cache)
         packs[rel] = nbytes
-        pots = pack_frame_pots(root, seqs[s], cache)
-        if rel not in counted_pots:
-            cpu += sum(pots)
-            counted_pots.add(rel)
-        seq_rows.append((s, rel, nbytes, len(pots), sum(pots)))
+        named = pack_named_pots(root, seqs[s], cache)
+        frs = need[s]
+        if frs is None:
+            stem = bmp_stem(seqs[s]).lower()
+            names = [n for n in named if n.startswith(stem)]
+        else:
+            names = [frame_bmp_name(seqs[s], fr).lower() for fr in sorted(frs)]
+        pot_sum = 0
+        nfr = 0
+        for name in names:
+            if name not in named:
+                continue
+            nfr += 1
+            key = (rel, name)
+            if key not in counted_bmp:
+                cpu += named[name]
+                counted_bmp.add(key)
+            pot_sum += named[name]
+        seq_rows.append((s, rel, nbytes, nfr, pot_sum))
     ts_blob = 0
     ts_rgb = 0
     ts_list = []

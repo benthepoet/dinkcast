@@ -47,6 +47,7 @@ tests/test_player: tests/test_player.c src/player.c src/hurt.c src/hard.c src/pa
 tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
 	DINK_DATA="$(DINK_DATA)" ./$@
+	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
 
 tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
@@ -168,6 +169,7 @@ check:
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_pack_catalog.py
+	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
 
 # Optional: needs DINK_DATA (env or local.mk). Not part of `make host`.
 data-check:
@@ -199,6 +201,7 @@ docker-dc:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh make dc
 
 docker-cdi:
+	DINK_DATA="$(DINK_DATA)" $(PYTHON) tools/distill_frames.py --out build/distill
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
 	$(MAKE) chd
 
