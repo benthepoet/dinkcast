@@ -55,9 +55,12 @@ file position). Our Docker KOS image (`15.2.1-dev-08feb26`) includes it.
   sector** (≈338 for `struct/home/dir.ff`), each a blocking timeout-less
   `sem_wait(&dma_done)` — hundreds of chances for a stuck completion in
   the emulator.
-- Cached repeats never touch the drive (open-once policy) → run 1's full
-  village loop held. Only first-opens are exposed, and which file dies
-  depends on alignment + IRQ timing → different victim per boot.
+- Cached repeats never touch the drive (open-once while the blob lives)
+  → run 1's full village loop held. Only first-opens of unpadded files
+  are exposed, and which file dies depends on alignment + IRQ timing →
+  different victim per boot. A later “third `trees/dir.ff` reopen hang”
+  was **never isolated** from this class; treat it as #1492 on unpadded
+  sizes, not as a remaining “reopen is unsafe” bug.
 
 ## Aggravants in our tree
 
