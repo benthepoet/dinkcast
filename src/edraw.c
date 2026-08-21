@@ -172,6 +172,25 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
     snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
 }
 
+static int die_seq_complete(struct EdGfx *g, int n, struct SeqInfo *seqs)
+{
+    int nfr, f;
+
+    if (g == NULL || seqs == NULL || seqs[164].prefix[0] == '\0') {
+        return 0;
+    }
+    nfr = ini_seq_len(164, seqs[164].nframes);
+    if (nfr < 1) {
+        return 0;
+    }
+    for (f = 1; f <= nfr; f++) {
+        if (edraw_find(g, n, 164, f) == NULL) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void drop_die_pack(const struct SeqInfo *seqs)
 {
     char dir[160];
@@ -207,6 +226,19 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
+        /* Reserve 164 first so a full sprite list cannot starve explode
+         * frames, then drop the 600 KB pack. */
+        if (seqs[164].prefix[0] != '\0' &&
+            (screen_wants_die(sp, vision) ||
+             edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
+            int nfr, f2;
+
+            need_push(need_s, need_f, &nneed, 164, 1);
+            nfr = ini_seq_len(164, seqs[164].nframes);
+            for (f2 = 2; f2 <= nfr; f2++) {
+                need_push(need_s, need_f, &nneed, 164, f2);
+            }
+        }
         for (i = 1; i <= 100; i++) {
             int seq, fr;
 
@@ -261,20 +293,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                         }
                     }
                 }
-            }
-        }
-        /* Seq 164: decode frames into EdGfx then drop the ~600 KB pack.
-         * Keep already-decoded frames across swaps so kill-path explode
-         * does not reopen magic/dir.ff. */
-        if (seqs[164].prefix[0] != '\0' &&
-            (screen_wants_die(sp, vision) ||
-             edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
-            int nfr, f2;
-
-            need_push(need_s, need_f, &nneed, 164, 1);
-            nfr = ini_seq_len(164, seqs[164].nframes);
-            for (f2 = 2; f2 <= nfr; f2++) {
-                need_push(need_s, need_f, &nneed, 164, f2);
             }
         }
         old = *n;
@@ -370,7 +388,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             (screen_wants_die(sp, vision) ||
              edraw_find(g, got, 164, 1) != NULL)) {
             load_seq_frames(g, &got, seqs, 164);
-            if (edraw_find(g, got, 164, 1) != NULL) {
+            if (die_seq_complete(g, got, seqs)) {
                 drop_die_pack(seqs);
             }
         }

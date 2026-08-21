@@ -184,10 +184,11 @@ void ff_cache_release(const char *rel)
             g_slot[i].rel[0] = '\0';
             g_slot[i].pin = 0;
             g_slot[i].tick = 0;
-            break;
+            /* Drop the blob only after this slot no longer borrows it. */
+            dink_blob_try_drop(rel);
+            return;
         }
     }
-    dink_blob_try_drop(rel);
 }
 
 int ff_is_cached(const char *rel)

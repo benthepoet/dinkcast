@@ -11,6 +11,40 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void seq_dir(const struct SeqInfo *seq, char *dir, size_t n)
+{
+    const char *sl;
+
+    dir[0] = '\0';
+    if (seq == NULL || seq->prefix[0] == '\0' || n < 8) {
+        return;
+    }
+    sl = strrchr(seq->prefix, '/');
+    if (sl == NULL) {
+        return;
+    }
+    snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
+}
+
+static int die_frames_ok(struct EdGfx *g, int n, struct SeqInfo *seqs)
+{
+    int nfr, f;
+
+    if (seqs[164].prefix[0] == '\0') {
+        return 1;
+    }
+    nfr = ini_seq_len(164, seqs[164].nframes);
+    if (nfr < 2) {
+        return 0;
+    }
+    for (f = 1; f <= nfr; f++) {
+        if (edraw_find(g, n, 164, f) == NULL) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int main(void)
 {
     struct World w;
@@ -103,13 +137,8 @@ int main(void)
     }
     {
         char dir[160];
-        const char *sl = strrchr(seqs[164].prefix, '/');
 
-        dir[0] = '\0';
-        if (sl != NULL) {
-            snprintf(dir, sizeof(dir), "%.*s/dir.ff",
-                     (int)(sl - seqs[164].prefix), seqs[164].prefix);
-        }
+        seq_dir(&seqs[164], dir, sizeof(dir));
         if (dir[0] != '\0' && ff_is_cached(dir)) {
             fprintf(stderr, "FAIL house pinned %s\n", dir);
             edraw_free(g, n);
@@ -186,73 +215,105 @@ int main(void)
             return 1;
         }
         {
-            struct EdGfx *pg = edraw_gfx_alloc();
-            int pn = 0;
+            char dir[160];
+            int loads1, loads2, nfr;
 
-            if (pg == NULL ||
-                edraw_load_screen(pig.sprite, seqs, pg, &pn, 0) != 0) {
+            seq_dir(&seqs[164], dir, sizeof(dir));
+            if (edraw_load_screen(pig.sprite, seqs, g, &n, 0) != 0) {
                 fprintf(stderr, "FAIL pig edraw\n");
-                edraw_gfx_release(pg);
                 edraw_free(g, n);
                 free(seqs);
                 return 1;
             }
+            nfr = ini_seq_len(164, seqs[164].nframes);
             if (seqs[164].prefix[0] != '\0' &&
-                edraw_find(pg, pn, 164, 1) == NULL) {
-                fprintf(stderr, "FAIL pig no seq 164 preload\n");
-                edraw_gfx_release(pg);
+                (!die_frames_ok(g, n, seqs) || nfr < 2)) {
+                fprintf(stderr, "FAIL pig seq 164 incomplete nfr=%d\n", nfr);
                 edraw_free(g, n);
                 free(seqs);
                 return 1;
             }
-            {
-                char dir[160];
-                const char *sl = strrchr(seqs[164].prefix, '/');
-
-                dir[0] = '\0';
-                if (sl != NULL) {
-                    snprintf(dir, sizeof(dir), "%.*s/dir.ff",
-                             (int)(sl - seqs[164].prefix), seqs[164].prefix);
-                }
-                if (dir[0] != '\0' && ff_is_cached(dir)) {
-                    fprintf(stderr, "FAIL pig left %s pinned\n", dir);
-                    edraw_gfx_release(pg);
-                    edraw_free(g, n);
-                    free(seqs);
-                    return 1;
-                }
+            if (dir[0] != '\0' && ff_is_cached(dir)) {
+                fprintf(stderr, "FAIL pig left %s pinned\n", dir);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
             }
-            edraw_gfx_release(pg);
+            loads1 = ff_disc_loads();
+            if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
+                fprintf(stderr, "FAIL house after pig\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            loads2 = ff_disc_loads();
+            if (loads2 != loads1) {
+                fprintf(stderr, "FAIL house after pig reopened disc %d -> %d\n",
+                        loads1, loads2);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            if (seqs[164].prefix[0] != '\0' && !die_frames_ok(g, n, seqs)) {
+                fprintf(stderr, "FAIL house dropped seq 164 after pig\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            if (dir[0] != '\0' && ff_is_cached(dir)) {
+                fprintf(stderr, "FAIL house recached %s\n", dir);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
         }
     }
     {
         struct MapScreen duck;
         int drec = (int)w.loc[441];
-        struct EdGfx *dg = edraw_gfx_alloc();
-        int dn = 0;
+        char dir[160];
+        int loads1, loads2;
 
-        if (drec < 1 || map_load_record(drec, &duck) != 0 || dg == NULL) {
+        seq_dir(&seqs[164], dir, sizeof(dir));
+        if (drec < 1 || map_load_record(drec, &duck) != 0) {
             fprintf(stderr, "FAIL duck map loc=%d\n", drec);
-            edraw_gfx_release(dg);
             edraw_free(g, n);
             free(seqs);
             return 1;
         }
-        if (edraw_load_screen(duck.sprite, seqs, dg, &dn, 2) != 0) {
+        loads1 = ff_disc_loads();
+        if (edraw_load_screen(duck.sprite, seqs, g, &n, 2) != 0) {
             fprintf(stderr, "FAIL duck edraw vis2\n");
-            edraw_gfx_release(dg);
             edraw_free(g, n);
             free(seqs);
             return 1;
         }
-        if (seqs[111].prefix[0] != '\0' && edraw_find(dg, dn, 111, 1) == NULL) {
+        if (seqs[111].prefix[0] != '\0' && edraw_find(g, n, 111, 1) == NULL) {
             fprintf(stderr, "FAIL duck no headless seq 111\n");
-            edraw_gfx_release(dg);
             edraw_free(g, n);
             free(seqs);
             return 1;
         }
-        edraw_gfx_release(dg);
+        if (seqs[164].prefix[0] != '\0' && !die_frames_ok(g, n, seqs)) {
+            fprintf(stderr, "FAIL duck dropped seq 164\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (dir[0] != '\0' && ff_is_cached(dir)) {
+            fprintf(stderr, "FAIL duck recached %s\n", dir);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        loads2 = ff_disc_loads();
+        if (loads2 <= loads1) {
+            fprintf(stderr, "FAIL duck opened no new packs %d -> %d\n", loads1,
+                    loads2);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
     }
     {
         int loads1, loads2, n2 = n;
