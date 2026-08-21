@@ -877,7 +877,10 @@ static void one_time_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
     if (s->seq == 0) {
         if (!stay) {
+            /* lsm_remove_sprite: active=0. live=0 alone leaves the map snap
+             * drawn (pig looks like it respawned). */
             s->live = 0;
+            s->hidden = 1;
         }
         return;
     }

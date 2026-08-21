@@ -88,6 +88,28 @@ int main(void)
     }
     expect(dmg > 0, "draw_damage hit number");
 
+    /* Confirmed 2026-08-21: pig must not redraw from the map snap after DIE. */
+    scr.sprite[7].active = 1;
+    scr.sprite[7].type = 1;
+    scr.sprite[7].brain = 4;
+    scr.sprite[7].x = 300;
+    scr.sprite[7].y = 200;
+    scr.sprite[7].hitpoints = 1;
+    scr.sprite[7].defense = 0;
+    brains_enter(&scr, 0);
+    expect(brains_slot_live(7), "pig 7 live");
+    seqs[164].nframes = 2;
+    seqs[164].delay = 1;
+    pl.x = 300;
+    g_hit_slot = 0;
+    hit_tag_list(1, 300, 200, 4, 5, 0, NULL, 0, seqs);
+    expect(g_hit_slot == 7, "pig 7 punch HIT");
+    for (i = 0; i < 12; i++) {
+        brains_tick(&scr, seqs, &mask, 50 * (i + 2), 0);
+    }
+    expect(!brains_slot_live(7), "pig 7 gone after seq 164");
+    expect(!scr.sprite[7].active, "pig 7 editor hidden after kill");
+
     printf("OK test_playtest\n");
     return 0;
 }
