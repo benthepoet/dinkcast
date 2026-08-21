@@ -153,6 +153,81 @@ static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
     }
 }
 
+static int brain_needs_death_walk(int br)
+{
+    /* duck/pig/pill/dragon: punch changes base_walk on play-path. */
+    return br == 3 || br == 4 || br == 9 || br == 10;
+}
+
+static void push_walk_frames(int *ns, int *nf, int *n, struct SeqInfo *seqs,
+                             int br, int base, int all_frames)
+{
+    int ws[6], nw, w, f2, nfr;
+
+    walk_seqs_for_brain(br, base, ws, &nw);
+    for (w = 0; w < nw; w++) {
+        if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
+            seqs[ws[w]].prefix[0] == '\0') {
+            continue;
+        }
+        need_push(ns, nf, n, ws[w], 1);
+        if (!all_frames) {
+            continue;
+        }
+        nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
+        for (f2 = 1; f2 <= nfr; f2++) {
+            need_push(ns, nf, n, ws[w], f2);
+        }
+    }
+}
+
+static int seq_keep_pixels(int seq)
+{
+    if (residency_is_sticky_seq(seq)) {
+        return 1;
+    }
+    if (seq == 12 || seq == 14) {
+        return 1;
+    }
+    if (seq >= 71 && seq <= 79 && seq != 75) {
+        return 1;
+    }
+    return 0;
+}
+
+static int evict_slot(struct EdGfx *g, int *got, int keep_seq)
+{
+    int i, pick = -1;
+
+    for (i = 0; i < *got; i++) {
+        int s = g[i].seq;
+
+        if (s == keep_seq || seq_keep_pixels(s)) {
+            continue;
+        }
+        if (s >= 110 && s <= 129) {
+            continue;
+        }
+        if (pick < 0 || s >= 200 || g[pick].seq < 200) {
+            pick = i;
+        }
+    }
+    if (pick < 0) {
+        return -1;
+    }
+    printf("edraw evict seq=%d fr=%d for seq=%d\n", g[pick].seq, g[pick].frame,
+           keep_seq);
+    sprite_frame_free(&g[pick].fr);
+    (*got)--;
+    if (pick < *got) {
+        g[pick] = g[*got];
+        memset(&g[*got], 0, sizeof(g[0]));
+    } else {
+        memset(&g[pick], 0, sizeof(g[0]));
+    }
+    return 0;
+}
+
 /* Default corpse seq 164. People with hitpoints (mom) must not pin
  * graphics/effects/magic/dir.ff (~600 KB) for the session — that pack
  * plus village dir.ff OOMs 16 MB after a short walk. */
@@ -250,7 +325,9 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
-        /* Sticky explode (seq 164): reserve frames first, drop pack after. */
+        /* Combat pixels first: 164, then duck 110/120 (punch is play-path).
+         * People walk dirs must not fill the 96-slot table first — Ethel's
+         * house + oldman + duck hit unique 96 and skipped seq 117/123. */
         if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
             (screen_wants_die(sp, vision) ||
              edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
@@ -260,6 +337,19 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             nfr = ini_seq_len(164, seqs[164].nframes);
             for (f2 = 2; f2 <= nfr; f2++) {
                 need_push(need_s, need_f, &nneed, 164, f2);
+            }
+        }
+        for (i = 1; i <= 100; i++) {
+            int br;
+
+            if ((int)sp[i].type != 1 ||
+                !editor_sprite_on_vision(&sp[i], vision)) {
+                continue;
+            }
+            br = (int)sp[i].brain;
+            if (br == 3) {
+                push_walk_frames(need_s, need_f, &nneed, seqs, 3, 110, 1);
+                push_walk_frames(need_s, need_f, &nneed, seqs, 3, 120, 1);
             }
         }
         for (i = 1; i <= 100; i++) {
@@ -274,7 +364,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 continue;
             }
             need_push(need_s, need_f, &nneed, seq, fr);
-            /* Repeat brains cycle the whole seq (fireplace). */
             if ((int)sp[i].type == 1 && (int)sp[i].brain == 6) {
                 int nfr, f2;
 
@@ -283,39 +372,14 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     need_push(need_s, need_f, &nneed, seq, f2);
                 }
             }
-            /* Walk brains share that sprite's dir.ff. */
-            if ((int)sp[i].type == 1) {
-                int br = (int)sp[i].brain;
-                int ws[6], nw, w, f2, nfr;
-
-                if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
-                    int extra[2], nx, e;
-
-                    extra[0] = extra[1] = 0;
-                    nx = 0;
-                    /* duck_brain: headless body 110, flying head 120. */
-                    if (br == 3) {
-                        extra[0] = 110;
-                        extra[1] = 120;
-                        nx = 2;
-                    }
-                    for (e = -1; e < nx; e++) {
-                        int base = e < 0 ? (int)sp[i].base_walk : extra[e];
-
-                        walk_seqs_for_brain(br, base, ws, &nw);
-                        for (w = 0; w < nw; w++) {
-                            if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
-                                seqs[ws[w]].prefix[0] == '\0') {
-                                continue;
-                            }
-                            need_push(need_s, need_f, &nneed, ws[w], 1);
-                            nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
-                            for (f2 = 1; f2 <= nfr; f2++) {
-                                need_push(need_s, need_f, &nneed, ws[w], f2);
-                            }
-                        }
-                    }
-                }
+            if ((int)sp[i].type == 1 &&
+                brain_needs_death_walk((int)sp[i].brain)) {
+                push_walk_frames(need_s, need_f, &nneed, seqs,
+                                 (int)sp[i].brain, (int)sp[i].base_walk, 1);
+            }
+            if ((int)sp[i].type == 1 && (int)sp[i].brain == 16) {
+                push_walk_frames(need_s, need_f, &nneed, seqs, 16,
+                                 (int)sp[i].base_walk, 0);
             }
         }
         old = *n;
@@ -371,10 +435,30 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             g[got].live = 1;
             got++;
         }
-        /* After frame 1 decode, seq.nframes is known. Load remaining
-         * brain-6 seqs and walk dirs while packs stay open. */
+        /* After frame 1 decode, seq.nframes is known. Duck death before
+         * people/fireplace leftover fills. */
         for (i = 1; i <= 100; i++) {
             int br, ws[6], nw, w;
+
+            if ((int)sp[i].type != 1 ||
+                !editor_sprite_on_vision(&sp[i], vision)) {
+                continue;
+            }
+            br = (int)sp[i].brain;
+            if (br != 3) {
+                continue;
+            }
+            walk_seqs_for_brain(3, 110, ws, &nw);
+            for (w = 0; w < nw; w++) {
+                load_seq_frames(g, &got, seqs, ws[w]);
+            }
+            walk_seqs_for_brain(3, 120, ws, &nw);
+            for (w = 0; w < nw; w++) {
+                load_seq_frames(g, &got, seqs, ws[w]);
+            }
+        }
+        for (i = 1; i <= 100; i++) {
+            int br;
 
             if ((int)sp[i].type != 1 ||
                 !editor_sprite_on_vision(&sp[i], vision)) {
@@ -384,26 +468,23 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (br == 6) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].seq);
             }
-            /* special_block parm_seq (outdoor door odor1- 61, etc.). */
             if ((int)sp[i].is_warp && (int)sp[i].parm_seq > 0) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
             }
-            if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
-                int extra[2], nx = 0, e;
+            if (brain_needs_death_walk(br)) {
+                int ws[6], nw, w;
 
-                extra[0] = extra[1] = 0;
-                if (br == 3) {
-                    extra[0] = 110;
-                    extra[1] = 120;
-                    nx = 2;
+                walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
+                for (w = 0; w < nw; w++) {
+                    load_seq_frames(g, &got, seqs, ws[w]);
                 }
-                for (e = -1; e < nx; e++) {
-                    int base = e < 0 ? (int)sp[i].base_walk : extra[e];
+            }
+            if (br == 16) {
+                int ws[6], nw, w;
 
-                    walk_seqs_for_brain(br, base, ws, &nw);
-                    for (w = 0; w < nw; w++) {
-                        load_seq_frames(g, &got, seqs, ws[w]);
-                    }
+                walk_seqs_for_brain(16, (int)sp[i].base_walk, ws, &nw);
+                for (w = 0; w < nw; w++) {
+                    (void)load_one(g, &got, seqs, ws[w], 1);
                 }
             }
         }
@@ -452,6 +533,17 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             printf("edraw skip seq=%d fr=%d (pack not cached)\n", seq, frame);
         }
         return -1;
+    }
+    if (got >= DINK_EDGFX_MAX) {
+        if (evict_slot(g, &got, seq) != 0) {
+            static uint8_t full_noted[DINK_MAX_SEQ];
+
+            if (full_noted[seq] == 0) {
+                full_noted[seq] = 1;
+                printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+            }
+            return -1;
+        }
     }
     if (load_one(g, &got, seqs, seq, frame) != 0) {
         return -1;

@@ -1216,6 +1216,14 @@ int brains_slot_base_walk(int slot)
     return g_b[slot].base_walk;
 }
 
+int brains_slot_brain(int slot)
+{
+    if (!brains_slot_created(slot)) {
+        return -1;
+    }
+    return g_b[slot].brain;
+}
+
 void brains_set_script(int slot, const char *name)
 {
     if (slot < 1 || slot > 99 || name == NULL) {

@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V5** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.3, 15.3, or 14.6 until the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V5** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Ethel-house duck-kill `edraw full skip` is this PR. Do not start 14.3, 15.3, or 14.6 until the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 

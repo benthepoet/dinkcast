@@ -121,7 +121,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | **14.5** subset dir.ff of used 8-bit BMPs; CDI/DINK_DISTILL overlay | #84 |
 | 2026-08-21 | Distill warp interiors (old-man map 3 missing innwall frames) | #85 |
 | 2026-08-21 | Distill used frames from every nonempty campaign screen | #86 |
-| 2026-08-21 | Defer per-frame `dir.ff` reads to **14.6** (after 16 / full campaign) | this PR |
+| 2026-08-21 | Defer per-frame `dir.ff` reads to **14.6** (after 16 / full campaign) | #87 |
+| 2026-08-21 | Duck death seqs 117/123 before people walks (Ethel house 96-slot) | this PR |
 
 ## Bites
 
@@ -169,7 +170,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
-| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
+| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (this PR) |
 | 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 disc**; 15.2 already landed. **14.6** is not this gate |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -243,3 +244,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (14.5 nframes holes) | **~90%** | Old-man house (map 3 via cabin warp) skipped innwalls/details/cup because distill only listed map 2. Warp BFS (#85) still village-bound. |
 | 2026-08-21 (14.5 campaign distill) | **~90%** | Distill + catalog campaign scan use every nonempty `map.dat` screen (~644). Village-only used-frame union is not the disc policy. |
 | 2026-08-21 (14.6 deferred) | **~90%** | Per-frame `dir.ff` TOC/offset reads wait until base (through 16) and a human full-campaign go. Not the next 14.5 patch. |
+| 2026-08-21 (ethel duck full skip) | **~90%** | Killing the returned duck in Ethel’s house (map 2 vis 1) printed `edraw full skip` seq 117/123 every tick: oldman walk frames filled the 96-slot table before duck death. Combat 110/120 first; people walks frame 1 + `ensure_frame`. |
