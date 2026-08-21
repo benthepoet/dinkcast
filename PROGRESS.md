@@ -114,7 +114,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Duck first punch keeps headless 110 + flying head 120 | #77 |
 | 2026-08-21 | Drop `magic/dir.ff` after decoding seq 164; do not pin it on mom hp | #78 |
 | 2026-08-21 | Spec **14.4** residency + gated **14.5** distill; 14.3 after 14.4 | #79 |
-| 2026-08-21 | One Adversarial reviewer (Dreamcast); drop spec/mem/perf/flaws agents | this PR |
+| 2026-08-21 | One Adversarial reviewer (Dreamcast); drop spec/mem/perf/flaws agents | #80 |
+| 2026-08-21 | **14.4a** host catalog + `mem_log`; size-pin unchanged; 164 drop stays | this PR |
 
 ## Bites
 
@@ -158,7 +159,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
-| 14.4 | Residency catalog + policy | pending | spec #79. **14.4a** catalog+`mem_log`; **14.4b** one policy. Before 15.3 |
+| 14.4 | Residency catalog + policy | pending | spec #79. **14.4a** catalog+`mem_log` this PR. **14.4b** one policy. Before 15.3 |
 | 14.5 | Distill frames (gated) | pending | only if 14.4a prints `14.5: needed` |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
@@ -229,4 +230,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (15.2 source) | **~90%** | Fists `hurt_thing` / HIT / DIE / corpse / push / life 0 `dinfo`. `sp_strength` bound; missile `get_box`; seq 164 preload. Next **15.3** weapons. |
 | 2026-08-21 (duck vanish) | **~90%** | First punch on Ethel's duck (`s1-oldd`) ran DIE then skipped seq 111/113/117/119 (`duck/death` pack not cached). Headless 110 + head 120 must preload; duck stays. |
 | 2026-08-21 (die pack OOM) | **~90%** | After the duck kill, walking to the pig pen hit `Out of memory` 200704 (`swap atlas fail`) then seq 63 425984. House mom hp had pinned `magic/dir.ff` (~600 KB) for the session. Decode 164 into EdGfx and drop the pack; people hp is not a die preload. |
-| 2026-08-21 (14.4 spec) | **~90%** | Size-pin ≥80 KB is ~31 MB of official packs. Spec: 14.4a catalog+`mem_log` with real village bytes (Always 1.20 MB, 439 1.51, duck ts_rgb ~1.17); 14.4b one policy; 14.5 only if catalog `needed`. 14.3 after 14.4. Choice overlay is VRAM after upload. |
+| 2026-08-21 (14.4a catalog) | **~90%** | Host `pack_catalog` + `mem` log on swap. Size-pin unchanged. Catalog records `14.5: needed` on village peaks. 164 magic drop still present. |

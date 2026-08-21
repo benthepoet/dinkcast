@@ -18,7 +18,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tests/test_mem tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -44,16 +44,16 @@ tests/test_player: tests/test_player.c src/player.c src/hurt.c src/hard.c src/pa
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/mapscr.c
 	./$@
 
-tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c
+tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/mem.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
+tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/mem.c
 	./$@
 
-tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c
+tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/mem.c
 	./$@
 
 tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c
@@ -100,8 +100,12 @@ tests/test_brains: tests/test_brains.c src/brains.c src/hurt.c src/player.c src/
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_brains.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/world.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c
+tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
+	./$@
+
+tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/mem.h src/fs.h
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_mem.c src/mem.c src/fs.c
 	./$@
 
 tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c
@@ -131,8 +135,8 @@ tests/test_ff: tests/test_ff.c src/ff.c src/le.c src/fs.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ff.c src/ff.c src/le.c src/fs.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c
+tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/mem.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tools/dump_ini: tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c
@@ -163,6 +167,7 @@ check:
 	$(PYTHON) tests/test_stage_dink.py
 	$(PYTHON) tests/test_check_dink_data.py
 	$(PYTHON) tests/test_main_dc_path.py
+	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_pack_catalog.py
 
 # Optional: needs DINK_DATA (env or local.mk). Not part of `make host`.
 data-check:
@@ -209,7 +214,7 @@ clean:
 		tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse \
 		tests/test_dinkc_vm tests/test_dinkc_var tests/test_font \
 		tests/test_saybox tests/test_choice tests/test_screen tests/test_brains \
-		tests/test_hurt \
+		tests/test_hurt tests/test_mem \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
 		tools/dump_screen tools/dump_ini
 	@if [ -n "$(KOS_BASE)" ]; then $(MAKE) -f Makefile.dc clean; fi

@@ -552,6 +552,31 @@ size_t dink_blob_bytes(void)
     return t;
 }
 
+int dink_blob_slot(int i, const char **rel, size_t *n)
+{
+    int k, live = 0;
+
+    if (i < 0) {
+        return -1;
+    }
+    for (k = 0; k < g_nblob; k++) {
+        if (g_blob[k].rel[0] == '\0' || g_blob[k].data == NULL) {
+            continue;
+        }
+        if (live == i) {
+            if (rel != NULL) {
+                *rel = g_blob[k].rel;
+            }
+            if (n != NULL) {
+                *n = g_blob[k].n;
+            }
+            return 0;
+        }
+        live++;
+    }
+    return -1;
+}
+
 int dink_blob_try_drop(const char *rel)
 {
     char key[DINK_FS_PATH_MAX];

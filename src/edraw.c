@@ -3,6 +3,7 @@
 
 #include "ff.h"
 #include "fs.h"
+#include "mem.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,22 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame)
         }
     }
     return NULL;
+}
+
+size_t edraw_cpu_bytes(const struct EdGfx *g, int n)
+{
+    size_t t = 0;
+    int i;
+
+    if (g == NULL || n < 1) {
+        return 0;
+    }
+    for (i = 0; i < n; i++) {
+        if (g[i].fr.argb1555 != NULL && g[i].fr.tw > 0 && g[i].fr.th > 0) {
+            t += (size_t)g[i].fr.tw * (size_t)g[i].fr.th * 2u;
+        }
+    }
+    return t;
 }
 
 static int need_has(const int *ns, const int *nf, int n, int seq, int fr)
@@ -395,6 +412,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     }
     ff_cache_drop_unpinned();
     printf("blob bytes %u unique %d\n", (unsigned)dink_blob_bytes(), got);
+    mem_log("edraw", edraw_cpu_bytes(g, got), got, 0, 0);
     memcpy(spr, sp, 101u * sizeof(*sp));
     free(sp);
     *n = got;
