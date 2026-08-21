@@ -888,6 +888,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (g_create != NULL) {
             slot = g_create(a0, a1, a2, a3, a4);
         }
+        printf("create_sprite slot=%d xy=%d,%d brain=%d seq=%d\n", slot, a0, a1,
+               a2, a3);
         if (ret != NULL) {
             *ret = slot;
         }

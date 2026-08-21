@@ -1086,6 +1086,9 @@ int main(int argc, char **argv)
                                 sprite_frame_free(&spr);
                                 spr = nxt;
                                 (void)sprite_upload_pvr(&spr);
+                            } else {
+                                printf("dink seq load fail seq=%d fr=%d\n",
+                                       pl.seq, pl.frame);
                             }
                             last_seq = pl.seq;
                             last_frame = pl.frame;

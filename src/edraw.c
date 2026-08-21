@@ -627,11 +627,26 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     return 0;
 }
 
+#ifdef _arch_dreamcast
+static void upload_if_cpu(struct SpriteFrame *f)
+{
+    if (f != NULL && f->tex == NULL && f->argb1555 != NULL) {
+        (void)sprite_upload_pvr(f);
+    }
+}
+#else
+static void upload_if_cpu(struct SpriteFrame *f)
+{
+    (void)f;
+}
+#endif
+
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame)
 {
     char dir[160];
     int got;
+    struct SpriteFrame *hit;
 
     if (g == NULL || n == NULL || seqs == NULL || seq < 1 ||
         seq >= DINK_MAX_SEQ || frame < 1) {
@@ -641,7 +656,10 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     if (got < 0) {
         got = 0;
     }
-    if (edraw_find(g, got, seq, frame) != NULL) {
+    hit = edraw_find(g, got, seq, frame);
+    if (hit != NULL) {
+        /* preload_seq may decode CPU during play; draw skips tex==NULL. */
+        upload_if_cpu(hit);
         return 0;
     }
     if (miss_has(seq, frame)) {
@@ -703,7 +721,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
 
 void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
 {
-    int got;
+    int got, i;
 
     if (g == NULL || n == NULL || seqs == NULL) {
         return;
@@ -713,6 +731,11 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
         got = 0;
     }
     load_seq_frames(g, &got, seqs, seq);
+    for (i = 0; i < got; i++) {
+        if (g[i].seq == seq) {
+            upload_if_cpu(&g[i].fr);
+        }
+    }
     *n = got;
 }
 
@@ -720,6 +743,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                       int frame)
 {
     int got;
+    struct SpriteFrame *hit;
 
     if (g == NULL || n == NULL || seqs == NULL) {
         return;
@@ -729,6 +753,8 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         got = 0;
     }
     (void)load_one(g, &got, seqs, seq, frame, 1);
+    hit = edraw_find(g, got, seq, frame);
+    upload_if_cpu(hit);
     *n = got;
 }
 

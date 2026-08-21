@@ -134,6 +134,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Occupancy: smash pack open, sticky 164, `EdGfx` 128 | #97 |
 | 2026-08-21 | Playtest picture tracker; pig blood/HP confirmed | this PR |
 | 2026-08-21 | Grain USE: distill follows `add_item` (seq 430/431) | this PR |
+| 2026-08-21 | Grain toss: upload PVR after play-path `preload_seq` | this PR |
 
 ## Bites
 
