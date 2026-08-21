@@ -35,6 +35,8 @@ int saybox_upload(void);
 void saybox_evict(void);
 void saybox_draw_pvr(float z);
 void saybox_draw_choices_pvr(float z);
+/* FreeDink text_draw damage/exp number (brain 8, damage != -1). */
+void saybox_draw_num_pvr(int x, int y, int num, float z);
 #endif
 
 #endif

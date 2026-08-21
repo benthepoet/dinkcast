@@ -74,7 +74,8 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | `play.spmap` editor_type | `fix_dead_sprites` | 14 + 17 |
 | Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE **15.2** |
 | Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); skip active editor; keep MAIN creates |
-| Push / death | `hurt_thing`, `add_kill_sprite`, `human_brain` push, `dinfo` DIE | hold (15.2) |
+| Push / death | `hurt_thing`, `draw_damage`, `random_blood`, `add_kill_sprite` | hold (15.2); hit numbers brain 8; blood seq 187–189 |
+| Touch / pickup | `run_through_touch_damage_list` | hold (16.1); `-1` → `TOUCH`; `scale_brain` then `editor_type` 1 on **next** enter |
 | Weapons / magic | `add_item`, `dc_arm_weapon`, `human_brain` USE | hold (15.3–15.4); sprite 1000 keep; `init` seq rewrite; bow charge instant 100 |
 | Touch / pickup | `run_through_touch_damage_list` | hold (16.1); `-1` → `TOUCH`; `editor_type` 1 |
 | Inventory grid | `process_item` / `draw_item` | hold (16.2); Y; A arms; seq 423 blit |

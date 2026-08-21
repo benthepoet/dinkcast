@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
+**Where we are:** **V6** + **8.6 house** accepted. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory (#94). **16.3** HUD (#95). Playtest graft (pickup shrink / blood / barrel / pig-pen) is this PR. **14.6** per-frame reads wait for full-campaign go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 

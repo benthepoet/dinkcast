@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V5** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory (#94). **16.3** HUD is this PR (V6). Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). Ethel-house duck-kill skip (#88). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.6 until the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V6** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory (#94). **16.3** HUD (#95). Playtest graft (pickup shrink / blood / barrel / pig-pen) is this PR. Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). Ethel-house duck-kill skip (#88). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.6 until the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -23,7 +23,7 @@ Instructions for humans and agents working in this repo.
 | V3 | **8.4** | Dink idle sprite on that screen |
 | V4 | **9.3** | Walk cycle + hardness |
 | V5 | **13.2** | `say` / talk box with real script text | **accepted** |
-| V6 | **16.2** / **16.3** | Inventory and HUD |
+| V6 | **16.2** / **16.3** | Inventory and HUD | **accepted** |
 
 Post `visual-gate: waiting (V#)` on the PR after merge. **Never `@`-mention a GitHub user** (including the requester). Clear the gate only with `visual-gate: accepted V#` from the requester (or a comment that unambiguously accepts that picture).
 

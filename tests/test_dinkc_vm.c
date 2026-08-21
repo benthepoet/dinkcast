@@ -242,6 +242,17 @@ int main(void)
         args[1] = 9;
         expect(dinkc_cmd("sp_brain", args, 2, "", "", &yld, &rv) == 1 && rv == 9,
                "sp_brain writes");
+        {
+            int box[8] = {250, 200, 200, 180, 400, 306, 0, 0};
+
+            expect(dinkc_cmd("inside_box", box, 6, "", "", &yld, &rv) == 1 &&
+                       rv == 1,
+                   "inside_box hit");
+            box[0] = 10;
+            expect(dinkc_cmd("inside_box", box, 6, "", "", &yld, &rv) == 1 &&
+                       rv == 0,
+                   "inside_box miss");
+        }
         dinkc_cmd_dump();
     }
     {

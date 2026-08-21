@@ -273,14 +273,24 @@ void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
 void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
                          float z, int al, int at, int ar, int ab)
 {
+    sprite_draw_pvr_alt_size(f, x, y, z, al, at, ar, ab, 100);
+}
+
+void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
+                              float z, int al, int at, int ar, int ab,
+                              int size)
+{
     pvr_poly_cxt_t cxt;
     pvr_poly_hdr_t hdr;
     pvr_vertex_t vert;
-    float u0, v0, u1, v1, x0, y0, x1, y1;
+    float u0, v0, u1, v1, x0, y0, x1, y1, ratio, xcompat, ycompat;
     int sl = 0, st = 0, sr = 0, sb = 0;
 
     if (f == NULL || f->tex == NULL) {
         return;
+    }
+    if (size < 1) {
+        size = 100;
     }
     (void)sprite_alt_src(f->w, f->h, al, at, ar, ab, &sl, &st, &sr, &sb);
     if (sr <= sl || sb <= st) {
@@ -297,10 +307,13 @@ void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
     v0 = (float)st / (float)f->th;
     u1 = (float)sr / (float)f->tw;
     v1 = (float)sb / (float)f->th;
-    x0 = x - (float)f->cx + (float)sl;
-    y0 = y - (float)f->cy + (float)st;
-    x1 = x - (float)f->cx + (float)sr;
-    y1 = y - (float)f->cy + (float)sb;
+    ratio = (float)size / 100.0f;
+    xcompat = (float)f->w * (ratio - 1.0f) / 2.0f;
+    ycompat = (float)f->h * (ratio - 1.0f) / 2.0f;
+    x0 = x - (float)f->cx - xcompat + (float)sl * ratio;
+    y0 = y - (float)f->cy - ycompat + (float)st * ratio;
+    x1 = x - (float)f->cx - xcompat + (float)sr * ratio;
+    y1 = y - (float)f->cy - ycompat + (float)sb * ratio;
     /* get_box: skip if fully outside playl..playx, 0..playy */
     if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
         return;

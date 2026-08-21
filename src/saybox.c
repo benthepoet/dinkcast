@@ -363,6 +363,30 @@ void saybox_draw_pvr(float z)
     }
 }
 
+void saybox_draw_num_pvr(int x, int y, int num, float z)
+{
+    char buf[16];
+    const char *p;
+    float cx;
+    uint32_t fg, bg;
+
+    if (g_tex == NULL) {
+        return;
+    }
+    snprintf(buf, sizeof(buf), "%d", num);
+    cx = (float)x;
+    fg = saybox_argb(14);
+    bg = 0xFF080E15u;
+    for (p = buf; *p != '\0'; p++) {
+        draw_ch(cx - 1.0f, (float)y, z, (unsigned char)*p, bg);
+        draw_ch(cx + 1.0f, (float)y, z, (unsigned char)*p, bg);
+        draw_ch(cx, (float)y - 1.0f, z, (unsigned char)*p, bg);
+        draw_ch(cx, (float)y + 1.0f, z, (unsigned char)*p, bg);
+        draw_ch(cx, (float)y, z + 0.01f, (unsigned char)*p, fg);
+        cx += (float)font_advance((unsigned char)*p);
+    }
+}
+
 static void draw_str_shadow(float x, float y, float z, const char *s,
                             uint32_t fg, int title)
 {

@@ -99,14 +99,18 @@ int main(void)
     expect(!brains_slot_live(5), "npc gone");
     expect(g_exp_add == 7, "exp last_hit 1");
     {
-        int i, corpse = 0;
+        int i, corpse = 0, fx, fy, fnum, dmg = 0;
 
         for (i = 2; i <= 99; i++) {
-            if (brains_slot_created(i) && brains_slot_live(i)) {
+            if (brains_floater_num(i, &fx, &fy, &fnum)) {
+                dmg = fnum;
+            }
+            if (brains_slot_created(i) && brains_slot_live(i) &&
+                brains_slot_brain(i) != 8) {
                 corpse = i;
-                break;
             }
         }
+        expect(dmg == 5, "draw_damage number");
         expect(corpse != 0, "corpse created");
     }
 
@@ -186,7 +190,8 @@ int main(void)
         int i, head = 0;
 
         for (i = 2; i <= 99; i++) {
-            if (i != 4 && brains_slot_created(i) && brains_slot_live(i)) {
+            if (i != 4 && brains_slot_created(i) && brains_slot_live(i) &&
+                brains_slot_brain(i) != 8) {
                 head = i;
                 break;
             }

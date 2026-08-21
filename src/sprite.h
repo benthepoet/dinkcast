@@ -35,6 +35,10 @@ int sprite_upload_pvr(struct SpriteFrame *f);
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z);
 void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
                          float z, int al, int at, int ar, int ab);
+/* FreeDink live_screen size/100. size 100 is 1:1. */
+void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
+                              float z, int al, int at, int ar, int ab,
+                              int size);
 /* SDL blit: dest is bitmap top-left. No get_box clip (UI overlay). */
 void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z);
 void sprite_blit_pvr_src(const struct SpriteFrame *f, float dx, float dy,
