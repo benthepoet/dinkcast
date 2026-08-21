@@ -23,6 +23,8 @@ def main() -> int:
         bad.append("mem.c missing vram_free")
     if "leak 20" not in mem_c:
         bad.append("mem.c missing leak 20")
+    if "ts_rgb_delta" not in mem_c:
+        bad.append("mem.c leak 20 missing ts_rgb_delta")
     if "mem_swap_reset" not in mem_c or "mem_swap_reset" not in main_c:
         bad.append("restart does not reset swap_n")
     if "4096" not in mem_h:

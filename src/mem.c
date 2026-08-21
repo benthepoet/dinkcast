@@ -17,6 +17,7 @@ static size_t g_peak;
 static int g_swap_n;
 static size_t g_warm_blob;
 static size_t g_warm_always;
+static size_t g_warm_ts;
 static size_t g_warm_vram;
 
 unsigned mem_now_ms(void)
@@ -39,6 +40,7 @@ void mem_swap_reset(void)
     g_swap_n = 0;
     g_warm_blob = 0;
     g_warm_always = 0;
+    g_warm_ts = 0;
     g_warm_vram = 0;
 }
 
@@ -80,6 +82,7 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
         if (g_swap_n == DINK_MEM_LEAK_WARM) {
             g_warm_blob = blob;
             g_warm_always = always;
+            g_warm_ts = ts_rgb;
             g_warm_vram = vram;
         }
     }
@@ -93,11 +96,13 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
     if (strcmp(where, "swap") == 0 && g_swap_n == DINK_MEM_LEAK_N) {
         long db = (long)blob - (long)g_warm_blob;
         long da = (long)always - (long)g_warm_always;
+        long dt = (long)ts_rgb - (long)g_warm_ts;
         long dv = (long)vram - (long)g_warm_vram;
 
         printf("leak 20 file_blob_delta=%ld always_delta=%ld "
-               "vram_free_delta=%ld cap=%u (from swap %d)\n",
-               db, da, dv, (unsigned)DINK_MEM_LEAK_DELTA, DINK_MEM_LEAK_WARM);
+               "ts_rgb_delta=%ld vram_free_delta=%ld cap=%u (from swap %d)\n",
+               db, da, dt, dv, (unsigned)DINK_MEM_LEAK_DELTA,
+               DINK_MEM_LEAK_WARM);
     }
     if (blob > (size_t)DINK_MEM_BLOB_PEAK) {
         printf("14.5: needed pool=file_blob bytes=%u cap=%u\n", (unsigned)blob,
