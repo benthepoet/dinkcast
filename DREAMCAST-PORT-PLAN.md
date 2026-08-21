@@ -140,7 +140,7 @@ Four classes. `mem_log` prints bytes per class every swap. **Official freeware s
 
 If `file_blob` peak or `cpu_pixels`/`ts_rgb` would exceed caps, **refuse the new alloc** (keep previous atlas/pixels, log `mem refuse pool=… need=…`). Player-visible: refuse `cpu_pixels`/`file_blob` → **missing sprites** (log skip, do not silent-black Dink); refuse atlas → **previous floor** (wrong tiles, same as today’s `swap atlas fail keep`); never silent-black ground from a 524288 sbrk.
 
-**Catalog (host, 14.4a):** from `DINK_DATA` + `dink.ini` + `map.dat` **and** that screen’s `story/*.c` (`preload_seq`, `create_sprite`, `sp_base_walk`). Emit per pack: path, bytes, seq ids, estimated POT ARGB1555 for frames this screen uses. `hard.dat` line: `FILE* not blob`. No game pixels in git. `make host` **prints** Always+Screen+Prev for house vis 0, 439, 441 vis 2, 407, 408 (girl), and castle pack size. It **fails** only if the catalog tool itself is broken — over-cap working sets print `14.5: needed` with numbers, they do not fake a green 14.4b.
+**Catalog (host, 14.4a):** from `DINK_DATA` + `dink.ini` + `map.dat` **and** that screen’s `story/*.c` (`preload_seq`, `create_sprite`, `sp_base_walk`). Emit per pack: path, bytes, seq ids, estimated POT ARGB1555 for frames this screen uses. `hard.dat` line: `FILE* not blob`. No game pixels in git. `make host` **prints** Always+Screen+Prev for house vis 0, 439, 441 vis 2, 407, 408 (girl), castle pack size, and a **campaign** Always+Screen peak (every nonempty map, no Prev). It **fails** only if the catalog tool itself is broken — over-cap working sets print `14.5: needed` with numbers, they do not fake a green 14.4b.
 
 **Distill (14.5, gated):** only if that catalog shows a **legal** Always+Screen+Prev **peak** still over cap after dropping unused pack bytes. CDI-only TOC + per-frame payload (like MIDI→ADPCM). Host tests keep **unmodified** `DINK_DATA` `dir.ff` as required original data. Generated `build/distill/` is a DC pack step, not a second art pipeline. If 14.5 is saving `file_blob`, a TOC of **original 8-bit BMPs** can beat 1555 (choice 192×331 8-bit ~64 KB vs POT 256×512×2 = 256 KB). If it is saving SH-4 decode time, 1555/RLE is the payload. The 14.4a report names **which pool** overflowed. Do not zlib the official tree in git. zlib inflate of a whole 600 KB pack still peaks at compressed+scratch+pixels.
 
@@ -675,10 +675,10 @@ Only after 14.4a numbers exist.
 
 - Offline pack step (CDI only, like MIDI→ADPCM): TOC of per-frame size/offset + payload. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
 - Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
-- Screens: 14.4a seeds, one 4-neighbor ring, then **BFS `is_warp` interiors** still inside the opening-village bound (old-man house map **3**, back room map **4**). Do not flood 400–450. Keep the **used-frame set** (not 1..max): filling holes makes innwalls skip-no-save and 439+house Prev over the `file_blob` cap.
+- Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set** (not 1..max): filling holes makes innwalls skip-no-save. Campaign union may skip-no-save packs that the village-only subset shrank; `file_blob` peak on 439 can print `14.5: needed` again — 14.4b still refuses over-cap allocs. Do not maintain a village map list.
 - Do **not** zlib-compress the official tree and commit it.
 
-**Done when:** The overflowing screen from 14.4a loads under the `file_blob` cap on host with distilled packs (and Flycast if that screen is in the opening village). GOTCHAS: distilled frames, original `DINK_DATA` pack not rewritten; staged subset `dir.ff` is the decode source.
+**Done when:** Distill includes used frames from every nonempty stock-campaign screen. The overflowing 14.4a village screen may still print `14.5: needed` if campaign union skip-no-saves a pack; that is RAM (`mem refuse`), not a reason to omit castle rooms. GOTCHAS: distilled frames, original `DINK_DATA` pack not rewritten; staged subset `dir.ff` is the decode source.
 
 ---
 

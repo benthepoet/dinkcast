@@ -119,6 +119,22 @@ def loose_bmp_rel(prefix: str, frame: int) -> str:
     return f"{p}{frame:02d}.bmp" if frame < 10 else f"{p}{frame}.bmp"
 
 
+def campaign_maps(loc: list[int]) -> list[int]:
+    """Every map.dat record the world table points at (stock campaign)."""
+    return [i for i in range(1, len(loc)) if loc[i] >= 1]
+
+
+def screen_visions(sprites: list[dict]) -> list[int]:
+    vis = {0}
+    for sp in sprites:
+        if not sp["active"]:
+            continue
+        v = int(sp.get("vision") or 0)
+        if 0 <= v <= 32:
+            vis.add(v)
+    return sorted(vis)
+
+
 def load_world_loc(root: Path) -> list[int]:
     path = find_ci(root, "dink.dat")
     if path is None:
@@ -194,15 +210,22 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
     return sprites, name, sheets
 
 
+_script_seq_cache: dict[tuple[str, str], set[int]] = {}
+
+
 def script_seqs(root: Path, name: str) -> set[int]:
     out: set[int] = set()
     if not name:
         return out
+    key = (str(root), name.lower())
+    if key in _script_seq_cache:
+        return set(_script_seq_cache[key])
     rel = f"story/{name}.c"
     path = find_ci(root, rel)
     if path is None:
         path = find_ci(root, f"story/{name}")
     if path is None:
+        _script_seq_cache[key] = set()
         return out
     text = path.read_text(encoding="latin-1", errors="replace")
     for m in re.finditer(r"preload_seq\s*\(\s*(\d+)", text, re.I):
@@ -217,6 +240,7 @@ def script_seqs(root: Path, name: str) -> set[int]:
         base = int(m.group(1))
         for d in (1, 2, 3, 4, 6, 7, 8, 9):
             out.add(base + d)
+    _script_seq_cache[key] = set(out)
     return out
 
 
@@ -504,6 +528,44 @@ def print_screen(label: str, c: dict) -> None:
             print(f"14.5: needed pool={pool} bytes={val} cap={cap}")
 
 
+def campaign_scan(
+    root: Path, seqs: dict[int, str], loc: list[int], cache: dict
+) -> None:
+    """Always+Screen (no Prev) peak across every nonempty map. Not a walk."""
+    alw = always_packs(root, seqs, cache)
+    maps = campaign_maps(loc)
+    worst = (0, 0, 0)
+    over = 0
+    for mmap in maps:
+        rec = loc[mmap]
+        raw = load_map_rec(root, rec)
+        if raw is None:
+            continue
+        sprites, script, sheets = parse_screen(raw)
+        ts_blob = 0
+        for sh in sheets:
+            b, _rgb = sheet_info(root, sh)
+            ts_blob += b
+        for vis in screen_visions(sprites):
+            need = screen_need(sprites, script, root, seqs, vis)
+            packs: dict[str, int] = {}
+            for s in need:
+                if s not in seqs:
+                    continue
+                rel, nbytes = seq_pack_bytes(root, seqs[s], cache)
+                if nbytes > 0:
+                    packs[rel] = nbytes
+            blob = sum({**alw, **packs}.values()) + ts_blob
+            if blob > worst[0]:
+                worst = (blob, mmap, vis)
+            if blob > BLOB_CAP:
+                over += 1
+    print(
+        f"campaign screens={len(maps)} Always+Screen peak "
+        f"map={worst[1]} vis={worst[2]} file_blob={worst[0]} over_cap={over}"
+    )
+
+
 def main() -> int:
     raw = os.environ.get("DINK_DATA", "").strip()
     if not raw:
@@ -565,6 +627,8 @@ def main() -> int:
         for rel, n in c["packs"].items():
             seen[rel] = n
         prev = cur
+
+    campaign_scan(root, seqs, loc, cache)
     print("OK pack_catalog")
     return 0
 
