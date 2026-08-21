@@ -57,6 +57,8 @@ void player_init(struct Player *p)
     p->push_active = 0;
     p->push_dir = 0;
     p->push_timer = 0;
+    p->notouch = 0;
+    p->notouch_timer = 0;
 }
 
 int player_hurt(struct Player *p, int damage)

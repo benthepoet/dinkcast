@@ -9,6 +9,7 @@
 static struct Player *g_pl;
 static void (*g_on_hit)(int slot, int attacker);
 static void (*g_on_push)(int slot);
+static void (*g_on_touch)(int slot);
 
 void hit_bind_player(struct Player *p)
 {
@@ -23,6 +24,11 @@ void hit_bind_hit(void (*fn)(int slot, int attacker))
 void hit_bind_push(void (*fn)(int slot))
 {
     g_on_push = fn;
+}
+
+void hit_bind_touch(void (*fn)(int slot))
+{
+    g_on_touch = fn;
 }
 
 static int inside_box(int x, int y, int l, int t, int r, int b)
@@ -261,6 +267,53 @@ void hit_tag_list_push(int ax, int ay, struct EdGfx *edg, int ned,
         b += 2;
         if (inside_box(ax, ay, l, t, r, b) && g_on_push != NULL) {
             g_on_push(i);
+        }
+    }
+}
+
+void hit_touch_list(int dx, int dy, int now_ms, struct EdGfx *edg, int ned,
+                    struct SeqInfo *seqs)
+{
+    int i;
+
+    if (g_pl != NULL && g_pl->notouch && now_ms > g_pl->notouch_timer) {
+        g_pl->notouch = 0;
+    }
+    for (i = 1; i <= 99; i++) {
+        int l, t, r, b, td;
+
+        if (!brains_slot_live(i)) {
+            continue;
+        }
+        td = brains_touch_damage(i);
+        if (td == 0) {
+            continue;
+        }
+        if (td != -1 && g_pl != NULL && g_pl->notouch) {
+            return;
+        }
+        live_box(i, edg, ned, seqs, &l, &t, &r, &b);
+        r += 2;
+        l -= 2;
+        t -= 2;
+        b += 2;
+        if (!inside_box(dx, dy, l, t, r, b)) {
+            continue;
+        }
+        if (td == -1) {
+            if (g_on_touch != NULL) {
+                g_on_touch(i);
+            }
+            continue;
+        }
+        if (g_pl != NULL) {
+            g_pl->notouch = 1;
+            g_pl->notouch_timer = now_ms + 400;
+            g_pl->last_hit = i;
+            (void)player_hurt(g_pl, td);
+        }
+        if (g_on_touch != NULL) {
+            g_on_touch(i);
         }
     }
 }

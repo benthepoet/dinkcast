@@ -1035,6 +1035,7 @@ static void scale_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
     if (s->size == s->brain_parm) {
         s->live = 0;
+        s->hidden = 1;
         return;
     }
     if (s->size > s->brain_parm) {
@@ -1483,6 +1484,11 @@ int brains_change_prop(int slot, int prop, int val)
     }
     if (p == NULL) {
         return -1;
+    }
+    /* change_sprite_noreturn: touch/mx/my may be -1 (pickup, missile). */
+    if (prop == DINKC_SP_TOUCH || prop == DINKC_SP_MX || prop == DINKC_SP_MY) {
+        *p = val;
+        return *p;
     }
     if (val != -1) {
         *p = val;
