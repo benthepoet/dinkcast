@@ -37,6 +37,8 @@ int ini_frame_delay(int seq, int frame, int seq_default);
 int ini_seq_len(int seq, int bmp_nframes);
 
 int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq);
+/* One dink.ini command without wiping the table (DinkC init / load_sequence_now). */
+int ini_apply_line(const char *line, struct SeqInfo *seqs, int nseq);
 int ini_load(struct SeqInfo *seqs, int nseq);
 int ini_count_ff_frames(const char *prefix);
 /* Fill offsets/hardbox: SET_SPRITE_INFO, else seq line if hr>0, else size guess. */

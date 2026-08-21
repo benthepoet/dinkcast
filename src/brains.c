@@ -54,6 +54,9 @@ struct BrainSpr {
     int timing;
     int size;
     int brain_parm;
+    int brain_parm2;
+    int que;
+    int flying;
     int brain;
     int logged;
     int created;
@@ -423,7 +426,7 @@ static int automove(struct BrainSpr *s, const struct HardMask *mask)
         if (dy != 0) {
             ny = s->y + dy;
         }
-        if (mask != NULL && hard_get(mask, nx, ny) != 0) {
+        if (mask != NULL && !s->flying && hard_get(mask, nx, ny) != 0) {
             s->x = ox;
             s->y = oy;
             hit = 1;
@@ -1465,6 +1468,18 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->range;
     } else if (prop == DINKC_SP_TOUCH) {
         p = &s->touch_damage;
+    } else if (prop == DINKC_SP_MX) {
+        p = &s->mx;
+    } else if (prop == DINKC_SP_MY) {
+        p = &s->my;
+    } else if (prop == DINKC_SP_FLYING) {
+        p = &s->flying;
+    } else if (prop == DINKC_SP_BRAIN_PARM) {
+        p = &s->brain_parm;
+    } else if (prop == DINKC_SP_BRAIN_PARM2) {
+        p = &s->brain_parm2;
+    } else if (prop == DINKC_SP_QUE) {
+        p = &s->que;
     }
     if (p == NULL) {
         return -1;
@@ -1479,6 +1494,11 @@ int brains_change_prop(int slot, int prop, int val)
             /* changedir needs seqs; seq = base_walk+dir is applied on tick. */
             s->seq = s->base_walk + val;
             s->frame = 0;
+        }
+        if ((prop == DINKC_SP_DIR || prop == DINKC_SP_SPEED) &&
+            s->brain == DINK_BRAIN_MISSILE && s->speed != 0 && s->mx == 0 &&
+            s->my == 0) {
+            changedir(s->dir < 1 ? 6 : s->dir, s, -1, NULL);
         }
     }
     return *p;

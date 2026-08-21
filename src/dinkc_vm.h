@@ -16,12 +16,17 @@ enum DinkcState {
     DINKC_WAIT_SAY,
     DINKC_WAIT_MOVE,
     DINKC_WAIT_CHOICE,
-    DINKC_WAIT_EXT
+    DINKC_WAIT_EXT,
+    DINKC_IDLE /* armed item script: ARM finished, USE/DISARM still locate */
 };
 
 /* Copy src, locate void proc (default main), run until yield. */
 int dinkc_vm_start(const char *src, size_t n, int sprite);
 int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc);
+/* Like start_proc but the fiber stays after ARM so USE can locate. */
+int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc);
+/* Run proc on a keep fiber (FreeDink locate). */
+int dinkc_vm_locate(int slot, const char *proc);
 void dinkc_vm_set_args(int slot, const int *args, int n);
 int dinkc_vm_arg(int slot, int n1);
 int dinkc_vm_used(int slot);

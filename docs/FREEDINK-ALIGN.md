@@ -75,6 +75,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Brains 0–17 (stock names) | `update_frame` | hold (15.1); all ids; then **11.10**; damage/DIE **15.2** |
 | Live sprite DinkC | `move` / `create_sprite` / `sp_kill` / NPC `sp_x` | hold (11.10); skip active editor; keep MAIN creates |
 | Push / death | `hurt_thing`, `add_kill_sprite`, `human_brain` push, `dinfo` DIE | hold (15.2) |
+| Weapons / magic | `add_item`, `dc_arm_weapon`, `human_brain` USE | hold (15.3–15.4); sprite 1000 keep; `init` seq rewrite; bow charge instant 100 |
 | Talk/magic miss say | `human_brain` `say_text` | hold (10.1); 6 talk + 6 magic lines; no `dnotalk` file |
 | Touch / inv / HUD / map bmp | `status`, `process_show_bmp` | 16 / V6 |
 | VMU save | `savegame` | 17 |

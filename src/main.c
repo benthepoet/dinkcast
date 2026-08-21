@@ -48,6 +48,28 @@ static struct EditorSprite *g_spr_ok;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx *g_edg;
+static struct SeqInfo *g_seqs_play;
+static int *g_ned_play;
+
+static void preload_seq_cb(int seq)
+{
+    if (g_seqs_play == NULL || g_edg == NULL || g_ned_play == NULL) {
+        return;
+    }
+    edraw_load_seq(g_edg, g_ned_play, g_seqs_play, seq);
+}
+
+static void give_start_fists(void)
+{
+    int args[8];
+
+    memset(args, 0, sizeof(args));
+    args[1] = 438;
+    args[2] = 1;
+    (void)dinkc_cmd("add_item", args, 3, "item-fst", NULL, NULL, NULL);
+    dinkc_var_set("&cur_weapon", 1, DINKC_GLOBAL_SCOPE, 1);
+    (void)dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, NULL, NULL);
+}
 
 static int spr_ok_ready(void)
 {
@@ -372,6 +394,9 @@ int main(int argc, char **argv)
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
                        seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
+                g_seqs_play = seqs;
+                dinkc_cmd_bind_seqs(seqs);
+                dinkc_cmd_bind_preload(preload_seq_cb);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");
                 }
@@ -412,6 +437,7 @@ int main(int argc, char **argv)
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
+                give_start_fists();
                 brains_bind_screen(&g_scr);
                 brains_reset();
                 script_enter_vision();
@@ -420,6 +446,8 @@ int main(int argc, char **argv)
                 }
                 {
                     int ned = 0;
+
+                    g_ned_play = &ned;
 
                     printf("pre-edraw live seq=%d y=%d act=%d snap seq=%d y=%d act=%d\n",
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
@@ -525,6 +553,7 @@ int main(int argc, char **argv)
                     if (g_need_restart) {
                         dinkc_vm_reset();
                         dinkc_var_init();
+                        dinkc_cmd_reset_inv();
                         player_init(&pl);
                         dinkc_cmd_bind_player(&pl);
                         hit_bind_player(&pl);
@@ -532,6 +561,7 @@ int main(int argc, char **argv)
                         player_map = DINK_START_PLAYER_MAP;
                         g_need_restart = 0;
                         mem_swap_reset();
+                        give_start_fists();
                         swap = 1;
                     }
 
@@ -736,13 +766,27 @@ int main(int argc, char **argv)
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_X)) {
-                        /* magic_script==0 until 15.4 / arm_magic. */
-                        saybox_set(magic_miss_line((rand() % 6) + 1), 1);
+                        if (dinkc_cmd_magic_armed()) {
+                            int lv = dinkc_var_get("&magic_level",
+                                                   DINKC_GLOBAL_SCOPE, 1);
+                            int cost = dinkc_var_get("&magic_cost",
+                                                     DINKC_GLOBAL_SCOPE, 1);
+
+                            if (lv >= cost) {
+                                (void)dinkc_cmd_magic_use();
+                            }
+                        } else {
+                            saybox_set(magic_miss_line((rand() % 6) + 1), 1);
+                        }
                     }
                     if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
-                        player_attack(&pl, seqs);
+                        if (dinkc_cmd_weapon_armed() && pl.base_hit > 0) {
+                            (void)dinkc_cmd_weapon_use();
+                        } else {
+                            player_attack(&pl, seqs);
+                        }
                     }
                     prev_buttons = have ? buttons : 0;
                     dinkc_vm_set_now(now_ms);
@@ -754,14 +798,26 @@ int main(int argc, char **argv)
                         brains_tick(&g_scr, seqs, &mask, now_ms,
                                     script_play_vision());
                         {
-                            int ei;
+                            int ei, sq, fr;
 
                             for (ei = 1; ei <= 100; ei++) {
-                                int sq = (int)g_scr.sprite[ei].seq;
-                                int fr = (int)g_scr.sprite[ei].frame;
+                                sq = (int)g_scr.sprite[ei].seq;
+                                fr = (int)g_scr.sprite[ei].frame;
 
                                 if (!editor_sprite_draw(&g_scr.sprite[ei],
                                                         script_play_vision())) {
+                                    continue;
+                                }
+                                if (fr < 1) {
+                                    fr = 1;
+                                }
+                                if (edraw_find(g_edg, ned, sq, fr) == NULL) {
+                                    (void)edraw_ensure_frame(g_edg, &ned, seqs,
+                                                             sq, fr);
+                                }
+                            }
+                            for (ei = 1; ei <= 99; ei++) {
+                                if (!brains_seq_frame(ei, &sq, &fr)) {
                                     continue;
                                 }
                                 if (fr < 1) {

@@ -40,6 +40,8 @@ void player_init(struct Player *p)
     p->base_attack = DINK_BASE_ATTACK;
     p->base_idle = DINK_BASE_IDLE;
     p->base_push = DINK_BASE_PUSH;
+    p->base_hit = 100;
+    p->distance = 0;
     p->warp_hit = 0;
     p->move_active = 0;
     p->move_dir = 0;

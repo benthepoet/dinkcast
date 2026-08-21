@@ -175,7 +175,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims Always/Screen/Sticky (**14.4c**) |
-| 15.3–15.4 | Weapons / magic | pending | after **14.4c**. 15.2 already landed. **14.6** is not this gate |
+| 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
@@ -202,8 +202,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.3** host this PR. **15.3** when requester go |
-| **Hardest remaining** | Weapons / magic / inventory | **15.3** then 16 |
+| **Next picture (V6 inv/HUD)** | **~45%** | After 15.3 source this PR. Next **16** inv/HUD |
+| **Hardest remaining** | Inventory / HUD | **16** then 12 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -214,7 +214,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | Say box (V5) | ~95% | Accepted |
 | Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
-| Weapons / magic / inventory | ~70–75% | Scripts + eviction + I/O |
+| Weapons / magic / inventory | ~80% | 15.3 source; Y grid and HUD still 16 |
 | Full campaign + every MIDI | ~55–65% | Long tail |
 | Real hardware / AICA / VMU | unknown | Not run |
 
@@ -252,3 +252,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (14.4c named) | **~90%** | 14.4b is packs (Always/Screen/Prev). Pixel working set is Always/Screen/Sticky class eviction (not LRU, not Prev), `cpu_pixels` bytes not 96 slots — **14.4c**, before 14.3. Distill/14.6 do not skip it. |
 | 2026-08-21 (14.4c source) | **~90%** | Play-path `ensure_frame` evicts Screen (prefer unused, cached pack), never Always/Sticky, never seq-id ranges. `mem refuse pool=cpu_pixels`. Created people walk frame 1 only. Host Ethel 117/123 + full-table ensure. |
 | 2026-08-21 (14.3 source) | **~90%** | 20-crossing host ping-pong 439↔441: `file_blob` / Always / `ts_rgb` stable ≤ 4 KB after swap 4; `ff_disc_loads` does not climb. `swap_ms` + `vram_free` on each swap. Flycast delay may be ~0; hardware ODE/burn still the delay table. |
+| 2026-08-21 (15.3 source) | **~90%** | Fists from START-1 `add_item`/`arm_weapon`; B runs item USE; sword ARM `init` rewrite + strength/range; fireball USE missile. Sword/bow packs Always. Bow hold-charge later. Next **16**. |

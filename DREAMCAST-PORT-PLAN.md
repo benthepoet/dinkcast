@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
+**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -750,13 +750,13 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 15.3 — Weapons
 
-- After **14.4c**. 14.5 disc is **not** enough while seq-id pixel victims are live; do not add new seq-id ranges for sword/bow. **14.6** is not this gate. Sword/bow walk packs are ~0.5–0.6 MB each plus more decoded frames; `>= 200` as “NPC walks” will eat weapon seqs or keep the wrong Screen pixels. Does not replace the human gate after merge.
-- `add_item` / inventory slot / `arm_weapon` changes `base_attack` seq (sword, bow). Fists default.
-- Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one. Needs **11.10** `create_sprite`.
+- After **14.4c**. 14.5 disc is **not** enough while seq-id pixel victims are live; do not add new seq-id ranges for sword/bow. **14.6** is not this gate. Sword/bow walk packs are ~0.5–0.6 MB each plus more decoded frames; `>= 200` as “NPC walks” will eat weapon seqs or keep the wrong Screen pixels. Player-worn prefixes `graphics/dink/sword/` and `graphics/dink/bow/` are **Always** (same class as fists walk/idle), not seq-id victims. Does not replace the human gate after merge.
+- `add_item` / inventory slot / `arm_weapon` load the item script on sprite **1000** and `locate` ARM (FreeDink `dc_arm_weapon`). Stock `item-sw1` keeps `base_attack` 100 and rewrites seq 71–79 / 12–18 / 102–108 via `init`/`load_sequence_now`. Leave-title grafts START-1.c fists (`item-fst`, `&cur_weapon=1`, `arm_weapon`). B with `weapon_script` and `base_hit>0` runs USE, not a C punch.
+- Bow: `item-b1` USE `create_sprite` brain 11. `activate_bow` hold-to-charge is later; this bite sets last bow power to 100 so the missile can spawn. Needs **11.10** `create_sprite`.
 
 #### Bite 15.4 — Magic
 
-- X: if `&magic` ≥ cost and a spell armed → run magic script / seq. Mana from original rules.
+- X: if `&magic_level` ≥ `&magic_cost` and a spell armed → `locate` USE on the magic keep fiber. Else the six miss lines (`magic_script==0`). Mana from original rules (`item-fb` ARM sets `&magic_cost=100`).
 
 **Done when:** Stock early enemy can be killed with fists; arm sword via script or inventory; cast **one** stock spell from original magic script.
 

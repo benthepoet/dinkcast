@@ -4,6 +4,7 @@
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
 #include "hurt.h"
+#include "ini.h"
 #include "player.h"
 #include "saybox.h"
 
@@ -40,16 +41,26 @@ static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
 static void (*g_restart)(void);
+static int (*g_item_arm)(const char *name);
+static int (*g_item_locate)(int slot, const char *proc);
+static int (*g_item_pickup)(const char *name);
+static void (*g_preload)(int seq);
+static struct SeqInfo *g_seqs;
 static int g_fiber;
 static int g_cmd_sprite;
 static int g_touch[100];
-static int g_nitem;
-static int g_nmagic;
+static int g_weapon_slot;
+static int g_magic_slot;
+static int g_bow_power;
 static int g_target[100];
 static int g_atkwait[100];
 static int g_midi;
-static char g_item[16][16];
-static char g_magic[8][16];
+static struct {
+    int active;
+    int seq;
+    int frame;
+    char name[16];
+} g_item[16], g_mitem[8];
 static struct {
     int spr;
     int val;
@@ -71,17 +82,35 @@ static int name_eq(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
-static void store_name(char dest[][16], int *n, int cap, const char *s)
+static int inv_add(int magic, const char *s, int seq, int frame)
 {
-    if (*n >= cap) {
-        return;
-    }
+    int i, cap = magic ? 8 : 16;
+
     if (s == NULL) {
         s = "";
     }
-    strncpy(dest[*n], s, 15);
-    dest[*n][15] = '\0';
-    (*n)++;
+    for (i = 0; i < cap; i++) {
+        if (!(magic ? g_mitem[i].active : g_item[i].active)) {
+            if (magic) {
+                g_mitem[i].active = 1;
+                g_mitem[i].seq = seq;
+                g_mitem[i].frame = frame;
+                strncpy(g_mitem[i].name, s, 15);
+                g_mitem[i].name[15] = '\0';
+            } else {
+                g_item[i].active = 1;
+                g_item[i].seq = seq;
+                g_item[i].frame = frame;
+                strncpy(g_item[i].name, s, 15);
+                g_item[i].name[15] = '\0';
+            }
+            if (g_item_pickup != NULL) {
+                (void)g_item_pickup(s);
+            }
+            return i + 1;
+        }
+    }
+    return 0;
 }
 
 static int spr_slot(int id)
@@ -153,6 +182,19 @@ static const struct {
     {"sp_range", 0},
     {"sp_target", 0},
     {"sp_attack_wait", 0},
+    {"sp_nocontrol", 0},
+    {"sp_kill_wait", 0},
+    {"sp_distance", 0},
+    {"sp_mx", 0},
+    {"sp_my", 0},
+    {"sp_flying", 0},
+    {"sp_brain_parm", 0},
+    {"sp_brain_parm2", 0},
+    {"sp_que", 0},
+    {"sp_attack_hit_sound", 0},
+    {"sp_attack_hit_sound_speed", 0},
+    {"activate_bow", 0},
+    {"get_last_bow_power", 0},
     {"sp_exp", 0},
     {"sp_base_death", 0},
     {"sp_base_die", 0},
@@ -173,6 +215,7 @@ static const struct {
     {"kill_game", 0},
     {"add_item", 0},
     {"add_magic", 0},
+    {"init", 0},
     {"initfont", 0},
     {"get_next_sprite_with_this_brain", 0},
     {"draw_status", 0},
@@ -277,6 +320,60 @@ void dinkc_cmd_bind_player(struct Player *p)
         dinkc_cmd_dump();
         atexit(dinkc_cmd_dump);
     }
+}
+
+void dinkc_cmd_bind_seqs(struct SeqInfo *seqs)
+{
+    g_seqs = seqs;
+}
+
+void dinkc_cmd_bind_preload(void (*fn)(int seq))
+{
+    g_preload = fn;
+}
+
+void dinkc_cmd_bind_item(int (*arm)(const char *name),
+                         int (*locate)(int slot, const char *proc),
+                         int (*pickup)(const char *name))
+{
+    g_item_arm = arm;
+    g_item_locate = locate;
+    g_item_pickup = pickup;
+}
+
+int dinkc_cmd_weapon_armed(void)
+{
+    return g_weapon_slot > 0;
+}
+
+int dinkc_cmd_magic_armed(void)
+{
+    return g_magic_slot > 0;
+}
+
+int dinkc_cmd_weapon_use(void)
+{
+    if (g_weapon_slot < 1 || g_item_locate == NULL) {
+        return 0;
+    }
+    return g_item_locate(g_weapon_slot, "use") >= 0 ? 1 : 0;
+}
+
+int dinkc_cmd_magic_use(void)
+{
+    if (g_magic_slot < 1 || g_item_locate == NULL) {
+        return 0;
+    }
+    return g_item_locate(g_magic_slot, "use") >= 0 ? 1 : 0;
+}
+
+void dinkc_cmd_reset_inv(void)
+{
+    memset(g_item, 0, sizeof(g_item));
+    memset(g_mitem, 0, sizeof(g_mitem));
+    g_weapon_slot = 0;
+    g_magic_slot = 0;
+    g_bow_power = 0;
 }
 
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on))
@@ -404,6 +501,10 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->strength;
         } else if (prop == DINKC_SP_RANGE) {
             p = &g_pl->range;
+        } else if (prop == DINKC_SP_NOCONTROL) {
+            p = &g_pl->nocontrol;
+        } else if (prop == DINKC_SP_DISTANCE) {
+            p = &g_pl->distance;
         }
         if (p != NULL) {
             if (val != -1) {
@@ -726,13 +827,23 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "add_item")) {
-        store_name(g_item, &g_nitem, 16, str);
-        printf("add_item %s\n", str != NULL ? str : "");
+        int slot = inv_add(0, str, a1, a2);
+
+        printf("add_item %s slot=%d seq=%d fr=%d\n", str != NULL ? str : "",
+               slot, a1, a2);
         return 1;
     }
     if (is_cmd(name, "add_magic")) {
-        store_name(g_magic, &g_nmagic, 8, str);
-        printf("add_magic %s\n", str != NULL ? str : "");
+        int slot = inv_add(1, str, a1, a2);
+
+        printf("add_magic %s slot=%d seq=%d fr=%d\n", str != NULL ? str : "",
+               slot, a1, a2);
+        return 1;
+    }
+    if (is_cmd(name, "init")) {
+        if (g_seqs != NULL && str != NULL && str[0] != '\0') {
+            (void)ini_apply_line(str, g_seqs, DINK_MAX_SEQ);
+        }
         return 1;
     }
     if (is_cmd(name, "initfont") ||
@@ -758,14 +869,88 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "draw_status") || is_cmd(name, "update_status")) {
         return 1;
     }
-    if (is_cmd(name, "preload_seq") || is_cmd(name, "kill_shadow") ||
-        is_cmd(name, "arm_weapon") || is_cmd(name, "arm_magic") ||
-        is_cmd(name, "fade_up") || is_cmd(name, "fade_down") ||
-        is_cmd(name, "fill_screen") || is_cmd(name, "load_screen")) {
+    if (is_cmd(name, "preload_seq")) {
+        if (g_preload != NULL && a0 > 0) {
+            g_preload(a0);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "arm_weapon")) {
+        int cur = dinkc_var_get("&cur_weapon", DINKC_GLOBAL_SCOPE, 1);
+
+        if (g_weapon_slot > 0 && g_item_locate != NULL) {
+            (void)g_item_locate(g_weapon_slot, "disarm");
+            g_weapon_slot = 0;
+        }
+        if (cur >= 1 && cur <= 16 && g_item[cur - 1].active &&
+            g_item_arm != NULL) {
+            g_weapon_slot = g_item_arm(g_item[cur - 1].name);
+            printf("arm_weapon %s slot=%d\n", g_item[cur - 1].name,
+                   g_weapon_slot);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "arm_magic")) {
+        int cur = dinkc_var_get("&cur_magic", DINKC_GLOBAL_SCOPE, 1);
+
+        if (g_magic_slot > 0 && g_item_locate != NULL) {
+            (void)g_item_locate(g_magic_slot, "disarm");
+            g_magic_slot = 0;
+        }
+        if (cur >= 1 && cur <= 8 && g_mitem[cur - 1].active &&
+            g_item_arm != NULL) {
+            g_magic_slot = g_item_arm(g_mitem[cur - 1].name);
+            printf("arm_magic %s slot=%d\n", g_mitem[cur - 1].name,
+                   g_magic_slot);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "kill_shadow") || is_cmd(name, "fade_up") ||
+        is_cmd(name, "fade_down") || is_cmd(name, "fill_screen") ||
+        is_cmd(name, "load_screen")) {
         return 1;
     }
     if (is_cmd(name, "sp_range")) {
         return change_sp(a0, DINKC_SP_RANGE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_nocontrol")) {
+        return change_sp(a0, DINKC_SP_NOCONTROL, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_distance")) {
+        return change_sp(a0, DINKC_SP_DISTANCE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_mx")) {
+        return change_sp(a0, DINKC_SP_MX, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_my")) {
+        return change_sp(a0, DINKC_SP_MY, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_flying")) {
+        return change_sp(a0, DINKC_SP_FLYING, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_brain_parm")) {
+        return change_sp(a0, DINKC_SP_BRAIN_PARM, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_brain_parm2")) {
+        return change_sp(a0, DINKC_SP_BRAIN_PARM2, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_que")) {
+        return change_sp(a0, DINKC_SP_QUE, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_kill_wait") || is_cmd(name, "sp_attack_hit_sound") ||
+        is_cmd(name, "sp_attack_hit_sound_speed")) {
+        return 1;
+    }
+    if (is_cmd(name, "activate_bow")) {
+        g_bow_power = 100;
+        printf("activate_bow instant %d\n", g_bow_power);
+        return 1;
+    }
+    if (is_cmd(name, "get_last_bow_power")) {
+        if (ret != NULL) {
+            *ret = g_bow_power;
+        }
+        return 1;
     }
     if (is_cmd(name, "sp_target")) {
         int s = spr_slot(a0);
@@ -794,8 +979,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         int cur = dinkc_var_get("&cur_weapon", DINKC_GLOBAL_SCOPE, 1);
         int ok = 0;
 
-        if (cur >= 1 && cur <= g_nitem) {
-            ok = name_eq(g_item[cur - 1], str);
+        if (cur >= 1 && cur <= 16 && g_item[cur - 1].active) {
+            ok = name_eq(g_item[cur - 1].name, str);
         }
         if (ret != NULL) {
             *ret = ok;
@@ -806,8 +991,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         int cur = dinkc_var_get("&cur_magic", DINKC_GLOBAL_SCOPE, 1);
         int ok = 0;
 
-        if (cur >= 1 && cur <= g_nmagic) {
-            ok = name_eq(g_magic[cur - 1], str);
+        if (cur >= 1 && cur <= 8 && g_mitem[cur - 1].active) {
+            ok = name_eq(g_mitem[cur - 1].name, str);
         }
         if (ret != NULL) {
             *ret = ok;

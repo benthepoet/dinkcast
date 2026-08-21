@@ -36,6 +36,8 @@ def main() -> int:
                         ("choice overlay", "choice_load" in text and "choice_upload_pvr" in text),
         ("screen swap", "screen_try_cross" in text),
         ("brains", "brains_tick" in text and "brains_enter" in text),
+        ("arm weapon", "give_start_fists" in text and "dinkc_cmd_weapon_use" in text),
+        ("arm magic", "dinkc_cmd_magic_use" in text),
         ("sprite snap", "spr_snap" in text),
         ("edg heap", "edraw_gfx_alloc" in text),
         ("leave pvr", "tiles_draw_clear_pvr" in text),

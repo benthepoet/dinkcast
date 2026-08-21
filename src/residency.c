@@ -21,6 +21,8 @@ int residency_is_always(const char *rel)
         "graphics/dink/walk/",
         "graphics/dink/push/",
         "graphics/dink/hit/",
+        "graphics/dink/sword/",
+        "graphics/dink/bow/",
         "graphics/inter/text-box/",
         "graphics/inter/arrow/",
         "dink.ini",

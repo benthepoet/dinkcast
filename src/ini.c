@@ -406,6 +406,66 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
     return 0;
 }
 
+int ini_apply_line(const char *line, struct SeqInfo *seqs, int nseq)
+{
+    const char *p;
+    int seq = 0, delay = 0, cx = 0, cy = 0, hl = 0, ht = 0, hr = 0, hb = 0;
+    char prefix[128];
+    char cmd[24];
+    int c = 0;
+
+    if (line == NULL || seqs == NULL || nseq < 1) {
+        return -1;
+    }
+    p = line;
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    while (p[c] && p[c] != ' ' && p[c] != '\t' && c + 1 < (int)sizeof(cmd)) {
+        cmd[c] = (char)tolower((unsigned char)p[c]);
+        c++;
+    }
+    cmd[c] = '\0';
+    p += c;
+    if (strcmp(cmd, "load_sequence_now") != 0 &&
+        strcmp(cmd, "load_sequence") != 0) {
+        return 0;
+    }
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    {
+        int k = 0;
+
+        while (*p && *p != ' ' && *p != '\t' && k + 1 < (int)sizeof(prefix)) {
+            prefix[k++] = *p++;
+        }
+        prefix[k] = '\0';
+    }
+    slash(prefix);
+    if (tok_int(&p, &seq) != 0 || seq < 1 || seq >= nseq || seq >= DINK_MAX_SEQ) {
+        return -1;
+    }
+    (void)tok_int(&p, &delay);
+    (void)tok_int(&p, &cx);
+    (void)tok_int(&p, &cy);
+    (void)tok_int(&p, &hl);
+    (void)tok_int(&p, &ht);
+    (void)tok_int(&p, &hr);
+    (void)tok_int(&p, &hb);
+    strncpy(seqs[seq].prefix, prefix, sizeof(seqs[seq].prefix) - 1);
+    seqs[seq].prefix[sizeof(seqs[seq].prefix) - 1] = '\0';
+    seqs[seq].delay = delay;
+    seqs[seq].cx = cx;
+    seqs[seq].cy = cy;
+    seqs[seq].hl = hl;
+    seqs[seq].ht = ht;
+    seqs[seq].hr = hr;
+    seqs[seq].hb = hb;
+    seqs[seq].nframes = 0;
+    return 0;
+}
+
 int ini_load(struct SeqInfo *seqs, int nseq)
 {
     const uint8_t *blob;
