@@ -1,0 +1,93 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Confirmed playtest pictures — see docs/PLAYTEST.md. */
+#include "brains.h"
+#include "hit.h"
+#include "mapscr.h"
+#include "player.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int g_hit_slot;
+
+static void expect(int cond, const char *msg)
+{
+    if (!cond) {
+        fprintf(stderr, "FAIL %s\n", msg);
+        exit(1);
+    }
+}
+
+static void on_hit(int slot, int attacker)
+{
+    (void)attacker;
+    g_hit_slot = slot;
+}
+
+int main(void)
+{
+    struct MapScreen scr;
+    struct SeqInfo seqs[DINK_MAX_SEQ];
+    struct HardMask mask;
+    struct Player pl;
+    int i, blood = 0, dmg = 0, hp_before;
+
+    memset(&scr, 0, sizeof(scr));
+    memset(&seqs, 0, sizeof(seqs));
+    memset(&mask, 0, sizeof(mask));
+
+    /* Confirmed 2026-08-21: blood + hit numbers when punching pigs. */
+    scr.sprite[6].active = 1;
+    scr.sprite[6].type = 1;
+    scr.sprite[6].brain = 4;
+    scr.sprite[6].x = 200;
+    scr.sprite[6].y = 200;
+    scr.sprite[6].hitpoints = 20;
+    scr.sprite[6].defense = 0;
+
+    brains_reset();
+    brains_bind_screen(&scr);
+    brains_enter(&scr, 0);
+    expect(brains_slot_live(6), "pig live");
+    hp_before = brains_hitpoints(6);
+    expect(hp_before == 20, "pig map hp");
+
+    player_init(&pl);
+    pl.x = 200;
+    pl.y = 200;
+    pl.dir = 4;
+    hit_bind_player(&pl);
+    g_hit_slot = 0;
+    hit_bind_hit(on_hit);
+    srand(1);
+    hit_tag_list(1, 200, 200, 4, 5, 0, NULL, 0, seqs);
+    expect(g_hit_slot == 6, "pig punch HIT");
+
+    for (i = 2; i <= 99; i++) {
+        int sq = 0, fr = 0;
+
+        if (!brains_slot_created(i) || brains_slot_brain(i) != 5) {
+            continue;
+        }
+        expect(brains_seq_frame(i, &sq, &fr), "blood seq_frame");
+        expect(sq >= 187 && sq <= 189, "pig blood seq 187-189");
+        blood = 1;
+    }
+    expect(blood, "random_blood on pig punch");
+
+    brains_tick(&scr, seqs, &mask, 16, 0);
+    expect(brains_hitpoints(6) < hp_before, "pig hp dropped");
+    for (i = 2; i <= 99; i++) {
+        int fx, fy, fnum;
+
+        if (brains_floater_num(i, &fx, &fy, &fnum)) {
+            expect(fnum > 0, "floater number > 0");
+            dmg = fnum;
+        }
+    }
+    expect(dmg > 0, "draw_damage hit number");
+
+    printf("OK test_playtest\n");
+    return 0;
+}

@@ -21,6 +21,13 @@ def main() -> int:
         missing.append("done status")
     if "feasibility" not in low or "overall" not in low:
         missing.append("feasibility snapshot")
+    play = ROOT / "docs/PLAYTEST.md"
+    if not play.is_file():
+        missing.append("docs/PLAYTEST.md")
+    else:
+        plow = play.read_text(encoding="utf-8").lower()
+        if "confirmed" not in plow or "open" not in plow:
+            missing.append("playtest confirmed/open")
     if missing:
         print("FAIL PROGRESS.md missing:", ", ".join(missing))
         return 1

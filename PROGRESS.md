@@ -126,7 +126,13 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Name **14.4c** pixel class eviction (not seq-id `EdGfx` victims) | #89 |
 | 2026-08-21 | **14.4c** Always/Screen/Sticky `EdGfx` victims; `cpu_pixels` cap | #90 |
 | 2026-08-21 | **14.3** 20-crossing leak check; `swap_ms` / `vram_free` | #91 |
-| 2026-08-21 | Pickup shrink / blood / barrel smash / pig-pen enter | this PR |
+| 2026-08-21 | **15.3–15.4** weapons / magic / item USE | #92 |
+| 2026-08-21 | **16.1** touch / pickup | #93 |
+| 2026-08-21 | **16.2** inventory grid | #94 |
+| 2026-08-21 | **16.3** HUD | #95 |
+| 2026-08-21 | Pickup shrink / blood / barrel smash / pig-pen enter | #96 |
+| 2026-08-21 | Occupancy: smash pack open, sticky 164, `EdGfx` 128 | #97 |
+| 2026-08-21 | Playtest picture tracker; pig blood/HP confirmed | this PR |
 
 ## Bites
 
@@ -191,6 +197,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — pig blood/HP confirmed; barrel/oldman/house still open |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -205,7 +212,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **none named** | V6 inv/HUD accepted. Silent campaign playtest is the check |
+| **Next picture** | **playtest leftovers** | Pig blood/HP confirmed. Barrel smash, old man, return-to-house still open |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -262,3 +269,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (V6 accepted) | **~90%** | Inventory + HUD accepted. Next picture column empty. DinkC coverage is the pole. |
 | 2026-08-21 (playtest graft) | **~90%** | `editor_type` 1 is re-enter only (`scale_brain` shrink). `draw_damage` / `random_blood`. Barrel smash frames. Pig/pill/dragon walk **frame 1** on enter (`need_push` + post-decode). Blood 187–189 with combat pixels. `inside_box`. `g_spmap_seq` is int16 (~155 KB BSS). |
 | 2026-08-21 (occupancy graft) | **~90%** | Enter-path opens `dir.ff` even when `EdGfx` is full. Sticky 164 not prepended on non-die screens. Slot bound 128 under `cpu_pixels`. |
+| 2026-08-21 (playtest tracker) | **~90%** | Pig blood + hit numbers confirmed. Remaining Flycast issues tracked in PLAYTEST.md; host `test_playtest` locks the pig punch path. |
