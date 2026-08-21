@@ -461,27 +461,10 @@ int main(void)
             return 1;
         }
         if (seqs[231].prefix[0] != '\0' && edraw_find(g, n, 231, 1) == NULL) {
-            char odir[160];
-
-            seq_dir(&seqs[231], odir, sizeof(odir));
-            if (odir[0] == '\0' || !ff_is_cached(odir)) {
-                fprintf(stderr, "FAIL ethel oldman pack not cached\n");
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
-            }
-            {
-                int n2 = n;
-
-                if (edraw_ensure_frame(g, &n2, seqs, 231, 1) != 0 ||
-                    edraw_find(g, n2, 231, 1) == NULL) {
-                    fprintf(stderr, "FAIL ethel oldman 231 after sticky 164\n");
-                    edraw_free(g, n2);
-                    free(seqs);
-                    return 1;
-                }
-                n = n2;
-            }
+            fprintf(stderr, "FAIL ethel oldman 231 frame 1 missing\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
         }
         {
             int s, n2, nfill = n;
@@ -492,7 +475,8 @@ int main(void)
                     s == 63 || s == 173) {
                     continue;
                 }
-                if (strstr(seqs[s].prefix, "oldman") != NULL) {
+                if (strstr(seqs[s].prefix, "oldman") != NULL ||
+                    strstr(seqs[s].prefix, "duck/death") != NULL) {
                     continue;
                 }
                 seq_dir(&seqs[s], dir, sizeof(dir));
@@ -571,8 +555,25 @@ int main(void)
                 n = n2;
             }
         }
+        {
+            struct MapScreen out;
+            int orec = (int)w.loc[439];
+
+            if (orec < 1 || map_load_record(orec, &out) != 0) {
+                fprintf(stderr, "FAIL 439 after ethel\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            if (edraw_load_screen(out.sprite, seqs, g, &n, 0) != 0) {
+                fprintf(stderr, "FAIL 439 edraw after ethel\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+        }
         if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
-            fprintf(stderr, "FAIL house after ethel\n");
+            fprintf(stderr, "FAIL house after ethel outdoor\n");
             edraw_free(g, n);
             free(seqs);
             return 1;

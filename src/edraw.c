@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _arch_dreamcast
+#include <kos.h>
+#include <dc/pvr.h>
+#endif
+
 void edraw_free(struct EdGfx *g, int n)
 {
     int i;
@@ -138,7 +143,7 @@ static const char *pixel_class_name(int cls)
 
 /* Screen pixels only. Prefer a frame whose pack is still cached. */
 static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
-                      int keep_seq)
+                      int keep_seq, int gpu_wait)
 {
     int i, pick = -1, pick_cached = 0, pick_unused = 0;
     char dir[160];
@@ -167,6 +172,13 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     if (pick < 0) {
         return -1;
     }
+#ifdef _arch_dreamcast
+    if (gpu_wait) {
+        pvr_wait_ready();
+    }
+#else
+    (void)gpu_wait;
+#endif
     printf("edraw evict class=%s seq=%d fr=%d for seq=%d\n",
            pixel_class_name(pixel_class(seqs, g[pick].seq)), g[pick].seq,
            g[pick].frame, keep_seq);
@@ -207,7 +219,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     }
     (void)open_seq_pack(seqs, seq);
     if (*got >= DINK_EDGFX_MAX) {
-        if (!may_evict || evict_slot(g, got, seqs, seq) != 0) {
+        if (!may_evict || evict_slot(g, got, seqs, seq, 0) != 0) {
             if (full_noted[seq] == 0) {
                 full_noted[seq] = 1;
                 printf("edraw full skip seq=%d fr=%d\n", seq, frame);
@@ -464,28 +476,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
-        /* Type-1 still sprites (barrels seq 173): remaining frames after
-         * walk frame 1s so Ethel oldman still opens the people pack. */
-        for (i = 1; i <= 100; i++) {
-            int seq, nfr, f2, br;
-
-            if ((int)sp[i].type != 1 ||
-                !editor_sprite_on_vision(&sp[i], vision)) {
-                continue;
-            }
-            br = (int)sp[i].brain;
-            if (br != 0) {
-                continue;
-            }
-            seq = (int)sp[i].seq;
-            if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
-                continue;
-            }
-            nfr = ini_seq_len(seq, seqs[seq].nframes);
-            for (f2 = 2; f2 <= nfr; f2++) {
-                need_push(need_s, need_f, &nneed, seq, f2);
-            }
-        }
         old = *n;
         if (old < 0) {
             old = 0;
@@ -627,34 +617,40 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         }
         return -1;
     }
-    if (got >= DINK_EDGFX_MAX) {
-        if (evict_slot(g, &got, seqs, seq) != 0) {
-            static uint8_t full_noted[DINK_MAX_SEQ];
-
-            if (full_noted[seq] == 0) {
-                full_noted[seq] = 1;
-                printf("edraw full skip seq=%d fr=%d\n", seq, frame);
-            }
-            *n = got;
-            return -1;
-        }
-    }
     {
-        int rc, tries = 0;
+        int waited = 0;
 
-        for (;;) {
-            rc = load_one(g, &got, seqs, seq, frame, 1);
-            if (rc == 0) {
-                break;
+        if (got >= DINK_EDGFX_MAX) {
+            if (evict_slot(g, &got, seqs, seq, 1) != 0) {
+                static uint8_t full_noted[DINK_MAX_SEQ];
+
+                if (full_noted[seq] == 0) {
+                    full_noted[seq] = 1;
+                    printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+                }
+                *n = got;
+                return -1;
             }
-            /* One victim can be smaller than the new frame. Keep evicting
-             * Screen until it fits or none remain. */
-            if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
-                evict_slot(g, &got, seqs, seq) == 0) {
-                continue;
+            waited = 1;
+        }
+        {
+            int rc, tries = 0;
+
+            for (;;) {
+                rc = load_one(g, &got, seqs, seq, frame, 1);
+                if (rc == 0) {
+                    break;
+                }
+                /* One victim can be smaller than the new frame. Keep evicting
+                 * Screen until it fits or none remain. */
+                if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
+                    evict_slot(g, &got, seqs, seq, waited ? 0 : 1) == 0) {
+                    waited = 1;
+                    continue;
+                }
+                *n = got;
+                return -1;
             }
-            *n = got;
-            return -1;
         }
     }
 #ifdef _arch_dreamcast
