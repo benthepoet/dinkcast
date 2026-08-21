@@ -30,6 +30,8 @@ int ff_is_cached(const char *rel);
 int ff_disc_loads(void);
 void ff_cache_clear(void);
 void ff_cache_drop_unpinned(void);
+/* Drop one cached pack and its blob. Caller must not keep FfFile*. */
+void ff_cache_release(const char *rel);
 /* Case-insensitive 8.3 name. Points into ff->data; not a copy. */
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
             size_t *len);

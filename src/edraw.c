@@ -2,6 +2,7 @@
 #include "edraw.h"
 
 #include "ff.h"
+#include "fs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,7 +135,9 @@ static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
     }
 }
 
-/* 15.2 default corpse seq 164. Only screens that can spawn one. */
+/* Default corpse seq 164. People with hitpoints (mom) must not pin
+ * graphics/effects/magic/dir.ff (~600 KB) for the session — that pack
+ * plus village dir.ff OOMs 16 MB after a short walk. */
 static int screen_wants_die(const struct EditorSprite *sp, int vision)
 {
     int i;
@@ -146,8 +149,8 @@ static int screen_wants_die(const struct EditorSprite *sp, int vision)
             continue;
         }
         br = (int)sp[i].brain;
-        if ((int)sp[i].hitpoints > 0 || (int)sp[i].base_die > 0 || br == 3 ||
-            br == 4 || br == 9 || br == 10) {
+        if ((int)sp[i].base_die > 0 || br == 3 || br == 4 || br == 9 ||
+            br == 10) {
             return 1;
         }
     }
@@ -167,6 +170,35 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
         return;
     }
     snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
+}
+
+static int die_seq_complete(struct EdGfx *g, int n, struct SeqInfo *seqs)
+{
+    int nfr, f;
+
+    if (g == NULL || seqs == NULL || seqs[164].prefix[0] == '\0') {
+        return 0;
+    }
+    nfr = ini_seq_len(164, seqs[164].nframes);
+    if (nfr < 1) {
+        return 0;
+    }
+    for (f = 1; f <= nfr; f++) {
+        if (edraw_find(g, n, 164, f) == NULL) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void drop_die_pack(const struct SeqInfo *seqs)
+{
+    char dir[160];
+
+    pack_dir(&seqs[164], dir, sizeof(dir));
+    if (dir[0] != '\0') {
+        ff_cache_release(dir);
+    }
 }
 
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
@@ -194,6 +226,19 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
+        /* Reserve 164 first so a full sprite list cannot starve explode
+         * frames, then drop the 600 KB pack. */
+        if (seqs[164].prefix[0] != '\0' &&
+            (screen_wants_die(sp, vision) ||
+             edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
+            int nfr, f2;
+
+            need_push(need_s, need_f, &nneed, 164, 1);
+            nfr = ini_seq_len(164, seqs[164].nframes);
+            for (f2 = 2; f2 <= nfr; f2++) {
+                need_push(need_s, need_f, &nneed, 164, f2);
+            }
+        }
         for (i = 1; i <= 100; i++) {
             int seq, fr;
 
@@ -249,12 +294,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     }
                 }
             }
-        }
-        /* 15.2 default corpse seq 164: frame 1 pins the pack (official
-         * graphics/effects/magic/dir.ff ~600 KB). Remaining frames decode
-         * from ff_cached on kill — do not spend 14 EdGfx slots. */
-        if (seqs[164].prefix[0] != '\0' && screen_wants_die(sp, vision)) {
-            need_push(need_s, need_f, &nneed, 164, 1);
         }
         old = *n;
         if (old < 0) {
@@ -345,8 +384,17 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
         }
+        if (seqs[164].prefix[0] != '\0' &&
+            (screen_wants_die(sp, vision) ||
+             edraw_find(g, got, 164, 1) != NULL)) {
+            load_seq_frames(g, &got, seqs, 164);
+            if (die_seq_complete(g, got, seqs)) {
+                drop_die_pack(seqs);
+            }
+        }
     }
     ff_cache_drop_unpinned();
+    printf("blob bytes %u unique %d\n", (unsigned)dink_blob_bytes(), got);
     memcpy(spr, sp, 101u * sizeof(*sp));
     free(sp);
     *n = got;

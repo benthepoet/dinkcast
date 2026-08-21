@@ -170,6 +170,27 @@ void ff_cache_drop_unpinned(void)
     /* Large packs stay. Reopening trees/home/walls hangs /cd. */
 }
 
+void ff_cache_release(const char *rel)
+{
+    int i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < DINK_FF_SLOTS; i++) {
+        if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0) {
+            printf("ff release %s\n", g_slot[i].rel);
+            ff_free(&g_slot[i].ff);
+            g_slot[i].rel[0] = '\0';
+            g_slot[i].pin = 0;
+            g_slot[i].tick = 0;
+            /* Drop the blob only after this slot no longer borrows it. */
+            dink_blob_try_drop(rel);
+            return;
+        }
+    }
+}
+
 int ff_is_cached(const char *rel)
 {
     int i;

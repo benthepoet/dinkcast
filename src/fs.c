@@ -539,6 +539,43 @@ void dink_blob_clear(void)
     g_disc_opens = 0;
 }
 
+size_t dink_blob_bytes(void)
+{
+    size_t t = 0;
+    int i;
+
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] != '\0' && g_blob[i].data != NULL) {
+            t += g_blob[i].n;
+        }
+    }
+    return t;
+}
+
+int dink_blob_try_drop(const char *rel)
+{
+    char key[DINK_FS_PATH_MAX];
+    int i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return 0;
+    }
+    rel_key(key, sizeof(key), rel);
+    for (i = 0; i < g_nblob; i++) {
+        if (g_blob[i].rel[0] != '\0' && strcmp(g_blob[i].rel, key) == 0) {
+            printf("blob drop %s %u\n", g_blob[i].rel,
+                   (unsigned)g_blob[i].n);
+            free(g_blob[i].data);
+            g_blob[i].data = NULL;
+            g_blob[i].n = 0;
+            g_blob[i].pin = 0;
+            g_blob[i].rel[0] = '\0';
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
 {
     char key[DINK_FS_PATH_MAX];

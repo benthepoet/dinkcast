@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V5** + **8.6 house** accepted. **14.3 leak check deferred**. **15.2 Damage** landed (#76). Duck headless-seq fix in PR. Do not start 14.3 or 15.3 until the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V5** + **8.6 house** accepted. **14.3 leak check deferred**. **15.2** + duck headless-seq landed. Die-pack OOM fix in PR. Do not start 14.3 or 15.3 until the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 

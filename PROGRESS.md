@@ -110,7 +110,9 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | Choice overlay: seq 30 box, hcenter, one-page vertical center, arrows 456/457 | #73 |
 | 2026-08-20 | Start-house VRAM snapshot + sprite_tex packing notes | #74 |
 | 2026-08-20 | Say `print_text_wrap` hcenter in the 150 box | #75 |
-| 2026-08-20 | **15.2** damage: `hurt_thing`, HIT/DIE, corpse, push, `dinfo` DIE | this PR |
+| 2026-08-20 | **15.2** damage: `hurt_thing`, HIT/DIE, corpse, push, `dinfo` DIE | #76 |
+| 2026-08-21 | Duck first punch keeps headless 110 + flying head 120 | #77 |
+| 2026-08-21 | Drop `magic/dir.ff` after decoding seq 164; do not pin it on mom hp | this PR |
 
 ## Bites
 
@@ -155,7 +157,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | **deferred** after 15.x / with 18.x |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
-| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120; this PR |
+| 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack is dropped (this PR) |
 | 15.3–15.4 | Weapons / magic | pending | after **15.2** |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
@@ -222,3 +224,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-20 (VRAM occupancy) | **~90%** | Start house ~42% of 8 MB / 42% of `sprite_tex`. Choice overlay 696 KB pinned. Per-frame POT atlas is a wash; residency (choice-on-open, current walk facing) is the pack. 14.3 still deferred. See [docs/canvases/](docs/canvases/). |
 | 2026-08-20 (15.2 source) | **~90%** | Fists `hurt_thing` / HIT / DIE / corpse / push / life 0 `dinfo`. `sp_strength` bound; missile `get_box`; seq 164 preload. Next **15.3** weapons. |
 | 2026-08-21 (duck vanish) | **~90%** | First punch on Ethel's duck (`s1-oldd`) ran DIE then skipped seq 111/113/117/119 (`duck/death` pack not cached). Headless 110 + head 120 must preload; duck stays. |
+| 2026-08-21 (die pack OOM) | **~90%** | After the duck kill, walking to the pig pen hit `Out of memory` 200704 (`swap atlas fail`) then seq 63 425984. House mom hp had pinned `magic/dir.ff` (~600 KB) for the session. Decode 164 into EdGfx and drop the pack; people hp is not a die preload. |
