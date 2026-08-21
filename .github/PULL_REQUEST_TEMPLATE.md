@@ -3,7 +3,7 @@
 ## Orchestration
 
 - **orchestrator:**
-- **implementer:**
+- **implementer:** (correctness + FreeDink graft)
 - **reviewer:** adversarial (Dreamcast; covers plan / mem / perf / flaws)
 - **bar:** blocked (open)
 

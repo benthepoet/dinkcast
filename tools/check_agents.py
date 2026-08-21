@@ -26,6 +26,8 @@ def main() -> int:
     need("do not spawn extra reviewers", "do **not** spawn spec" in low or "do not spawn spec" in low)
     need("dreamcast expert reviewer", "dreamcast" in low and "kos" in low)
     need("feedback on the PR", "all review feedback lives on the pr" in low)
+    need("implementer faithful to FreeDink", "faithful" in low and "freedink" in low)
+    need("implementer correctness", "implementer" in low and "correctness" in low)
     need("implementer != adversarial", "implementer and adversarial" in low)
     need("orchestrator != adversarial", "orchestrator and adversarial" in low)
     need("gpl", "gpl-3.0-or-later" in low)

@@ -90,8 +90,10 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 | Role | Job | Must write on the PR |
 |---|---|---|
 | **Orchestrator** | Sequence work, assign the reviewer, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
-| **Implementer** | Code the bite. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
+| **Implementer** | Code the bite. Correctness and **faithfulness to GNU FreeDink source** first. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
 | **Adversarial** | The only reviewer. Dreamcast/KOS expert. Covers plan, RAM/VRAM/AICA, 60 Hz, DinkC, SH-4, disc. Assume the happy path is a lie. | One review: attack list + `verdict:` |
+
+**Implementer.** Focus is **correctness** and a faithful graft of GNU FreeDink, not a simpler DC-shaped rewrite. Sprite centers, hardboxes, vision, `hard==0`, move tests, brains, and DinkC come from named FreeDink functions. If you cannot name the function, stop and look it up. Inventing a box, filter, or dialect is a bug. Dreamcast constraints (PVR quads, ISO 8.3, Maple, RAM caps) are exceptions the plan already names — do not use them to “simplify” game rules.
 
 **Adversarial (the reviewer).** Spawn **one** subagent. Prompt it as a Dreamcast homebrew reviewer: SH-4, 16 MB SDRAM, 8 MB PVR, 2 MB AICA, GD-ROM/ISO9660, KallistiOS, Flycast vs hardware. It must read [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md) and [docs/GOTCHAS.md](docs/GOTCHAS.md) before commenting. In that **one** review it covers what used to be five roles:
 
