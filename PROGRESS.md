@@ -116,7 +116,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Spec **14.4** residency + gated **14.5** distill; 14.3 after 14.4 | #79 |
 | 2026-08-21 | One Adversarial reviewer (Dreamcast); drop spec/mem/perf/flaws agents | #80 |
 | 2026-08-21 | **14.4a** host catalog + `mem_log`; size-pin unchanged; 164 drop stays | #81 |
-| 2026-08-21 | **14.4b** Always/Screen/Prev; retire size-pin; sticky 164 pack drop | this PR |
+| 2026-08-21 | **14.4b** Always/Screen/Prev; retire size-pin; sticky 164 pack drop | #82 |
+| 2026-08-21 | Reopen-hang never confirmed; treat as KOS #1492 sector-pad | this PR |
 
 ## Bites
 
@@ -160,7 +161,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
-| 14.4 | Residency catalog + policy | pending | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev this PR. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap |
+| 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev #82. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
 | 14.5 | Distill frames (gated) | pending | only if 14.4a prints `14.5: needed` |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
@@ -186,11 +187,11 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-20)
+### Current (2026-08-21)
 
 | | | |
 |---|---|---|
-| **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
+| **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
 | **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4 residency** before 14.3 leak check and 15.3 |
 | **Hardest remaining** | Weapons / magic / inventory **and** main-RAM residency | **14.4** then 15.3 then 16 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
@@ -232,3 +233,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (duck vanish) | **~90%** | First punch on Ethel's duck (`s1-oldd`) ran DIE then skipped seq 111/113/117/119 (`duck/death` pack not cached). Headless 110 + head 120 must preload; duck stays. |
 | 2026-08-21 (die pack OOM) | **~90%** | After the duck kill, walking to the pig pen hit `Out of memory` 200704 (`swap atlas fail`) then seq 63 425984. House mom hp had pinned `magic/dir.ff` (~600 KB) for the session. Decode 164 into EdGfx and drop the pack; people hp is not a die preload. |
 | 2026-08-21 (14.4b policy) | **~90%** | Size-pin retired. Always named list + Screen + one Prev. Sticky 164 still drops the pack after frames complete. 14.4a already printed `14.5: needed`; this bite does not claim the opening-village `file_blob` peak is under 4.5 MB. |
+| 2026-08-21 (reopen hang unconfirmed) | **~90%** | “Third `trees/dir.ff` reopen hang” was never confirmed. Hangs match KOS #1492 (non-2048 sizes); sector-pad retired that class in Flycast. 14.4b Prev is RAM, not hang insurance. 14.5 stays gated on catalog over-cap. |

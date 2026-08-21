@@ -469,6 +469,7 @@ def main() -> int:
     print("castle pack", castle.stat().st_size if castle else 0)
 
     # Would-reopen ≥80 KB under two-screen-old drop (14.4b model).
+    # Seek + file_blob cost, not a hang class (reopen hang never confirmed; #1492).
     m439b = catalog_screen(root, seqs, loc, 439, 0, cache, pig["packs"])
     houseb = catalog_screen(root, seqs, loc, 1, 0, cache, m439b["packs"])
     walk = [
