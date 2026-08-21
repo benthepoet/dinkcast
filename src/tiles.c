@@ -147,6 +147,31 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     return 0;
 }
 
+size_t tiles_cache_bytes(void)
+{
+    size_t t = 0;
+    int i;
+
+    for (i = 0; i < DINK_TS_CACHE; i++) {
+        if (g_ts[i].pix != NULL && g_ts[i].w > 0 && g_ts[i].h > 0) {
+            t += (size_t)g_ts[i].w * (size_t)g_ts[i].h * 2u;
+        }
+    }
+    return t;
+}
+
+int tiles_cache_sheets(void)
+{
+    int i, n = 0;
+
+    for (i = 0; i < DINK_TS_CACHE; i++) {
+        if (g_ts[i].pix != NULL) {
+            n++;
+        }
+    }
+    return n;
+}
+
 static void blit_cell(uint16_t *atlas, const uint16_t *sheet, int sw, int sh,
                       int cell, int dx, int dy)
 {

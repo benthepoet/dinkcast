@@ -6,6 +6,8 @@
 #include "mapscr.h"
 #include "sprite.h"
 
+#include <stddef.h>
+
 #define DINK_EDGFX_MAX 96
 
 struct EdGfx {
@@ -33,5 +35,6 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame);
 /* Enter path: may fopen. Load all frames of seq into g (girl create, etc.). */
 void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq);
+size_t edraw_cpu_bytes(const struct EdGfx *g, int n);
 
 #endif

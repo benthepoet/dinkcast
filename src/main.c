@@ -18,6 +18,7 @@
 #include "hit.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "mem.h"
 #include "pad.h"
 #include "player.h"
 #include "saybox.h"
@@ -410,6 +411,8 @@ int main(int argc, char **argv)
                     /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
                     spr_restore("post-edraw");
                     printf("edraw unique %d\n", ned);
+                    mem_log("play", edraw_cpu_bytes(g_edg, ned), ned,
+                            tiles_cache_bytes(), tiles_cache_sheets());
                     for (si = 1; si <= 100; si++) {
                         struct SpriteFrame *ef;
                         int hl, ht, hr, hb, cx, cy;
@@ -567,6 +570,8 @@ int main(int argc, char **argv)
                         }
                         spr_restore("swap-post-edraw");
                         printf("edraw unique %d\n", ned);
+                        mem_log("swap", edraw_cpu_bytes(g_edg, ned), ned,
+                                tiles_cache_bytes(), tiles_cache_sheets());
                         for (nstamp = 1; nstamp <= 100; nstamp++) {
                             struct SpriteFrame *ef;
                             int hl, ht, hr, hb, cx, cy, hid, seq, fr;

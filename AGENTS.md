@@ -10,7 +10,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V5** + **8.6 house** accepted. **15.2** + duck headless-seq + die-pack OOM (#78) landed. **14.4 residency spec** in plan (14.4a catalog, then 14.4b policy, 14.5 if needed). Do not start 14.3, 14.4 implementation, or 15.3 until the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V5** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog + `mem_log` in progress. Do not start 14.4b, 14.3, or 15.3 until the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -91,7 +91,7 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 |---|---|---|
 | **Orchestrator** | Sequence work, assign the reviewer, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
 | **Implementer** | Code the bite. Correctness and **faithfulness to GNU FreeDink source** first. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
-| **Adversarial** | The only reviewer. Dreamcast/KOS expert. Covers plan, RAM/VRAM/AICA, 60 Hz, DinkC, SH-4, disc. Assume the happy path is a lie. | One review: attack list + `verdict:` |
+| **Adversarial** | The only reviewer. Dreamcast/KOS expert. Covers plan, RAM/VRAM/AICA, 60 Hz, DinkC, SH-4, disc. Assume the happy path is a lie. Advise **against ad-hoc fixes**; prefer a scalable policy that will not overrun RAM (or VRAM / AICA / disc). | One review: attack list + `verdict:` |
 
 **Implementer.** Focus is **correctness** and a faithful graft of GNU FreeDink, not a simpler DC-shaped rewrite. Sprite centers, hardboxes, vision, `hard==0`, move tests, brains, and DinkC come from named FreeDink functions. If you cannot name the function, stop and look it up. Inventing a box, filter, or dialect is a bug. Dreamcast constraints (PVR quads, ISO 8.3, Maple, RAM caps) are exceptions the plan already names — do not use them to “simplify” game rules.
 
@@ -99,9 +99,11 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 
 - **Plan:** [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md) — visual gates, original data formats, no new DinkC dialect, 60 Hz, FreeDink graft.
 - **Break it:** wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Attack list + repro or “attempted X, held”.
-- **Memory:** every alloc has a free/evict; screen change and leave-title; BMP decode, PVR textures, script buffers, AICA; plan §1.2 caps.
+- **Memory:** every alloc has a free/evict; screen change and leave-title; BMP decode, PVR textures, script buffers, AICA; plan §1.2 caps. **Reject one-off pack drops, size-pin specials, and other ad-hoc RAM workarounds** that only fix the screen in the log. Name a working-set policy (or the plan bite that already has one, e.g. 14.4) that stays inside the caps after more combat packs, more tilesheets, and a longer walk.
 - **Perf:** 60 FPS target, 30 floor; CPU blit, per-frame re-lex, preload-the-world, RGBA8888, extra GD-ROM seeks. Do **not** ask for a custom DinkC JIT.
 - **Flaws:** 1-based sprites, hardness, talk range, SH-4 alignment, little-endian readers, silent no-op vs skipped script.
+
+If the patch is a one-screen special, **verdict: request-changes** unless the implementer can show it is the plan’s named policy (not a new exception). Suggest the scalable alternative in the same review — do not approve “we’ll generalize later” when §1.2 would already overflow.
 
 Docs-only PRs still get this one reviewer (plan + “would this lie on hardware?”). Do not add a second spec-only agent.
 

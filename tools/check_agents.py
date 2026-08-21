@@ -23,6 +23,7 @@ def main() -> int:
     need("orchestrator named on PR", "orchestrator:" in low)
     need("bar: green", "bar: green" in low)
     need("adversarial reviewer", "adversarial" in low and "the only reviewer" in low)
+    need("adversarial against ad-hoc", "ad-hoc" in low and "scalable" in low)
     need("do not spawn extra reviewers", "do **not** spawn spec" in low or "do not spawn spec" in low)
     need("dreamcast expert reviewer", "dreamcast" in low and "kos" in low)
     need("feedback on the PR", "all review feedback lives on the pr" in low)
