@@ -22,9 +22,9 @@ def main() -> int:
     need("orchestrator role", "### orchestrator" in low or "**orchestrator**" in low)
     need("orchestrator named on PR", "orchestrator:" in low)
     need("bar: green", "bar: green" in low)
-    need("adversarial reviewer", "adversarial" in low)
-    need("memory reviewer", "memory reviewer" in low)
-    need("performance reviewer", "performance reviewer" in low)
+    need("adversarial reviewer", "adversarial" in low and "the only reviewer" in low)
+    need("do not spawn extra reviewers", "do **not** spawn spec" in low or "do not spawn spec" in low)
+    need("dreamcast expert reviewer", "dreamcast" in low and "kos" in low)
     need("feedback on the PR", "all review feedback lives on the pr" in low)
     need("implementer != adversarial", "implementer and adversarial" in low)
     need("orchestrator != adversarial", "orchestrator and adversarial" in low)
@@ -33,7 +33,7 @@ def main() -> int:
     need("human gate after merge", "after a pr is" in low and "merged" in low and "until the human" in low)
     need("PROGRESS.md required", "progress.md" in low)
     need("visual milestone gate", "visual-gate" in low and "6.3" in low)
-    need("troubleshooting team", "troubleshooting" in low and "debug orchestrator" in low)
+    need("troubleshooting", "troubleshooting" in low and "debug orchestrator" in low)
 
     if missing:
         print("FAIL:", "; ".join(missing))

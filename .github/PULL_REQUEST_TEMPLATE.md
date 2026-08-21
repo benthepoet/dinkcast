@@ -2,9 +2,9 @@
 
 ## Orchestration
 
-- **orchestrator:** @
-- **implementer:** @
-- **Required reviews this PR:** (orchestrator fills: spec / adversarial / memory / performance / flaws)
+- **orchestrator:**
+- **implementer:**
+- **reviewer:** adversarial (Dreamcast; covers plan / mem / perf / flaws)
 - **bar:** blocked (open)
 
 ## Bite / intent
@@ -31,12 +31,6 @@ make host
 
 - Leaks / timing / DinkC / ISO9660:
 
-## Reviewer verdicts (reviewers fill)
+## Reviewer verdict
 
-| Role | Verdict |
-|---|---|
-| Spec | |
-| Adversarial | |
-| Memory | |
-| Performance | |
-| Flaws | |
+- Adversarial: (approve / request-changes)
