@@ -199,7 +199,9 @@ def script_seqs(root: Path, name: str) -> set[int]:
     for m in re.finditer(r"preload_seq\s*\(\s*(\d+)", text, re.I):
         out.add(int(m.group(1)))
     for m in re.finditer(
-        r"create_sprite\s*\([^;]*?,\s*(\d+)\s*,\s*\d+\s*\)", text, re.I
+        r"create_sprite\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*(\d+)\s*,",
+        text,
+        re.I,
     ):
         out.add(int(m.group(1)))
     for m in re.finditer(r"sp_base_walk\s*\([^,]+,\s*(\d+)", text, re.I):
@@ -311,13 +313,10 @@ def screen_seqs(
             need |= walk_seqs(seqs, 120)
         if sp["script"]:
             names.append(sp["script"])
+    # Facings only from editor base_walk and sp_base_walk (in script_seqs).
+    # Do not decade-walk preload_seq / create_sprite ids (422 is paper, not base 420).
     for nm in names:
-        extra = script_seqs(root, nm)
-        need |= extra
-        for s in list(extra):
-            # create_sprite seq may be a facing; also treat as base
-            need |= walk_seqs(seqs, s)
-            need |= walk_seqs(seqs, s - (s % 10))
+        need |= script_seqs(root, nm)
     return {s for s in need if s in seqs}
 
 
