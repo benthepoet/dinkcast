@@ -38,6 +38,8 @@ def main() -> int:
         "408 girl",
         "pig 407",
         "castle pack",
+        "campaign screens=",
+        "Always+Screen+Prev peak",
         "OK pack_catalog",
     )
     missing = [s for s in need if s not in out]
