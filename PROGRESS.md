@@ -170,7 +170,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
-| 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 done**; 15.2 already landed |
+| 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 disc**; 15.2 already landed. **14.6** is not this gate |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |

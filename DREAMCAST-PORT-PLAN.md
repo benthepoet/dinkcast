@@ -632,7 +632,7 @@ Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_d
 
 #### Bite 14.3 — Leak check
 
-**Deferred until 14.4b is under cap or 14.5 is done** (was “after 15.x”). Pin-forever ≥80 KB packs grow until OOM; a 20-crossing delta is meaningless until residency has a cap. Not a visual gate.
+**Deferred until 14.4b is under cap or 14.5 disc is done** (was “after 15.x”). Pin-forever ≥80 KB packs grow until OOM; a 20-crossing delta is meaningless until residency has a cap. Not a visual gate. **14.6** is not this gate.
 
 - `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB** *for pools that should be stable* (`cpu_pixels` may change with the screen; `file_blob` must not climb unbounded).
 - Log `swap_ms` on hardware; same-tileset neighbor must stay in the § screen-delay table.
@@ -643,7 +643,7 @@ Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_d
 
 **Why:** Session `dink_blob_get` plus size-pin (≥80 KB, 32 ff slots) keeps **decode sources** for the whole walk. Official data has **89** `dir.ff` ≥80 KB (~**31 MB**). Village walk after 15.2 pinned idle/walk/push/mom/walls/home/trees/magic/knight (~6–7 MB of packs) then `Out of memory` 200704 / seq 63 425984. Per-seq drops (`magic/dir.ff` after 164) are correct for that pack and **wrong as a pattern**.
 
-Two PRs, same bite id. **Do not start 15.3** until **14.4b** is under cap **or 14.5 is done**. That does not replace the human gate after merge.
+Two PRs, same bite id. **Do not start 15.3** until **14.4b** is under cap **or 14.5 disc is done**. **14.6** is not this gate. That does not replace the human gate after merge.
 
 **Not a visual gate.** Host first. Keep the 164 magic drop until 14.4b.
 
