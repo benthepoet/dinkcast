@@ -53,6 +53,19 @@ def main() -> int:
     if r.returncode != 0:
         print("FAIL distill", r.returncode, r.stderr)
         return 1
+    r = subprocess.run(
+        [sys.executable, str(DISTILL), "--src", str(src), "--in-place"],
+        cwd=ROOT,
+        env={**env, "DINK_DATA": data},
+        capture_output=True,
+        text=True,
+    )
+    if r.returncode == 0:
+        print("FAIL distill --in-place on DINK_DATA was accepted")
+        return 1
+    if "refuses DINK_DATA" not in (r.stdout + r.stderr):
+        print("FAIL distill --in-place message", r.stdout, r.stderr)
+        return 1
     if ff_size(src, "graphics/struct/home/dir.ff") != home:
         print("FAIL DINK_DATA home/dir.ff changed")
         return 1

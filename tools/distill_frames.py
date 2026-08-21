@@ -184,6 +184,15 @@ def main() -> int:
         print("SKIP distill: DINK_DATA unset")
         return 0
     src = Path(args.src)
+    data_env = os.environ.get("DINK_DATA", "").strip()
+    if args.in_place and data_env:
+        try:
+            if src.resolve() == Path(data_env).resolve():
+                print("FAIL distill --in-place refuses DINK_DATA", file=sys.stderr)
+                return 1
+        except OSError:
+            print("FAIL distill --in-place cannot resolve DINK_DATA", file=sys.stderr)
+            return 1
     if cat.find_ci(src, "dink.dat") is None:
         print("SKIP distill: no dink.dat (fixture stage)")
         return 0
