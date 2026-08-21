@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import pack_catalog as cat  # noqa: E402
+
 DISTILL = ROOT / "tools" / "distill_frames.py"
 CATALOG = ROOT / "tools" / "pack_catalog.py"
 
@@ -53,6 +56,7 @@ def main() -> int:
     if r.returncode != 0:
         print("FAIL distill", r.returncode, r.stderr)
         return 1
+    dist_out = r.stdout
     r = subprocess.run(
         [sys.executable, str(DISTILL), "--src", str(src), "--in-place"],
         cwd=ROOT,
@@ -76,6 +80,30 @@ def main() -> int:
     if dhome < 0 or dhome >= home:
         print("FAIL distilled home not smaller", dhome, home)
         return 1
+    maps_ln = [ln for ln in dist_out.splitlines() if ln.startswith("distill maps")]
+    wrapped = f" {maps_ln[0]} " if maps_ln else ""
+    if " 3 " not in wrapped or " 4 " not in wrapped:
+        print("FAIL distill maps missing old-man interiors 3/4", maps_ln)
+        return 1
+    seqs = cat.parse_ini(src)
+    must = (
+        (31, 27, "graphics/inside/innwalls/walls/dir.ff"),
+        (87, 7, "graphics/inside/details/dir.ff"),
+        (448, 16, "graphics/items/cup/dir.ff"),
+        (428, 2, "graphics/inside/stairs/dir.ff"),
+        (447, 4, "graphics/items/tools/dir.ff"),
+    )
+    for sid, fr, rel in must:
+        prefix = seqs.get(sid, "")
+        want = cat.frame_bmp_name(prefix, fr).lower()
+        p = out.joinpath(*rel.split("/"))
+        if not p.is_file():
+            # skip-no-save left the official pack; overlay must not keep a stub
+            continue
+        names = {n.lower() for n, _off in cat.ff_entries(p.read_bytes())}
+        if want not in names:
+            print("FAIL distilled missing old-man frame", rel, want, "have", sorted(names)[:12])
+            return 1
     env["DINK_DISTILL"] = str(out)
     env["DINK_DATA"] = data
     r = subprocess.run(

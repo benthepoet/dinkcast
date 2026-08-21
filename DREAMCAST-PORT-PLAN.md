@@ -675,6 +675,7 @@ Only after 14.4a numbers exist.
 
 - Offline pack step (CDI only, like MIDI→ADPCM): TOC of per-frame size/offset + payload. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
 - Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
+- Screens: 14.4a seeds, one 4-neighbor ring, then **BFS `is_warp` interiors** still inside the opening-village bound (old-man house map **3**, back room map **4**). Do not flood 400–450. Keep the **used-frame set** (not 1..max): filling holes makes innwalls skip-no-save and 439+house Prev over the `file_blob` cap.
 - Do **not** zlib-compress the official tree and commit it.
 
 **Done when:** The overflowing screen from 14.4a loads under the `file_blob` cap on host with distilled packs (and Flycast if that screen is in the opening village). GOTCHAS: distilled frames, original `DINK_DATA` pack not rewritten; staged subset `dir.ff` is the decode source.

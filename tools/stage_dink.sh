@@ -40,11 +40,9 @@ HAS_DATA=0
 if [ -e "$DST/dink.dat" ] || [ -e "$DST/Dink.dat" ]; then
     HAS_DATA=1
 fi
-# 14.5: overlay host-built subset dir.ff, then distill in-place on the
-# staged copy (never DINK_DATA). Skip fixtures with no dink.dat.
-if [ "$HAS_DATA" = 1 ] && [ -d "$ROOT/build/distill" ]; then
-    cp -a "$ROOT/build/distill/." "$DST/"
-fi
+# 14.5: distill in-place on the official staged copy (never DINK_DATA).
+# Do not overlay build/distill first — a previous sparse pack would replace
+# a skip-no-save original (innwalls nframes 0). Skip fixtures with no dink.dat.
 if [ "$HAS_DATA" = 1 ] && command -v python3 >/dev/null 2>&1; then
     python3 "$ROOT/tools/distill_frames.py" --src "$DST" --in-place
 fi

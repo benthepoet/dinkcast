@@ -3,7 +3,8 @@
 """14.5 distill: subset dir.ff of used 8-bit BMPs (original payloads).
 
 Never writes DINK_DATA. Default out is build/distill/. --in-place rewrites a
-staged copy (CDI). Always-resident packs are left whole.
+staged copy (CDI) that still has official packs. Always-resident packs and
+skip-no-save packs are left whole (host out unlinks a stale subset).
 """
 from __future__ import annotations
 
@@ -86,31 +87,69 @@ def merge_need(
     return out
 
 
+def in_opening_village(mmap: int) -> bool:
+    return mmap < 32 or 400 <= mmap <= 450
+
+
+def village_maps(root: Path, loc: list[int]) -> list[int]:
+    """14.4a seeds, one ring of 4-neighbors, then BFS warp interiors.
+
+    One hop missed map 4 (old-man back room from map 3 vis 1). Do not
+    flood 400–450 via extra neighbor rings. Do not pin map 4 in seeds.
+    """
+    seeds = (1, 407, 408, 409, 439, 440, 441)
+    maps: set[int] = set()
+
+    def ok(mmap: int) -> bool:
+        return (
+            in_opening_village(mmap)
+            and 0 <= mmap < len(loc)
+            and loc[mmap] >= 1
+        )
+
+    for mmap in seeds:
+        if ok(mmap):
+            maps.add(mmap)
+        for nb in (mmap - 1, mmap + 1, mmap - 32, mmap + 32):
+            if ok(nb):
+                maps.add(nb)
+    pending = list(maps)
+    while pending:
+        mmap = pending.pop()
+        raw = cat.load_map_rec(root, loc[mmap])
+        if raw is None:
+            continue
+        sprites, _script, _sheets = cat.parse_screen(raw)
+        for sp in sprites:
+            if not sp["active"] or not sp.get("is_warp"):
+                continue
+            wm = int(sp.get("warp_map") or 0)
+            if ok(wm) and wm not in maps:
+                maps.add(wm)
+                pending.append(wm)
+    return sorted(maps)
+
+
 def village_need(root: Path) -> tuple[dict[int, str], dict[int, set[int] | None]]:
     seqs = cat.parse_ini(root)
     loc = cat.load_world_loc(root)
     cache: dict = {}
     need: dict[int, set[int] | None] = {}
     prev = None
-    for mmap, vis in (
-        (1, 0),
-        (439, 0),
-        (440, 0),
-        (441, 0),
-        (441, 2),
-        (409, 0),
-        (2, 0),
-        (408, 0),
-        (407, 0),
-    ):
-        c = cat.catalog_screen(root, seqs, loc, mmap, vis, cache, prev)
-        rec = loc[mmap] if 0 <= mmap < len(loc) else 0
-        raw = cat.load_map_rec(root, rec)
-        if raw is None:
-            continue
-        sprites, script, _sheets = cat.parse_screen(raw)
-        need = merge_need(need, cat.screen_need(sprites, script, root, seqs, vis))
-        prev = c["packs"]
+    maps = village_maps(root, loc)
+    print("distill maps", " ".join(str(m) for m in maps))
+    for mmap in maps:
+        for vis in (0, 1, 2):
+            c = cat.catalog_screen(root, seqs, loc, mmap, vis, cache, prev)
+            rec = loc[mmap] if 0 <= mmap < len(loc) else 0
+            raw = cat.load_map_rec(root, rec)
+            if raw is None:
+                continue
+            sprites, script, _sheets = cat.parse_screen(raw)
+            need = merge_need(
+                need, cat.screen_need(sprites, script, root, seqs, vis)
+            )
+            prev = c.get("packs")
     return seqs, need
 
 
@@ -154,10 +193,19 @@ def distill_root(src: Path, dst: Path, in_place: bool) -> int:
         raw = orig[rel]
         if not entries:
             print(f"distill skip empty {rel}")
+            if not in_place:
+                stale = dst.joinpath(*Path(rel).parts)
+                if stale.is_file():
+                    stale.unlink()
             continue
         outb = write_ff(entries)
         if len(outb) >= len(raw):
             print(f"distill skip no-save {rel} {len(raw)}")
+            # Stale overlay of a previous sparse pack would win on CDI.
+            if not in_place:
+                stale = dst.joinpath(*Path(rel).parts)
+                if stale.is_file():
+                    stale.unlink()
             continue
         if in_place:
             outp = cat.find_ci(src, rel)
