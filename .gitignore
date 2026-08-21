@@ -48,6 +48,7 @@ tests/test_brains
 tests/test_hurt
 tests/test_mem
 tests/test_leak
+tests/test_weapon
 
 # Toolchain / local
 .kosenv

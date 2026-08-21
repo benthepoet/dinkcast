@@ -27,6 +27,9 @@ void script_on_push(int sprite);
 /* update_status: flife < 1 → dinfo DIE once. */
 int script_on_dink_die(void);
 void script_clear_dink_die(void);
+int script_item_arm(const char *name);
+int script_item_locate(int slot, const char *proc);
+int script_item_pickup(const char *name);
 
 /* Last printf line (no newline). Host tests. */
 const char *script_stub_log(void);

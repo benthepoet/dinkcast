@@ -107,6 +107,17 @@ int main(void)
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0 && pl.freeze == 0, "unfreeze");
     {
+        const char *keep =
+            "void arm(void) { int &x; } void use(void) { &x = 1; return; }";
+        int ks;
+
+        dinkc_vm_reset();
+        ks = dinkc_vm_start_keep(keep, strlen(keep), 1000, "arm");
+        expect(ks > 0 && dinkc_vm_used(ks), "keep arm");
+        expect(dinkc_vm_locate(ks, "use") == ks, "locate use");
+        expect(dinkc_vm_used(ks), "keep after return");
+    }
+    {
         const char *orphan = "void main(void) { freeze(1); }";
 
         dinkc_vm_reset();

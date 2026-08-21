@@ -48,6 +48,36 @@ static struct EditorSprite *g_spr_ok;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx *g_edg;
+static struct SeqInfo *g_seqs_play;
+static int g_ned;
+
+static void preload_seq_cb(int seq)
+{
+    if (g_seqs_play == NULL || g_edg == NULL) {
+        return;
+    }
+    edraw_load_seq(g_edg, &g_ned, g_seqs_play, seq);
+}
+
+static void load_frame_cb(int seq, int frame)
+{
+    if (g_seqs_play == NULL || g_edg == NULL) {
+        return;
+    }
+    edraw_load_frame(g_edg, &g_ned, g_seqs_play, seq, frame);
+}
+
+static void give_start_fists(void)
+{
+    int args[8];
+
+    memset(args, 0, sizeof(args));
+    args[1] = 438;
+    args[2] = 1;
+    (void)dinkc_cmd("add_item", args, 3, "item-fst", NULL, NULL, NULL);
+    dinkc_var_set("&cur_weapon", 1, DINKC_GLOBAL_SCOPE, 1);
+    (void)dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, NULL, NULL);
+}
 
 static int spr_ok_ready(void)
 {
@@ -372,6 +402,10 @@ int main(int argc, char **argv)
                        DINK_IDLE_SEQ, seqs[DINK_IDLE_SEQ].prefix,
                        seqs[DINK_IDLE_SEQ].nframes, seqs[DINK_IDLE_SEQ].cx,
                        seqs[DINK_IDLE_SEQ].cy);
+                g_seqs_play = seqs;
+                dinkc_cmd_bind_seqs(seqs);
+                dinkc_cmd_bind_preload(preload_seq_cb);
+                dinkc_cmd_bind_load_frame(load_frame_cb);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");
                 }
@@ -412,6 +446,7 @@ int main(int argc, char **argv)
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
+                give_start_fists();
                 brains_bind_screen(&g_scr);
                 brains_reset();
                 script_enter_vision();
@@ -419,7 +454,7 @@ int main(int argc, char **argv)
                     sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
                 }
                 {
-                    int ned = 0;
+                    g_ned = 0;
 
                     printf("pre-edraw live seq=%d y=%d act=%d snap seq=%d y=%d act=%d\n",
                            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
@@ -428,13 +463,13 @@ int main(int argc, char **argv)
                     printf("edraw start\n");
                     fflush(stdout);
                     if (seqs != NULL) {
-                        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned,
+                        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &g_ned,
                                                 script_play_vision());
                     }
                     /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
                     spr_restore("post-edraw");
-                    printf("edraw unique %d\n", ned);
-                    mem_log("play", edraw_cpu_bytes(g_edg, ned), ned,
+                    printf("edraw unique %d\n", g_ned);
+                    mem_log("play", edraw_cpu_bytes(g_edg, g_ned), g_ned,
                             tiles_cache_bytes(), tiles_cache_sheets());
                     for (si = 1; si <= 100; si++) {
                         struct SpriteFrame *ef;
@@ -445,7 +480,7 @@ int main(int argc, char **argv)
                             g_scr.sprite[si].hard != 0) {
                             continue;
                         }
-                        ef = edraw_find(g_edg, ned, (int)g_scr.sprite[si].seq,
+                        ef = edraw_find(g_edg, g_ned, (int)g_scr.sprite[si].seq,
                                         (int)g_scr.sprite[si].frame < 1
                                             ? 1
                                             : (int)g_scr.sprite[si].frame);
@@ -474,14 +509,14 @@ int main(int argc, char **argv)
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     sprite_frame_free(&spr);
-                    edraw_free(g_edg, ned);
+                    edraw_free(g_edg, g_ned);
                     hard_mask_free(&mask);
                     free(seqs);
                     for (;;) {
                         vid_waitvbl();
                     }
                 }
-                if (edraw_upload_pvr(g_edg, ned) != 0) {
+                if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                     printf("edraw upload none\n");
                 }
                 if (spr.argb1555 != NULL) {
@@ -507,8 +542,8 @@ int main(int argc, char **argv)
                 brains_enter(&g_scr, script_play_vision());
                 brains_apply(&g_scr);
                 if (seqs != NULL) {
-                    edraw_created_sprites(seqs, &ned);
-                    if (edraw_upload_pvr(g_edg, ned) != 0) {
+                    edraw_created_sprites(seqs, &g_ned);
+                    if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                         printf("edraw created upload none\n");
                     }
                 }
@@ -525,6 +560,7 @@ int main(int argc, char **argv)
                     if (g_need_restart) {
                         dinkc_vm_reset();
                         dinkc_var_init();
+                        dinkc_cmd_reset_inv();
                         player_init(&pl);
                         dinkc_cmd_bind_player(&pl);
                         hit_bind_player(&pl);
@@ -532,6 +568,7 @@ int main(int argc, char **argv)
                         player_map = DINK_START_PLAYER_MAP;
                         g_need_restart = 0;
                         mem_swap_reset();
+                        give_start_fists();
                         swap = 1;
                     }
 
@@ -591,11 +628,11 @@ int main(int argc, char **argv)
                         brains_reset();
                         script_enter_vision();
                         if (seqs != NULL) {
-                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &ned,
+                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &g_ned,
                                                     script_play_vision());
                         }
                         spr_restore("swap-post-edraw");
-                        printf("edraw unique %d\n", ned);
+                        printf("edraw unique %d\n", g_ned);
                         for (nstamp = 1; nstamp <= 100; nstamp++) {
                             struct SpriteFrame *ef;
                             int hl, ht, hr, hb, cx, cy, hid, seq, fr;
@@ -614,7 +651,7 @@ int main(int argc, char **argv)
                             }
                             hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp
                                                                : 1;
-                            ef = edraw_find(g_edg, ned, seq, fr);
+                            ef = edraw_find(g_edg, g_ned, seq, fr);
                             if (ef != NULL) {
                                 hard_stamp_box(&mask,
                                                (int)g_scr.sprite[nstamp].x,
@@ -655,10 +692,10 @@ int main(int argc, char **argv)
                                 printf("swap atlas fail keep\n");
                             }
                         }
-                        if (edraw_upload_pvr(g_edg, ned) != 0) {
+                        if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                             printf("swap edraw upload fail\n");
                         } else {
-                            printf("swap edraw upload ok n=%d\n", ned);
+                            printf("swap edraw upload ok n=%d\n", g_ned);
                         }
                         if (seqs != NULL) {
                             sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
@@ -674,13 +711,13 @@ int main(int argc, char **argv)
                         brains_enter(&g_scr, script_play_vision());
                         brains_apply(&g_scr);
                         if (seqs != NULL) {
-                            edraw_created_sprites(seqs, &ned);
-                            if (edraw_upload_pvr(g_edg, ned) != 0) {
+                            edraw_created_sprites(seqs, &g_ned);
+                            if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                                 printf("swap created upload fail\n");
                             }
                         }
                         script_attach_live();
-                        mem_log("swap", edraw_cpu_bytes(g_edg, ned), ned,
+                        mem_log("swap", edraw_cpu_bytes(g_edg, g_ned), g_ned,
                                 tiles_cache_bytes(), tiles_cache_sheets());
                         printf("swap_ms %u\n", mem_now_ms() - swap_t0);
                         swap = 0;
@@ -723,7 +760,7 @@ int main(int argc, char **argv)
                         }
                     } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
-                        int slot = talk_probe(&g_scr, g_edg, ned, seqs, pl.x,
+                        int slot = talk_probe(&g_scr, g_edg, g_ned, seqs, pl.x,
                                               pl.y, pl.dir, script_play_vision());
 
                         if (slot < 1) {
@@ -731,18 +768,32 @@ int main(int argc, char **argv)
                         } else {
                             script_on_talk(slot);
                         }
+                    } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                        !dinkc_vm_waiting_say() &&
+                        !dinkc_vm_waiting_choice() &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
+                        if (dinkc_cmd_weapon_armed() && pl.base_hit > 0) {
+                            (void)dinkc_cmd_weapon_use();
+                        } else {
+                            player_attack(&pl, seqs);
+                        }
                     }
                     if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_X)) {
-                        /* magic_script==0 until 15.4 / arm_magic. */
-                        saybox_set(magic_miss_line((rand() % 6) + 1), 1);
-                    }
-                    if (have && pl.freeze == 0 && !dinkc_vm_waiting_say() &&
-                        !dinkc_vm_waiting_choice() &&
-                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
-                        player_attack(&pl, seqs);
+                        if (dinkc_cmd_magic_armed()) {
+                            int lv = dinkc_var_get("&magic_level",
+                                                   DINKC_GLOBAL_SCOPE, 1);
+                            int cost = dinkc_var_get("&magic_cost",
+                                                     DINKC_GLOBAL_SCOPE, 1);
+
+                            if (lv >= cost) {
+                                (void)dinkc_cmd_magic_use();
+                            }
+                        } else {
+                            saybox_set(magic_miss_line((rand() % 6) + 1), 1);
+                        }
                     }
                     prev_buttons = have ? buttons : 0;
                     dinkc_vm_set_now(now_ms);
@@ -754,11 +805,11 @@ int main(int argc, char **argv)
                         brains_tick(&g_scr, seqs, &mask, now_ms,
                                     script_play_vision());
                         {
-                            int ei;
+                            int ei, sq, fr;
 
                             for (ei = 1; ei <= 100; ei++) {
-                                int sq = (int)g_scr.sprite[ei].seq;
-                                int fr = (int)g_scr.sprite[ei].frame;
+                                sq = (int)g_scr.sprite[ei].seq;
+                                fr = (int)g_scr.sprite[ei].frame;
 
                                 if (!editor_sprite_draw(&g_scr.sprite[ei],
                                                         script_play_vision())) {
@@ -767,8 +818,20 @@ int main(int argc, char **argv)
                                 if (fr < 1) {
                                     fr = 1;
                                 }
-                                if (edraw_find(g_edg, ned, sq, fr) == NULL) {
-                                    (void)edraw_ensure_frame(g_edg, &ned, seqs,
+                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
+                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
+                                                             sq, fr);
+                                }
+                            }
+                            for (ei = 1; ei <= 99; ei++) {
+                                if (!brains_seq_frame(ei, &sq, &fr)) {
+                                    continue;
+                                }
+                                if (fr < 1) {
+                                    fr = 1;
+                                }
+                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
+                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
                                                              sq, fr);
                                 }
                             }
@@ -825,10 +888,10 @@ int main(int argc, char **argv)
                                                     DINKC_GLOBAL_SCOPE, 1);
 
                             hit_tag_list(1, pl.x, pl.y, pl.dir, str, pl.range,
-                                         g_edg, ned, seqs);
+                                         g_edg, g_ned, seqs);
                         }
                         if (pl.just_push) {
-                            hit_tag_list_push(pl.x, pl.y, g_edg, ned, seqs);
+                            hit_tag_list_push(pl.x, pl.y, g_edg, g_ned, seqs);
                         }
                         {
                             int hi;
@@ -843,7 +906,7 @@ int main(int argc, char **argv)
                                                          hi, DINKC_SP_DIR, -1),
                                                      brains_strength(hi),
                                                      brains_range(hi), g_edg,
-                                                     ned, seqs);
+                                                     g_ned, seqs);
                                     }
                                 }
                             }
@@ -905,7 +968,7 @@ int main(int argc, char **argv)
                             if (fr < 1) {
                                 fr = 1;
                             }
-                            ef = edraw_find(g_edg, ned, seq, fr);
+                            ef = edraw_find(g_edg, g_ned, seq, fr);
                             if (ef == NULL) {
                                 continue;
                             }

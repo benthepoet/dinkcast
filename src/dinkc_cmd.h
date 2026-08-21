@@ -3,6 +3,7 @@
 #define DINKCAST_DINKC_CMD_H
 
 struct Player;
+struct SeqInfo;
 
 void dinkc_cmd_bind_player(struct Player *p);
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
@@ -30,6 +31,14 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_STRENGTH 21
 #define DINKC_SP_RANGE 22
 #define DINKC_SP_TOUCH 23
+#define DINKC_SP_NOCONTROL 24
+#define DINKC_SP_MX 25
+#define DINKC_SP_MY 26
+#define DINKC_SP_FLYING 27
+#define DINKC_SP_BRAIN_PARM 28
+#define DINKC_SP_BRAIN_PARM2 29
+#define DINKC_SP_QUE 30
+#define DINKC_SP_DISTANCE 31
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
@@ -56,5 +65,16 @@ int dinkc_cmd_implemented_count(void);
 int dinkc_cmd_missing_count(void);
 /* If freeze>0 and no live fibers, clear (script died before unfreeze). */
 void dinkc_cmd_thaw_if_idle(void);
+void dinkc_cmd_bind_seqs(struct SeqInfo *seqs);
+void dinkc_cmd_bind_preload(void (*fn)(int seq));
+void dinkc_cmd_bind_load_frame(void (*fn)(int seq, int frame));
+void dinkc_cmd_bind_item(int (*arm)(const char *name),
+                         int (*locate)(int slot, const char *proc),
+                         int (*pickup)(const char *name));
+int dinkc_cmd_weapon_armed(void);
+int dinkc_cmd_magic_armed(void);
+int dinkc_cmd_weapon_use(void);
+int dinkc_cmd_magic_use(void);
+void dinkc_cmd_reset_inv(void);
 
 #endif

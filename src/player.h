@@ -20,6 +20,8 @@ struct Player {
     int base_attack;
     int base_idle;
     int base_push;
+    int base_hit; /* FreeDink spr[1].base_hit; START-1 / item-fst 100 */
+    int distance;
     int warp_hit; /* editor slot if last step hit hardness 100+is_warp */
     int move_active, move_dir, move_num, move_nohard;
     int hitpoints, defense, strength, nohit, range, damage, last_hit;

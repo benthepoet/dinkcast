@@ -53,6 +53,7 @@ void script_bind_screen(const struct MapScreen *scr)
     g_scr = scr;
     dinkc_cmd_bind_sp_script(bind_sp_script);
     dinkc_cmd_bind_external(bind_external);
+    dinkc_cmd_bind_item(script_item_arm, script_item_locate, script_item_pickup);
     printf("script bind esz=%d spr26=%s type=%d\n",
            (int)sizeof(struct EditorSprite),
            (scr != NULL) ? scr->sprite[26].script : "",
@@ -179,6 +180,57 @@ static int start_named(int sprite, const char *file, const char *proc)
     }
     dinkc_free(buf);
     return 0;
+}
+
+int script_item_pickup(const char *name)
+{
+    char *buf = NULL;
+    size_t n = 0;
+
+    if (name == NULL || name[0] == '\0') {
+        return -1;
+    }
+    if (dinkc_load(name, &buf, &n) != 0) {
+        return -1;
+    }
+    if (!src_has_proc(buf, n, "pickup")) {
+        dinkc_free(buf);
+        return -1;
+    }
+    /* Do not kill_sprite(1000): that is the armed weapon keep fiber. */
+    if (dinkc_vm_start_proc(buf, n, 1000, "pickup") < 0) {
+        dinkc_free(buf);
+        return -1;
+    }
+    dinkc_free(buf);
+    return 0;
+}
+
+int script_item_arm(const char *name)
+{
+    char *buf = NULL;
+    size_t n = 0;
+    int slot;
+
+    if (name == NULL || name[0] == '\0') {
+        return 0;
+    }
+    if (dinkc_load(name, &buf, &n) != 0) {
+        printf("dinkc arm miss %s\n", name);
+        return 0;
+    }
+    slot = dinkc_vm_start_keep(buf, n, 1000, "arm");
+    dinkc_free(buf);
+    if (slot < 1) {
+        printf("dinkc arm fail %s\n", name);
+        return 0;
+    }
+    return slot;
+}
+
+int script_item_locate(int slot, const char *proc)
+{
+    return dinkc_vm_locate(slot, proc);
 }
 
 int script_play_vision(void)

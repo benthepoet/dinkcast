@@ -29,6 +29,7 @@ struct Fiber {
     int choice_cur;
     int choice_ret[20];
     char choice_line[20][80];
+    int keep;
     char name[32];
     char *src;
     size_t srclen;
@@ -543,13 +544,25 @@ static void run_fiber(struct Fiber *f, int now_ms)
             f->depth--;
             f->ip++;
             if (f->depth <= 0) {
+                if (f->keep) {
+                    f->state = DINKC_IDLE;
+                    return;
+                }
                 fiber_kill(f);
                 return;
             }
             continue;
         }
-        if (tok_is(t, "void") || tok_is(t, "return") ||
-            tok_is(t, "kill_this_task")) {
+        if (tok_is(t, "kill_this_task")) {
+            fiber_kill(f);
+            return;
+        }
+        if (tok_is(t, "void") || tok_is(t, "return")) {
+            /* FreeDink return ends the proc; keep fibers stay for locate(USE). */
+            if (f->keep) {
+                f->state = DINKC_IDLE;
+                return;
+            }
             fiber_kill(f);
             return;
         }
@@ -828,6 +841,10 @@ static void run_fiber(struct Fiber *f, int now_ms)
         f->ip++;
     }
     if (f->ip >= f->ntok) {
+        if (f->keep) {
+            f->state = DINKC_IDLE;
+            return;
+        }
         fiber_kill(f);
     }
 }
@@ -930,7 +947,8 @@ void dinkc_vm_tick_callbacks(int now_ms)
     }
 }
 
-int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
+static int start_fiber(const char *src, size_t n, int sprite, const char *proc,
+                       int keep)
 {
     int s, ip;
     struct Fiber *f;
@@ -963,6 +981,7 @@ int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
     f->srclen = n;
     f->sprite = sprite;
     f->used = 1;
+    f->keep = keep ? 1 : 0;
     f->depth = 1;
     if (fill_toks(f) != 0) {
         fiber_kill(f);
@@ -979,6 +998,37 @@ int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
     f->state = DINKC_RUN;
     run_fiber(f, 0);
     return s;
+}
+
+int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
+{
+    return start_fiber(src, n, sprite, proc, 0);
+}
+
+int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc)
+{
+    return start_fiber(src, n, sprite, proc, 1);
+}
+
+int dinkc_vm_locate(int slot, const char *proc)
+{
+    struct Fiber *f;
+    int ip;
+
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
+        return -1;
+    }
+    f = &g_f[slot];
+    ip = find_proc(f, proc);
+    if (ip < 0) {
+        printf("dinkc locate no %s\n", proc != NULL ? proc : "");
+        return -1;
+    }
+    f->ip = ip;
+    f->depth = 1;
+    f->state = DINKC_RUN;
+    run_fiber(f, 0);
+    return slot;
 }
 
 int dinkc_vm_start(const char *src, size_t n, int sprite)
@@ -1017,6 +1067,9 @@ void dinkc_vm_kill_all(void)
     int i;
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].keep) {
+            continue;
+        }
         fiber_kill(&g_f[i]);
     }
 }

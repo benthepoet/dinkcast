@@ -93,6 +93,24 @@ int main(void)
             return 1;
         }
     }
+    {
+        const char *line =
+            "load_sequence_now graphics\\dink\\sword\\walk\\d-sw1- 71 43 64 69 "
+            "-14 -10 14 10";
+
+        if (ini_apply_line(line, seqs, DINK_MAX_SEQ) < 1) {
+            fprintf(stderr, "FAIL apply_line\n");
+            return 1;
+        }
+        if (strstr(seqs[71].prefix, "sword") == NULL) {
+            fprintf(stderr, "FAIL apply_line prefix %s\n", seqs[71].prefix);
+            return 1;
+        }
+        if (seqs[14].delay != 250) {
+            fprintf(stderr, "FAIL apply_line wiped seq14\n");
+            return 1;
+        }
+    }
     printf("OK test_ini\n");
     return 0;
 }

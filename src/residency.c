@@ -21,6 +21,8 @@ int residency_is_always(const char *rel)
         "graphics/dink/walk/",
         "graphics/dink/push/",
         "graphics/dink/hit/",
+        "graphics/dink/sword/",
+        "graphics/dink/bow/",
         "graphics/inter/text-box/",
         "graphics/inter/arrow/",
         "dink.ini",
@@ -58,11 +60,17 @@ int residency_swap_open(void)
 
 void residency_touch(const char *rel)
 {
+    int cls, age;
+
     if (rel == NULL || rel[0] == '\0') {
         return;
     }
     if (residency_is_always(rel)) {
         dink_blob_set_cls(rel, RES_ALWAYS, 0);
+        return;
+    }
+    /* Armed preload_seq pins until DISARM. Do not demote those to Screen. */
+    if (dink_blob_get_cls(rel, &cls, &age) == 0 && cls == RES_ALWAYS) {
         return;
     }
     dink_blob_set_cls(rel, RES_SCREEN, 0);
@@ -77,11 +85,11 @@ void residency_swap_begin(void)
     g_open = 1;
 
     for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
-        if (residency_is_always(rel)) {
+        dink_blob_get_cls(rel, &cls, &age);
+        if (residency_is_always(rel) || cls == RES_ALWAYS) {
             dink_blob_set_cls(rel, RES_ALWAYS, 0);
             continue;
         }
-        dink_blob_get_cls(rel, &cls, &age);
         if (cls == RES_PREV) {
             dink_blob_set_cls(rel, RES_PREV, 1);
         } else if (cls == RES_SCREEN) {
@@ -101,10 +109,10 @@ void residency_swap_end(void)
         found = 0;
         key[0] = '\0';
         for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
-            if (residency_is_always(rel)) {
+            dink_blob_get_cls(rel, &cls, &age);
+            if (residency_is_always(rel) || cls == RES_ALWAYS) {
                 continue;
             }
-            dink_blob_get_cls(rel, &cls, &age);
             if (cls == RES_SCREEN || (cls == RES_PREV && !age)) {
                 continue;
             }
@@ -130,7 +138,7 @@ static size_t sum_cls(int want, int age_prev_only)
 
     for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
         dink_blob_get_cls(rel, &cls, &age);
-        if (residency_is_always(rel)) {
+        if (residency_is_always(rel) || cls == RES_ALWAYS) {
             cls = RES_ALWAYS;
         }
         if (want == RES_ALWAYS && cls == RES_ALWAYS) {
@@ -147,6 +155,25 @@ static size_t sum_cls(int want, int age_prev_only)
 size_t residency_bytes_always(void)
 {
     return sum_cls(RES_ALWAYS, 0);
+}
+
+void residency_pin_always(const char *rel)
+{
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    dink_blob_set_cls(rel, RES_ALWAYS, 0);
+}
+
+void residency_unpin(const char *rel)
+{
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    if (residency_is_always(rel)) {
+        return;
+    }
+    dink_blob_set_cls(rel, RES_SCREEN, 0);
 }
 
 size_t residency_bytes_screen(void)
