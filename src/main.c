@@ -369,7 +369,7 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
-                /* Keep hard.dat: do not slurp 2 MiB again on every swap. */
+                /* Keep the hard.dat FILE*; do not slurp 2 MiB again on swap. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
                 dinkc_cmd_bind_sprite_freeze(brains_set_freeze);

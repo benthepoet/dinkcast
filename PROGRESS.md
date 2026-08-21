@@ -191,7 +191,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 | | | |
 |---|---|---|
-| **Overall** | **~90%** | CD first-read hang class retired (KOS #1492 + sector padding) |
+| **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
 | **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4 residency** before 14.3 leak check and 15.3 |
 | **Hardest remaining** | Weapons / magic / inventory **and** main-RAM residency | **14.4** then 15.3 then 16 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
