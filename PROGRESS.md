@@ -138,6 +138,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Pig pen: drop aged Prev before Screen fopen | this PR |
 | 2026-08-21 | Grain ARM walk: cx/cy even if hardbox omitted | this PR |
 | 2026-08-21 | Pig kill: brain 7 hides editor snap | this PR |
+| 2026-08-21 | preload_seq: frame 1, not whole walk | this PR |
 
 ## Bites
 
@@ -202,7 +203,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — grain walk + barrels confirmed; pig instant respawn + oldman/house still open |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — pig kill + barrels confirmed; Milder feed spam + oldman/house still open |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 

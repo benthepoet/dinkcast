@@ -141,9 +141,10 @@ static const char *pixel_class_name(int cls)
     return "screen";
 }
 
-/* Screen pixels only. Prefer a frame whose pack is still cached. */
+/* Screen pixels only. Prefer unused; pack still cached. unused_only skips
+ * live frames so a cpu_pixels miss cannot thrash two live seqs each tick. */
 static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
-                      int keep_seq, int gpu_wait)
+                      int keep_seq, int gpu_wait, int unused_only)
 {
     int i, pick = -1, pick_cached = 0, pick_unused = 0;
     char dir[160];
@@ -162,6 +163,9 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         pack_dir(&seqs[s], dir, sizeof(dir));
         cached = dir[0] != '\0' && ff_is_cached(dir);
         unused = !g[i].live;
+        if (unused_only && !unused) {
+            continue;
+        }
         if (pick < 0 || (unused && !pick_unused) ||
             (unused == pick_unused && cached && !pick_cached)) {
             pick = i;
@@ -255,7 +259,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     }
     (void)open_seq_pack(seqs, seq);
     if (*got >= DINK_EDGFX_MAX) {
-        if (!may_evict || evict_slot(g, got, seqs, seq, 0) != 0) {
+        if (!may_evict || evict_slot(g, got, seqs, seq, 0, 0) != 0) {
             if (full_noted[seq] == 0) {
                 full_noted[seq] = 1;
                 printf("edraw full skip seq=%d fr=%d\n", seq, frame);
@@ -692,7 +696,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         int waited = 0;
 
         if (got >= DINK_EDGFX_MAX) {
-            if (evict_slot(g, &got, seqs, seq, 1) != 0) {
+            if (evict_slot(g, &got, seqs, seq, 1, 0) != 0) {
                 static uint8_t full_noted[DINK_MAX_SEQ];
 
                 if (full_noted[seq] == 0) {
@@ -712,12 +716,15 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                 if (rc == 0) {
                     break;
                 }
-                /* One victim can be smaller than the new frame. Keep evicting
-                 * Screen until it fits or none remain. */
+                /* Unused Screen only. Evicting a live frame thrashes with
+                 * the next sprite on this tick (Milder + pigs). */
                 if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
-                    evict_slot(g, &got, seqs, seq, waited ? 0 : 1) == 0) {
+                    evict_slot(g, &got, seqs, seq, waited ? 0 : 1, 1) == 0) {
                     waited = 1;
                     continue;
+                }
+                if (rc == -2) {
+                    miss_note(seq, frame);
                 }
                 *n = got;
                 return -1;

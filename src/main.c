@@ -58,7 +58,9 @@ static void preload_seq_cb(int seq)
     if (g_seqs_play == NULL || g_edg == NULL) {
         return;
     }
-    edraw_load_seq(g_edg, &g_ned, g_seqs_play, seq);
+    /* Pack is pinned. Frame 1 only — s1-bul 401–409 all-frames overflowed
+     * cpu_pixels and play-path evicted live Screen every tick. */
+    edraw_load_frame(g_edg, &g_ned, g_seqs_play, seq, 1);
 }
 
 static void load_frame_cb(int seq, int frame)

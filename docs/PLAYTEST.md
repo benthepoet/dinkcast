@@ -15,10 +15,11 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Pigs visible on the **first** visit north from the first outdoor screen | 2026-08-21 | `test_edraw` house → 439 → 407 seq 41 |
 | Dink left/right walk with grain equipped | 2026-08-21 | `test_ini` item-pig seq 74 center |
 | Barrel smash (including first outdoor screen) | 2026-08-21 | `test_edraw` seq 173 smash |
+| Pigs stay gone after kill (no snap respawn) | 2026-08-21 | `test_playtest` pig 7 after seq 164 |
 
 ## Open
 
-- Pigs **respawn immediately** after being killed (map 407). This PR: brain 7 must `hidden` like `lsm_remove_sprite`, or the map snap draws them again.
+- Feeding pigs / Milder (`s1-bul`) **spams** `edraw evict` + `mem refuse cpu_pixels` and hitch. This PR: `preload_seq` is frame 1, not all walk frames.
 - Old man sprite in his house.
 - Start-house textures after walking back.
 
