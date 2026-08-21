@@ -98,7 +98,7 @@ int main(void)
             "load_sequence_now graphics\\dink\\sword\\walk\\d-sw1- 71 43 64 69 "
             "-14 -10 14 10";
 
-        if (ini_apply_line(line, seqs, DINK_MAX_SEQ) != 0) {
+        if (ini_apply_line(line, seqs, DINK_MAX_SEQ) < 1) {
             fprintf(stderr, "FAIL apply_line\n");
             return 1;
         }

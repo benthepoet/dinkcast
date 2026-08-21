@@ -151,6 +151,25 @@ size_t residency_bytes_always(void)
     return sum_cls(RES_ALWAYS, 0);
 }
 
+void residency_pin_always(const char *rel)
+{
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    dink_blob_set_cls(rel, RES_ALWAYS, 0);
+}
+
+void residency_unpin(const char *rel)
+{
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    if (residency_is_always(rel)) {
+        return;
+    }
+    dink_blob_set_cls(rel, RES_SCREEN, 0);
+}
+
 size_t residency_bytes_screen(void)
 {
     return sum_cls(RES_SCREEN, 0);

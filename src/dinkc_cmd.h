@@ -67,6 +67,7 @@ int dinkc_cmd_missing_count(void);
 void dinkc_cmd_thaw_if_idle(void);
 void dinkc_cmd_bind_seqs(struct SeqInfo *seqs);
 void dinkc_cmd_bind_preload(void (*fn)(int seq));
+void dinkc_cmd_bind_load_frame(void (*fn)(int seq, int frame));
 void dinkc_cmd_bind_item(int (*arm)(const char *name),
                          int (*locate)(int slot, const char *proc),
                          int (*pickup)(const char *name));

@@ -3,9 +3,11 @@
 
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "ff.h"
 #include "hurt.h"
 #include "ini.h"
 #include "player.h"
+#include "residency.h"
 #include "saybox.h"
 
 #include <ctype.h>
@@ -45,7 +47,11 @@ static int (*g_item_arm)(const char *name);
 static int (*g_item_locate)(int slot, const char *proc);
 static int (*g_item_pickup)(const char *name);
 static void (*g_preload)(int seq);
+static void (*g_load_frame)(int seq, int frame);
 static struct SeqInfo *g_seqs;
+static int g_pin_kind;
+static int g_npin[2];
+static char g_pin[2][24][160];
 static int g_fiber;
 static int g_cmd_sprite;
 static int g_touch[100];
@@ -332,6 +338,77 @@ void dinkc_cmd_bind_preload(void (*fn)(int seq))
     g_preload = fn;
 }
 
+void dinkc_cmd_bind_load_frame(void (*fn)(int seq, int frame))
+{
+    g_load_frame = fn;
+}
+
+static int prefix_dir_ff(const char *prefix, char *dir, size_t dirsz)
+{
+    const char *slash;
+
+    if (prefix == NULL || dir == NULL || dirsz < 8) {
+        return -1;
+    }
+    slash = strrchr(prefix, '/');
+    if (slash == NULL) {
+        return -1;
+    }
+    snprintf(dir, dirsz, "%.*s/dir.ff", (int)(slash - prefix), prefix);
+    return 0;
+}
+
+static void pin_clear(int kind)
+{
+    int i;
+
+    if (kind < 0 || kind > 1) {
+        return;
+    }
+    for (i = 0; i < g_npin[kind]; i++) {
+        residency_unpin(g_pin[kind][i]);
+    }
+    g_npin[kind] = 0;
+}
+
+static void pin_pack(const char *rel)
+{
+    int k = g_pin_kind, i;
+
+    if (rel == NULL || rel[0] == '\0' || k < 0 || k > 1) {
+        return;
+    }
+    residency_pin_always(rel);
+    for (i = 0; i < g_npin[k]; i++) {
+        if (strcmp(g_pin[k][i], rel) == 0) {
+            return;
+        }
+    }
+    if (g_npin[k] >= 24) {
+        return;
+    }
+    strncpy(g_pin[k][g_npin[k]], rel, 159);
+    g_pin[k][g_npin[k]][159] = '\0';
+    g_npin[k]++;
+}
+
+static void pin_seq(int seq)
+{
+    char dir[160];
+    struct FfFile *ff = NULL;
+
+    if (g_seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ) {
+        return;
+    }
+    if (prefix_dir_ff(g_seqs[seq].prefix, dir, sizeof(dir)) != 0) {
+        return;
+    }
+    if (ff_cached(dir, &ff) != 0) {
+        return;
+    }
+    pin_pack(dir);
+}
+
 void dinkc_cmd_bind_item(int (*arm)(const char *name),
                          int (*locate)(int slot, const char *proc),
                          int (*pickup)(const char *name))
@@ -374,6 +451,8 @@ void dinkc_cmd_reset_inv(void)
     g_weapon_slot = 0;
     g_magic_slot = 0;
     g_bow_power = 0;
+    pin_clear(0);
+    pin_clear(1);
 }
 
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on))
@@ -842,7 +921,11 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "init")) {
         if (g_seqs != NULL && str != NULL && str[0] != '\0') {
-            (void)ini_apply_line(str, g_seqs, DINK_MAX_SEQ);
+            int seq = ini_apply_line(str, g_seqs, DINK_MAX_SEQ);
+
+            if (seq > 0 && g_load_frame != NULL) {
+                g_load_frame(seq, 1);
+            }
         }
         return 1;
     }
@@ -870,18 +953,27 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "preload_seq")) {
-        if (g_preload != NULL && a0 > 0) {
-            g_preload(a0);
+        if (a0 > 0) {
+            pin_seq(a0);
+            if (g_preload != NULL) {
+                g_preload(a0);
+            }
         }
         return 1;
     }
     if (is_cmd(name, "arm_weapon")) {
         int cur = dinkc_var_get("&cur_weapon", DINKC_GLOBAL_SCOPE, 1);
+        int old = g_weapon_slot;
 
-        if (g_weapon_slot > 0 && g_item_locate != NULL) {
-            (void)g_item_locate(g_weapon_slot, "disarm");
+        g_pin_kind = 0;
+        if (old > 0 && g_item_locate != NULL) {
+            (void)g_item_locate(old, "disarm");
+            if (dinkc_vm_used(old)) {
+                dinkc_vm_kill(old);
+            }
             g_weapon_slot = 0;
         }
+        pin_clear(0);
         if (cur >= 1 && cur <= 16 && g_item[cur - 1].active &&
             g_item_arm != NULL) {
             g_weapon_slot = g_item_arm(g_item[cur - 1].name);
@@ -892,11 +984,17 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "arm_magic")) {
         int cur = dinkc_var_get("&cur_magic", DINKC_GLOBAL_SCOPE, 1);
+        int old = g_magic_slot;
 
-        if (g_magic_slot > 0 && g_item_locate != NULL) {
-            (void)g_item_locate(g_magic_slot, "disarm");
+        g_pin_kind = 1;
+        if (old > 0 && g_item_locate != NULL) {
+            (void)g_item_locate(old, "disarm");
+            if (dinkc_vm_used(old)) {
+                dinkc_vm_kill(old);
+            }
             g_magic_slot = 0;
         }
+        pin_clear(1);
         if (cur >= 1 && cur <= 8 && g_mitem[cur - 1].active &&
             g_item_arm != NULL) {
             g_magic_slot = g_item_arm(g_mitem[cur - 1].name);

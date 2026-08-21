@@ -756,7 +756,7 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 15.4 — Magic
 
-- X: if `&magic_level` ≥ `&magic_cost` and a spell armed → `locate` USE on the magic keep fiber. Else the six miss lines (`magic_script==0`). Mana from original rules (`item-fb` ARM sets `&magic_cost=100`).
+- X: if `&magic_level` ≥ `&magic_cost` and a spell armed → `locate` USE on the magic keep fiber. Else the six miss lines (`magic_script==0`). Mana from original rules (`item-fb` ARM sets `&magic_cost=100`). **This bite is just-pressed X**; meter fill while holding MAGIC is **16** (`update_status`). `preload_seq` packs are Always-until-DISARM (not named prefixes, not seq-id victims).
 
 **Done when:** Stock early enemy can be killed with fists; arm sword via script or inventory; cast **one** stock spell from original magic script.
 

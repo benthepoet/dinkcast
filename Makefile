@@ -103,6 +103,7 @@ tests/test_brains: tests/test_brains.c src/brains.c src/hurt.c src/player.c src/
 
 tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
+	./$@
 
 tests/test_weapon: tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c

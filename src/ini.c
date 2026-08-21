@@ -462,8 +462,8 @@ int ini_apply_line(const char *line, struct SeqInfo *seqs, int nseq)
     seqs[seq].ht = ht;
     seqs[seq].hr = hr;
     seqs[seq].hb = hb;
-    seqs[seq].nframes = 0;
-    return 0;
+    seqs[seq].nframes = ini_seq_len(seq, ini_count_ff_frames(prefix));
+    return seq;
 }
 
 int ini_load(struct SeqInfo *seqs, int nseq)

@@ -553,8 +553,16 @@ static void run_fiber(struct Fiber *f, int now_ms)
             }
             continue;
         }
-        if (tok_is(t, "void") || tok_is(t, "return") ||
-            tok_is(t, "kill_this_task")) {
+        if (tok_is(t, "kill_this_task")) {
+            fiber_kill(f);
+            return;
+        }
+        if (tok_is(t, "void") || tok_is(t, "return")) {
+            /* FreeDink return ends the proc; keep fibers stay for locate(USE). */
+            if (f->keep) {
+                f->state = DINKC_IDLE;
+                return;
+            }
             fiber_kill(f);
             return;
         }
@@ -1059,8 +1067,7 @@ void dinkc_vm_kill_all(void)
     int i;
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        /* Sprite 1000 is armed weapon/magic (FreeDink load_script(..., 1000)). */
-        if (g_f[i].used && g_f[i].sprite == 1000) {
+        if (g_f[i].used && g_f[i].keep) {
             continue;
         }
         fiber_kill(&g_f[i]);

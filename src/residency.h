@@ -16,6 +16,10 @@ void residency_touch(const char *rel);
 /* Drop packs that are neither Always, Screen, nor Prev. */
 void residency_swap_end(void);
 
+/* Force Always until unpin. Named Always prefixes ignore unpin. */
+void residency_pin_always(const char *rel);
+void residency_unpin(const char *rel);
+
 size_t residency_bytes_always(void);
 size_t residency_bytes_screen(void);
 size_t residency_bytes_prev(void);

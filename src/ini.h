@@ -37,7 +37,8 @@ int ini_frame_delay(int seq, int frame, int seq_default);
 int ini_seq_len(int seq, int bmp_nframes);
 
 int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq);
-/* One dink.ini command without wiping the table (DinkC init / load_sequence_now). */
+/* One dink.ini command without wiping the table (DinkC init / load_sequence_now).
+ * Returns seq (>=1) on a load_sequence line, 0 if ignored, -1 on error. */
 int ini_apply_line(const char *line, struct SeqInfo *seqs, int nseq);
 int ini_load(struct SeqInfo *seqs, int nseq);
 int ini_count_ff_frames(const char *prefix);

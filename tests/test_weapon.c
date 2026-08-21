@@ -3,6 +3,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "ff.h"
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
@@ -80,9 +81,22 @@ int main(void)
     expect(dinkc_var_get("&strength", DINKC_GLOBAL_SCOPE, 1) == 7, "str +4");
     expect(pl.range == 40, "sword range");
     expect(strstr(seqs[71].prefix, "sword") != NULL, "init sword walk");
+    expect(ff_is_cached("graphics/dink/sword/walk/dir.ff"), "sword pack cached");
+    printf("arm always_bytes=%u blob=%u\n",
+           (unsigned)residency_bytes_always(), (unsigned)dink_blob_bytes());
     expect(dinkc_cmd("compare_weapon", args, 0, "item-sw1", NULL, &yld, &rv) == 1 &&
                rv == 1,
            "compare sword");
+
+    args[1] = 438;
+    args[2] = 8;
+    expect(dinkc_cmd("add_item", args, 3, "item-b1", NULL, &yld, &rv) == 1,
+           "add bow");
+    dinkc_var_set("&cur_weapon", 3, DINKC_GLOBAL_SCOPE, 1);
+    expect(dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, &yld, &rv) == 1, "arm bow");
+    expect(dinkc_cmd_weapon_use() == 1, "bow use 1");
+    expect(dinkc_cmd_weapon_armed(), "bow keep after return");
+    expect(dinkc_cmd_weapon_use() == 1, "bow use 2");
 
     args[1] = 437;
     args[2] = 1;
