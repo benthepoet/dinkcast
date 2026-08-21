@@ -310,6 +310,22 @@ int main(void)
                 free(seqs);
                 return 1;
             }
+            if (edraw_find(g, n, 31, 22) == NULL &&
+                edraw_find(g, n, 31, 1) == NULL) {
+                int has31 = 0, hi;
+
+                for (hi = 0; hi < n; hi++) {
+                    if (g[hi].seq == 31) {
+                        has31 = 1;
+                    }
+                }
+                if (!has31) {
+                    fprintf(stderr, "FAIL house seq 31 after pig (164 stole)\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+            }
             if (dir[0] != '\0' && ff_is_cached(dir)) {
                 fprintf(stderr, "FAIL house recached %s\n", dir);
                 edraw_free(g, n);
@@ -444,23 +460,49 @@ int main(void)
             free(seqs);
             return 1;
         }
+        if (seqs[231].prefix[0] != '\0' && edraw_find(g, n, 231, 1) == NULL) {
+            char odir[160];
+
+            seq_dir(&seqs[231], odir, sizeof(odir));
+            if (odir[0] == '\0' || !ff_is_cached(odir)) {
+                fprintf(stderr, "FAIL ethel oldman pack not cached\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            {
+                int n2 = n;
+
+                if (edraw_ensure_frame(g, &n2, seqs, 231, 1) != 0 ||
+                    edraw_find(g, n2, 231, 1) == NULL) {
+                    fprintf(stderr, "FAIL ethel oldman 231 after sticky 164\n");
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                n = n2;
+            }
+        }
         {
             int s, n2, nfill = n;
             char dir[160];
 
             for (s = 1; s < DINK_MAX_SEQ && nfill < DINK_EDGFX_MAX; s++) {
                 if (seqs[s].prefix[0] == '\0' || residency_is_sticky_seq(s) ||
-                    s == 63) {
+                    s == 63 || s == 173) {
                     continue;
                 }
                 if (strstr(seqs[s].prefix, "oldman") != NULL) {
                     continue;
                 }
                 seq_dir(&seqs[s], dir, sizeof(dir));
-                if (dir[0] != '\0' && residency_is_always(dir)) {
+                if (dir[0] == '\0' || !ff_is_cached(dir)) {
                     continue;
                 }
-                edraw_load_seq(g, &nfill, seqs, s);
+                if (residency_is_always(dir)) {
+                    continue;
+                }
+                edraw_load_frame(g, &nfill, seqs, s, 1);
             }
             n = nfill;
             if (seqs[231].prefix[0] != '\0' &&
@@ -503,6 +545,59 @@ int main(void)
                 }
                 n = n2;
             }
+            if (seqs[173].prefix[0] != '\0') {
+                char bdir[160];
+                int n2 = n, nfr;
+
+                seq_dir(&seqs[173], bdir, sizeof(bdir));
+                edraw_load_seq(g, &n, seqs, 173);
+                if (bdir[0] == '\0' || !ff_is_cached(bdir)) {
+                    fprintf(stderr, "FAIL 173 pack not cached after full table\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                nfr = ini_seq_len(173, seqs[173].nframes);
+                if (nfr < 2) {
+                    nfr = 6;
+                }
+                if (edraw_ensure_frame(g, &n2, seqs, 173, nfr) != 0 ||
+                    edraw_find(g, n2, 173, nfr) == NULL) {
+                    fprintf(stderr, "FAIL 173 smash ensure fr=%d n=%d\n", nfr, n);
+                    edraw_free(g, n2);
+                    free(seqs);
+                    return 1;
+                }
+                n = n2;
+            }
+        }
+        if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL house after ethel\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_find(g, n, 31, 22) == NULL &&
+            edraw_find(g, n, 31, 1) == NULL) {
+            int has31 = 0, hi;
+
+            for (hi = 0; hi < n; hi++) {
+                if (g[hi].seq == 31) {
+                    has31 = 1;
+                }
+            }
+            if (!has31) {
+                fprintf(stderr, "FAIL house seq 31 after ethel\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+        }
+        if (seqs[164].prefix[0] != '\0' && !die_frames_ok(g, n, seqs)) {
+            fprintf(stderr, "FAIL house dropped seq 164 after ethel\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
         }
     }
     printf("edraw unique %d actives %d\n", n, act);

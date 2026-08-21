@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-#define DINK_EDGFX_MAX 96
+#define DINK_EDGFX_MAX 128
 
 struct EdGfx {
     int seq;

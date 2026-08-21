@@ -102,118 +102,6 @@ static void pack_dir(const struct SeqInfo *seq, char *dir, size_t n)
     snprintf(dir, n, "%.*s/dir.ff", (int)(sl - seq->prefix), seq->prefix);
 }
 
-static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
-                    int frame)
-{
-    static uint8_t full_noted[DINK_MAX_SEQ];
-
-    if (edraw_find(g, *got, seq, frame) != NULL) {
-        return 0;
-    }
-    if (*got >= DINK_EDGFX_MAX) {
-        if (full_noted[seq] == 0) {
-            full_noted[seq] = 1;
-            printf("edraw full skip seq=%d fr=%d\n", seq, frame);
-        }
-        return -1;
-    }
-    printf("edraw load seq=%d fr=%d\n", seq, frame);
-    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
-        printf("edraw skip seq=%d frame=%d\n", seq, frame);
-        return -1;
-    }
-    g[*got].seq = seq;
-    g[*got].frame = frame;
-    g[*got].live = 1;
-    (*got)++;
-    {
-        size_t need = edraw_cpu_bytes(g, *got);
-
-        if (need > (size_t)DINK_MEM_CPU_PIXELS) {
-            (*got)--;
-            sprite_frame_free(&g[*got].fr);
-            memset(&g[*got], 0, sizeof(g[0]));
-            printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
-                   (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
-                   (unsigned)DINK_MEM_CPU_PIXELS);
-            return -2;
-        }
-    }
-    return 0;
-}
-
-static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
-                            int seq)
-{
-    int nfr, f2;
-
-    if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
-        return;
-    }
-    /* nframes is 0 until frame 1 is decoded (create_sprite seqs). */
-    if (load_one(g, got, seqs, seq, 1) != 0) {
-        return;
-    }
-    nfr = ini_seq_len(seq, seqs[seq].nframes);
-    for (f2 = 2; f2 <= nfr && *got < DINK_EDGFX_MAX; f2++) {
-        (void)load_one(g, got, seqs, seq, f2);
-    }
-}
-
-/* people/pig/pill: +1,3,7,9. duck: those plus 4,6. dragon: 2,4,6,8. */
-static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
-{
-    static const int diag[4] = {1, 3, 7, 9};
-    static const int card[4] = {2, 4, 6, 8};
-    static const int duck[6] = {1, 3, 4, 6, 7, 9};
-    const int *d = diag;
-    int nd = 4, i;
-
-    *n = 0;
-    if (base < 0) {
-        return;
-    }
-    if (brain == 10) {
-        d = card;
-        nd = 4;
-    } else if (brain == 3) {
-        d = duck;
-        nd = 6;
-    }
-    for (i = 0; i < nd; i++) {
-        out[i] = base + d[i];
-        (*n)++;
-    }
-}
-
-static int brain_needs_death_walk(int br)
-{
-    /* duck/pig/pill/dragon: punch changes base_walk on play-path. */
-    return br == 3 || br == 4 || br == 9 || br == 10;
-}
-
-static void push_walk_frames(int *ns, int *nf, int *n, struct SeqInfo *seqs,
-                             int br, int base, int all_frames)
-{
-    int ws[6], nw, w, f2, nfr;
-
-    walk_seqs_for_brain(br, base, ws, &nw);
-    for (w = 0; w < nw; w++) {
-        if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
-            seqs[ws[w]].prefix[0] == '\0') {
-            continue;
-        }
-        need_push(ns, nf, n, ws[w], 1);
-        if (!all_frames) {
-            continue;
-        }
-        nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
-        for (f2 = 1; f2 <= nfr; f2++) {
-            need_push(ns, nf, n, ws[w], f2);
-        }
-    }
-}
-
 enum {
     PIX_SCREEN = 0,
     PIX_ALWAYS = 1,
@@ -291,6 +179,140 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         memset(&g[pick], 0, sizeof(g[0]));
     }
     return 0;
+}
+
+/* Cache dir.ff even when EdGfx is full so play-path ensure can fopen-not. */
+static int open_seq_pack(struct SeqInfo *seqs, int seq)
+{
+    char dir[160];
+    struct FfFile *ff = NULL;
+
+    if (seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ) {
+        return -1;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] == '\0') {
+        return -1;
+    }
+    return ff_cached(dir, &ff);
+}
+
+static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
+                    int frame, int may_evict)
+{
+    static uint8_t full_noted[DINK_MAX_SEQ];
+
+    if (edraw_find(g, *got, seq, frame) != NULL) {
+        return 0;
+    }
+    (void)open_seq_pack(seqs, seq);
+    if (*got >= DINK_EDGFX_MAX) {
+        if (!may_evict || evict_slot(g, got, seqs, seq) != 0) {
+            if (full_noted[seq] == 0) {
+                full_noted[seq] = 1;
+                printf("edraw full skip seq=%d fr=%d\n", seq, frame);
+            }
+            return -1;
+        }
+    }
+    printf("edraw load seq=%d fr=%d\n", seq, frame);
+    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
+        printf("edraw skip seq=%d frame=%d\n", seq, frame);
+        return -1;
+    }
+    g[*got].seq = seq;
+    g[*got].frame = frame;
+    g[*got].live = 1;
+    (*got)++;
+    {
+        size_t need = edraw_cpu_bytes(g, *got);
+
+        if (need > (size_t)DINK_MEM_CPU_PIXELS) {
+            (*got)--;
+            sprite_frame_free(&g[*got].fr);
+            memset(&g[*got], 0, sizeof(g[0]));
+            printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
+                   (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
+                   (unsigned)DINK_MEM_CPU_PIXELS);
+            return -2;
+        }
+    }
+    return 0;
+}
+
+static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq)
+{
+    int nfr, f2;
+
+    if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
+        return;
+    }
+    (void)open_seq_pack(seqs, seq);
+    /* nframes is 0 until frame 1 is decoded (create_sprite seqs). */
+    if (load_one(g, got, seqs, seq, 1, 1) != 0) {
+        return;
+    }
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
+    for (f2 = 2; f2 <= nfr; f2++) {
+        if (load_one(g, got, seqs, seq, f2, 0) != 0) {
+            break;
+        }
+    }
+}
+
+/* people/pig/pill: +1,3,7,9. duck: those plus 4,6. dragon: 2,4,6,8. */
+static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
+{
+    static const int diag[4] = {1, 3, 7, 9};
+    static const int card[4] = {2, 4, 6, 8};
+    static const int duck[6] = {1, 3, 4, 6, 7, 9};
+    const int *d = diag;
+    int nd = 4, i;
+
+    *n = 0;
+    if (base < 0) {
+        return;
+    }
+    if (brain == 10) {
+        d = card;
+        nd = 4;
+    } else if (brain == 3) {
+        d = duck;
+        nd = 6;
+    }
+    for (i = 0; i < nd; i++) {
+        out[i] = base + d[i];
+        (*n)++;
+    }
+}
+
+static int brain_needs_death_walk(int br)
+{
+    /* duck/pig/pill/dragon: punch changes base_walk on play-path. */
+    return br == 3 || br == 4 || br == 9 || br == 10;
+}
+
+static void push_walk_frames(int *ns, int *nf, int *n, struct SeqInfo *seqs,
+                             int br, int base, int all_frames)
+{
+    int ws[6], nw, w, f2, nfr;
+
+    walk_seqs_for_brain(br, base, ws, &nw);
+    for (w = 0; w < nw; w++) {
+        if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
+            seqs[ws[w]].prefix[0] == '\0') {
+            continue;
+        }
+        need_push(ns, nf, n, ws[w], 1);
+        if (!all_frames) {
+            continue;
+        }
+        nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
+        for (f2 = 1; f2 <= nfr; f2++) {
+            need_push(ns, nf, n, ws[w], f2);
+        }
+    }
 }
 
 /* Default corpse seq 164. People with hitpoints (mom) must not pin
@@ -375,14 +397,11 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     {
         int need_s[DINK_EDGFX_MAX], need_f[DINK_EDGFX_MAX], nneed = 0, old, k;
 
-        /* Combat pixels first: 164, then duck 110/120 (punch is play-path).
-         * People/pig walk dirs must not fill the 96-slot table first — Ethel's
-         * house + oldman + duck hit unique 96 and skipped seq 117/123.
-         * Pig pen: walk frame 1 only (play-path ensure); all-frames skipped
-         * the pigs on first enter. */
+        /* Combat pixels first on die screens: 164, then duck 110/120.
+         * Do not prepend leftover sticky 164 onto a non-die screen (start
+         * house unique already fills the table). Keep those pixels live=0. */
         if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
-            (screen_wants_die(sp, vision) ||
-             edraw_find(g, *n < 0 ? 0 : *n, 164, 1) != NULL)) {
+            screen_wants_die(sp, vision)) {
             int nfr, f2;
 
             need_push(need_s, need_f, &nneed, 164, 1);
@@ -405,7 +424,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
         }
         /* Blood pack is ~28 KB. Queue frame 1 with combat pixels so Ethel /
-         * pig-pen occupancy cannot drop it off the 96-slot need list. */
+         * pig-pen occupancy cannot drop it off the need list. */
         if (screen_wants_die(sp, vision)) {
             int bseq;
 
@@ -474,11 +493,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         if (old > DINK_EDGFX_MAX) {
             old = DINK_EDGFX_MAX;
         }
-        /* Free unused pixels. Pinned dir.ff still supplies other frames
-         * without /cd. Keeping 96 decoded frames OOMs the 16 MB heap. */
+        /* Free unused Screen pixels. Sticky 164 stays (live=0) so explode
+         * does not reopen magic/dir.ff. Byte cap is cpu_pixels, not slots. */
         i = 0;
         while (i < old) {
             int keep = 0;
+            int sticky = residency_is_sticky_seq(g[i].seq);
 
             for (k = 0; k < nneed; k++) {
                 if (g[i].seq == need_s[k] && g[i].frame == need_f[k]) {
@@ -486,8 +506,11 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                     break;
                 }
             }
-            g[i].live = keep;
             if (keep) {
+                g[i].live = 1;
+                i++;
+            } else if (sticky) {
+                g[i].live = 0;
                 i++;
             } else {
                 sprite_frame_free(&g[i].fr);
@@ -502,7 +525,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         }
         got = old;
         for (k = 0; k < nneed; k++) {
-            (void)load_one(g, &got, seqs, need_s[k], need_f[k]);
+            (void)load_one(g, &got, seqs, need_s[k], need_f[k], 0);
         }
         /* After frame 1 decode, seq.nframes is known. Duck death before
          * people/fireplace leftover fills. */
@@ -546,7 +569,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 /* Same as people: frame 1 opens the pack. Play-path ensure. */
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    (void)load_one(g, &got, seqs, ws[w], 1);
+                    (void)load_one(g, &got, seqs, ws[w], 1, 0);
                 }
             }
             if (br == 16) {
@@ -554,14 +577,14 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 
                 walk_seqs_for_brain(16, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    (void)load_one(g, &got, seqs, ws[w], 1);
+                    (void)load_one(g, &got, seqs, ws[w], 1, 0);
                 }
             }
         }
-        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0' &&
-            (screen_wants_die(sp, vision) ||
-             edraw_find(g, got, 164, 1) != NULL)) {
-            load_seq_frames(g, &got, seqs, 164);
+        if (residency_is_sticky_seq(164) && seqs[164].prefix[0] != '\0') {
+            if (screen_wants_die(sp, vision)) {
+                load_seq_frames(g, &got, seqs, 164);
+            }
             if (seq_complete(g, got, seqs, 164)) {
                 drop_seq_pack(seqs, 164);
             }
@@ -617,17 +640,19 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         }
     }
     {
-        int rc = load_one(g, &got, seqs, seq, frame);
+        int rc, tries = 0;
 
-        /* Evict only for slot-full (above) or cpu_pixels refuse, not a
-         * decode miss — that would eat Screen pixels every tick. */
-        if (rc == -2) {
-            if (evict_slot(g, &got, seqs, seq) != 0 ||
-                load_one(g, &got, seqs, seq, frame) != 0) {
-                *n = got;
-                return -1;
+        for (;;) {
+            rc = load_one(g, &got, seqs, seq, frame, 1);
+            if (rc == 0) {
+                break;
             }
-        } else if (rc != 0) {
+            /* One victim can be smaller than the new frame. Keep evicting
+             * Screen until it fits or none remain. */
+            if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
+                evict_slot(g, &got, seqs, seq) == 0) {
+                continue;
+            }
             *n = got;
             return -1;
         }
@@ -666,7 +691,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     if (got < 0) {
         got = 0;
     }
-    (void)load_one(g, &got, seqs, seq, frame);
+    (void)load_one(g, &got, seqs, seq, frame, 1);
     *n = got;
 }
 
