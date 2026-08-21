@@ -155,6 +155,50 @@ int main(void)
     g_die_slot = 0;
     g_die_proc[0] = '\0';
     g_exp_add = 0;
+    strncpy(seqs[21].prefix, "graphics/animals/duck/dk1w-",
+            sizeof(seqs[21].prefix) - 1);
+    strncpy(seqs[111].prefix, "graphics/animals/duck/death/dkb1x-",
+            sizeof(seqs[111].prefix) - 1);
+    strncpy(seqs[121].prefix, "graphics/animals/duck/death/dkh1x-",
+            sizeof(seqs[121].prefix) - 1);
+    seqs[21].nframes = 1;
+    seqs[111].nframes = 1;
+    seqs[121].nframes = 1;
+    scr.sprite[4].active = 1;
+    scr.sprite[4].type = 1;
+    scr.sprite[4].brain = 3;
+    scr.sprite[4].x = 200;
+    scr.sprite[4].y = 200;
+    scr.sprite[4].seq = 21;
+    scr.sprite[4].base_walk = 20;
+    scr.sprite[4].hitpoints = 5;
+    scr.sprite[4].exp = 1;
+    brains_bind_screen(&scr);
+    brains_bind_kill(on_kill);
+    brains_bind_exp(on_exp);
+    brains_enter(&scr, 0);
+    brains_set_last_hit(4, 1);
+    expect(brains_hurt(4, 5) == 5, "duck first hurt");
+    brains_tick(&scr, seqs, &mask, 16, 0);
+    expect(brains_slot_live(4), "duck stays after first hit");
+    expect(g_die_slot == 4 && strcmp(g_die_proc, "die") == 0, "duck DIE");
+    {
+        int i, head = 0;
+
+        for (i = 2; i <= 99; i++) {
+            if (i != 4 && brains_slot_created(i) && brains_slot_live(i)) {
+                head = i;
+                break;
+            }
+        }
+        expect(head != 0, "duck flying head");
+    }
+
+    brains_reset();
+    memset(&scr, 0, sizeof(scr));
+    g_die_slot = 0;
+    g_die_proc[0] = '\0';
+    g_exp_add = 0;
     scr.sprite[4].active = 1;
     scr.sprite[4].type = 1;
     scr.sprite[4].brain = 3;

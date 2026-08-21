@@ -661,14 +661,19 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         return;
     }
     if (s->damage > 0 && in_this_base(s->pseq, s->base_walk)) {
+        int head;
+
         add_exp_if_player(s);
         s->damage = 0;
         if (g_on_kill != NULL) {
             g_on_kill(spr_i(s), "die");
         }
+        /* FreeDink: flying-head sprite brain 5, base_walk 120. */
+        head = brains_create(s->x, s->y, DINK_BRAIN_ONETIME, 1, 1);
         s->base_walk = 110;
         s->speed = 1;
         s->timing = 0;
+        s->frame = 0;
         if (s->dir == 0) {
             s->dir = 1;
         }
@@ -679,6 +684,14 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             s->dir = 3;
         }
         changedir(s->dir, s, s->base_walk, seqs);
+        if (head > 0) {
+            g_b[head].speed = (rand() % 3) + 1;
+            g_b[head].size = s->size;
+            g_b[head].dir = s->dir;
+            g_b[head].base_walk = 120;
+            changedir(g_b[head].dir, &g_b[head], 120, seqs);
+        }
+        (void)automove(s, mask);
         return;
     }
     if (s->freeze) {

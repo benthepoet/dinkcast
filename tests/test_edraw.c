@@ -193,6 +193,35 @@ int main(void)
         }
     }
     {
+        struct MapScreen duck;
+        int drec = (int)w.loc[441];
+        struct EdGfx *dg = edraw_gfx_alloc();
+        int dn = 0;
+
+        if (drec < 1 || map_load_record(drec, &duck) != 0 || dg == NULL) {
+            fprintf(stderr, "FAIL duck map loc=%d\n", drec);
+            edraw_gfx_release(dg);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(duck.sprite, seqs, dg, &dn, 2) != 0) {
+            fprintf(stderr, "FAIL duck edraw vis2\n");
+            edraw_gfx_release(dg);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[111].prefix[0] != '\0' && edraw_find(dg, dn, 111, 1) == NULL) {
+            fprintf(stderr, "FAIL duck no headless seq 111\n");
+            edraw_gfx_release(dg);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        edraw_gfx_release(dg);
+    }
+    {
         int loads1, loads2, n2 = n;
 
         loads1 = ff_disc_loads();
