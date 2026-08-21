@@ -101,6 +101,15 @@ static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
                 edraw_load_seq(g_edg, ned, seqs, bw + walkd[d]);
             }
         }
+        if (brains_slot_brain(i) == 3) {
+            static const int duckd[6] = {1, 3, 4, 6, 7, 9};
+            int k;
+
+            for (k = 0; k < 6; k++) {
+                edraw_load_seq(g_edg, ned, seqs, 110 + duckd[k]);
+                edraw_load_seq(g_edg, ned, seqs, 120 + duckd[k]);
+            }
+        }
     }
 }
 

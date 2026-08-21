@@ -366,6 +366,35 @@ int main(void)
             return 1;
         }
     }
+    {
+        struct MapScreen ethel;
+        int erec = (int)w.loc[2];
+
+        if (erec < 1 || map_load_record(erec, &ethel) != 0) {
+            fprintf(stderr, "FAIL ethel map loc=%d\n", erec);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(ethel.sprite, seqs, g, &n, 1) != 0) {
+            fprintf(stderr, "FAIL ethel edraw vis1\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[117].prefix[0] != '\0' && edraw_find(g, n, 117, 1) == NULL) {
+            fprintf(stderr, "FAIL ethel no duck death seq 117 (table full?)\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[123].prefix[0] != '\0' && edraw_find(g, n, 123, 1) == NULL) {
+            fprintf(stderr, "FAIL ethel no flying-head seq 123\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);
