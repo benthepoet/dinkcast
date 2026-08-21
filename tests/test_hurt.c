@@ -193,6 +193,15 @@ int main(void)
         }
         expect(head != 0, "duck flying head");
     }
+    g_die_slot = 0;
+    g_die_proc[0] = '\0';
+    g_exp_add = 0;
+    brains_set_last_hit(4, 1);
+    expect(brains_hurt(4, 5) == 5, "duck second hurt");
+    brains_tick(&scr, seqs, &mask, 32, 0);
+    expect(!brains_slot_live(4), "duck gone on second hit");
+    expect(g_die_slot == 4 && strcmp(g_die_proc, "duckdie") == 0,
+           "second punch DUCKDIE");
 
     brains_reset();
     memset(&scr, 0, sizeof(scr));
