@@ -226,7 +226,7 @@ def _script_text(root: Path, name: str) -> str | None:
 
 
 def script_direct(root: Path, name: str) -> tuple[set[int], list[str]]:
-    """Seqs and quoted sp_script/script callees in one file (no recurse)."""
+    """Seqs and quoted script / add_item / add_magic callees in one file."""
     out: set[int] = set()
     callees: list[str] = []
     if not name:
@@ -255,6 +255,10 @@ def script_direct(root: Path, name: str) -> tuple[set[int], list[str]]:
     for m in re.finditer(r"sp_script\s*\([^,]+,\s*\"([^\"]+)\"", stripped, re.I):
         callees.append(m.group(1).strip())
     for m in re.finditer(r"(?<![a-z_])script\s*\(\s*\"([^\"]+)\"", stripped, re.I):
+        callees.append(m.group(1).strip())
+    for m in re.finditer(r"add_item\s*\(\s*\"([^\"]+)\"", stripped, re.I):
+        callees.append(m.group(1).strip())
+    for m in re.finditer(r"add_magic\s*\(\s*\"([^\"]+)\"", stripped, re.I):
         callees.append(m.group(1).strip())
     _script_direct_cache[key] = (frozenset(out), tuple(callees))
     return out, callees

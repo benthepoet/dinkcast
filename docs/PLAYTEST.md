@@ -14,6 +14,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 Requester: remaining issues exist. Last reports that were **not** accepted after #97:
 
+- Grain USE: thrown feed (seq 430/431) missing; log spam / slowdown (this PR).
 - Barrel smash on the **first** outdoor screen (second screen had worked).
 - Old man sprite in his house.
 - Start-house textures after walking back.

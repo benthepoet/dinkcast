@@ -193,6 +193,39 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     return 0;
 }
 
+/* A cached pack that lacks this BMP will not grow it mid-screen. */
+#define DINK_BMP_MISS 64
+static int g_miss_seq[DINK_BMP_MISS];
+static int g_miss_fr[DINK_BMP_MISS];
+static int g_nmiss;
+
+static void miss_clear(void)
+{
+    g_nmiss = 0;
+}
+
+static int miss_has(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nmiss; i++) {
+        if (g_miss_seq[i] == seq && g_miss_fr[i] == frame) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void miss_note(int seq, int frame)
+{
+    if (miss_has(seq, frame) || g_nmiss >= DINK_BMP_MISS) {
+        return;
+    }
+    g_miss_seq[g_nmiss] = seq;
+    g_miss_fr[g_nmiss] = frame;
+    g_nmiss++;
+}
+
 /* Cache dir.ff even when EdGfx is full so play-path ensure can fopen-not. */
 static int open_seq_pack(struct SeqInfo *seqs, int seq)
 {
@@ -217,6 +250,9 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
     }
+    if (miss_has(seq, frame)) {
+        return -1;
+    }
     (void)open_seq_pack(seqs, seq);
     if (*got >= DINK_EDGFX_MAX) {
         if (!may_evict || evict_slot(g, got, seqs, seq, 0) != 0) {
@@ -229,6 +265,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     }
     printf("edraw load seq=%d fr=%d\n", seq, frame);
     if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
+        miss_note(seq, frame);
         printf("edraw skip seq=%d frame=%d\n", seq, frame);
         return -1;
     }
@@ -398,6 +435,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         return -1;
     }
     memcpy(sp, spr, 101u * sizeof(*sp));
+    miss_clear();
     residency_swap_begin();
     printf("edraw in sprite1 seq=%d y=%d act=%d keep=%d\n", (int)sp[1].seq,
            (int)sp[1].y, (int)sp[1].active, *n);
@@ -605,6 +643,9 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     if (edraw_find(g, got, seq, frame) != NULL) {
         return 0;
+    }
+    if (miss_has(seq, frame)) {
+        return -1;
     }
     /* Play path: decode only from a pack already opened at screen load. */
     pack_dir(&seqs[seq], dir, sizeof(dir));
