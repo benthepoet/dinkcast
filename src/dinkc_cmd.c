@@ -49,6 +49,8 @@ static int (*g_item_arm)(const char *name);
 static int (*g_item_locate)(int slot, const char *proc);
 static int (*g_item_pickup)(const char *name);
 static void (*g_show_inv)(int on);
+static void (*g_draw_status)(void);
+static int (*g_show_bmp)(const char *rel, int showdot, int fiber);
 static void (*g_preload)(int seq);
 static void (*g_load_frame)(int seq, int frame);
 static struct SeqInfo *g_seqs;
@@ -243,6 +245,7 @@ static const struct {
     {"compare_magic", 0},
     {"editor_type", 0},
     {"show_inventory", 0},
+    {"show_bmp", 0},
 };
 
 #define CMD_N ((int)(sizeof(k_fn) / sizeof(k_fn[0])))
@@ -428,6 +431,14 @@ void dinkc_cmd_bind_item(int (*arm)(const char *name),
 void dinkc_cmd_bind_inv(void (*show)(int on))
 {
     g_show_inv = show;
+}
+
+void dinkc_cmd_bind_status(void (*draw)(void),
+                           int (*show_bmp)(const char *rel, int showdot,
+                                           int fiber))
+{
+    g_draw_status = draw;
+    g_show_bmp = show_bmp;
 }
 
 int dinkc_cmd_inv_active(int magic, int idx0)
@@ -1006,7 +1017,28 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "stopcd")) {
         return 1;
     }
-    if (is_cmd(name, "draw_status") || is_cmd(name, "update_status")) {
+    if (is_cmd(name, "draw_status")) {
+        if (g_draw_status != NULL) {
+            g_draw_status();
+        }
+        return 1;
+    }
+    if (is_cmd(name, "update_status")) {
+        dinkc_var_set("&update_status", 1, DINKC_GLOBAL_SCOPE, 1);
+        if (g_draw_status != NULL) {
+            g_draw_status();
+        }
+        return 1;
+    }
+    if (is_cmd(name, "show_bmp")) {
+        int ok = 0;
+
+        if (g_show_bmp != NULL) {
+            ok = g_show_bmp(str, a0, g_fiber) == 0;
+        }
+        if (ok && yield != NULL) {
+            *yield = 6;
+        }
         return 1;
     }
     if (is_cmd(name, "preload_seq")) {

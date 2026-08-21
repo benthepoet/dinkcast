@@ -31,6 +31,8 @@ int main(void)
     expect((DINK_PAD_X & DINK_PAD_A) == 0, "X not A");
     expect((DINK_PAD_X & DINK_PAD_B) == 0, "X not B");
     expect((DINK_PAD_Y & DINK_PAD_X) == 0, "Y not X");
+    expect((DINK_PAD_L & DINK_PAD_Y) == 0, "L not Y");
+    expect(pad_just_pressed(0, DINK_PAD_L, DINK_PAD_L) == 1, "L down");
     printf("OK test_pad\n");
     return 0;
 }

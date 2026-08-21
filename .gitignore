@@ -51,6 +51,7 @@ tests/test_leak
 tests/test_weapon
 tests/test_touch
 tests/test_inv
+tests/test_status
 
 # Toolchain / local
 .kosenv

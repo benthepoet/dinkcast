@@ -717,6 +717,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     printf("dinkc yield say\n");
                     return;
                 }
+                if (yld == 6) {
+                    f->state = DINKC_WAIT_BMP;
+                    printf("dinkc yield bmp\n");
+                    return;
+                }
                 if (yld == 5) {
                     f->wait_child = rv;
                     f->state = DINKC_WAIT_EXT;
@@ -1126,6 +1131,29 @@ int dinkc_vm_waiting_say(void)
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_SAY) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void dinkc_vm_advance_bmp(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BMP) {
+            run_fiber(&g_f[i], g_f[i].wait_until);
+        }
+    }
+}
+
+int dinkc_vm_waiting_bmp(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BMP) {
             return 1;
         }
     }

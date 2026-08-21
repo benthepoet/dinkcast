@@ -28,6 +28,8 @@ void script_on_touch(int sprite);
 /* update_status: flife < 1 → dinfo DIE once. */
 int script_on_dink_die(void);
 void script_clear_dink_die(void);
+int script_on_raise(void);
+int script_on_button(int n);
 int script_item_arm(const char *name);
 int script_item_locate(int slot, const char *proc);
 int script_item_pickup(const char *name);

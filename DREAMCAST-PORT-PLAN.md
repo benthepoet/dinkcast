@@ -110,7 +110,7 @@ Keep a `mem_log()` that prints these counters every screen load. **14.4** owns t
 | `title_tex` | ≤ **1 MiB** | VRAM | 1024×512 RGB565 pad of 640×480 still; **freed** on leave-title (4.2) |
 | `sfx_bank` | ≤ 512 KB | AICA | Boot SFX |
 | `bgm_ring` | 256–512 KB | AICA | One stream |
-| HUD atlas | ≤ 128 KB | VRAM | Life/mana/gold/font |
+| HUD atlas | ≤ 128 KB | VRAM | Digits, health chunks, magic gauge (256×256 ARGB1555) |
 
 **Binding (residency, 14.4):** a `dir.ff` is a **decode source**, not a session cache. Needed frames go into `cpu_pixels`; the pack **stays** in `file_blob` while that screen is Screen **or Prev** (until two screens old). Then it may leave. Play-path still must not `fopen` (GOTCHAS); a miss skips the frame or waits for 14.5 distill. Do **not** add per-seq specials (`magic/dir.ff` drop, mom-hp pin, `EdGfx` victims `110..129` / `seq>=200`) — one policy, one catalog. **14.4b** is packs. **14.4c** is pixels. Distill and 14.6 do not skip 14.4c.
 
@@ -770,8 +770,8 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 16.3 — HUD
 
-- Life, mana, gold, exp from original status BMPs. Atlas ≤ 128 KB. `draw_status` / `update_status` become real.
-- **Map:** `process_show_bmp` + seq 165 marker (stock world map). Controller: Y or the plan’s map button — **match FreeDink’s mapped action**, pad-only.
+- Life, mana, gold, exp from original status BMPs. Digit atlas ≤ 128 KB (`graphics/inter/numbers/`, health, magic gauge). Seq 180 chrome is overlay VRAM (640×80 wrapped in 256×256 + 64×512 sides), upload then drop CPU — same class as seq 423, not `EdGfx`. `draw_status` / `update_status` become real. Hold MAGIC (X) fills `&magic_level` every 100 ms (`update_status_all`).
+- **Map:** `process_show_bmp` + seq 165 marker (stock world map). Maple **L** = FreeDink `ACTION_MAP` / `button6.c`. Y stays inventory. Pad-only.
 
 **Done when:** Pick up a stock item, open inventory, arm it, HUD and attack seq change.
 
