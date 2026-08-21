@@ -106,6 +106,16 @@ int main(void)
     expect(dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, &yld, &rv) == 1, "arm fb");
     expect(dinkc_cmd_magic_armed(), "magic armed");
     expect(dinkc_var_get("&magic_cost", DINKC_GLOBAL_SCOPE, 1) == 100, "cost");
+    expect(!residency_is_always("graphics/effects/comets/sm-comt1/dir.ff"),
+           "comet not named always");
+    expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"), "comet cached");
+    residency_touch("graphics/effects/comets/sm-comt1/dir.ff");
+    residency_swap_begin();
+    residency_swap_end();
+    residency_swap_begin();
+    residency_swap_end();
+    expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
+           "comet pin survives two swaps");
     dinkc_var_set("&magic_level", 100, DINKC_GLOBAL_SCOPE, 1);
     dinkc_vm_set_now(1);
     expect(dinkc_cmd_magic_use() == 1, "use fb");
