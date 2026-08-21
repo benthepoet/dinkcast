@@ -99,7 +99,7 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 
 - **Plan:** [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md) — visual gates, original data formats, no new DinkC dialect, 60 Hz, FreeDink graft.
 - **Break it:** wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Attack list + repro or “attempted X, held”.
-- **Memory:** every alloc has a free/evict; screen change and leave-title; BMP decode, PVR textures, script buffers, AICA; plan §1.2 caps. **Reject one-off pack drops, size-pin specials, seq-id `EdGfx` victims (`110..129`, `>= 200`), and other ad-hoc RAM workarounds** that only fix the screen in the log. Name a working-set policy: **14.4b** packs, **14.4c** pixels (same Always/Screen/Sticky classes). That stays inside the caps after more combat packs, more tilesheets, and a longer walk.
+- **Memory:** every alloc has a free/evict; screen change and leave-title; BMP decode, PVR textures, script buffers, AICA; plan §1.2 caps. **Reject one-off pack drops, size-pin specials, seq-id `EdGfx` victims (`110..129`, `>= 200`), and other ad-hoc RAM workarounds** that only fix the screen in the log. Name a working-set policy: **14.4b** packs (Always/Screen/Prev), **14.4c** pixels (Always/Screen/Sticky; Prev is packs only). That stays inside the caps after more combat packs, more tilesheets, and a longer walk.
 - **Perf:** 60 FPS target, 30 floor; CPU blit, per-frame re-lex, preload-the-world, RGBA8888, extra GD-ROM seeks. Do **not** ask for a custom DinkC JIT.
 - **Flaws:** 1-based sprites, hardness, talk range, SH-4 alignment, little-endian readers, silent no-op vs skipped script.
 

@@ -167,13 +167,13 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4c** (pack policy + distill are not enough while pixel victims are seq ids) |
-| 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev packs #82. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
-| 14.4c | Pixel working set | pending | Always/Screen/Sticky `EdGfx` victims; `cpu_pixels` bytes not 96 slots. Requester go; before **14.3**. Distill/14.6 do not skip this |
+| 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev packs #82. **14.4c** pixels still pending (row below). 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
+| 14.4c | Pixel working set | pending | Always/Screen/Sticky `EdGfx` victims (not Prev — packs only; not LRU). `cpu_pixels` bytes not 96 slots. Requester go; before **14.3**. Distill/14.6 do not skip this |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims still seq-id until **14.4c** |
-| 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 disc**; 15.2 already landed. **14.6** is not this gate |
+| 15.3–15.4 | Weapons / magic | pending | after **14.4c** (14.5 disc is not enough while seq-id pixel victims are live). 15.2 already landed. **14.6** is not this gate |
 | 16.1–16.3 | Inventory / HUD | pending | |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
@@ -200,7 +200,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4c** pixel classes before 14.3 leak check; 15.3 after 14.5 disc |
+| **Next picture (V6 inv/HUD)** | **~40%** | After 15–16. **14.4c** pixel classes before 14.3 leak check; 15.3 after **14.4c** (14.5 disc is not enough) |
 | **Hardest remaining** | Weapons / magic / inventory **and** main-RAM residency | **14.4c** pixels then 15.3 then 16 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -247,4 +247,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (14.5 campaign distill) | **~90%** | Distill + catalog campaign scan use every nonempty `map.dat` screen (~644). Village-only used-frame union is not the disc policy. |
 | 2026-08-21 (14.6 deferred) | **~90%** | Per-frame `dir.ff` TOC/offset reads wait until base (through 16) and a human full-campaign go. Not the next 14.5 patch. |
 | 2026-08-21 (ethel duck full skip) | **~90%** | Killing the returned duck in Ethel’s house (map 2 vis 1) printed `edraw full skip` seq 117/123 every tick: oldman walk frames filled the 96-slot table before duck death. Combat 110/120 first; people walks frame 1 + `ensure_frame`. Seq-id `EdGfx` eviction (`110..129`, `>= 200`) is a stopgap — **14.4c**. |
-| 2026-08-21 (14.4c named) | **~90%** | 14.4b is packs. Pixel working set (Always/Screen/Sticky victims, `cpu_pixels` bytes not 96 slots) is **14.4c**, before 14.3, requester go. Distill/14.6 do not skip it. |
+| 2026-08-21 (14.4c named) | **~90%** | 14.4b is packs (Always/Screen/Prev). Pixel working set is Always/Screen/Sticky class eviction (not LRU, not Prev), `cpu_pixels` bytes not 96 slots — **14.4c**, before 14.3, requester go. Distill/14.6 do not skip it. |
