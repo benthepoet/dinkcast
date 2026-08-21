@@ -675,10 +675,11 @@ Only after 14.4a numbers exist.
 
 - Offline pack step (CDI only, like MIDI→ADPCM): TOC of per-frame size/offset + payload. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
 - Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
-- Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set** (not 1..max): filling holes makes innwalls skip-no-save. Campaign union may skip-no-save packs that the village-only subset shrank; `file_blob` peak on 439 can print `14.5: needed` again — 14.4b still refuses over-cap allocs. Do not maintain a village map list.
+- Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). Follow `sp_script` / `script("…")` callees. The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set**. Do not maintain a village map list.
+- `file_blob` Always+Screen+Prev can still exceed 4.5 MB on heavy screens after this union. **`mem refuse` is not distill.** Remaining 14.5 RAM path is per-frame TOC/offset reads so unused BMPs are not slurped. Do not implement that as a village-only pack list.
 - Do **not** zlib-compress the official tree and commit it.
 
-**Done when:** Distill includes used frames from every nonempty stock-campaign screen. The overflowing 14.4a village screen may still print `14.5: needed` if campaign union skip-no-saves a pack; that is RAM (`mem refuse`), not a reason to omit castle rooms. GOTCHAS: distilled frames, original `DINK_DATA` pack not rewritten; staged subset `dir.ff` is the decode source.
+**Done when:** Distill used-frame union covers every nonempty stock-campaign screen (disc completeness). **RAM is not done:** catalog Always+Screen+Prev still over 4.5 MB on heavy screens. Do not call that 14.5 complete. GOTCHAS: original `DINK_DATA` not rewritten; staged subset `dir.ff` is the decode source until TOC/offset load lands.
 
 ---
 

@@ -210,7 +210,54 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
     return sprites, name, sheets
 
 
+_script_direct_cache: dict[tuple[str, str], tuple[frozenset[int], tuple[str, ...]]] = {}
 _script_seq_cache: dict[tuple[str, str], set[int]] = {}
+
+
+def _script_text(root: Path, name: str) -> str | None:
+    if not name:
+        return None
+    path = find_ci(root, f"story/{name}.c")
+    if path is None:
+        path = find_ci(root, f"story/{name}")
+    if path is None:
+        return None
+    return path.read_text(encoding="latin-1", errors="replace")
+
+
+def script_direct(root: Path, name: str) -> tuple[set[int], list[str]]:
+    """Seqs and quoted sp_script/script callees in one file (no recurse)."""
+    out: set[int] = set()
+    callees: list[str] = []
+    if not name:
+        return out, callees
+    key = (str(root), name.lower())
+    if key in _script_direct_cache:
+        seqs, names = _script_direct_cache[key]
+        return set(seqs), list(names)
+    text = _script_text(root, name)
+    if text is None:
+        _script_direct_cache[key] = (frozenset(), ())
+        return out, callees
+    stripped = "\n".join(ln.split("//", 1)[0] for ln in text.splitlines())
+    for m in re.finditer(r"preload_seq\s*\(\s*(\d+)", stripped, re.I):
+        out.add(int(m.group(1)))
+    for m in re.finditer(
+        r"create_sprite\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*(\d+)\s*,",
+        stripped,
+        re.I,
+    ):
+        out.add(int(m.group(1)))
+    for m in re.finditer(r"sp_base_walk\s*\([^,]+,\s*(\d+)", stripped, re.I):
+        base = int(m.group(1))
+        for d in (1, 2, 3, 4, 6, 7, 8, 9):
+            out.add(base + d)
+    for m in re.finditer(r"sp_script\s*\([^,]+,\s*\"([^\"]+)\"", stripped, re.I):
+        callees.append(m.group(1).strip())
+    for m in re.finditer(r"(?<![a-z_])script\s*\(\s*\"([^\"]+)\"", stripped, re.I):
+        callees.append(m.group(1).strip())
+    _script_direct_cache[key] = (frozenset(out), tuple(callees))
+    return out, callees
 
 
 def script_seqs(root: Path, name: str) -> set[int]:
@@ -220,26 +267,17 @@ def script_seqs(root: Path, name: str) -> set[int]:
     key = (str(root), name.lower())
     if key in _script_seq_cache:
         return set(_script_seq_cache[key])
-    rel = f"story/{name}.c"
-    path = find_ci(root, rel)
-    if path is None:
-        path = find_ci(root, f"story/{name}")
-    if path is None:
-        _script_seq_cache[key] = set()
-        return out
-    text = path.read_text(encoding="latin-1", errors="replace")
-    for m in re.finditer(r"preload_seq\s*\(\s*(\d+)", text, re.I):
-        out.add(int(m.group(1)))
-    for m in re.finditer(
-        r"create_sprite\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*(\d+)\s*,",
-        text,
-        re.I,
-    ):
-        out.add(int(m.group(1)))
-    for m in re.finditer(r"sp_base_walk\s*\([^,]+,\s*(\d+)", text, re.I):
-        base = int(m.group(1))
-        for d in (1, 2, 3, 4, 6, 7, 8, 9):
-            out.add(base + d)
+    seen: set[str] = set()
+    q = [name]
+    while q:
+        cur = q.pop()
+        low = cur.lower()
+        if not cur or low in seen:
+            continue
+        seen.add(low)
+        seqs, callees = script_direct(root, cur)
+        out |= seqs
+        q.extend(callees)
     _script_seq_cache[key] = set(out)
     return out
 
@@ -531,11 +569,10 @@ def print_screen(label: str, c: dict) -> None:
 def campaign_scan(
     root: Path, seqs: dict[int, str], loc: list[int], cache: dict
 ) -> None:
-    """Always+Screen (no Prev) peak across every nonempty map. Not a walk."""
+    """Always+Screen and Always+Screen+Prev peaks. Prev = neighbor or warp."""
     alw = always_packs(root, seqs, cache)
     maps = campaign_maps(loc)
-    worst = (0, 0, 0)
-    over = 0
+    info: dict[int, dict] = {}
     for mmap in maps:
         rec = loc[mmap]
         raw = load_map_rec(root, rec)
@@ -546,6 +583,13 @@ def campaign_scan(
         for sh in sheets:
             b, _rgb = sheet_info(root, sh)
             ts_blob += b
+        warps: set[int] = set()
+        for sp in sprites:
+            if sp["active"] and sp.get("is_warp"):
+                wm = int(sp.get("warp_map") or 0)
+                if wm > 0:
+                    warps.add(wm)
+        vis_packs: dict[int, dict[str, int]] = {}
         for vis in screen_visions(sprites):
             need = screen_need(sprites, script, root, seqs, vis)
             packs: dict[str, int] = {}
@@ -555,14 +599,42 @@ def campaign_scan(
                 rel, nbytes = seq_pack_bytes(root, seqs[s], cache)
                 if nbytes > 0:
                     packs[rel] = nbytes
-            blob = sum({**alw, **packs}.values()) + ts_blob
-            if blob > worst[0]:
-                worst = (blob, mmap, vis)
-            if blob > BLOB_CAP:
-                over += 1
+            vis_packs[vis] = packs
+        info[mmap] = {"ts": ts_blob, "vis": vis_packs, "warps": warps}
+
+    worst_s = (0, 0, 0)
+    over_s = 0
+    worst_p = (0, 0, 0, 0)
+    over_p = 0
+    for mmap, inf in info.items():
+        prevs = set(inf["warps"])
+        for nb in (mmap - 1, mmap + 1, mmap - 32, mmap + 32):
+            if nb in info:
+                prevs.add(nb)
+        for vis, packs in inf["vis"].items():
+            blob_s = sum({**alw, **packs}.values()) + inf["ts"]
+            if blob_s > worst_s[0]:
+                worst_s = (blob_s, mmap, vis)
+            if blob_s > BLOB_CAP:
+                over_s += 1
+            for pm in prevs:
+                if pm not in info:
+                    continue
+                pp = info[pm]["vis"].get(0)
+                if not pp:
+                    pp = next(iter(info[pm]["vis"].values()), {})
+                blob_p = sum({**alw, **packs, **pp}.values()) + inf["ts"]
+                if blob_p > worst_p[0]:
+                    worst_p = (blob_p, mmap, vis, pm)
+                if blob_p > BLOB_CAP:
+                    over_p += 1
     print(
         f"campaign screens={len(maps)} Always+Screen peak "
-        f"map={worst[1]} vis={worst[2]} file_blob={worst[0]} over_cap={over}"
+        f"map={worst_s[1]} vis={worst_s[2]} file_blob={worst_s[0]} over_cap={over_s}"
+    )
+    print(
+        f"campaign Always+Screen+Prev peak map={worst_p[1]} vis={worst_p[2]} "
+        f"prev={worst_p[3]} file_blob={worst_p[0]} over_cap={over_p}"
     )
 
 

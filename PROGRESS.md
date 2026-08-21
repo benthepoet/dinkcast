@@ -165,7 +165,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev #82. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
-| 14.5 | Distill frames (gated) | source | subset `dir.ff` used frames from **every** nonempty map.dat screen. 14.4a walk still printed. Undistilled catalog still prints `14.5: needed` |
+| 14.5 | Distill frames (gated) | source | campaign used-frame union on disc. RAM Always+Screen+Prev still over cap on heavy screens — not done |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
 | 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 done**; 15.2 already landed |

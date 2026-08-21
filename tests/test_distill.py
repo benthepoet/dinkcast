@@ -90,6 +90,16 @@ def main() -> int:
     if nmaps < 600:
         print("FAIL distill maps not campaign-wide", maps_ln)
         return 1
+    packs_ln = [ln for ln in dist_out.splitlines() if ln.startswith("distill packs=")]
+    npacks = 0
+    if packs_ln:
+        try:
+            npacks = int(packs_ln[0].split("packs=", 1)[1].split()[0])
+        except ValueError:
+            npacks = 0
+    if npacks < 20:
+        print("FAIL distill wrote too few packs", packs_ln)
+        return 1
     seqs = cat.parse_ini(src)
     must = (
         (31, 27, "graphics/inside/innwalls/walls/dir.ff"),
