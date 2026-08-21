@@ -162,7 +162,7 @@ make chd         # build/dinkcast.chd from the iso (needs chdman / mame-tools)
 make emu         # Flycast on the MIL-CD CHD
 ```
 
-`make cdi` stages `build/stage/dink` from your `DINK_DATA` (copy; the source tree is never touched) so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`). Staging sector-pads every file to a 2048-byte multiple and the boot binary is padded likewise — see [CD-HANG-ROOTCAUSE.md](CD-HANG-ROOTCAUSE.md) (KOS issue #1492). **14.5** also writes subset `dir.ff` packs of used 8-bit BMPs onto that copy (`tools/distill_frames.py`); host tests set `DINK_DISTILL=build/distill`.
+`make cdi` stages `build/stage/dink` from your `DINK_DATA` (copy; the source tree is never touched) so the DC sees **`/cd/dink`** (our probe order: `/pc/dink`, `/cd/dink`, then compile-time `DINK_DATA`). Staging sector-pads every file to a 2048-byte multiple and the boot binary is padded likewise — see [CD-HANG-ROOTCAUSE.md](CD-HANG-ROOTCAUSE.md) (KOS issue #1492). **14.5** also writes subset `dir.ff` packs of used 8-bit BMPs onto that copy in-place (`tools/distill_frames.py`); host tests set `DINK_DISTILL=build/distill`. Do not copy `build/distill` onto the stage before in-place (stale sparse packs).
 
 A CDI **without** the data tree will boot the color field / red `missing dink.dat` screen. Title splash needs `tiles/Splash.bmp` on the disc.
 

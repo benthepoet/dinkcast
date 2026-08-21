@@ -159,6 +159,8 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
         vision = le_i32(raw, off + 188)
         parm_seq = le_i32(raw, off + 156)
         base_die = le_i32(raw, off + 160)
+        is_warp = le_i32(raw, off + 140)
+        warp_map = le_i32(raw, off + 144)
         script = raw[off + 40 : off + 53].split(b"\0", 1)[0].decode(
             "latin-1", errors="replace"
         )
@@ -174,6 +176,8 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
                 "vision": vision,
                 "parm_seq": parm_seq,
                 "base_die": base_die,
+                "is_warp": is_warp,
+                "warp_map": warp_map,
                 "script": script.strip(),
             }
         )
