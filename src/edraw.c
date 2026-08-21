@@ -221,16 +221,30 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 int ws[6], nw, w, f2, nfr;
 
                 if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
-                    walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
-                    for (w = 0; w < nw; w++) {
-                        if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
-                            seqs[ws[w]].prefix[0] == '\0') {
-                            continue;
-                        }
-                        need_push(need_s, need_f, &nneed, ws[w], 1);
-                        nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
-                        for (f2 = 1; f2 <= nfr; f2++) {
-                            need_push(need_s, need_f, &nneed, ws[w], f2);
+                    int extra[2], nx, e;
+
+                    extra[0] = extra[1] = 0;
+                    nx = 0;
+                    /* duck_brain: headless body 110, flying head 120. */
+                    if (br == 3) {
+                        extra[0] = 110;
+                        extra[1] = 120;
+                        nx = 2;
+                    }
+                    for (e = -1; e < nx; e++) {
+                        int base = e < 0 ? (int)sp[i].base_walk : extra[e];
+
+                        walk_seqs_for_brain(br, base, ws, &nw);
+                        for (w = 0; w < nw; w++) {
+                            if (ws[w] < 1 || ws[w] >= DINK_MAX_SEQ ||
+                                seqs[ws[w]].prefix[0] == '\0') {
+                                continue;
+                            }
+                            need_push(need_s, need_f, &nneed, ws[w], 1);
+                            nfr = ini_seq_len(ws[w], seqs[ws[w]].nframes);
+                            for (f2 = 1; f2 <= nfr; f2++) {
+                                need_push(need_s, need_f, &nneed, ws[w], f2);
+                            }
                         }
                     }
                 }
@@ -313,9 +327,21 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
             }
             if (br == 3 || br == 4 || br == 9 || br == 10 || br == 16) {
-                walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
-                for (w = 0; w < nw; w++) {
-                    load_seq_frames(g, &got, seqs, ws[w]);
+                int extra[2], nx = 0, e;
+
+                extra[0] = extra[1] = 0;
+                if (br == 3) {
+                    extra[0] = 110;
+                    extra[1] = 120;
+                    nx = 2;
+                }
+                for (e = -1; e < nx; e++) {
+                    int base = e < 0 ? (int)sp[i].base_walk : extra[e];
+
+                    walk_seqs_for_brain(br, base, ws, &nw);
+                    for (w = 0; w < nw; w++) {
+                        load_seq_frames(g, &got, seqs, ws[w]);
+                    }
                 }
             }
         }
