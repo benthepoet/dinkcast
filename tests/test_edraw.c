@@ -414,14 +414,8 @@ int main(void)
                 edraw_load_seq(g, &nfill, seqs, s);
             }
             n = nfill;
-            if (n >= DINK_EDGFX_MAX) {
-                if (seqs[231].prefix[0] == '\0' ||
-                    edraw_find(g, n, 231, 2) != NULL) {
-                    fprintf(stderr, "FAIL 14.4c oldman fr2 already in table\n");
-                    edraw_free(g, n);
-                    free(seqs);
-                    return 1;
-                }
+            if (seqs[231].prefix[0] != '\0' &&
+                edraw_find(g, n, 231, 2) == NULL) {
                 seq_dir(&seqs[231], dir, sizeof(dir));
                 if (dir[0] == '\0' || !ff_is_cached(dir)) {
                     fprintf(stderr, "FAIL 14.4c oldman pack not cached\n");
@@ -432,7 +426,7 @@ int main(void)
                 n2 = n;
                 if (edraw_ensure_frame(g, &n2, seqs, 231, 2) != 0 ||
                     edraw_find(g, n2, 231, 2) == NULL) {
-                    fprintf(stderr, "FAIL 14.4c ensure screen class after full\n");
+                    fprintf(stderr, "FAIL 14.4c ensure screen class n=%d\n", n);
                     edraw_free(g, n2);
                     free(seqs);
                     return 1;

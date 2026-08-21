@@ -136,7 +136,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
             printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
                    (unsigned)DINK_MEM_CPU_PIXELS);
-            return -1;
+            return -2;
         }
     }
     return 0;
@@ -467,23 +467,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         }
         got = old;
         for (k = 0; k < nneed; k++) {
-            if (edraw_find(g, got, need_s[k], need_f[k]) != NULL) {
-                continue;
-            }
-            if (got >= DINK_EDGFX_MAX) {
-                printf("edraw full skip seq=%d fr=%d\n", need_s[k], need_f[k]);
-                continue;
-            }
-            printf("edraw load seq=%d fr=%d\n", need_s[k], need_f[k]);
-            if (sprite_load_seq_frame(&seqs[need_s[k]], need_s[k], need_f[k],
-                                      &g[got].fr) != 0) {
-                printf("edraw skip seq=%d frame=%d\n", need_s[k], need_f[k]);
-                continue;
-            }
-            g[got].seq = need_s[k];
-            g[got].frame = need_f[k];
-            g[got].live = 1;
-            got++;
+            (void)load_one(g, &got, seqs, need_s[k], need_f[k]);
         }
         /* After frame 1 decode, seq.nframes is known. Duck death before
          * people/fireplace leftover fills. */
@@ -596,9 +580,18 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             return -1;
         }
     }
-    if (load_one(g, &got, seqs, seq, frame) != 0) {
-        if (evict_slot(g, &got, seqs, seq) != 0 ||
-            load_one(g, &got, seqs, seq, frame) != 0) {
+    {
+        int rc = load_one(g, &got, seqs, seq, frame);
+
+        /* Evict only for slot-full (above) or cpu_pixels refuse, not a
+         * decode miss — that would eat Screen pixels every tick. */
+        if (rc == -2) {
+            if (evict_slot(g, &got, seqs, seq) != 0 ||
+                load_one(g, &got, seqs, seq, frame) != 0) {
+                *n = got;
+                return -1;
+            }
+        } else if (rc != 0) {
             *n = got;
             return -1;
         }
