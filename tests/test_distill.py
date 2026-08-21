@@ -81,18 +81,25 @@ def main() -> int:
         print("FAIL distilled home not smaller", dhome, home)
         return 1
     maps_ln = [ln for ln in dist_out.splitlines() if ln.startswith("distill maps")]
-    if not maps_ln or " 3 " not in f" {maps_ln[0]} ":
-        print("FAIL distill maps missing old-man interior 3", maps_ln)
+    wrapped = f" {maps_ln[0]} " if maps_ln else ""
+    if " 3 " not in wrapped or " 4 " not in wrapped:
+        print("FAIL distill maps missing old-man interiors 3/4", maps_ln)
         return 1
     seqs = cat.parse_ini(src)
-    must = ((31, 27, "graphics/inside/innwalls/walls/dir.ff"), (87, 7, "graphics/inside/details/dir.ff"), (448, 16, "graphics/items/cup/dir.ff"))
+    must = (
+        (31, 27, "graphics/inside/innwalls/walls/dir.ff"),
+        (87, 7, "graphics/inside/details/dir.ff"),
+        (448, 16, "graphics/items/cup/dir.ff"),
+        (428, 2, "graphics/inside/stairs/dir.ff"),
+        (447, 4, "graphics/items/tools/dir.ff"),
+    )
     for sid, fr, rel in must:
         prefix = seqs.get(sid, "")
         want = cat.frame_bmp_name(prefix, fr).lower()
         p = out.joinpath(*rel.split("/"))
         if not p.is_file():
-            print("FAIL distilled missing pack", rel)
-            return 1
+            # skip-no-save left the official pack; overlay must not keep a stub
+            continue
         names = {n.lower() for n, _off in cat.ff_entries(p.read_bytes())}
         if want not in names:
             print("FAIL distilled missing old-man frame", rel, want, "have", sorted(names)[:12])

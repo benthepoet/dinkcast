@@ -92,9 +92,10 @@ def in_opening_village(mmap: int) -> bool:
 
 
 def village_maps(root: Path, loc: list[int]) -> list[int]:
-    """14.4a seeds, one ring of 4-neighbors, and warp interiors on those screens.
+    """14.4a seeds, one ring of 4-neighbors, then BFS warp interiors.
 
-    Do not flood 400–450: that is the rest of the early overworld.
+    One hop missed map 4 (old-man back room from map 3 vis 1). Do not
+    flood 400–450 via extra neighbor rings. Do not pin map 4 in seeds.
     """
     seeds = (1, 407, 408, 409, 439, 440, 441)
     maps: set[int] = set()
@@ -112,19 +113,20 @@ def village_maps(root: Path, loc: list[int]) -> list[int]:
         for nb in (mmap - 1, mmap + 1, mmap - 32, mmap + 32):
             if ok(nb):
                 maps.add(nb)
-    extra: list[int] = []
-    for mmap in list(maps):
+    pending = list(maps)
+    while pending:
+        mmap = pending.pop()
         raw = cat.load_map_rec(root, loc[mmap])
         if raw is None:
             continue
         sprites, _script, _sheets = cat.parse_screen(raw)
         for sp in sprites:
-            if not sp["active"]:
+            if not sp["active"] or not sp.get("is_warp"):
                 continue
             wm = int(sp.get("warp_map") or 0)
-            if ok(wm):
-                extra.append(wm)
-    maps.update(extra)
+            if ok(wm) and wm not in maps:
+                maps.add(wm)
+                pending.append(wm)
     return sorted(maps)
 
 
