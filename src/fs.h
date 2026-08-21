@@ -19,9 +19,13 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n);
 int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n);
 /* Copy-out slurp. Repeat path does not fopen. Caller frees *out. */
 int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n);
-/* Session cache. Pointer valid until dink_blob_clear. Do not free.
- * Never evicts a live blob (ff/hard borrow the pointer). */
+/* Session cache. Pointer valid until dink_blob_clear or dink_blob_try_drop
+ * of that rel. Do not free the pointer. Never evicts a live slot to insert
+ * another (ff/hard borrow it) — grow the table instead. */
 int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n);
+/* Free one blob after the borrower (ff slot) is gone. 0 if dropped or absent. */
+int dink_blob_try_drop(const char *rel);
+size_t dink_blob_bytes(void);
 int dink_disc_opens(void);
 void dink_disc_note_open(void);
 void dink_blob_clear(void);

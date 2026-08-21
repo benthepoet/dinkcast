@@ -95,11 +95,27 @@ int main(void)
         free(seqs);
         return 1;
     }
-    if (seqs[164].prefix[0] != '\0' && edraw_find(g, n, 164, 1) == NULL) {
-        fprintf(stderr, "FAIL house mom hp but no seq 164 pin\n");
+    if (edraw_find(g, n, 164, 1) != NULL) {
+        fprintf(stderr, "FAIL house loaded corpse seq 164 (mom hp)\n");
         edraw_free(g, n);
         free(seqs);
         return 1;
+    }
+    {
+        char dir[160];
+        const char *sl = strrchr(seqs[164].prefix, '/');
+
+        dir[0] = '\0';
+        if (sl != NULL) {
+            snprintf(dir, sizeof(dir), "%.*s/dir.ff",
+                     (int)(sl - seqs[164].prefix), seqs[164].prefix);
+        }
+        if (dir[0] != '\0' && ff_is_cached(dir)) {
+            fprintf(stderr, "FAIL house pinned %s\n", dir);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
     }
     if (seqs[331].nframes != 0) {
         fprintf(stderr, "FAIL girl nframes already %d\n", seqs[331].nframes);
@@ -188,6 +204,23 @@ int main(void)
                 edraw_free(g, n);
                 free(seqs);
                 return 1;
+            }
+            {
+                char dir[160];
+                const char *sl = strrchr(seqs[164].prefix, '/');
+
+                dir[0] = '\0';
+                if (sl != NULL) {
+                    snprintf(dir, sizeof(dir), "%.*s/dir.ff",
+                             (int)(sl - seqs[164].prefix), seqs[164].prefix);
+                }
+                if (dir[0] != '\0' && ff_is_cached(dir)) {
+                    fprintf(stderr, "FAIL pig left %s pinned\n", dir);
+                    edraw_gfx_release(pg);
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
             }
             edraw_gfx_release(pg);
         }
