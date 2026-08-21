@@ -27,6 +27,7 @@ ALWAYS_PREFIX = (
     "graphics/dink/hit/",
     "graphics/inter/text-box/",
     "graphics/inter/arrow/",
+    "graphics/inter/menu/",
     "dink.ini",
     "dink.dat",
     "story/",

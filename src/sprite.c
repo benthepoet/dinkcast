@@ -235,6 +235,15 @@ void sprite_evict_pvr(struct SpriteFrame *f)
 #endif
 }
 
+void sprite_drop_cpu(struct SpriteFrame *f)
+{
+    if (f == NULL) {
+        return;
+    }
+    free(f->argb1555);
+    f->argb1555 = NULL;
+}
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f)
 {

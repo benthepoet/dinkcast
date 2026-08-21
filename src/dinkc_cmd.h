@@ -72,6 +72,10 @@ void dinkc_cmd_bind_load_frame(void (*fn)(int seq, int frame));
 void dinkc_cmd_bind_item(int (*arm)(const char *name),
                          int (*locate)(int slot, const char *proc),
                          int (*pickup)(const char *name));
+void dinkc_cmd_bind_inv(void (*show)(int on));
+int dinkc_cmd_inv_active(int magic, int idx0);
+int dinkc_cmd_inv_seq(int magic, int idx0);
+int dinkc_cmd_inv_frame(int magic, int idx0);
 int dinkc_cmd_weapon_armed(void);
 int dinkc_cmd_magic_armed(void);
 int dinkc_cmd_weapon_use(void);
