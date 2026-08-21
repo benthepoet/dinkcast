@@ -6,11 +6,11 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V4** + **8.6 house** accepted. Next visual gate **V5 (13.2)**. Audio **12 after 16**. Do not start 10.x unless the requester says go.
+**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. Next engine bite **14.4a** (catalog) unless the requester says otherwise.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
-**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14 → 15.1 → 11.10 → 15.2–15.4 → 16 → 12 → 17 → 18**. **11.10** is the leftover wave-1 sprite commands; it needs live `BrainSpr` from **15.1** and comes **before** damage (**15.2**). **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
+**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14.1–14.2 → 15.1 → 11.10 → 15.2 → 14.4a → 14.4b → 14.5 (if `needed`) → 14.3 → 15.3–15.4 → 16 → 12 → 17 → 18**. Distill does **not** replace the eviction policy. **14.3** after the opening-village walk is actually under cap (14.4b green, or 14.5 landed). **15.3** after 14.4b under cap **or 14.5 done**. **11.10** is the leftover wave-1 sprite commands; it needs live `BrainSpr` from **15.1** and comes **before** damage (**15.2**). **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
 
 **FreeDink is the implementation, not a hint.** This is a **graft**. When a behavior already exists in GNU FreeDink (`live_screen.cpp`, `gfx_sprites.cpp`, `dinkini.cpp`, `brain.cpp` `move` / `check_if_move_is_legal`, `game_place_sprites`), **copy that rule**. Do not invent a “simpler” hardbox, center, vision filter, or move test. If the port and FreeDink disagree, the port is wrong unless this plan names a Dreamcast-only exception (PVR lists, ISO 8.3, Maple). Patch this plan in the same PR if we must diverge.
 
@@ -92,21 +92,57 @@ Not “optimize later.”
 
 ### 1.2 Memory map (engine)
 
-Keep a `mem_log()` that prints these counters every screen load.
+Keep a `mem_log()` that prints these counters every screen load. **14.4** owns the main-RAM file/pixel pools that this table originally omitted (`file_blob`, `cpu_pixels`, `ts_rgb`). Those three plus engine BSS/scripts must stay inside the **≤ 10 MB** engine cap **after** `bmp_decode` is freed. During unpack, `mem peak` includes `file_blob` + `cpu_pixels` + `ts_rgb` + `bmp_decode`; that sum plus CPU atlas BSS (512 KB) + seq/hard (~0.5 MB) can exceed 10 MB if every pool binds at once (~10.4). Village realistic peak is still ~9. Cap-check is post-decode.
 
 | Pool | Cap | Lives in | Contents |
 |---|---|---|---|
-| `bmp_decode` | 1.5 MB | Main | Transient BMP unpack; **free before next big load** |
+| `bmp_decode` | 1.5 MB | Main | Transient BMP unpack; **free before next big load**. Never two slurps at once. Peak during one decode is this pool **plus** current `file_blob` + `cpu_pixels`; cap check is **after** the unpack is freed. Name the peak in `mem_log` (`mem peak`). |
+| `file_blob` | **≤ 4.5 MB peak** | Main | Session `dink_blob_get` (dir.ff, tilesheet BMP, story, ini). Peak = Always + **this** Screen’s packs + **Prev** packs. Steady ≈ Always + Prev (Screen packs stay until two screens old). **Not** “every pack ≥80 KB forever.” `hard.dat` is an open `FILE*`, **not** this pool. |
+| `cpu_pixels` | **≤ 2.0 MB** | Main | Decoded sprite ARGB1555 in `EdGfx` + sticky kill/Dink frames. Cap is **bytes**, not only 96 slots. Choice overlay (seq 30) is **VRAM after upload** — free those CPU pixels; do not count 640 KB twice. |
+| `ts_rgb` | **≤ 1.25 MB** | Main | Decoded tilesheet RGB565 LRU. Byte cap, not “8 sheets.” Duck vis 2 uses Ts01+Ts02+Ts03 (~1.17 MB if all three stay decoded). Keep at most what fits; extra sheets stay as BMP in `file_blob` until 14.5. |
+| CPU atlas | 512 KB | BSS | Tile stamp buffer (`g_atlas_pix`). Do not calloc on swap. Count in `mem peak`. |
 | `dink_dat` | ≤ 64 KB | Main | Parsed world table (768 × a few ints) |
 | `cur_screen` | ≤ 64 KB | Main | One `editor_screen` + derived tile ids |
 | `hard_cache` | ≤ 256 KB | Main | Current screen 600×400 hardness **or** 96 tile-hard refs + sprite boxes |
-| `seq_meta` | ≤ 256 KB | Main | `dink.ini` parsed table (paths, delays, boxes) — **not** pixels |
+| `seq_meta` | ≤ 256 KB | Main | `dink.ini` parsed table (paths, delays, boxes) — **not** pixels. **14.4 catalog** may add a few KB of pack/frame sizes (no pixels). |
 | `tile_tex` | ≤ 512 KB | VRAM | Current tileset atlas |
 | `sprite_tex` | ≤ 4 MB | VRAM | Current screen + Dink seqs |
 | `title_tex` | ≤ **1 MiB** | VRAM | 1024×512 RGB565 pad of 640×480 still; **freed** on leave-title (4.2) |
 | `sfx_bank` | ≤ 512 KB | AICA | Boot SFX |
 | `bgm_ring` | 256–512 KB | AICA | One stream |
 | HUD atlas | ≤ 128 KB | VRAM | Life/mana/gold/font |
+
+**Binding (residency, 14.4):** a `dir.ff` is a **decode source**, not a session cache. Needed frames go into `cpu_pixels`; the pack **stays** in `file_blob` while that screen is Screen **or Prev** (until two screens old). Then it may leave. Play-path still must not `fopen` (GOTCHAS); a miss skips the frame or waits for 14.5 distill. Do **not** add per-seq specials (`magic/dir.ff` drop, mom-hp pin) — one policy, one catalog.
+
+**Binding (do not pin the ≥80 KB class):** GNU freeware `dink/` has **142** `dir.ff` (~33 MB). **89** are ≥80 KB (~**31 MB**). That class cannot live in 16 MB SDRAM. The 80 KB pin was a `/cd` hang workaround, not a budget. Always-resident packs are a **named set** (player + UI), not a size threshold.
+
+### 1.2.1 Working set (what we expect)
+
+Four classes. `mem_log` prints bytes per class every swap. **Official freeware sizes** (GNU inner `dink/`, packs not 1555):
+
+| Set | Pack bytes (approx) | Notes |
+|---|---|---|
+| Always | **1.20 MB** | idle+walk+push+hit+textbox. Walk seqs **71–74 and 76–79**, not 75 (`botl-b`). Arrows 456/457 are **loose BMPs** (~38 KB), not a `dir.ff`. `dink.ini` ~45 KB and preloaded `story/` count here. |
+| House vis 0 | **1.18 MB** packs; **~0.96 MB** used-frame POT1555 | mom+innwalls+details+food/paper/shiny. Choice overlay **640 KB** is VRAM, not this row. |
+| Outdoor 439 | **1.51 MB** | **home 676 KB + trees 423 KB** live here, not in the start house. |
+| Duck 441 vis 2 | **1.34 MB** packs; Ts01–03 RGB565 **~1.17 MB** if all three decoded | |
+| 408 savebot/girl | **1.54 MB** | `s1-gate` `preload_seq`/`create_sprite` → `people/girl/dir.ff` **188 KB**. Map.dat-only catalog misses this. |
+| Castle | **1.58 MB** `struct/Castle/dir.ff` | Later; print in the catalog so 14.5 is not declared unused from the village. |
+
+| Class | What | Evict? |
+|---|---|---|
+| **Always** | Named list above. | No |
+| **Screen** | Packs and tilesheets needed to **decode** this vision’s editor sprites, **screen-script** `preload_seq`/`create_sprite` seqs, live `BrainSpr`, `parm_seq`, atlas. | Keep packs until this screen is **two screens old** (so Prev still has a decode source). Drop unused **pixels** on swap; do not drop the pack the moment frame 1 lands. |
+| **Prev** | **One** previous screen’s Screen packs (not pixels), for one backtrack without `/cd`. On the duck, Prev is **439**, not the house. | On the swap after next (two screens old). House re-entry after pig is **not** covered — catalog must list which hops would `fopen` a ≥80 KB pack. |
+| **Sticky** | Current Dink facing; seq **164** explode once loaded. **Not** the choice CPU copy after PVR upload. | When a replacement facing/seq is resident |
+
+**Reopen vs hang:** GOTCHAS “third `trees/dir.ff` hang” and KOS #1492 first-open are **different**. Sector-pad retired first-open of non-2048 files. Reopening a large pack is **not** assumed safe in 14.4. Catalog **counts** would-reopen hops on house → 439 → 441 vis 2 → 408 → 407 → 439 → house. If any of those hops needs a ≥80 KB pack that Prev would have already dropped, record `14.5: needed` (or keep that pack in Prev/Always). Do not claim reopen is fine without a Flycast log of those hops.
+
+If `file_blob` peak or `cpu_pixels`/`ts_rgb` would exceed caps, **refuse the new alloc** (keep previous atlas/pixels, log `mem refuse pool=… need=…`). Player-visible: refuse `cpu_pixels`/`file_blob` → **missing sprites** (log skip, do not silent-black Dink); refuse atlas → **previous floor** (wrong tiles, same as today’s `swap atlas fail keep`); never silent-black ground from a 524288 sbrk.
+
+**Catalog (host, 14.4a):** from `DINK_DATA` + `dink.ini` + `map.dat` **and** that screen’s `story/*.c` (`preload_seq`, `create_sprite`, `sp_base_walk`). Emit per pack: path, bytes, seq ids, estimated POT ARGB1555 for frames this screen uses. `hard.dat` line: `FILE* not blob`. No game pixels in git. `make host` **prints** Always+Screen+Prev for house vis 0, 439, 441 vis 2, 407, 408 (girl), and castle pack size. It **fails** only if the catalog tool itself is broken — over-cap working sets print `14.5: needed` with numbers, they do not fake a green 14.4b.
+
+**Distill (14.5, gated):** only if that catalog shows a **legal** Always+Screen+Prev **peak** still over cap after dropping unused pack bytes. CDI-only TOC + per-frame payload (like MIDI→ADPCM). Host tests keep **unmodified** `DINK_DATA` `dir.ff` as required original data. Generated `build/distill/` is a DC pack step, not a second art pipeline. If 14.5 is saving `file_blob`, a TOC of **original 8-bit BMPs** can beat 1555 (choice 192×331 8-bit ~64 KB vs POT 256×512×2 = 256 KB). If it is saving SH-4 decode time, 1555/RLE is the payload. The 14.4a report names **which pool** overflowed. Do not zlib the official tree in git. zlib inflate of a whole 600 KB pack still peaks at compressed+scratch+pixels.
 
 ### 1.3 Controller map
 
@@ -596,12 +632,52 @@ Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_d
 
 #### Bite 14.3 — Leak check
 
-**Deferred (requester 2026-08-20).** Do not start this until after **15.x** (brains/combat) unless the requester says otherwise. Not a visual gate. May land with **18.x** disc/perf.
+**Deferred until 14.4b is under cap or 14.5 is done** (was “after 15.x”). Pin-forever ≥80 KB packs grow until OOM; a 20-crossing delta is meaningless until residency has a cap. Not a visual gate.
 
-- `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB**.
+- `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB** *for pools that should be stable* (`cpu_pixels` may change with the screen; `file_blob` must not climb unbounded).
 - Log `swap_ms` on hardware; same-tileset neighbor must stay in the § screen-delay table.
 
-**14.1–14.2 done when:** Walk start screen into a real neighbor; tiles + Dink. **14.3 done when:** counters stable; delay matches the binding table (Flycast may be ~0).
+**14.1–14.2 done when:** Walk start screen into a real neighbor; tiles + Dink. **14.3 done when:** 14.4 policy is live; counters stable; delay matches the binding table (Flycast may be ~0).
+
+#### Bite 14.4 — Residency (catalog first, then one policy)
+
+**Why:** Session `dink_blob_get` plus size-pin (≥80 KB, 32 ff slots) keeps **decode sources** for the whole walk. Official data has **89** `dir.ff` ≥80 KB (~**31 MB**). Village walk after 15.2 pinned idle/walk/push/mom/walls/home/trees/magic/knight (~6–7 MB of packs) then `Out of memory` 200704 / seq 63 425984. Per-seq drops (`magic/dir.ff` after 164) are correct for that pack and **wrong as a pattern**.
+
+Two PRs, same bite id. **Do not start 15.3** until **14.4b** is under cap **or 14.5 is done**. That does not replace the human gate after merge.
+
+**Not a visual gate.** Host first. Keep the 164 magic drop until 14.4b.
+
+##### 14.4a — Catalog + `mem_log` (no pin change)
+
+1. Host tool (`tools/pack_catalog` or `tests/test_residency`): §1.2.1 screens including **408 girl via screen script**, Prev=**439** when cataloging duck, `hard.dat` as `FILE* not blob`. Print keep-whole-pack vs drop-after-decode vs peak-during-load. Over-cap lines print `14.5: needed pool=… bytes=…`.
+2. `mem.c` / `mem_log` on every swap: pool bytes+counts, Always/Screen/Prev/Sticky, `mem peak` during decode. Still **size-pin** at runtime so Flycast does not change mid-catalog.
+
+**Host check:** `make host` runs the catalog. Tool crash = fail. Over-cap working set = **print**, not fail (the point of 14.4a is to stop lying).
+
+**Done when:** Catalog numbers for house, 439, 441 vis 2, 407, 408, castle pack; `mem_log` on Flycast swap; 164 special still present. Human reads the table.
+
+##### 14.4b — One eviction policy
+
+Only after 14.4a numbers exist.
+
+1. Replace size-pin and `ff_cache_drop_unpinned` no-op with §1.2.1 classes. Always = **name list** in one header.
+2. Retire ad-hoc `seqs[164]` pack drop into “Screen pack, frames complete → drop.” Sticky 164 **pixels** stay.
+3. Play-path still must not `fopen`. Miss → skip (log once) unless 14.5 distilled that frame.
+4. `mem refuse` as named above.
+
+**Done when:** 14.4a catalog plus policy: `file_blob` **peak** on the opening-village walk is under 4.5 MB **or** 14.4a already recorded `14.5: needed` and this bite does not claim the walk is green. Do **not** ship `14.5: not needed` from a house+duck file_blob-only spreadsheet. Human confirms `mem_log` / no `Out of memory` if 14.5 is not needed.
+
+**Won’t in 14.4:** zlib official `dir.ff` in git; a second graphics format; custom DinkC; 14.3’s 20 crossings; weapons (15.3); removing the 164 drop in 14.4a.
+
+#### Bite 14.5 — Distill (gated)
+
+**Start only if** 14.4a printed `14.5: needed` with a pool and byte count. Typical: one 0.7–1.6 MB `dir.ff` from which we need a handful of frames, or Ts01–03 RGB565 over `ts_rgb`. Not a visual gate.
+
+- Offline pack step (CDI only, like MIDI→ADPCM): TOC of per-frame size/offset + payload. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
+- Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
+- Do **not** zlib-compress the official tree and commit it.
+
+**Done when:** The overflowing screen from 14.4a loads under cap on host (and Flycast if that screen is in the opening village). GOTCHAS: distilled frames, original pack not reopened.
 
 ---
 
@@ -644,6 +720,7 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 15.3 — Weapons
 
+- After **14.4b** is under cap **or 14.5 is done**. Sword/bow walk packs are ~0.5–0.6 MB each; a green spreadsheet with size-pin still live will OOM. Does not replace the human gate after merge.
 - `add_item` / inventory slot / `arm_weapon` changes `base_attack` seq (sword, bow). Fists default.
 - Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one. Needs **11.10** `create_sprite`.
 
@@ -813,9 +890,11 @@ dinkcast/
                 ↘ 8.1–8.5 → 8.6 editor sprites → 9.1–9.3 walk
                          → 10.1–10.3 hooks → 11.0–11.6 DinkC wave 1
                          → 13.1–13.3 text → 11.7 wave 2
-                         → 14.1–14.2 transitions (14.3 leak check deferred)
-                         → 15.1 brains → 11.10 live sprite cmds → 15.2–15.4 + 11.8 wave 3
-                         → 14.3 leak check (after 15.x / with 18.x)
+                         → 14.1–14.2 transitions
+                         → 15.1 brains → 11.10 live sprite cmds → 15.2
+                         → 14.4a catalog + mem_log → 14.4b policy → 14.5 if catalog `needed`
+                         → 14.3 leak check
+                         → 15.3–15.4
                          → 16.1–16.3 inventory / HUD (V6)
                          → 12.1–12.4 audio (after 16; playsound was stub)
                          → 17.1–17.3 VMU
