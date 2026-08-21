@@ -459,7 +459,7 @@ int script_on_dink_die(void)
 
 int script_on_raise(void)
 {
-    return start_named(1, "lraise", "raise") == 0 ? 1 : 0;
+    return start_named(DINKC_ENGINE_SPRITE, "lraise", "raise") == 0 ? 1 : 0;
 }
 
 int script_on_button(int n)
@@ -470,7 +470,7 @@ int script_on_button(int n)
         return -1;
     }
     snprintf(name, sizeof(name), "button%d", n);
-    return start_named(1, name, "main");
+    return start_named(DINKC_ENGINE_SPRITE, name, "main");
 }
 
 void script_clear_dink_die(void)

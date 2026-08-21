@@ -8,6 +8,7 @@
 #include "pad.h"
 #include "status.h"
 #include "residency.h"
+#include "script.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,9 +84,22 @@ int main(void)
     yld = 0;
     expect(dinkc_cmd("show_bmp", args, 1, "tiles/map1.bmp", "", &yld, &rv) == 1,
            "show_bmp known");
-    expect(yld == 6 && status_map_active(), "yield bmp");
+    expect(yld == 6 && status_map_active() && status_map_ready(), "yield bmp");
+    expect(status_cpu_bytes() > 1000000u, "map cpu while shown");
     status_map_dismiss();
-    expect(!status_map_active(), "dismiss");
+    expect(!status_map_active() && !status_map_ready(), "dismiss");
+    expect(status_cpu_bytes() < 400000u, "map cpu gone");
+
+    {
+        const char *wait = "void main(void)\n{\nwait(5000);\n}\n";
+        int slot;
+
+        expect(DINKC_ENGINE_SPRITE == 1001, "engine id");
+        slot = dinkc_vm_start_proc(wait, strlen(wait), 1, "main");
+        expect(slot > 0 && dinkc_vm_used(slot), "sprite1 fiber");
+        expect(script_on_button(6) == 0, "button6");
+        expect(dinkc_vm_used(slot), "L must not kill editor 1");
+    }
 
     status_drop_cpu();
     expect(status_cpu_bytes() == 0, "drop cpu");

@@ -562,11 +562,11 @@ int main(int argc, char **argv)
                     if (inv_upload_pvr() != 0) {
                         printf("inv upload fail\n");
                     }
-                    if (status_upload_pvr() != 0) {
-                        printf("status upload fail\n");
-                    } else {
-                        status_drop_cpu();
-                    }
+                }
+                if (status_upload_pvr() != 0) {
+                    printf("status upload fail\n");
+                } else {
+                    status_drop_cpu();
                 }
                 spr_restore("pre-attach");
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
@@ -776,6 +776,11 @@ int main(int argc, char **argv)
                     if (have && status_map_active()) {
 #ifdef _arch_dreamcast
                         (void)status_upload_pvr();
+                        if (!status_map_ready()) {
+                            printf("map upload fail\n");
+                            status_map_dismiss();
+                            dinkc_vm_advance_bmp();
+                        }
 #endif
                         status_map_tick(now_ms);
                         if (pad_just_pressed(prev_buttons, buttons,
@@ -823,8 +828,13 @@ int main(int argc, char **argv)
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_L)) {
                         (void)script_on_button(6);
 #ifdef _arch_dreamcast
-                        if (status_map_active() && status_upload_pvr() != 0) {
-                            printf("map upload fail\n");
+                        if (status_map_active()) {
+                            if (status_upload_pvr() != 0 ||
+                                !status_map_ready()) {
+                                printf("map upload fail\n");
+                                status_map_dismiss();
+                                dinkc_vm_advance_bmp();
+                            }
                         }
 #endif
                     } else if (have && pl.freeze == 0 &&

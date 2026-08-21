@@ -33,6 +33,7 @@ int status_show_bmp(const char *rel, int showdot, int fiber);
 int status_map_active(void);
 void status_map_tick(int now_ms);
 void status_map_dismiss(void);
+int status_map_ready(void);
 
 #ifdef _arch_dreamcast
 int status_upload_pvr(void);

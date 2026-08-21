@@ -706,6 +706,8 @@ int status_load(struct SeqInfo *seqs)
     g_digit_fr.argb1555 = g_digit;
     if (pack_chrome() != 0) {
         printf("status chrome pack fail\n");
+        status_free();
+        return -1;
     }
     printf("status glyphs=%d atlas=%d\n", n, DINK_HUD_ATLAS_BYTES);
     fflush(stdout);
@@ -744,45 +746,65 @@ void status_free(void)
 size_t status_cpu_bytes(void)
 {
     size_t t = 0;
+    int i;
 
-    if (g_digit_fr.argb1555 != NULL) {
+    if (g_digit != NULL) {
+        t += DINK_HUD_ATLAS_BYTES;
+    } else if (g_digit_fr.argb1555 != NULL) {
         t += DINK_HUD_ATLAS_BYTES;
     }
-    if (g_chrome_fr.argb1555 != NULL) {
+    if (g_chrome != NULL) {
+        t += DINK_HUD_ATLAS_BYTES;
+    } else if (g_chrome_fr.argb1555 != NULL) {
         t += DINK_HUD_ATLAS_BYTES;
     }
-    if (g_side_fr.argb1555 != NULL) {
+    if (g_side != NULL) {
+        t += 64u * 512u * 2u;
+    } else if (g_side_fr.argb1555 != NULL) {
         t += 64u * 512u * 2u;
     }
     if (g_map.argb1555 != NULL && g_map.tw > 0 && g_map.th > 0) {
         t += (size_t)g_map.tw * (size_t)g_map.th * 2u;
     }
+    for (i = 1; i < 8; i++) {
+        if (g_mark[i].argb1555 != NULL && g_mark[i].tw > 0 && g_mark[i].th > 0) {
+            t += (size_t)g_mark[i].tw * (size_t)g_mark[i].th * 2u;
+        }
+    }
     return t;
+}
+
+static void release_frame_cpu(struct SpriteFrame *f)
+{
+    if (f == NULL) {
+        return;
+    }
+    if (f->argb1555 == g_digit && g_digit != NULL) {
+        f->argb1555 = NULL;
+        free(g_digit);
+        g_digit = NULL;
+        return;
+    }
+    if (f->argb1555 == g_chrome && g_chrome != NULL) {
+        f->argb1555 = NULL;
+        free(g_chrome);
+        g_chrome = NULL;
+        return;
+    }
+    if (f->argb1555 == g_side && g_side != NULL) {
+        f->argb1555 = NULL;
+        free(g_side);
+        g_side = NULL;
+        return;
+    }
+    sprite_drop_cpu(f);
 }
 
 void status_drop_cpu(void)
 {
-    if (g_digit_fr.argb1555 == g_digit) {
-        g_digit_fr.argb1555 = NULL;
-        free(g_digit);
-        g_digit = NULL;
-    } else {
-        sprite_drop_cpu(&g_digit_fr);
-    }
-    if (g_chrome_fr.argb1555 == g_chrome) {
-        g_chrome_fr.argb1555 = NULL;
-        free(g_chrome);
-        g_chrome = NULL;
-    } else {
-        sprite_drop_cpu(&g_chrome_fr);
-    }
-    if (g_side_fr.argb1555 == g_side) {
-        g_side_fr.argb1555 = NULL;
-        free(g_side);
-        g_side = NULL;
-    } else {
-        sprite_drop_cpu(&g_side_fr);
-    }
+    release_frame_cpu(&g_digit_fr);
+    release_frame_cpu(&g_chrome_fr);
+    release_frame_cpu(&g_side_fr);
     sprite_drop_cpu(&g_map);
 }
 
@@ -890,11 +912,29 @@ void status_map_tick(int now_ms)
 
 void status_map_dismiss(void)
 {
+    int i;
+
     if (!g_map_on) {
         return;
     }
     g_map_on = 0;
-    sprite_drop_cpu(&g_map);
+#ifdef _arch_dreamcast
+    /* Tex may still be in the last submitted scene. */
+    pvr_wait_ready();
+#endif
+    sprite_frame_free(&g_map);
+    for (i = 1; i < 8; i++) {
+        sprite_frame_free(&g_mark[i]);
+    }
+}
+
+int status_map_ready(void)
+{
+#ifdef _arch_dreamcast
+    return g_map_on && g_map.tex != NULL;
+#else
+    return g_map_on && g_map.argb1555 != NULL;
+#endif
 }
 
 #ifdef _arch_dreamcast
@@ -909,12 +949,7 @@ static int upload_fr(struct SpriteFrame *f)
     if (sprite_upload_pvr(f) != 0) {
         return -1;
     }
-    if (f->argb1555 == g_digit || f->argb1555 == g_chrome ||
-        f->argb1555 == g_side) {
-        f->argb1555 = NULL;
-    } else {
-        sprite_drop_cpu(f);
-    }
+    release_frame_cpu(f);
     return 0;
 }
 

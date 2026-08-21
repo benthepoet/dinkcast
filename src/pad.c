@@ -53,6 +53,8 @@ int pad_dir_from_buttons(uint32_t buttons)
 #include <dc/maple.h>
 #include <dc/maple/controller.h>
 
+static int g_ltrig;
+
 int pad_poll_port0(uint32_t *out_buttons)
 {
     maple_device_t *dev;
@@ -84,7 +86,12 @@ int pad_poll_port0(uint32_t *out_buttons)
     if (st->buttons & CONT_Y) {
         bits |= DINK_PAD_Y;
     }
-    if (st->ltrig > 128) {
+    if (st->ltrig > 160) {
+        g_ltrig = 1;
+    } else if (st->ltrig < 48) {
+        g_ltrig = 0;
+    }
+    if (g_ltrig) {
         bits |= DINK_PAD_L;
     }
     if (st->buttons & CONT_START) {
