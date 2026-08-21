@@ -31,7 +31,7 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 - Host: `make host`.
 - ELF+CDI: `make docker-cdi` (daemon must run; user in `docker` group). Image: `KOS_DOCKER_IMAGE` or default in `tools/docker_kos.sh`.
 - Flycast: `make emu` on **`build/dinkcast.chd`**. Prefer **real `dc_boot.bin`** in `~/.local/share/flycast/`. REIOS often never reaches `1ST_READ.BIN`. Do not playtest DiscJuggler `.cdi` in Flycast.
-- After a red/stripe/boot fail: read the framebuffer HUD first, then GOTCHAS. Spawn the **troubleshooting team** in AGENTS.md (≥2 specialists + debug orchestrator). Do not solo-guess.
+- After a red/stripe/boot fail: read the framebuffer HUD first, then GOTCHAS. Spawn **debug orchestrator + one Adversarial** (AGENTS.md). Do not solo-guess. Do not spawn Disc/FS + PVR + Boot as extra agents.
 - **Visual gates:** do not proceed past 3.4 / 6.3 / 8.4 / 9.3 / 13.2 / 16.x until the human accepts that picture.
 
 ## PVR textures

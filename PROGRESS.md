@@ -113,7 +113,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-20 | **15.2** damage: `hurt_thing`, HIT/DIE, corpse, push, `dinfo` DIE | #76 |
 | 2026-08-21 | Duck first punch keeps headless 110 + flying head 120 | #77 |
 | 2026-08-21 | Drop `magic/dir.ff` after decoding seq 164; do not pin it on mom hp | #78 |
-| 2026-08-21 | Spec **14.4** residency + gated **14.5** distill; 14.3 after 14.4 | this PR |
+| 2026-08-21 | Spec **14.4** residency + gated **14.5** distill; 14.3 after 14.4 | #79 |
+| 2026-08-21 | One Adversarial reviewer (Dreamcast); drop spec/mem/perf/flaws agents | this PR |
 
 ## Bites
 
@@ -157,7 +158,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
-| 14.4 | Residency catalog + policy | pending | spec this PR. **14.4a** catalog+`mem_log`; **14.4b** one policy. Before 15.3 |
+| 14.4 | Residency catalog + policy | pending | spec #79. **14.4a** catalog+`mem_log`; **14.4b** one policy. Before 15.3 |
 | 14.5 | Distill frames (gated) | pending | only if 14.4a prints `14.5: needed` |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |

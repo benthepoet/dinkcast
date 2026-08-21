@@ -69,7 +69,7 @@ Do not merge with unanswered review threads unless a maintainer records `wontfix
 
 ## Subagent team
 
-Use separate agents (or clearly separated passes) with **different roles**. The implementer does not mark their own PR complete.
+Three roles. Do **not** spawn spec / memory / performance / flaws as separate agents — that burned tokens for little extra catch rate. The implementer does not mark their own PR complete.
 
 ### Orchestrator
 
@@ -78,49 +78,47 @@ Someone **must** hold **Orchestrator** on every PR. This role coordinates implem
 | Does | Does not |
 |---|---|
 | Pick the next plan bite (or justified out-of-plan fix). Open or name the branch/PR. | Implement the bite on the same PR (unless the change is docs-only and they say so). |
-| Assign the required reviewer roles. Chase missing reviews. | Wear **Adversarial** on a PR they orchestrate. |
-| Confirm the merge bar (roles, unresolved threads, tests named). | Rubber-stamp. If a required review is missing, they wait or request it. |
+| Assign **Adversarial**. Chase that one review. | Wear **Adversarial** on a PR they orchestrate. |
+| Confirm the merge bar (review in, unresolved threads, tests named). | Rubber-stamp. If Adversarial is missing, they wait or request it. |
 | Merge to `master` (or record who merged) only when the bar is green. | Bypass PR comments; coordination notes go on the PR. |
 | Sequence stacks (`bite/…` then follow-ups). Rebase policy. | Rewrite the port plan without a PR. |
 
-**On the PR the orchestrator writes:** `orchestrator:` plus bite id and required reviews (no `@` username). Later `bar: green` / `bar: blocked (why)` before merge.
+**On the PR the orchestrator writes:** `orchestrator:` plus bite id and `reviewer: adversarial` (no `@` username). Later `bar: green` / `bar: blocked (why)` before merge.
 
 **Default orchestrator is a dedicated subagent**, not the human requester and not the implementer. Spawn it for every PR. The human may override in writing on that PR. One agent may Orchestrate PR A and Implement PR B, not both on the same PR (docs-only exception above).
 
 | Role | Job | Must write on the PR |
 |---|---|---|
-| **Orchestrator** | Sequence work, assign reviews, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
-| **Implementer** | Code the bite. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
-| **Spec reviewer** | Diff vs [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md): visual gates, original data formats, no new DinkC dialect, 60 Hz, FreeDink graft, GOTCHAS. | Approve or list plan violations |
-| **Adversarial reviewer** | Try to break it. Wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Assume the happy path is a lie. | Attack list + repro or “attempted X, held” |
-| **Memory reviewer** | Every alloc has a free/evict. Screen change and leave-title must not leak. Check BMP decode buffers, PVR textures, script file buffers, AICA handles. Compare to plan caps. | Leak findings or `mem: no new unpaired alloc` |
-| **Performance reviewer** | 60 FPS target, 30 floor. Flag CPU blit, per-frame re-lex of DinkC, preload-the-world, RGBA8888 textures, extra GD-ROM seeks. Do **not** ask for a custom DinkC JIT. | Perf notes or `perf: no 60 Hz regress suspected` |
-| **Flaws reviewer** | Logic and compatibility: 1-based sprites, hardness, talk range, SH-4 alignment, little-endian readers, silent no-op vs skipped script. | Defects or `flaws: none blocking` |
+| **Orchestrator** | Sequence work, assign the reviewer, enforce the bar, merge. | `orchestrator:` assignment + `bar:` |
+| **Implementer** | Code the bite. Correctness and **faithfulness to GNU FreeDink source** first. Follow the plan. Host tests first when the plan says so. | Description, test steps, budget notes |
+| **Adversarial** | The only reviewer. Dreamcast/KOS expert. Covers plan, RAM/VRAM/AICA, 60 Hz, DinkC, SH-4, disc. Assume the happy path is a lie. | One review: attack list + `verdict:` |
 
-**Minimum bar to merge**
+**Implementer.** Focus is **correctness** and a faithful graft of GNU FreeDink, not a simpler DC-shaped rewrite. Sprite centers, hardboxes, vision, `hard==0`, move tests, brains, and DinkC come from named FreeDink functions. If you cannot name the function, stop and look it up. Inventing a box, filter, or dialect is a bug. Dreamcast constraints (PVR quads, ISO 8.3, Maple, RAM caps) are exceptions the plan already names — do not use them to “simplify” game rules.
 
-- **Orchestrator** named on the PR + Implementer + **at least two** of: spec, adversarial, memory, performance, flaws.
-- **Adversarial** is required on anything that touches `src/` runtime (not required for docs-only).
-- **Memory** is required if the PR allocates, uploads textures, loads files, or attaches scripts.
-- **Performance** is required if the PR is on the per-frame path or I/O during play/title.
-- Docs-only PRs: spec reviewer is enough.
+**Adversarial (the reviewer).** Spawn **one** subagent. Prompt it as a Dreamcast homebrew reviewer: SH-4, 16 MB SDRAM, 8 MB PVR, 2 MB AICA, GD-ROM/ISO9660, KallistiOS, Flycast vs hardware. It must read [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md) and [docs/GOTCHAS.md](docs/GOTCHAS.md) before commenting. In that **one** review it covers what used to be five roles:
+
+- **Plan:** [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md) — visual gates, original data formats, no new DinkC dialect, 60 Hz, FreeDink graft.
+- **Break it:** wrong endian, missing `dink.dat`, 8.3 names, no VMU, no controller, empty screen, freeze nest, busy-loop script, double evict, title path wrong. Attack list + repro or “attempted X, held”.
+- **Memory:** every alloc has a free/evict; screen change and leave-title; BMP decode, PVR textures, script buffers, AICA; plan §1.2 caps.
+- **Perf:** 60 FPS target, 30 floor; CPU blit, per-frame re-lex, preload-the-world, RGBA8888, extra GD-ROM seeks. Do **not** ask for a custom DinkC JIT.
+- **Flaws:** 1-based sprites, hardness, talk range, SH-4 alignment, little-endian readers, silent no-op vs skipped script.
+
+Docs-only PRs still get this one reviewer (plan + “would this lie on hardware?”). Do not add a second spec-only agent.
+
+**Minimum bar to merge:** Orchestrator named + Implementer + **Adversarial** `verdict: approve` (or `wontfix` on remaining threads). Same bar for docs-only and `src/` PRs.
 
 One human or agent may not wear Implementer and Adversarial on the same PR, and may not wear Orchestrator and Adversarial on the same PR.
 
 Land: only the orchestrator merges (or explicitly delegates merge on the PR: `merge-delegate: @who`).
 
-### Troubleshooting team (when something is wrong on screen or disc)
+### Troubleshooting (when something is wrong on screen or disc)
 
-When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture), **do not** have one agent guess. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial-review** on a PR they authored) plus **at least two** of these specialists. They work in **parallel**. Findings go on the **open PR** or a new `fix/…` PR — same as review comments (`block` / `should` / `nit` + `verdict:`).
+When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture), **do not** have the implementer guess alone and **do not** spawn Disc/FS + PVR + Boot + Data as four extra agents. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial** on a PR they authored) plus **one** Adversarial with the Dreamcast prompt above. That reviewer covers `/cd` vs probe, twiddle/`NONTWIDDLED`, REIOS vs `dc_boot.bin`, BMP/map identity, and “the first diagnosis is a lie” from GOTCHAS.
 
-| Role | Looks at | Must write |
+| Role | Does | Must write |
 |---|---|---|
-| **Debug orchestrator** | Assigns the other roles, synthesizes, picks the first fix. Does not implement the first theory. | `debug-orch:` + assigned roles + `bar:` |
-| **Disc/FS** | `mkdcdisc -d` basename, `/cd` listing, ISO 8.3, `dink.dat` root, GD-ROM wait | What `/cd` contains vs what we probe |
-| **PVR/video** | Twiddle vs `NONTWIDDLED`, POT pad/UVs, `vid_set_mode`, brown vs stripe vs red | Format/load vs draw mismatch |
-| **Boot/emu** | REIOS vs `dc_boot.bin`, IP.BIN / `1ST_READ.BIN`, Flycast log ≠ SCIF | Whether the ELF even ran |
-| **Data/format** | BMP bpp/bottom-up, `title_path.h`, map/ini once those exist | File identity and decode |
-| **Adversarial debug** | The first diagnosis is a lie. Alternate causes from [docs/GOTCHAS.md](docs/GOTCHAS.md). | Attack list on the *theory* |
+| **Debug orchestrator** | Assigns Adversarial, synthesizes, picks the first fix. Does not implement the first theory. | `debug-orch:` + `reviewer: adversarial` + `bar:` |
+| **Adversarial** | HUD + GOTCHAS first, then disc / PVR / boot / data as needed. One review. | Attack list on the *theory* + `verdict:` |
 
 Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
 
@@ -130,7 +128,7 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
 
 1. Check out the PR branch; do not review `master` by mistake.
 2. Read the PR description, then the diff, then the plan bites named in the PR.
-3. For adversarial / memory / perf / flaws: leave **one review** (or a clearly labeled comment block) with severity:
+3. Adversarial leaves **one review** covering plan, break-it, memory, perf, and flaws. Severity:
 
    | Severity | Meaning |
    |---|---|
@@ -138,7 +136,7 @@ Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new cla
    | `should` | Fix in this PR unless schedule is cited |
    | `nit` | Style; author may land and follow up |
 
-4. End with `verdict: request-changes` or `verdict: approve` for that role.
+4. End with `verdict: request-changes` or `verdict: approve`.
 5. Implementer answers on the same threads. Re-review the delta, do not rubber-stamp.
 6. Orchestrator updates `bar:` when required verdicts are in and threads are resolved. Then merge or delegate.
 
