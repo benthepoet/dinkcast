@@ -4,6 +4,7 @@
 
 struct Player;
 struct SeqInfo;
+struct MapScreen;
 
 void dinkc_cmd_bind_player(struct Player *p);
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
@@ -76,5 +77,6 @@ int dinkc_cmd_magic_armed(void);
 int dinkc_cmd_weapon_use(void);
 int dinkc_cmd_magic_use(void);
 void dinkc_cmd_reset_inv(void);
+void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map);
 
 #endif

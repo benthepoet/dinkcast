@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
+**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -762,7 +762,7 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 16.1 — Touch / pickup
 
-- Brain/touch: overlap Dink → `add_item` / kill sprite.
+- Brain/touch: overlap Dink → `add_item` / kill sprite. Graft FreeDink `run_through_touch_damage_list` (player brain 1, each tick). `touch_damage == -1` locates `TOUCH` (stock `s1-sack` → `add_item("item-pig")`). `>0` is `hurt_thing` + `notouch` 400 ms. `editor_type(n, 1)` is `update_play_changes` type 1 (sprite stays gone on re-enter). Types 6/7/8 timers stay **17**. Y grid is **16.2**.
 
 #### Bite 16.2 — Inventory UI
 

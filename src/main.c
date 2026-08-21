@@ -322,6 +322,7 @@ int main(int argc, char **argv)
                 vid_waitvbl();
             }
         }
+        dinkc_cmd_apply_spmap(&g_scr, DINK_START_PLAYER_MAP);
         if (spr_ok_ready() != 0) {
             hud("SPR SNAP FAIL", "malloc", msg);
             for (;;) {
@@ -439,6 +440,7 @@ int main(int argc, char **argv)
                 hit_bind_player(&pl);
                 hit_bind_hit(script_on_hit_from);
                 hit_bind_push(script_on_push);
+                hit_bind_touch(script_on_touch);
                 brains_bind_kill(script_on_kill);
                 brains_bind_exp(game_add_exp);
                 brains_bind_player(&pl);
@@ -602,6 +604,7 @@ int main(int argc, char **argv)
                             swap = 0;
                             continue;
                         }
+                        dinkc_cmd_apply_spmap(&g_scr, player_map);
                         spr_snap("swap");
                         dinkc_var_set("&player_map", player_map,
                                       DINKC_GLOBAL_SCOPE, 1);
@@ -859,6 +862,8 @@ int main(int argc, char **argv)
                             }
                         } else {
                             player_step(&pl, pdir, &mask, seqs, now_ms);
+                            hit_touch_list(pl.x, pl.y, now_ms, g_edg, g_ned,
+                                           seqs);
                             if (pl.freeze == 0 && pl.warp_hit > 0) {
                                 int wr = screen_special_block(
                                     &g_world, &g_scr, pl.warp_hit, &player_map,

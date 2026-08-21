@@ -437,6 +437,15 @@ void script_on_push(int sprite)
     (void)start_named(sprite, nm, "push");
 }
 
+void script_on_touch(int sprite)
+{
+    const char *nm = slot_script(sprite);
+
+    snprintf(g_log, sizeof(g_log), "touch sprite=%d script=%s", sprite, nm);
+    printf("%s\n", g_log);
+    (void)start_named(sprite, nm, "touch");
+}
+
 int script_on_dink_die(void)
 {
     if (g_dink_dying) {

@@ -26,6 +26,8 @@ struct Player {
     int move_active, move_dir, move_num, move_nohard;
     int hitpoints, defense, strength, nohit, range, damage, last_hit;
     int push_active, push_dir, push_timer;
+    int notouch; /* run_through_touch_damage_list: skip +damage while set */
+    int notouch_timer;
 };
 
 void player_init(struct Player *p);

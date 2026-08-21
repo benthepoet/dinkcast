@@ -6,9 +6,11 @@
 #include "ff.h"
 #include "hurt.h"
 #include "ini.h"
+#include "mapscr.h"
 #include "player.h"
 #include "residency.h"
 #include "saybox.h"
+#include "world.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -72,6 +74,8 @@ static struct {
     int val;
     char key[20];
 } g_custom[32];
+/* play.spmap[].type — editor_type 1 kills that editor sprite (16.1). */
+static unsigned char g_spmap_type[DINK_WORLD_SLOTS][101];
 
 static int name_eq(const char *a, const char *b)
 {
@@ -236,6 +240,7 @@ static const struct {
     {"load_screen", 0},
     {"compare_weapon", 0},
     {"compare_magic", 0},
+    {"editor_type", 0},
 };
 
 #define CMD_N ((int)(sizeof(k_fn) / sizeof(k_fn[0])))
@@ -453,6 +458,21 @@ void dinkc_cmd_reset_inv(void)
     g_bow_power = 0;
     pin_clear(0);
     pin_clear(1);
+    memset(g_spmap_type, 0, sizeof(g_spmap_type));
+}
+
+void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
+{
+    int i;
+
+    if (scr == NULL || player_map < 1 || player_map >= DINK_WORLD_SLOTS) {
+        return;
+    }
+    for (i = 1; i <= 99; i++) {
+        if (g_spmap_type[player_map][i] == 1) {
+            scr->sprite[i].active = 0;
+        }
+    }
 }
 
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on))
@@ -1094,6 +1114,28 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         if (ret != NULL) {
             *ret = ok;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "editor_type")) {
+        int map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+        int ed = a0;
+        int type = a1;
+
+        if (ed < 1 || ed > 99 || map < 1 || map >= DINK_WORLD_SLOTS) {
+            if (ret != NULL) {
+                *ret = 0;
+            }
+            return 1;
+        }
+        if (nargs >= 2 && type != -1) {
+            g_spmap_type[map][ed] = (unsigned char)type;
+            if (type == 1 && g_spr_change != NULL) {
+                (void)g_spr_change(ed, DINKC_SP_ACTIVE, 0);
+            }
+        }
+        if (ret != NULL) {
+            *ret = (int)g_spmap_type[map][ed];
         }
         return 1;
     }
