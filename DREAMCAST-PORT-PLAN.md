@@ -766,7 +766,7 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 16.2 — Inventory UI
 
-- Y toggles. Grid of **same item ids** as PC. A arms weapon/magic. Do not invent items.
+- Y toggles. Grid of **same item ids** as PC. A arms weapon/magic. Do not invent items. Graft FreeDink `process_item` / `draw_item` (`inventory.cpp`). Seq 423 frame 1 at (20,0); weapons origin 260,83 (4×4); magic origin 45,83 (2×4); step 83×75. A sets `&cur_weapon`/`&cur_magic` then `arm_weapon`/`arm_magic`. Maple Y = `ACTION_INVENTORY`. HUD is **16.3**.
 
 #### Bite 16.3 — HUD
 

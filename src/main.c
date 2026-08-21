@@ -17,6 +17,7 @@
 #include "hard.h"
 #include "hit.h"
 #include "ini.h"
+#include "inv.h"
 #include "mapscr.h"
 #include "mem.h"
 #include "pad.h"
@@ -65,6 +66,15 @@ static void load_frame_cb(int seq, int frame)
         return;
     }
     edraw_load_frame(g_edg, &g_ned, g_seqs_play, seq, frame);
+}
+
+static void inv_show_cmd(int on)
+{
+    if (on) {
+        inv_open(0);
+    } else {
+        inv_close();
+    }
 }
 
 static void give_start_fists(void)
@@ -407,6 +417,7 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_seqs(seqs);
                 dinkc_cmd_bind_preload(preload_seq_cb);
                 dinkc_cmd_bind_load_frame(load_frame_cb);
+                dinkc_cmd_bind_inv(inv_show_cmd);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");
                 }
@@ -449,6 +460,9 @@ int main(int argc, char **argv)
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
                 give_start_fists();
+                if (seqs != NULL && inv_load(seqs) != 0) {
+                    printf("inv gfx load fail\n");
+                }
                 brains_bind_screen(&g_scr);
                 brains_reset();
                 script_enter_vision();
@@ -536,6 +550,9 @@ int main(int argc, char **argv)
                     if (choice_upload_pvr() != 0) {
                         printf("choice upload fail\n");
                     }
+                    if (inv_upload_pvr() != 0) {
+                        printf("inv upload fail\n");
+                    }
                 }
                 spr_restore("pre-attach");
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
@@ -563,6 +580,7 @@ int main(int argc, char **argv)
                         dinkc_vm_reset();
                         dinkc_var_init();
                         dinkc_cmd_reset_inv();
+                        inv_reset();
                         player_init(&pl);
                         dinkc_cmd_bind_player(&pl);
                         hit_bind_player(&pl);
@@ -739,7 +757,9 @@ int main(int argc, char **argv)
                     }
                     brains_apply(&g_scr);
                     have = (pad_poll_port0(&buttons) == 0);
-                    if (have && dinkc_vm_waiting_say() &&
+                    if (have && inv_showing()) {
+                        inv_tick(prev_buttons, buttons, now_ms);
+                    } else if (have && dinkc_vm_waiting_say() &&
                         (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
                          pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
                         dinkc_vm_advance_say();
@@ -761,6 +781,16 @@ int main(int argc, char **argv)
                                                     DINK_PAD_A)) {
                             dinkc_vm_choice_pick(dinkc_vm_choice_cur());
                         }
+                    } else if (have && pl.freeze == 0 &&
+                        !dinkc_vm_waiting_say() &&
+                        !dinkc_vm_waiting_choice() &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
+                        inv_open(now_ms);
+#ifdef _arch_dreamcast
+                        if (inv_upload_pvr() != 0) {
+                            printf("inv upload fail\n");
+                        }
+#endif
                     } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, g_ned, seqs, pl.x,
@@ -781,7 +811,8 @@ int main(int argc, char **argv)
                             player_attack(&pl, seqs);
                         }
                     }
-                    if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                    if (have && !inv_showing() && pl.freeze == 0 &&
+                        pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_X)) {
@@ -802,7 +833,7 @@ int main(int argc, char **argv)
                     dinkc_vm_set_now(now_ms);
                     dinkc_vm_tick(now_ms);
                     dinkc_cmd_thaw_if_idle();
-                    if (seqs != NULL) {
+                    if (seqs != NULL && !inv_showing()) {
                         pl.defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE,
                                                    1);
                         brains_tick(&g_scr, seqs, &mask, now_ms,
@@ -860,7 +891,7 @@ int main(int argc, char **argv)
                                 }
                                 screen_warp_clear();
                             }
-                        } else {
+                        } else if (!inv_showing()) {
                             player_step(&pl, pdir, &mask, seqs, now_ms);
                             hit_touch_list(pl.x, pl.y, now_ms, g_edg, g_ned,
                                            seqs);
@@ -1043,6 +1074,7 @@ int main(int argc, char **argv)
                         }
                         saybox_draw_pvr(3.0f);
                         saybox_draw_choices_pvr(3.1f);
+                        inv_draw_pvr(4.0f);
                     }
                     pvr_list_finish();
                     pvr_scene_finish();

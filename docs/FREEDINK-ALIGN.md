@@ -77,8 +77,9 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Push / death | `hurt_thing`, `add_kill_sprite`, `human_brain` push, `dinfo` DIE | hold (15.2) |
 | Weapons / magic | `add_item`, `dc_arm_weapon`, `human_brain` USE | hold (15.3–15.4); sprite 1000 keep; `init` seq rewrite; bow charge instant 100 |
 | Touch / pickup | `run_through_touch_damage_list` | hold (16.1); `-1` → `TOUCH`; `editor_type` 1 |
+| Inventory grid | `process_item` / `draw_item` | hold (16.2); Y; A arms; seq 423 blit |
 | Talk/magic miss say | `human_brain` `say_text` | hold (10.1); 6 talk + 6 magic lines; no `dnotalk` file |
-| Inv / HUD / map bmp | `status`, `process_show_bmp` | 16.2 / 16.3 / V6 |
+| HUD / map bmp | `status`, `process_show_bmp` | 16.3 / V6 |
 | VMU save | `savegame` | 17 |
 
 ## How to add a bite

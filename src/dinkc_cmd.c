@@ -48,6 +48,7 @@ static void (*g_restart)(void);
 static int (*g_item_arm)(const char *name);
 static int (*g_item_locate)(int slot, const char *proc);
 static int (*g_item_pickup)(const char *name);
+static void (*g_show_inv)(int on);
 static void (*g_preload)(int seq);
 static void (*g_load_frame)(int seq, int frame);
 static struct SeqInfo *g_seqs;
@@ -241,6 +242,7 @@ static const struct {
     {"compare_weapon", 0},
     {"compare_magic", 0},
     {"editor_type", 0},
+    {"show_inventory", 0},
 };
 
 #define CMD_N ((int)(sizeof(k_fn) / sizeof(k_fn[0])))
@@ -421,6 +423,41 @@ void dinkc_cmd_bind_item(int (*arm)(const char *name),
     g_item_arm = arm;
     g_item_locate = locate;
     g_item_pickup = pickup;
+}
+
+void dinkc_cmd_bind_inv(void (*show)(int on))
+{
+    g_show_inv = show;
+}
+
+int dinkc_cmd_inv_active(int magic, int idx0)
+{
+    if (magic) {
+        if (idx0 < 0 || idx0 >= 8) {
+            return 0;
+        }
+        return g_mitem[idx0].active;
+    }
+    if (idx0 < 0 || idx0 >= 16) {
+        return 0;
+    }
+    return g_item[idx0].active;
+}
+
+int dinkc_cmd_inv_seq(int magic, int idx0)
+{
+    if (!dinkc_cmd_inv_active(magic, idx0)) {
+        return 0;
+    }
+    return magic ? g_mitem[idx0].seq : g_item[idx0].seq;
+}
+
+int dinkc_cmd_inv_frame(int magic, int idx0)
+{
+    if (!dinkc_cmd_inv_active(magic, idx0)) {
+        return 0;
+    }
+    return magic ? g_mitem[idx0].frame : g_item[idx0].frame;
 }
 
 int dinkc_cmd_weapon_armed(void)
@@ -978,6 +1015,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             if (g_preload != NULL) {
                 g_preload(a0);
             }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "show_inventory")) {
+        if (g_show_inv != NULL) {
+            g_show_inv(1);
         }
         return 1;
     }
