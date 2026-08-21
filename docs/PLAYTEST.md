@@ -10,11 +10,12 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 |---|---|---|
 | Blood spray (seq 187–189) and hit-point numbers when punching pigs | 2026-08-21 | `test_playtest` pig punch |
 | Grain USE no longer spams / hitch | 2026-08-21 | `test_distill` s1-sack → 430/431 |
+| Grain sprite + spreading (seq 430/431) on the first outdoor screen | 2026-08-21 | `test_distill` + PVR upload after `preload_seq` |
 | Feeding the pigs (map 407 box) and Milder dialogue | 2026-08-21 | (Flycast; no host lock yet) |
 
 ## Open
 
-- Grain sprite + spreading (seq 430/431) on the **first** outdoor screen (works after walking to another screen, then works on return). This PR: PVR upload after `preload_seq`.
+- Pigs missing on the **first** visit north from the first outdoor screen (map 407). They show on later visits. This PR: drop two-screens-old packs before fopen Screen.
 - Barrel smash on the **first** outdoor screen (second screen had worked).
 - Old man sprite in his house.
 - Start-house textures after walking back.

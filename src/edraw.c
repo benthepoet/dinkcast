@@ -514,6 +514,18 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
+        /* Re-mark this Screen's packs before drop. Aged Prev (two screens
+         * old) still occupies file_blob until swap_end — fopen Screen then
+         * misses pigs on the first 407 visit. */
+        for (k = 0; k < nneed; k++) {
+            char dir[160];
+
+            pack_dir(&seqs[need_s[k]], dir, sizeof(dir));
+            if (dir[0] != '\0') {
+                residency_touch(dir);
+            }
+        }
+        ff_cache_drop_unpinned();
         old = *n;
         if (old < 0) {
             old = 0;

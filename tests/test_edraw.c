@@ -220,11 +220,33 @@ int main(void)
             int loads1, loads2, nfr;
 
             seq_dir(&seqs[164], dir, sizeof(dir));
-            if (edraw_load_screen(pig.sprite, seqs, g, &n, 0) != 0) {
-                fprintf(stderr, "FAIL pig edraw\n");
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
+            {
+                struct MapScreen out;
+                struct FfFile *ff = NULL;
+                int orec = (int)w.loc[439];
+
+                if (orec < 1 || map_load_record(orec, &out) != 0) {
+                    fprintf(stderr, "FAIL 439 before pig\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                if (edraw_load_screen(out.sprite, seqs, g, &n, 0) != 0) {
+                    fprintf(stderr, "FAIL 439 edraw before pig\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                (void)ff_cached("graphics/effects/seed/dir.ff", &ff);
+                (void)ff_cached("graphics/dink/seed/dir.ff", &ff);
+                residency_pin_always("graphics/effects/seed/dir.ff");
+                residency_pin_always("graphics/dink/seed/dir.ff");
+                if (edraw_load_screen(pig.sprite, seqs, g, &n, 0) != 0) {
+                    fprintf(stderr, "FAIL pig edraw\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
             }
             nfr = ini_seq_len(164, seqs[164].nframes);
             if (seqs[164].prefix[0] != '\0' &&
@@ -276,6 +298,12 @@ int main(void)
                         }
                     }
                 }
+                if (edraw_find(g, n, 41, 1) == NULL) {
+                    fprintf(stderr, "FAIL pig seq 41 after house-439-407\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
                 if (walk1 < 1) {
                     fprintf(stderr, "FAIL pig walk frame 1 missing\n");
                     edraw_free(g, n);
@@ -289,17 +317,34 @@ int main(void)
                     return 1;
                 }
             }
-            loads1 = ff_disc_loads();
+            {
+                struct MapScreen out;
+                int orec = (int)w.loc[439];
+
+                if (orec < 1 || map_load_record(orec, &out) != 0) {
+                    fprintf(stderr, "FAIL 439 after pig map\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                loads1 = ff_disc_loads();
+                if (edraw_load_screen(out.sprite, seqs, g, &n, 0) != 0) {
+                    fprintf(stderr, "FAIL 439 after pig\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                loads2 = ff_disc_loads();
+                if (loads2 != loads1) {
+                    fprintf(stderr, "FAIL 439 after pig reopened disc %d -> %d\n",
+                            loads1, loads2);
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+            }
             if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
                 fprintf(stderr, "FAIL house after pig\n");
-                edraw_free(g, n);
-                free(seqs);
-                return 1;
-            }
-            loads2 = ff_disc_loads();
-            if (loads2 != loads1) {
-                fprintf(stderr, "FAIL house after pig reopened disc %d -> %d\n",
-                        loads1, loads2);
                 edraw_free(g, n);
                 free(seqs);
                 return 1;
