@@ -6,11 +6,11 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. Next engine bite **14.4a** (catalog) unless the requester says otherwise.
+**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says (not 14.6).
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
-**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14.1–14.2 → 15.1 → 11.10 → 15.2 → 14.4a → 14.4b → 14.5 (if `needed`) → 14.3 → 15.3–15.4 → 16 → 12 → 17 → 18**. Distill does **not** replace the eviction policy. **14.3** after the opening-village walk is actually under cap (14.4b green, or 14.5 landed). **15.3** after 14.4b under cap **or 14.5 done**. **11.10** is the leftover wave-1 sprite commands; it needs live `BrainSpr` from **15.1** and comes **before** damage (**15.2**). **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
+**How to use this file:** remaining bites in **implementation order** (ids stay stable): **10 → 11 → 13 → 14.1–14.2 → 15.1 → 11.10 → 15.2 → 14.4a → 14.4b → 14.5 (if `needed`) → 14.3 → 15.3–15.4 → 16 → 12 → 17 → 18 → 14.6**. Distill does **not** replace the eviction policy. **14.3** after the opening-village walk is actually under cap (14.4b green, or 14.5 landed). **15.3** after 14.4b under cap **or 14.5 disc done**. **14.6** (per-frame `dir.ff` reads) is **after** the rest of the base system (through **16**) and only when the requester says we are ready to test the **full campaign**. **11.10** is the leftover wave-1 sprite commands; it needs live `BrainSpr` from **15.1** and comes **before** damage (**15.2**). **Audio (12) is after inventory and combat (16),** not after DinkC. A bite is done when **Done when** is true on Flycast or hardware *and* any **Host check** passes. Update PROGRESS in the same PR. `playsound` is a **silent stub** until 12.
 
 **FreeDink is the implementation, not a hint.** This is a **graft**. When a behavior already exists in GNU FreeDink (`live_screen.cpp`, `gfx_sprites.cpp`, `dinkini.cpp`, `brain.cpp` `move` / `check_if_move_is_legal`, `game_place_sprites`), **copy that rule**. Do not invent a “simpler” hardbox, center, vision filter, or move test. If the port and FreeDink disagree, the port is wrong unless this plan names a Dreamcast-only exception (PVR lists, ISO 8.3, Maple). Patch this plan in the same PR if we must diverge.
 
@@ -142,7 +142,7 @@ If `file_blob` peak or `cpu_pixels`/`ts_rgb` would exceed caps, **refuse the new
 
 **Catalog (host, 14.4a):** from `DINK_DATA` + `dink.ini` + `map.dat` **and** that screen’s `story/*.c` (`preload_seq`, `create_sprite`, `sp_base_walk`). Emit per pack: path, bytes, seq ids, estimated POT ARGB1555 for frames this screen uses. `hard.dat` line: `FILE* not blob`. No game pixels in git. `make host` **prints** Always+Screen+Prev for house vis 0, 439, 441 vis 2, 407, 408 (girl), castle pack size, and a **campaign** Always+Screen plus Always+Screen+Prev peak (every nonempty map; Prev = neighbor or warp). It **fails** only if the catalog tool itself is broken — over-cap working sets print `14.5: needed` with numbers, they do not fake a green 14.4b.
 
-**Distill (14.5, gated):** only if that catalog shows a **legal** Always+Screen+Prev **peak** still over cap after dropping unused pack bytes. CDI-only TOC + per-frame payload (like MIDI→ADPCM). Host tests keep **unmodified** `DINK_DATA` `dir.ff` as required original data. Generated `build/distill/` is a DC pack step, not a second art pipeline. If 14.5 is saving `file_blob`, a TOC of **original 8-bit BMPs** can beat 1555 (choice 192×331 8-bit ~64 KB vs POT 256×512×2 = 256 KB). If it is saving SH-4 decode time, 1555/RLE is the payload. The 14.4a report names **which pool** overflowed. Do not zlib the official tree in git. zlib inflate of a whole 600 KB pack still peaks at compressed+scratch+pixels.
+**Distill (14.5, gated):** only if that catalog shows a **legal** Always+Screen+Prev **peak** still over cap after dropping unused pack bytes. CDI-only subset `dir.ff` of used 8-bit BMPs (like MIDI→ADPCM). Host tests keep **unmodified** `DINK_DATA` `dir.ff` as required original data. Generated `build/distill/` is a DC pack step, not a second art pipeline. Per-frame TOC/offset **load** (do not slurp unused BMPs into `file_blob`) is **14.6**, after 16 and a full-campaign go. Do not zlib the official tree in git.
 
 ### 1.3 Controller map
 
@@ -673,13 +673,20 @@ Only after 14.4a numbers exist.
 
 **Start only if** 14.4a printed `14.5: needed` with a pool and byte count. Typical: one 0.7–1.6 MB `dir.ff` from which we need a handful of frames, or Ts01–03 RGB565 over `ts_rgb`. Not a visual gate.
 
-- Offline pack step (CDI only, like MIDI→ADPCM): TOC of per-frame size/offset + payload. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
-- Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
+- Offline pack step (CDI only, like MIDI→ADPCM): subset `dir.ff` of used 8-bit BMPs. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
 - Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). Follow `sp_script` / `script("…")` callees. The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set**. Do not maintain a village map list.
-- `file_blob` Always+Screen+Prev can still exceed 4.5 MB on heavy screens after this union. **`mem refuse` is not distill.** Remaining 14.5 RAM path is per-frame TOC/offset reads so unused BMPs are not slurped. Do not implement that as a village-only pack list.
+- `file_blob` Always+Screen+Prev can still exceed 4.5 MB on heavy screens after this union. **`mem refuse` is not distill.** Per-frame TOC/offset reads are **14.6**, not this bite.
 - Do **not** zlib-compress the official tree and commit it.
 
-**Done when:** Distill used-frame union covers every nonempty stock-campaign screen (disc completeness). **RAM is not done:** catalog Always+Screen+Prev still over 4.5 MB on heavy screens. Do not call that 14.5 complete. GOTCHAS: original `DINK_DATA` not rewritten; staged subset `dir.ff` is the decode source until TOC/offset load lands.
+**Done when:** Distill used-frame union covers every nonempty stock-campaign screen (disc completeness, #84–#86). Whole-pack `file_blob` over cap on heavy screens is expected until **14.6**. GOTCHAS: original `DINK_DATA` not rewritten; staged subset `dir.ff` is the decode source.
+
+#### Bite 14.6 — Per-frame `dir.ff` reads (deferred)
+
+**Do not start** until the rest of the base system is working (**16** / V6 inventory+HUD in that order) **and** the requester says we are ready to test the **full campaign**. Not next after 14.5. Not a visual gate. Not a village-only pack list.
+
+Enter-path: `fopen` the pack once, read the existing `dir.ff` TOC (count + name/offset), `SEEK_SET` only the BMP payloads this Screen needs, decode into `cpu_pixels`. Do **not** slurp unused frames into `file_blob`. Play-path still must not `fopen` every tick (GOTCHAS). Same class as `hard.dat` rec reads. Official `DINK_DATA` stays unmodified.
+
+**Done when:** catalog Always+Screen+Prev `file_blob` peak on heavy campaign screens (including map 586/587 class) is under 4.5 MB without dropping rooms, or the requester accepts a documented cap miss. Host check: a pack whose used frames are a subset does not charge `file_blob` the whole `dir.ff`.
 
 ---
 
@@ -722,7 +729,7 @@ Do **not** reuse the old wrong map (9=bounce, 12=text).
 
 #### Bite 15.3 — Weapons
 
-- After **14.4b** is under cap **or 14.5 is done**. Sword/bow walk packs are ~0.5–0.6 MB each; a green spreadsheet with size-pin still live will OOM. Does not replace the human gate after merge.
+- After **14.4b** is under cap **or 14.5 disc is done**. **14.6** is not this gate. Sword/bow walk packs are ~0.5–0.6 MB each; a green spreadsheet with size-pin still live will OOM. Does not replace the human gate after merge.
 - `add_item` / inventory slot / `arm_weapon` changes `base_attack` seq (sword, bow). Fists default.
 - Bow: create missile sprite (seq from weapon script), brain missile if FreeDink uses one. Needs **11.10** `create_sprite`.
 
@@ -901,6 +908,7 @@ dinkcast/
                          → 12.1–12.4 audio (after 16; playsound was stub)
                          → 17.1–17.3 VMU
                          → 18.1–18.3 harden
+                         → 14.6 per-frame dir.ff reads (full campaign; human go)
 ```
 
 **Visual gates (human must accept in Flycast/hardware before the next bite):** V1 3.4 splash **accepted**; V2 6.3 tiles; V3 8.4 Dink idle; V4 9.3 walk; V5 13.2 say box; V6 16.2/16.3 inventory+HUD. See [AGENTS.md](AGENTS.md).  

@@ -120,7 +120,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | Reopen-hang never confirmed; treat as KOS #1492 sector-pad | #83 |
 | 2026-08-21 | **14.5** subset dir.ff of used 8-bit BMPs; CDI/DINK_DISTILL overlay | #84 |
 | 2026-08-21 | Distill warp interiors (old-man map 3 missing innwall frames) | #85 |
-| 2026-08-21 | Distill used frames from every nonempty campaign screen | this PR |
+| 2026-08-21 | Distill used frames from every nonempty campaign screen | #86 |
+| 2026-08-21 | Defer per-frame `dir.ff` reads to **14.6** (after 16 / full campaign) | this PR |
 
 ## Bites
 
@@ -165,7 +166,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | pending | after **14.4** (unbounded pack pin made the delta meaningless) |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** Always/Screen/Prev #82. 14.4a recorded `14.5: needed` — do not claim the village walk is under cap. Reopen-hang never confirmed (likely #1492) |
-| 14.5 | Distill frames (gated) | source | campaign used-frame union on disc. RAM Always+Screen+Prev still over cap on heavy screens — not done |
+| 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
+| 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78) |
 | 15.3–15.4 | Weapons / magic | pending | after **14.4b** under cap or **14.5 done**; 15.2 already landed |
@@ -240,3 +242,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (14.5 distill) | **~90%** | Subset `dir.ff` of used 8-bit BMPs. Distilled village `file_blob` peak under 4.5 MB. `DINK_DATA` unchanged. Catalog without overlay still prints whole-pack `14.5: needed`. |
 | 2026-08-21 (14.5 nframes holes) | **~90%** | Old-man house (map 3 via cabin warp) skipped innwalls/details/cup because distill only listed map 2. Warp BFS (#85) still village-bound. |
 | 2026-08-21 (14.5 campaign distill) | **~90%** | Distill + catalog campaign scan use every nonempty `map.dat` screen (~644). Village-only used-frame union is not the disc policy. |
+| 2026-08-21 (14.6 deferred) | **~90%** | Per-frame `dir.ff` TOC/offset reads wait until base (through 16) and a human full-campaign go. Not the next 14.5 patch. |
