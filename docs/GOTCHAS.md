@@ -45,7 +45,8 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 
 ## Screen changes
 
-- **Flycast load time is not hardware.** Host disk hides seeks. Judge `swap_ms` on a CDI/ODE/burn, not only `make emu`.
+- **Flycast load time is not hardware.** Host disk hides seeks. Judge `swap_ms` on a CDI/ODE/burn, not only `make emu`. Serial `swap_ms` on Flycast may be **~0**; that is not the § screen-delay table.
+- **14.3 leak deltas are a warm ping-pong, not house vs the 20th unique map.** `file_blob` / Always / `ts_rgb` / `vram_free` must stay within **4 KB** from swap **4** to swap **20** when walking the **same two** screens (439 ↔ 441). `cpu_pixels` may follow the screen. A 20-screen tour that keeps adding unique packs is residency working-set size, not a leak. Screen-vs-Screen `edraw evict` (oldman walk vs duck death filling 96 slots) is occupancy, not 14.3.
 - **A loading screen on every edge is a bug.** Keep the current tileset in VRAM. Same-tileset walk: **0.2–0.6 s** on CD. New tileset: **0.5–2 s**. **> 3 s** on a normal neighbor = over-evict or disc order. Title → first map may show “Loading…”.
 - **Do not reopen music** unless the screen’s MIDI id changed; that adds another seek.
 

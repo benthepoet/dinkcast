@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** `cpu_pixels` class eviction is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
+**Where we are:** **V5** + **8.6 house** accepted. Next visual gate **V6 (16.2/16.3)**. Audio **12 after 16**. **14.5** distill is on disc (#84–#86). **14.4c** pixels (#90). **14.3** leak check is this PR. **14.6** per-frame reads wait for 16 + full-campaign go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -632,12 +632,16 @@ Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_d
 
 #### Bite 14.3 — Leak check
 
-**Deferred until 14.4c** (14.4b packs + 14.5 disc are not enough while `EdGfx` still picks victims by seq id). Pin-forever ≥80 KB packs grow until OOM; a 20-crossing delta is meaningless until residency has a cap **and** pixel eviction is the named classes. Not a visual gate. **14.6** is not this gate.
+After **14.4c**. Not a visual gate. **14.6** is not this gate. Pin-forever ≥80 KB packs grew until OOM; a 20-crossing delta is only meaningful with pack **and** pixel class residency.
 
-- `mem_log` before/after 20 crossings. Main + VRAM deltas **≤ 4 KB** *for pools that should be stable* (`cpu_pixels` may change with the screen; `file_blob` must not climb unbounded).
-- Log `swap_ms` on hardware; same-tileset neighbor must stay in the § screen-delay table.
+- `mem_log` on every successful swap (`vram_free`, `swap_n`). After **20** swaps, print `leak 20` deltas vs swap **4** (warm). Main + VRAM deltas **≤ 4 KB** *for pools that should be stable* (`cpu_pixels` may change with the screen; `file_blob` must not climb unbounded). Measure a **two-screen ping-pong** (maps **439** / **441**), not house vs the 20th unique map.
+- Log `swap_ms` on every successful swap (timer starts after the previous scene wait). Same-tileset neighbor must stay in the § screen-delay table **on hardware**. Flycast / host disk may be ~0.
 
-**14.1–14.2 done when:** Walk start screen into a real neighbor; tiles + Dink. **14.3 done when:** 14.4 **pack and pixel** policy is live (14.4c); counters stable; delay matches the binding table (Flycast may be ~0).
+**Host check:** `tests/test_leak` ping-pongs 439 and 441 twenty times. After swap 4, `|file_blob|`, `|always|`, and `|ts_rgb|` deltas to swap 20 are ≤ 4 KB; `ff_disc_loads` does not climb. `cpu_pixels` is logged, not failed.
+
+**14.1–14.2 done when:** Walk start screen into a real neighbor; tiles + Dink. **14.3 done when:** 14.4 **pack and pixel** policy is live (14.4c); host 20-crossing counters stable; `swap_ms` in the Flycast log (may be ~0). Hardware delay is an ODE/burn check, not a host fail.
+
+**Won’t in 14.3:** 14.6 TOC/offset; 15.3 weapons; a new `EdGfx` victim policy for Screen-vs-Screen slot thrash (Ethel oldman walk vs duck death). That is occupancy, not a leak.
 
 #### Bite 14.4 — Residency (catalog first, then one policy)
 

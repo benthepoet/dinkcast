@@ -47,6 +47,7 @@ tests/test_screen
 tests/test_brains
 tests/test_hurt
 tests/test_mem
+tests/test_leak
 
 # Toolchain / local
 .kosenv

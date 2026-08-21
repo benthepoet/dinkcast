@@ -531,11 +531,13 @@ int main(int argc, char **argv)
                         script_clear_dink_die();
                         player_map = DINK_START_PLAYER_MAP;
                         g_need_restart = 0;
+                        mem_swap_reset();
                         swap = 1;
                     }
 
                     if (swap) {
                         int rec2, nstamp;
+                        unsigned swap_t0;
 
                         rec2 = (int)g_world.loc[player_map];
                         if (rec2 < 1) {
@@ -548,6 +550,7 @@ int main(int argc, char **argv)
                             pvr_wait_ready();
                             have_scene = 0;
                         }
+                        swap_t0 = mem_now_ms();
                         dinkc_vm_kill_all();
                         pl.freeze = 0;
                         dinkc_cmd_thaw_if_idle();
@@ -593,8 +596,6 @@ int main(int argc, char **argv)
                         }
                         spr_restore("swap-post-edraw");
                         printf("edraw unique %d\n", ned);
-                        mem_log("swap", edraw_cpu_bytes(g_edg, ned), ned,
-                                tiles_cache_bytes(), tiles_cache_sheets());
                         for (nstamp = 1; nstamp <= 100; nstamp++) {
                             struct SpriteFrame *ef;
                             int hl, ht, hr, hb, cx, cy, hid, seq, fr;
@@ -679,6 +680,9 @@ int main(int argc, char **argv)
                             }
                         }
                         script_attach_live();
+                        mem_log("swap", edraw_cpu_bytes(g_edg, ned), ned,
+                                tiles_cache_bytes(), tiles_cache_sheets());
+                        printf("swap_ms %u\n", mem_now_ms() - swap_t0);
                         swap = 0;
                         continue;
                     }
