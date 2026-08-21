@@ -485,8 +485,8 @@ int main(int argc, char **argv)
                     /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
                     spr_restore("post-edraw");
                     printf("edraw unique %d\n", g_ned);
-                    mem_log("play", edraw_cpu_bytes(g_edg, g_ned), g_ned,
-                            tiles_cache_bytes(), tiles_cache_sheets());
+                    mem_log("play", edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes(),
+                            g_ned, tiles_cache_bytes(), tiles_cache_sheets());
                     for (si = 1; si <= 100; si++) {
                         struct SpriteFrame *ef;
                         int hl, ht, hr, hb, cx, cy;
@@ -738,8 +738,9 @@ int main(int argc, char **argv)
                             }
                         }
                         script_attach_live();
-                        mem_log("swap", edraw_cpu_bytes(g_edg, g_ned), g_ned,
-                                tiles_cache_bytes(), tiles_cache_sheets());
+                        mem_log("swap",
+                                edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes(),
+                                g_ned, tiles_cache_bytes(), tiles_cache_sheets());
                         printf("swap_ms %u\n", mem_now_ms() - swap_t0);
                         swap = 0;
                         continue;
@@ -877,9 +878,11 @@ int main(int argc, char **argv)
                     }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
-                        int wed = screen_process_warp();
+                        int wed = inv_showing() ? 0 : screen_process_warp();
 
-                        dinkc_vm_resume_move();
+                        if (!inv_showing()) {
+                            dinkc_vm_resume_move();
+                        }
                         if (wed > 0) {
                             /* process_warp_man: anim done or sprite gone. */
                             if (!brains_slot_live(wed) ||

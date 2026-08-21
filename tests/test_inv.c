@@ -105,6 +105,14 @@ int main(void)
     expect(inv_load(seqs) == 0, "inv_load");
     fr = inv_menu_frame(1);
     expect(fr != NULL && fr->w > 0 && fr->h > 0, "seq 423 fr 1");
+    expect(fr->w == 600 && fr->h == 400, "menu-01 600x400");
+    expect((size_t)fr->tw * (size_t)fr->th * 2u == 1048576u, "POT 1024x512");
+    expect(inv_cpu_bytes() >= 1048576u, "cpu before drop");
+    inv_drop_cpu();
+    expect(inv_menu_frame(1) != NULL && inv_menu_frame(1)->w == 600,
+           "geom after drop");
+    expect(inv_menu_frame(1)->argb1555 == NULL, "cpu freed");
+    expect(inv_cpu_bytes() == 0, "inv cpu 0");
     fr = inv_icon_frame(438, 1);
     expect(fr != NULL && fr->w > 0 && fr->h > 0, "fists icon");
     fr = inv_icon_frame(438, 2);

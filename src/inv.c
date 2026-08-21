@@ -6,6 +6,7 @@
 #include "pad.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _arch_dreamcast
@@ -197,7 +198,7 @@ struct SpriteFrame *inv_menu_frame(int frame)
     if (frame < 1 || frame > 5) {
         return NULL;
     }
-    return g_menu[frame].argb1555 != NULL ? &g_menu[frame] : NULL;
+    return g_menu[frame].w > 0 ? &g_menu[frame] : NULL;
 }
 
 struct SpriteFrame *inv_icon_frame(int seq, int frame)
@@ -299,13 +300,22 @@ int inv_upload_pvr(void)
     int i, n = 0;
 
     for (i = 1; i <= 5; i++) {
+        if (g_menu[i].tex != NULL) {
+            n++;
+            continue;
+        }
         if (g_menu[i].argb1555 != NULL && sprite_upload_pvr(&g_menu[i]) == 0) {
+            sprite_drop_cpu(&g_menu[i]);
             n++;
         }
     }
     for (i = 0; i < DINK_INV_ICON_N; i++) {
-        if (g_icon[i].fr.argb1555 != NULL) {
-            (void)sprite_upload_pvr(&g_icon[i].fr);
+        if (g_icon[i].fr.tex != NULL) {
+            continue;
+        }
+        if (g_icon[i].fr.argb1555 != NULL &&
+            sprite_upload_pvr(&g_icon[i].fr) == 0) {
+            sprite_drop_cpu(&g_icon[i].fr);
         }
     }
     return n >= 5 ? 0 : -1;
@@ -368,3 +378,34 @@ void inv_draw_pvr(float z)
               z + 0.06f);
 }
 #endif
+
+size_t inv_cpu_bytes(void)
+{
+    size_t t = 0;
+    int i;
+
+    for (i = 1; i <= 5; i++) {
+        if (g_menu[i].argb1555 != NULL && g_menu[i].tw > 0 && g_menu[i].th > 0) {
+            t += (size_t)g_menu[i].tw * (size_t)g_menu[i].th * 2u;
+        }
+    }
+    for (i = 0; i < DINK_INV_ICON_N; i++) {
+        if (g_icon[i].fr.argb1555 != NULL && g_icon[i].fr.tw > 0 &&
+            g_icon[i].fr.th > 0) {
+            t += (size_t)g_icon[i].fr.tw * (size_t)g_icon[i].fr.th * 2u;
+        }
+    }
+    return t;
+}
+
+void inv_drop_cpu(void)
+{
+    int i;
+
+    for (i = 1; i <= 5; i++) {
+        sprite_drop_cpu(&g_menu[i]);
+    }
+    for (i = 0; i < DINK_INV_ICON_N; i++) {
+        sprite_drop_cpu(&g_icon[i].fr);
+    }
+}

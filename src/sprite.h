@@ -20,6 +20,8 @@ int sprite_pixel_opaque(uint16_t p);
 
 void sprite_frame_free(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
+/* Free decoded pixels; keep w/h/tw/th and PVR tex (overlay after upload). */
+void sprite_drop_cpu(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). */
 int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out);

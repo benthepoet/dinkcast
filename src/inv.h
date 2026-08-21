@@ -5,6 +5,7 @@
 #include "ini.h"
 #include "sprite.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 /* FreeDink inventory.cpp process_item / draw_item. */
@@ -32,6 +33,8 @@ int inv_showing(void);
 int inv_curitem(void);
 int inv_item_type(void);
 void inv_tick(uint32_t prev, uint32_t buttons, int now_ms);
+size_t inv_cpu_bytes(void);
+void inv_drop_cpu(void);
 struct SpriteFrame *inv_menu_frame(int frame);
 struct SpriteFrame *inv_icon_frame(int seq, int frame);
 
