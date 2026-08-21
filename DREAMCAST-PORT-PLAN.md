@@ -677,7 +677,7 @@ Only after 14.4a numbers exist.
 - Payload follows the overflowing pool: **8-bit BMP TOC** if `file_blob`; **1555/RLE** if SH-4 decode / `cpu_pixels`.
 - Do **not** zlib-compress the official tree and commit it.
 
-**Done when:** The overflowing screen from 14.4a loads under cap on host (and Flycast if that screen is in the opening village). GOTCHAS: distilled frames, original pack not reopened.
+**Done when:** The overflowing screen from 14.4a loads under the `file_blob` cap on host with distilled packs (and Flycast if that screen is in the opening village). GOTCHAS: distilled frames, original `DINK_DATA` pack not rewritten; staged subset `dir.ff` is the decode source.
 
 ---
 

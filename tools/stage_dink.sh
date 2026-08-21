@@ -36,6 +36,19 @@ cp -a "$SRC/." "$DST/"
 # pad step must be able to append.
 chmod -R u+w "$DST"
 
+HAS_DATA=0
+if [ -e "$DST/dink.dat" ] || [ -e "$DST/Dink.dat" ]; then
+    HAS_DATA=1
+fi
+# 14.5: overlay host-built subset dir.ff, then distill in-place on the
+# staged copy (never DINK_DATA). Skip fixtures with no dink.dat.
+if [ "$HAS_DATA" = 1 ] && [ -d "$ROOT/build/distill" ]; then
+    cp -a "$ROOT/build/distill/." "$DST/"
+fi
+if [ "$HAS_DATA" = 1 ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$ROOT/tools/distill_frames.py" --src "$DST" --in-place
+fi
+
 # Data names are 8.3-safe; a plain find loop is enough.
 find "$DST" -type f -exec sh "$ROOT/tools/pad2048.sh" {} +
 echo "stage_dink: $SRC -> $DST (sector-padded)"

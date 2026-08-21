@@ -156,6 +156,40 @@ int main(void)
         fclose(fp);
     }
 
+    {
+        char dist[256], dfile[768];
+
+        snprintf(dist, sizeof(dist), "%s/distill", tmp);
+        if (mkdir(dist, 0755) != 0) {
+            die("mkdir distill");
+        }
+        snprintf(p, sizeof(p), "%s/story", dist);
+        if (mkdir(p, 0755) != 0) {
+            die("mkdir distill story");
+        }
+        snprintf(dfile, sizeof(dfile), "%s/story/start.c", dist);
+        write_file(dfile, "distill overlay\n");
+        setenv("DINK_DISTILL", dist, 1);
+        dink_fs_set_probe_roots("/no-pc", "/no-cd", fb);
+        if (dink_fs_init() != 0) {
+            die("init distill overlay");
+        }
+        fp = dink_fopen("story/start.c", "rb");
+        if (fp == NULL) {
+            die("fopen distill overlay");
+        }
+        {
+            char buf[32];
+
+            if (fgets(buf, sizeof(buf), fp) == NULL ||
+                strcmp(buf, "distill overlay\n") != 0) {
+                die("distill overlay content");
+            }
+        }
+        fclose(fp);
+        unsetenv("DINK_DISTILL");
+    }
+
     printf("OK test_fs_join\n");
     return 0;
 }
