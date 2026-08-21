@@ -11,7 +11,7 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 - **Makefile.dc must list header deps.** `kos-cc` incremental builds only rebuild changed `.c`. After `EditorSprite` grew warp fields, `script.o`/`talk.o` stayed on the 60-byte layout. House drew (new `main.o`) but `dinkc preload unique=0` and A found no scripts. `$(OBJS): src/mapscr.h`.
 - **Fine-grained `github_pat_` can open PRs and push branches but still 403 `mergePullRequest`.** That is a token permission, not a broken PR. Human merges in the GitHub UI. Never “finish” a PR by rewriting `master`.
 - **REIOS ≠ a BIOS.** Flycast without `dc_boot.bin` in `~/.local/share/flycast/` often never runs `1ST_READ.BIN`.
-- **Flycast `N[RENDERER]` is not KOS `printf`.** SH-4 serial is SCIF. `make emu` enables SerialConsole and tees combined stdout to the terminal **and** `build/emu.log` (override `EMU_LOG=`). Each run overwrites the file. Settings → Advanced → Serial Console does the same.
+- **Flycast `N[RENDERER]` is not KOS `printf`.** SH-4 serial is SCIF. `make emu` enables SerialConsole and tees combined stdout to the terminal **and** `build/emu.log` (override `EMU_LOG=`). Each run overwrites the file. Settings → Advanced → Serial Console does the same. **When a playtest issue is reported, read that log first** — do not guess from the picture. Grain USE “spam + no sprite” was `seq 431 nframes 0` on a distilled stub, not a missing `sp_seq`.
 
 ## Disc and `/cd`
 

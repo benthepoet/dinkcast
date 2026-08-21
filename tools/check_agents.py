@@ -37,6 +37,7 @@ def main() -> int:
     need("PROGRESS.md required", "progress.md" in low)
     need("visual milestone gate", "visual-gate" in low and "6.3" in low)
     need("troubleshooting", "troubleshooting" in low and "debug orchestrator" in low)
+    need("emu.log first", "emu.log" in low and "read `build/emu.log` first" in low)
 
     if missing:
         print("FAIL:", "; ".join(missing))

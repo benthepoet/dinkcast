@@ -115,14 +115,14 @@ Land: only the orchestrator merges (or explicitly delegates merge on the PR: `me
 
 ### Troubleshooting (when something is wrong on screen or disc)
 
-When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture), **do not** have the implementer guess alone and **do not** spawn Disc/FS + PVR + Boot + Data as four extra agents. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial** on a PR they authored) plus **one** Adversarial with the Dreamcast prompt above. That reviewer covers `/cd` vs probe, twiddle/`NONTWIDDLED`, REIOS vs `dc_boot.bin`, BMP/map identity, and “the first diagnosis is a lie” from GOTCHAS.
+When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture, spam, hitch), **read `build/emu.log` first** (last `make emu` SCIF). Do not guess from the picture alone. Then **do not** have the implementer guess alone and **do not** spawn Disc/FS + PVR + Boot + Data as four extra agents. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial** on a PR they authored) plus **one** Adversarial with the Dreamcast prompt above. That reviewer covers `/cd` vs probe, twiddle/`NONTWIDDLED`, REIOS vs `dc_boot.bin`, BMP/map identity, and “the first diagnosis is a lie” from GOTCHAS.
 
 | Role | Does | Must write |
 |---|---|---|
 | **Debug orchestrator** | Assigns Adversarial, synthesizes, picks the first fix. Does not implement the first theory. | `debug-orch:` + `reviewer: adversarial` + `bar:` |
 | **Adversarial** | HUD + GOTCHAS first, then disc / PVR / boot / data as needed. One review. | Attack list on the *theory* + `verdict:` |
 
-Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
+Read GOTCHAS, the HUD, and **`build/emu.log` first** before proposing a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
 
 ---
 
