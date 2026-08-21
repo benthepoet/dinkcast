@@ -531,6 +531,7 @@ int main(int argc, char **argv)
                         script_clear_dink_die();
                         player_map = DINK_START_PLAYER_MAP;
                         g_need_restart = 0;
+                        mem_swap_reset();
                         swap = 1;
                     }
 

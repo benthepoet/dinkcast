@@ -34,6 +34,14 @@ unsigned mem_now_ms(void)
 #endif
 }
 
+void mem_swap_reset(void)
+{
+    g_swap_n = 0;
+    g_warm_blob = 0;
+    g_warm_always = 0;
+    g_warm_vram = 0;
+}
+
 void mem_note_peak(size_t n)
 {
     if (n > g_peak) {

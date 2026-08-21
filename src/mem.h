@@ -19,5 +19,7 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
              int sheets);
 /* Milliseconds. Host CLOCK_MONOTONIC; Dreamcast timer_ms_gettime64. */
 unsigned mem_now_ms(void);
+/* Title restart: 14.3 swap_n / warm snapshot so the next 20 crossings log. */
+void mem_swap_reset(void);
 
 #endif
