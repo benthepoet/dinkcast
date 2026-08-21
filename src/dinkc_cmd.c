@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +83,7 @@ static struct {
 } g_custom[32];
 /* play.spmap — editor_type/seq/frame. Type 1 is gone on re-enter, not this frame. */
 static unsigned char g_spmap_type[DINK_WORLD_SLOTS][101];
-static int g_spmap_seq[DINK_WORLD_SLOTS][101];
+static int16_t g_spmap_seq[DINK_WORLD_SLOTS][101];
 static unsigned char g_spmap_frame[DINK_WORLD_SLOTS][101];
 
 static int name_eq(const char *a, const char *b)
@@ -536,7 +537,8 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
         if (t == 0) {
             continue;
         }
-        /* FreeDink update_play_changes: only on screen load. */
+        /* FreeDink update_play_changes: only on screen load. Types 6/7/8
+         * also clear active; timers that restore them are 17. */
         if (t == 1 || t == 6 || t == 7 || t == 8) {
             scr->sprite[i].active = 0;
         }

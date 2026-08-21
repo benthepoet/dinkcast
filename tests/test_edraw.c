@@ -240,6 +240,55 @@ int main(void)
                 free(seqs);
                 return 1;
             }
+            {
+                int i, extra = 0, walk1 = 0;
+                static const int pd[4] = {1, 3, 7, 9};
+
+                if (seqs[187].prefix[0] != '\0' &&
+                    edraw_find(g, n, 187, 1) == NULL) {
+                    fprintf(stderr, "FAIL pig blood 187 not loaded\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                for (i = 1; i <= 100; i++) {
+                    int base, d;
+
+                    if ((int)pig.sprite[i].type != 1 ||
+                        (int)pig.sprite[i].brain != 4) {
+                        continue;
+                    }
+                    base = (int)pig.sprite[i].base_walk;
+                    for (d = 0; d < 4; d++) {
+                        int sq = base + pd[d];
+                        int nfr;
+
+                        if (sq < 1 || sq >= DINK_MAX_SEQ ||
+                            seqs[sq].prefix[0] == '\0') {
+                            continue;
+                        }
+                        if (edraw_find(g, n, sq, 1) != NULL) {
+                            walk1++;
+                        }
+                        nfr = ini_seq_len(sq, seqs[sq].nframes);
+                        if (nfr >= 2 && edraw_find(g, n, sq, 2) != NULL) {
+                            extra++;
+                        }
+                    }
+                }
+                if (walk1 < 1) {
+                    fprintf(stderr, "FAIL pig walk frame 1 missing\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                if (extra > 0) {
+                    fprintf(stderr, "FAIL pig dumped walk extras %d\n", extra);
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+            }
             loads1 = ff_disc_loads();
             if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
                 fprintf(stderr, "FAIL house after pig\n");

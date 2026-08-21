@@ -404,6 +404,17 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 push_walk_frames(need_s, need_f, &nneed, seqs, 3, 120, 1);
             }
         }
+        /* Blood pack is ~28 KB. Queue frame 1 with combat pixels so Ethel /
+         * pig-pen occupancy cannot drop it off the 96-slot need list. */
+        if (screen_wants_die(sp, vision)) {
+            int bseq;
+
+            for (bseq = 187; bseq <= 189; bseq++) {
+                if (bseq < DINK_MAX_SEQ && seqs[bseq].prefix[0] != '\0') {
+                    need_push(need_s, need_f, &nneed, bseq, 1);
+                }
+            }
+        }
         for (i = 1; i <= 100; i++) {
             int seq, fr, br;
 
@@ -454,15 +465,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             nfr = ini_seq_len(seq, seqs[seq].nframes);
             for (f2 = 2; f2 <= nfr; f2++) {
                 need_push(need_s, need_f, &nneed, seq, f2);
-            }
-        }
-        if (screen_wants_die(sp, vision)) {
-            int bseq;
-
-            for (bseq = 187; bseq <= 189; bseq++) {
-                if (bseq < DINK_MAX_SEQ && seqs[bseq].prefix[0] != '\0') {
-                    need_push(need_s, need_f, &nneed, bseq, 1);
-                }
             }
         }
         old = *n;
@@ -541,9 +543,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             if (brain_needs_death_walk(br)) {
                 int ws[6], nw, w;
 
+                /* Same as people: frame 1 opens the pack. Play-path ensure. */
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
-                    load_seq_frames(g, &got, seqs, ws[w]);
+                    (void)load_one(g, &got, seqs, ws[w], 1);
                 }
             }
             if (br == 16) {
