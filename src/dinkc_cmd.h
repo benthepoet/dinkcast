@@ -73,6 +73,9 @@ void dinkc_cmd_bind_item(int (*arm)(const char *name),
                          int (*locate)(int slot, const char *proc),
                          int (*pickup)(const char *name));
 void dinkc_cmd_bind_inv(void (*show)(int on));
+void dinkc_cmd_bind_status(void (*draw)(void),
+                           int (*show_bmp)(const char *rel, int showdot,
+                                           int fiber));
 int dinkc_cmd_inv_active(int magic, int idx0);
 int dinkc_cmd_inv_seq(int magic, int idx0);
 int dinkc_cmd_inv_frame(int magic, int idx0);

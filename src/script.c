@@ -457,6 +457,22 @@ int script_on_dink_die(void)
     return start_named(1000, "dinfo", "die") == 0 ? 1 : 0;
 }
 
+int script_on_raise(void)
+{
+    return start_named(DINKC_ENGINE_SPRITE, "lraise", "raise") == 0 ? 1 : 0;
+}
+
+int script_on_button(int n)
+{
+    char name[16];
+
+    if (n < 1 || n > 12) {
+        return -1;
+    }
+    snprintf(name, sizeof(name), "button%d", n);
+    return start_named(DINKC_ENGINE_SPRITE, name, "main");
+}
+
 void script_clear_dink_die(void)
 {
     g_dink_dying = 0;

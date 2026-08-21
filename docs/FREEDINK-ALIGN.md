@@ -36,7 +36,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | Wave 1 cmds | `dinkc_bindings` | `dinkc_cmd` | hold (11.5); say=serial; freeze spr[1]; live sprite leftover → **11.10** |
 | Choice lines | `dinkc_get_choices` | `choice_start` + `choice_ret[]` | hold (11.7); A = first visible; `&result` = official # |
 | Wave 2 cmds | `add_item` / `hurt` / `sp_hitpoints` | `dinkc_cmd` | hold (11.7); no inv UI; `playsound` stub |
-| Wave 3 cmds | `playmidi` / `draw_status` / `compare_weapon` | `dinkc_cmd` | hold (11.8); midi/status stub; no fade/screen |
+| Wave 3 cmds | `playmidi` / `draw_status` / `compare_weapon` | `dinkc_cmd` | hold (11.8); midi stub; `draw_status` **16.3** |
 | Cmd table | `dinkc_bindings` hash | `k_fn[]` + `DINKC_DUMP_FNS` | hold (11.9) |
 | `SET_FRAME_SPECIAL` | `seq[].special[]` | `ini_frame_special` | hold |
 | `freeze` nest | `spr[].freeze` | `Player.freeze`; A hit `++` | hold; unfreeze 11.3 |
@@ -79,7 +79,7 @@ Canon table: plan **Official campaign systems**. Out of scope: D-Mod loader, edi
 | Touch / pickup | `run_through_touch_damage_list` | hold (16.1); `-1` → `TOUCH`; `editor_type` 1 |
 | Inventory grid | `process_item` / `draw_item` | hold (16.2); Y; A arms; seq 423 blit |
 | Talk/magic miss say | `human_brain` `say_text` | hold (10.1); 6 talk + 6 magic lines; no `dnotalk` file |
-| HUD / map bmp | `status`, `process_show_bmp` | 16.3 / V6 |
+| HUD / map bmp | `draw_status_all` / `update_status_all` / `process_show_bmp` | hold (16.3); digit atlas 128 KB; L `button6`; seq 165 marker |
 | VMU save | `savegame` | 17 |
 
 ## How to add a bite

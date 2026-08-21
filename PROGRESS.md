@@ -177,8 +177,8 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims Always/Screen/Sticky (**14.4c**) |
 | 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
 | 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1. Y grid is 16.2 |
-| 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3 |
-| 16.3 | HUD | pending | V6 |
+| 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
+| 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6 |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
 
@@ -204,7 +204,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture (V6 inv/HUD)** | **~65%** | **16.2** source this PR (Y grid + A arm). HUD **16.3** |
+| **Next picture (V6 inv/HUD)** | **~90%** | **16.3** source this PR (status bar + L map). Human must see inv+HUD in Flycast/hardware |
 | **Hardest remaining** | Inventory / HUD | **16** then 12 |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -216,7 +216,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | Say box (V5) | ~95% | Accepted |
 | Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter not started |
-| Weapons / magic / inventory | ~90% | 16.2 Y grid; HUD still 16.3 |
+| Weapons / magic / inventory | ~95% | 16.2 Y grid + 16.3 HUD source; V6 visual still human |
 | Full campaign + every MIDI | ~55–65% | Long tail |
 | Real hardware / AICA / VMU | unknown | Not run |
 
@@ -257,3 +257,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (15.3 source) | **~90%** | Fists from START-1 `add_item`/`arm_weapon`; B runs item USE; sword ARM `init` rewrite + strength/range; fireball USE missile. Sword/bow packs Always. Bow hold-charge later. Next **16**. |
 | 2026-08-21 (16.1 source) | **~90%** | Walk-into-sprite `TOUCH` (`s1-sack` → `item-pig`). `editor_type` 1 persists kill. Y inventory is **16.2**. |
 | 2026-08-21 (16.2 source) | **~90%** | Y toggles `process_item` grid (seq 423). A arms `item-pig`. HUD is **16.3**. |
+| 2026-08-21 (16.3 source) | **~90%** | Status bar from official BMPs (`draw_status_all`). Digit atlas 128 KB. Hold X fills `&magic_level`. L is `ACTION_MAP` / `button6.c`. V6 waiting on Flycast/hardware. |

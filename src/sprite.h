@@ -37,6 +37,8 @@ void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
                          float z, int al, int at, int ar, int ab);
 /* SDL blit: dest is bitmap top-left. No get_box clip (UI overlay). */
 void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z);
+void sprite_blit_pvr_src(const struct SpriteFrame *f, float dx, float dy,
+                         float z, int sl, int st, int sr, int sb);
 #endif
 
 #endif

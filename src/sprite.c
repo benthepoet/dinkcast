@@ -378,4 +378,54 @@ void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z)
     vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
 }
+
+void sprite_blit_pvr_src(const struct SpriteFrame *f, float dx, float dy,
+                         float z, int sl, int st, int sr, int sb)
+{
+    pvr_poly_cxt_t cxt;
+    pvr_poly_hdr_t hdr;
+    pvr_vertex_t vert;
+    float u0, v0, u1, v1, x1, y1;
+
+    if (f == NULL || f->tex == NULL || sr <= sl || sb <= st) {
+        return;
+    }
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+                     (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
+    cxt.gen.alpha = PVR_ALPHA_ENABLE;
+    cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
+    pvr_poly_compile(&hdr, &cxt);
+    pvr_prim(&hdr, sizeof(hdr));
+    u0 = (float)sl / (float)f->tw;
+    v0 = (float)st / (float)f->th;
+    u1 = (float)sr / (float)f->tw;
+    v1 = (float)sb / (float)f->th;
+    x1 = dx + (float)(sr - sl);
+    y1 = dy + (float)(sb - st);
+    vert.argb = 0xffffffff;
+    vert.oargb = 0;
+    vert.z = z;
+    vert.flags = PVR_CMD_VERTEX;
+    vert.x = dx;
+    vert.y = dy;
+    vert.u = u0;
+    vert.v = v0;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = x1;
+    vert.y = dy;
+    vert.u = u1;
+    vert.v = v0;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = dx;
+    vert.y = y1;
+    vert.u = u0;
+    vert.v = v1;
+    pvr_prim(&vert, sizeof(vert));
+    vert.flags = PVR_CMD_VERTEX_EOL;
+    vert.x = x1;
+    vert.y = y1;
+    vert.u = u1;
+    vert.v = v1;
+    pvr_prim(&vert, sizeof(vert));
+}
 #endif

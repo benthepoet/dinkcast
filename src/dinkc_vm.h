@@ -17,6 +17,7 @@ enum DinkcState {
     DINKC_WAIT_MOVE,
     DINKC_WAIT_CHOICE,
     DINKC_WAIT_EXT,
+    DINKC_WAIT_BMP,
     DINKC_IDLE /* armed item script: ARM finished, USE/DISARM still locate */
 };
 
@@ -52,6 +53,8 @@ void dinkc_vm_tick(int now_ms);
 /* A while say_stop / say_stop_npc. */
 void dinkc_vm_advance_say(void);
 int dinkc_vm_waiting_say(void);
+void dinkc_vm_advance_bmp(void);
+int dinkc_vm_waiting_bmp(void);
 void dinkc_vm_choice_done(void);
 int dinkc_vm_live(void);
 int dinkc_vm_state(int slot);
