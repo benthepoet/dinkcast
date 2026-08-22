@@ -631,7 +631,7 @@ static void process_target(struct BrainSpr *s, const struct SeqInfo *seqs,
     (void)automove(s, mask);
 }
 
-/* FreeDink pig/dragon: locate ATTACK when attack_wait has elapsed. */
+/* FreeDink dragon_brain (brain_lateral.cpp): locate ATTACK. */
 static void process_lateral_attack(struct BrainSpr *s, int now_ms)
 {
     if (s == NULL || s->target == 0) {
@@ -978,11 +978,6 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->freeze) {
         return;
     }
-    if (s->follow > 0) {
-        process_follow(s, seqs, mask);
-        return;
-    }
-    process_lateral_attack(s, now_ms);
     if (s->seq == 0) {
         if ((rand() % 12) + 1 == 1) {
             hold = (rand() % 9) + 1;
@@ -1022,6 +1017,9 @@ static void one_time_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->seq == 0 && s->seq_orig == 0 && s->pseq > 0) {
         s->seq = s->pseq;
         return;
+    }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
     }
     if (s->seq == 0) {
         /* FreeDink one_time_brain (brain 5): draw last frame to the
