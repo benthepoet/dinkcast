@@ -38,17 +38,17 @@ int sprite_pixel_opaque(uint16_t p)
     return (p & SPRITE_ARGB1555_OPAQUE) != 0;
 }
 
-static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b)
+static uint16_t pack1555(uint8_t r, uint8_t g, uint8_t b, int nocolorkey)
 {
-    if (r > 240 && g > 240 && b > 240) {
+    if (!nocolorkey && r > 240 && g > 240 && b > 240) {
         return 0; /* A=0 punch-through */
     }
     return (uint16_t)(SPRITE_ARGB1555_OPAQUE | ((r >> 3) << 10) | ((g >> 3) << 5) |
                       (b >> 3));
 }
 
-int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
-                          struct SpriteFrame *out)
+static int load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
+                          struct SpriteFrame *out, int nocolorkey)
 {
     char dir[160], base[32], name[24];
     const char *sl;
@@ -160,7 +160,7 @@ decode:
                 g = bm.pixels[i * 3 + 1];
                 b = bm.pixels[i * 3 + 2];
             }
-            pad[y * tw + x] = pack1555(r, g, b);
+            pad[y * tw + x] = pack1555(r, g, b, nocolorkey);
         }
     }
     out->w = bm.w;
@@ -173,6 +173,19 @@ decode:
     out->tex = NULL;
     bitmap_free(&bm);
     return 0;
+}
+
+int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
+                          struct SpriteFrame *out)
+{
+    return load_seq_frame(seq, seqn, frame, out, 0);
+}
+
+/* FreeDink LEFTALIGN / blitNoColorKey: keep white paper (HUD digits, chrome). */
+int sprite_load_seq_frame_nocolorkey(struct SeqInfo *seq, int seqn, int frame,
+                                     struct SpriteFrame *out)
+{
+    return load_seq_frame(seq, seqn, frame, out, 1);
 }
 
 int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,

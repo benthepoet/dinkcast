@@ -13,7 +13,7 @@
 struct EdGfx {
     int seq;
     int frame;
-    int live; /* 1 = this screen; CPU kept when 0 so return visits skip /cd */
+    int live; /* Screen: needed this tick. Always/Sticky never play-evicted. */
     struct SpriteFrame fr;
 };
 
@@ -23,6 +23,9 @@ struct EdGfx *edraw_gfx_alloc(void);
 void edraw_gfx_release(struct EdGfx *g);
 /* Screen MAIN create_sprite seqs: keep as Screen after swap_begin. */
 void edraw_mark_need(int seq, int frame);
+/* Play-path: Screen live = this tick's draw set (not "loaded this screen"). */
+void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs);
+void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame);
 /* Unique (seq,frame) for active editor sprites. */
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n, int vision);

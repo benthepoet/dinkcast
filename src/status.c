@@ -118,6 +118,58 @@ int status_glyph(int seq, int frame, int *sl, int *st, int *sr, int *sb,
     return 0;
 }
 
+int status_glyph_opaque_n(int seq, int frame)
+{
+    int i, x, y, n = 0;
+
+    i = glyph_find(seq, frame);
+    if (i < 0 || g_digit == NULL) {
+        return -1;
+    }
+    for (y = g_glyph[i].st; y < g_glyph[i].sb; y++) {
+        for (x = g_glyph[i].sl; x < g_glyph[i].sr; x++) {
+            if (sprite_pixel_opaque(g_digit[y * DINK_HUD_ATLAS + x])) {
+                n++;
+            }
+        }
+    }
+    return n;
+}
+
+int status_chrome_opaque_n(void)
+{
+    int x, y, n = 0;
+
+    if (g_chrome == NULL) {
+        return -1;
+    }
+    for (y = 0; y < 80; y++) {
+        for (x = 0; x < DINK_HUD_ATLAS; x++) {
+            if (sprite_pixel_opaque(g_chrome[y * DINK_HUD_ATLAS + x])) {
+                n++;
+            }
+        }
+    }
+    return n;
+}
+
+int status_glyph_argb(int seq, int frame, int lx, int ly, uint16_t *out)
+{
+    int i, x, y;
+
+    i = glyph_find(seq, frame);
+    if (i < 0 || g_digit == NULL || out == NULL || lx < 0 || ly < 0) {
+        return -1;
+    }
+    x = g_glyph[i].sl + lx;
+    y = g_glyph[i].st + ly;
+    if (x >= g_glyph[i].sr || y >= g_glyph[i].sb) {
+        return -1;
+    }
+    *out = g_digit[y * DINK_HUD_ATLAS + x];
+    return 0;
+}
+
 static int pack_copy(uint16_t *atlas, int aw, int ah, const struct SpriteFrame *fr,
                      int *ox, int *oy)
 {
@@ -163,7 +215,7 @@ static int add_glyph(int seq, int frame)
     if (g_nglyph >= HUD_GLYPH_N) {
         return -1;
     }
-    if (sprite_load_seq_frame(&g_seqs[seq], seq, frame, &fr) != 0) {
+    if (sprite_load_seq_frame_nocolorkey(&g_seqs[seq], seq, frame, &fr) != 0) {
         return -1;
     }
     if (pack_copy(g_digit, DINK_HUD_ATLAS, DINK_HUD_ATLAS, &fr, &ox, &oy) != 0) {
@@ -224,10 +276,12 @@ static int add_level_digit(int frame)
                 g = bm.pal[i * 3 + 1];
                 b = bm.pal[i * 3 + 2];
             }
+            /* load_sprites loose BMP: white key (ini LEFTALIGN is ignored). */
             if (r > 240 && g > 240 && b > 240) {
                 pad[y * tw + x] = 0;
             } else {
-                pad[y * tw + x] = (uint16_t)(0x8000u | ((r >> 3) << 10) |
+                pad[y * tw + x] = (uint16_t)(SPRITE_ARGB1555_OPAQUE |
+                                             ((r >> 3) << 10) |
                                              ((g >> 3) << 5) | (b >> 3));
             }
         }
@@ -603,8 +657,8 @@ static int pack_chrome(void)
     memset(&s2, 0, sizeof(s2));
     memset(g_chrome, 0, DINK_HUD_ATLAS_BYTES);
     memset(g_side, 0, 64u * 512u * 2u);
-    if (sprite_load_seq_frame(&g_seqs[DINK_STATUS_SEQ], DINK_STATUS_SEQ, 3,
-                              &bar) != 0) {
+    if (sprite_load_seq_frame_nocolorkey(&g_seqs[DINK_STATUS_SEQ],
+                                        DINK_STATUS_SEQ, 3, &bar) != 0) {
         return -1;
     }
     row = 0;
@@ -623,8 +677,8 @@ static int pack_chrome(void)
         row++;
     }
     sprite_frame_free(&bar);
-    if (sprite_load_seq_frame(&g_seqs[DINK_STATUS_SEQ], DINK_STATUS_SEQ, 1,
-                              &s1) == 0) {
+    if (sprite_load_seq_frame_nocolorkey(&g_seqs[DINK_STATUS_SEQ],
+                                        DINK_STATUS_SEQ, 1, &s1) == 0) {
         for (y = 0; y < s1.h && y < 400; y++) {
             for (x = 0; x < s1.w && x < 20; x++) {
                 g_side[y * 64 + x] = s1.argb1555[y * s1.tw + x];
@@ -632,8 +686,8 @@ static int pack_chrome(void)
         }
         sprite_frame_free(&s1);
     }
-    if (sprite_load_seq_frame(&g_seqs[DINK_STATUS_SEQ], DINK_STATUS_SEQ, 2,
-                              &s2) == 0) {
+    if (sprite_load_seq_frame_nocolorkey(&g_seqs[DINK_STATUS_SEQ],
+                                        DINK_STATUS_SEQ, 2, &s2) == 0) {
         for (y = 0; y < s2.h && y < 400; y++) {
             for (x = 0; x < s2.w && x < 20; x++) {
                 g_side[y * 64 + 32 + x] = s2.argb1555[y * s2.tw + x];

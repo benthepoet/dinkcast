@@ -224,6 +224,7 @@ static const struct {
     {"restart_game", 0},
     {"kill_game", 0},
     {"add_item", 0},
+    {"free_items", 0},
     {"add_magic", 0},
     {"init", 0},
     {"initfont", 0},
@@ -1084,6 +1085,20 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
 
         printf("add_item %s slot=%d seq=%d fr=%d\n", str != NULL ? str : "",
                slot, a1, a2);
+        return 1;
+    }
+    if (is_cmd(name, "free_items")) {
+        int i, n = 0;
+
+        /* FreeDink dc_free_items: inactive play.item[0..NB_ITEMS). */
+        for (i = 0; i < 16; i++) {
+            if (!g_item[i].active) {
+                n++;
+            }
+        }
+        if (ret != NULL) {
+            *ret = n;
+        }
         return 1;
     }
     if (is_cmd(name, "add_magic")) {

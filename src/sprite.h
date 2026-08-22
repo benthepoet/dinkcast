@@ -22,9 +22,12 @@ void sprite_frame_free(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
 /* Free decoded pixels; keep w/h/tw/th and PVR tex (overlay after upload). */
 void sprite_drop_cpu(struct SpriteFrame *f);
-/* Frame index is 1-based (ds-i4-01.bmp). */
+/* Frame index is 1-based (ds-i4-01.bmp). World sprites punch white. */
 int sprite_load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
                           struct SpriteFrame *out);
+/* LEFTALIGN / blitNoColorKey: white stays opaque (status digits, chrome). */
+int sprite_load_seq_frame_nocolorkey(struct SeqInfo *seq, int seqn, int frame,
+                                     struct SpriteFrame *out);
 
 /* get_box alt crop. 1 if trimmed. sl/st/sr/sb are exclusive-right src. */
 int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,

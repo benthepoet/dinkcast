@@ -9,6 +9,7 @@
 #include "status.h"
 #include "residency.h"
 #include "script.h"
+#include "sprite.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,36 @@ int main(void)
     expect(status_load(seqs) == 0, "status_load");
     expect(status_glyph(181, 10, &sl, &st, &sr, &sb, &adv) == 0 && adv > 0,
            "exp 0 glyph");
+    {
+        int area = (sr - sl) * (sb - st);
+        int op = status_glyph_opaque_n(181, 10);
+
+        expect(area > 0 && op > area / 2, "exp 0 paper opaque");
+    }
     expect(status_glyph(181, 11, &sl, &st, &sr, &sb, &adv) == 0, "exp slash");
+    {
+        int area = (sr - sl) * (sb - st);
+        int op = status_glyph_opaque_n(181, 11);
+
+        expect(area > 0 && op > area / 2, "exp slash paper opaque");
+    }
+    expect(status_glyph(442, 1, &sl, &st, &sr, &sb, &adv) == 0, "level 1");
+    {
+        uint16_t px = SPRITE_ARGB1555_OPAQUE;
+
+        expect(status_glyph_argb(181, 10, 0, 0, &px) == 0 &&
+                   sprite_pixel_opaque(px),
+               "exp 0 corner paper");
+        expect(status_glyph_argb(442, 1, 0, 0, &px) == 0 &&
+                   !sprite_pixel_opaque(px),
+               "level 1 white keyed");
+        expect(status_glyph_argb(442, 1, (sr - sl) / 2, (sb - st) / 2, &px) ==
+                   0 &&
+                   sprite_pixel_opaque(px),
+               "level 1 ink");
+    }
+    expect(status_chrome_opaque_n() > (DINK_HUD_ATLAS * 80) / 2,
+           "chrome paper opaque");
     expect(status_glyph(190, 1, &sl, &st, &sr, &sb, &adv) == 0, "lifemax chunk");
     expect(status_glyph(451, 2, &sl, &st, &sr, &sb, &adv) == 0, "life chunk");
     expect(status_glyph(180, 6, &sl, &st, &sr, &sb, &adv) == 0, "magic vert");

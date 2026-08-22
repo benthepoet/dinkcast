@@ -1023,6 +1023,29 @@ int main(int argc, char **argv)
                         {
                             int ei, sq, fr;
 
+                            edraw_live_begin(g_edg, g_ned, seqs);
+                            for (ei = 1; ei <= 100; ei++) {
+                                sq = (int)g_scr.sprite[ei].seq;
+                                fr = (int)g_scr.sprite[ei].frame;
+
+                                if (!editor_sprite_draw(&g_scr.sprite[ei],
+                                                        script_play_vision())) {
+                                    continue;
+                                }
+                                if (fr < 1) {
+                                    fr = 1;
+                                }
+                                edraw_live_touch(g_edg, g_ned, sq, fr);
+                            }
+                            for (ei = 1; ei <= 99; ei++) {
+                                if (!brains_seq_frame(ei, &sq, &fr)) {
+                                    continue;
+                                }
+                                if (fr < 1) {
+                                    fr = 1;
+                                }
+                                edraw_live_touch(g_edg, g_ned, sq, fr);
+                            }
                             for (ei = 1; ei <= 100; ei++) {
                                 sq = (int)g_scr.sprite[ei].seq;
                                 fr = (int)g_scr.sprite[ei].frame;

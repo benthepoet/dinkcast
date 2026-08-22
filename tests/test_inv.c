@@ -94,6 +94,39 @@ int main(void)
     args[2] = 2;
     expect(dinkc_cmd("add_item", args, 3, "item-pig", NULL, &yld, &rv) == 1,
            "add pig");
+    expect(dinkc_cmd("free_items", NULL, 0, NULL, NULL, &yld, &rv) == 1 &&
+               rv == 14,
+           "free after 2");
+    {
+        const char *nut =
+            "void touch(void)\n{\nint &junk = free_items();\n"
+            "if (&junk < 1)\n{\nreturn;\n}\n"
+            "add_item(\"item-nut\", 438, 19);\n}\n";
+        int slot = dinkc_vm_start_proc(nut, strlen(nut), 1, "touch");
+        int i;
+
+        expect(slot > 0, "nut fiber");
+        dinkc_vm_tick(0);
+        expect(dinkc_cmd("free_items", NULL, 0, NULL, NULL, &yld, &rv) == 1 &&
+                   rv == 13,
+               "s1-nut path added");
+        args[1] = 438;
+        args[2] = 19;
+        for (i = 0; i < 13; i++) {
+            expect(dinkc_cmd("add_item", args, 3, "item-nut", NULL, &yld, &rv) ==
+                       1,
+                   "fill slot");
+        }
+        expect(dinkc_cmd("free_items", NULL, 0, NULL, NULL, &yld, &rv) == 1 &&
+                   rv == 0,
+               "full");
+        slot = dinkc_vm_start_proc(nut, strlen(nut), 1, "touch");
+        expect(slot > 0, "full fiber");
+        dinkc_vm_tick(0);
+        expect(dinkc_cmd("free_items", NULL, 0, NULL, NULL, &yld, &rv) == 1 &&
+                   rv == 0,
+               "full skip add");
+    }
     dinkc_var_set("&cur_weapon", 1, DINKC_GLOBAL_SCOPE, 1);
     expect(dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, &yld, &rv) == 1,
            "arm fists");

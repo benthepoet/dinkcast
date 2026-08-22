@@ -11,6 +11,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | Tag | When | What |
 |---|---|---|
 | [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
+| [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
 
 ## On master
 
@@ -157,7 +158,13 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | DinkC `load_screen` + `draw_screen` (`game_load_screen` / `draw_screen_game`) | #105 |
 | 2026-08-22 | DinkC `screenlock` + `get_hard` clamp | #106 |
 | 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | #107 |
-| 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | this PR |
+| 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | #108 |
+| 2026-08-22 | Playtest HUD: LEFTALIGN / `blitNoColorKey` digits + chrome | #109 |
+| 2026-08-22 | Playtest HUD: level 442 loose BMP white key | #109 |
+| 2026-08-22 | Playtest wizard: Screen live is this-tick draw set | #109 |
+| 2026-08-22 | Playtest AlkNuts: `free_items` counts empty slots | #109 |
+| 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
+| 2026-08-22 | **v0.2.0** tagged | #109 |
 
 ## Bites
 
@@ -210,7 +217,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
 | 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1 on **re-enter**; live `scale_brain` |
 | 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
-| 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6 |
+| 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6. LEFTALIGN / `blitNoColorKey` paper (this PR) |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
 
@@ -222,7 +229,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — village Open empty (2026-08-22) |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts confirmed; burning-house exit Open |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -237,7 +244,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **none (village)** | PLAYTEST Open empty. Long pole is campaign DinkC (`goto` / `spawn` / `load_screen`) |
+| **Next picture** | **Burning-house exit** | `s1-h1-s` `move_stop` onto the door while frozen. AlkNuts confirmed. Long pole is still campaign DinkC |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -304,3 +311,11 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (v0.1.0) | **~90%** | First product tag after #98. Village Flycast snapshot. Open: 409 house, smash y-sort, fence shimmer. Audio/VMU/hardware unproven. |
 | 2026-08-22 (say TTL) | **~90%** | #98 called `saybox_tick` / `edraw_mark_need` without bodies. `say()` TTL + Screen mark for MAIN `create_sprite`. |
 | 2026-08-22 (village Open) | **~90%** | Requester: last PLAYTEST Open pictures confirmed (409 house, smash y-sort, pig-pen fence). Village leftovers empty. |
+| 2026-08-22 (HUD paper) | **~90%** | Status digits/chrome punched RGB>240 so white paper fell through PT to black. Graft LEFTALIGN / `blitNoColorKey`; host `test_status` locks opaque paper. |
+| 2026-08-22 (HUD confirmed) | **~90%** | Requester: status paper + level 442 key look right in Flycast. |
+| 2026-08-22 (wizard live) | **~90%** | Play-path Screen `live` until swap: 167 explode filled `cpu_pixels`, 563/567 refused. Remake live from this tick’s draw set. |
+| 2026-08-22 (wizard confirmed) | **~90%** | Requester: gnome stayed visible for the `s1-wiz` meeting. refuse/evict at the cap is the policy. |
+| 2026-08-22 (AlkNuts) | **~90%** | `s1-nut` `free_items()` was unimplemented (0) so pickup always said full. Graft `dc_free_items` slot count. |
+| 2026-08-22 (AlkNuts confirmed) | **~90%** | Requester: “I picked up a nut!” in Flycast. |
+| 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
+| 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
