@@ -71,7 +71,7 @@ export default function CampaignGraftAudit() {
           series={[
             {
               name: "Count",
-              data: [102, 125, 45],
+              data: [104, 125, 45],
               tone: "info",
             },
           ]}
@@ -95,7 +95,7 @@ export default function CampaignGraftAudit() {
           "success",
           "success",
           "success",
-          "warning",
+          "success",
           "warning",
           "info",
           "info",
@@ -130,13 +130,13 @@ export default function CampaignGraftAudit() {
             "5",
             "sp_target → BrainSpr",
             "process_target / process_follow",
-            "Host this PR. BrainSpr fields, not g_target[]. Pill/dragon ATTACK and Quackers follow.",
+            "Host #107. BrainSpr fields, not g_target[]. Pill/dragon ATTACK and Quackers follow.",
           ],
           [
             "6",
             "get_sprite_with_this_brain",
             "dc_get_sprite_with_this_brain",
-            "Missing. ~25 combat/cult scripts.",
+            "Host this PR. Live scan + rand + next. ~25 combat/cult scripts.",
           ],
           [
             "7",
@@ -228,7 +228,7 @@ export default function CampaignGraftAudit() {
       <Text>
         Confirmed 2026-08-22: Ethel outdoor house 409, smash y-sort, pig-pen
         fence. Those were occupancy and paint, not DinkC. Campaign holes continue
-        at get_sprite_with_this_brain after target/follow.
+        at audio 12, VMU 17, and 14.6.
       </Text>
     </Stack>
   );

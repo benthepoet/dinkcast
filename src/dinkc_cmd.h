@@ -62,6 +62,8 @@ void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
 void dinkc_cmd_bind_fiber(int fiber, int sprite);
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage));
 void dinkc_cmd_bind_restart(void (*fn)(void));
+void dinkc_cmd_bind_brain_lookup(int (*first)(int brain, int ignore, int start),
+                                 int (*rnd)(int brain, int ignore));
 void dinkc_cmd_set_now(int now_ms);
 void dinkc_cmd_set_dink_base_push(int seq);
 int dinkc_cmd_dink_base_push(void);

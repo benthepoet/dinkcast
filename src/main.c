@@ -684,6 +684,8 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_move(brains_move);
                 dinkc_cmd_bind_moving(brains_moving);
                 dinkc_cmd_bind_hurt(brains_hurt);
+                dinkc_cmd_bind_brain_lookup(brains_first_with_brain,
+                                            brains_rand_with_brain);
                 dinkc_cmd_bind_blood(on_blood);
                 dinkc_cmd_bind_restart(game_restart_cmd);
                 hit_bind_player(&pl);

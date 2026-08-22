@@ -342,6 +342,36 @@ int main(void)
             }
         }
     }
+    {
+        struct MapScreen look;
+        int a, b, r, j, saw_a = 0, saw_b = 0;
+
+        memset(&look, 0, sizeof(look));
+        brains_bind_screen(&look);
+        brains_reset();
+        a = brains_create(10, 10, 9, 130, 1);
+        b = brains_create(20, 20, 9, 130, 1);
+        expect(a >= 2 && b > a, "two pills");
+        expect(brains_first_with_brain(9, 0, 1) == a, "first brain 9");
+        expect(brains_first_with_brain(9, a, 1) == b, "ignore first");
+        expect(brains_first_with_brain(9, a, b + 1) == 0, "next past last");
+        expect(brains_first_with_brain(9, 0, b) == b, "next from b");
+        expect(brains_first_with_brain(16, 0, 1) == 0, "no people");
+        expect(brains_first_with_brain(9, 0, 0) == a, "start 0 is 1");
+        for (j = 0; j < 40; j++) {
+            r = brains_rand_with_brain(9, 0);
+            expect(r == a || r == b, "rand is a match");
+            if (r == a) {
+                saw_a = 1;
+            }
+            if (r == b) {
+                saw_b = 1;
+            }
+        }
+        expect(saw_a && saw_b, "rand hits both");
+        expect(brains_rand_with_brain(9, a) == b, "rand ignore leaves one");
+        expect(brains_rand_with_brain(3, 0) == 0, "rand miss");
+    }
     printf("OK test_brains\n");
     return 0;
 }

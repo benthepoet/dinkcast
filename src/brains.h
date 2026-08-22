@@ -23,6 +23,9 @@ int brains_slot_created(int slot);
 int brains_slot_pseq(int slot);
 int brains_slot_base_walk(int slot);
 int brains_slot_brain(int slot);
+/* FreeDink dc_get_sprite / get_next / get_rand. 0 if none. */
+int brains_first_with_brain(int brain, int ignore, int start);
+int brains_rand_with_brain(int brain, int ignore);
 void brains_set_script(int slot, const char *name);
 /* Copy live x/y/pseq/pframe onto editor slots after a snapshot restore. */
 void brains_apply(struct MapScreen *scr);

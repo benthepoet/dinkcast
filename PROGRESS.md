@@ -156,7 +156,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | DinkC `spawn` (`dc_spawn`, sprite 1000, no parent yield) | #104 |
 | 2026-08-22 | DinkC `load_screen` + `draw_screen` (`game_load_screen` / `draw_screen_game`) | #105 |
 | 2026-08-22 | DinkC `screenlock` + `get_hard` clamp | #106 |
-| 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | this PR |
+| 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | #107 |
+| 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | this PR |
 
 ## Bites
 
