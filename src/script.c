@@ -451,6 +451,11 @@ void script_on_kill(int sprite, const char *proc)
     (void)start_named(sprite, nm, p);
 }
 
+int script_try_proc(int sprite, const char *proc)
+{
+    return start_named(sprite, slot_script(sprite), proc);
+}
+
 void script_on_push(int sprite)
 {
     const char *nm = slot_script(sprite);

@@ -23,6 +23,7 @@ void script_on_talk(int sprite);
 void script_on_hit(int sprite);
 void script_on_hit_from(int sprite, int attacker);
 void script_on_kill(int sprite, const char *proc);
+int script_try_proc(int sprite, const char *proc);
 void script_on_push(int sprite);
 void script_on_touch(int sprite);
 /* update_status: flife < 1 → dinfo DIE once. */

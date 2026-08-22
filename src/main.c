@@ -691,6 +691,7 @@ int main(int argc, char **argv)
                 hit_bind_push(script_on_push);
                 hit_bind_touch(script_on_touch);
                 brains_bind_kill(script_on_kill);
+                brains_bind_proc(script_try_proc);
                 brains_bind_exp(game_add_exp);
                 brains_bind_player(&pl);
                 saybox_bind(&g_scr, &pl);

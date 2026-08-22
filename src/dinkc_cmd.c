@@ -70,8 +70,7 @@ static int g_touch[100];
 static int g_weapon_slot;
 static int g_magic_slot;
 static int g_bow_power;
-static int g_target[100];
-static int g_atkwait[100];
+static int g_cmd_now;
 static int g_midi;
 static struct {
     int active;
@@ -143,21 +142,6 @@ static int spr_slot(int id)
     return id;
 }
 
-static int change_i(int *slot, int nargs, int setv, int *ret)
-{
-    if (nargs < 2 || setv == -1) {
-        if (ret != NULL) {
-            *ret = *slot;
-        }
-        return *slot;
-    }
-    *slot = setv;
-    if (ret != NULL) {
-        *ret = setv;
-    }
-    return setv;
-}
-
 #define CMD_VM 1
 
 static const struct {
@@ -203,6 +187,7 @@ static const struct {
     {"sp_nohit", 0},
     {"sp_range", 0},
     {"sp_target", 0},
+    {"sp_follow", 0},
     {"sp_attack_wait", 0},
     {"sp_nocontrol", 0},
     {"sp_kill_wait", 0},
@@ -665,6 +650,11 @@ int dinkc_cmd_hard_redraw_take(void)
 void dinkc_cmd_bind_restart(void (*fn)(void))
 {
     g_restart = fn;
+}
+
+void dinkc_cmd_set_now(int now_ms)
+{
+    g_cmd_now = now_ms;
 }
 
 void dinkc_cmd_set_dink_base_push(int seq)
@@ -1247,6 +1237,17 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "sp_distance")) {
         return change_sp(a0, DINKC_SP_DISTANCE, nargs, a1, ret);
     }
+    if (is_cmd(name, "sp_follow")) {
+        return change_sp(a0, DINKC_SP_FOLLOW, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_target")) {
+        return change_sp(a0, DINKC_SP_TARGET, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_attack_wait")) {
+        int waitv = nargs < 2 ? -1 : a1 + g_cmd_now;
+
+        return change_sp(a0, DINKC_SP_ATTACK_WAIT, nargs, waitv, ret);
+    }
     if (is_cmd(name, "sp_mx")) {
         return change_sp(a0, DINKC_SP_MX, nargs, a1, ret);
     }
@@ -1286,22 +1287,6 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "get_last_bow_power")) {
         if (ret != NULL) {
             *ret = g_bow_power;
-        }
-        return 1;
-    }
-    if (is_cmd(name, "sp_target")) {
-        int s = spr_slot(a0);
-
-        if (s != 0) {
-            change_i(&g_target[s], nargs, a1, ret);
-        }
-        return 1;
-    }
-    if (is_cmd(name, "sp_attack_wait")) {
-        int s = spr_slot(a0);
-
-        if (s != 0) {
-            change_i(&g_atkwait[s], nargs, a1, ret);
         }
         return 1;
     }
