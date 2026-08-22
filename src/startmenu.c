@@ -410,6 +410,7 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
             last = foc;
         }
         startmenu_hover_tick((int)mem_now_ms());
+        (void)saybox_tick((int)mem_now_ms());
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);
@@ -433,6 +434,9 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
                                            (float)startmenu_hover_y(i), 3.2f);
                 }
             }
+        }
+        if (saybox_active()) {
+            saybox_draw_pvr(3.5f);
         }
         pvr_list_finish();
         pvr_scene_finish();

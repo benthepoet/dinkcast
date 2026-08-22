@@ -170,6 +170,9 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | START: no Quit; buttons stay pframe 1 | this PR |
 | 2026-08-22 | START: pframe 2 glow, idle word stays put | this PR |
 | 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | this PR |
+| 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | this PR |
+| 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | this PR |
+| 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
 
 ## Bites
 

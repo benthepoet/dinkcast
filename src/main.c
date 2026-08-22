@@ -513,7 +513,17 @@ static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
                 continue;
             }
             if (save_game_exist(slot) == 0) {
+                int yld = 0;
+
+                /* start-2.c click(): Say_xy if &result != 11. */
                 printf("start-2 load empty slot=%d\n", slot);
+                memset(args, 0, sizeof(args));
+                args[0] = 0;
+                args[1] = 390;
+                (void)dinkc_cmd(
+                    "say_xy", args, 2,
+                    "`%Try loading a saved game that exists, friend.", NULL,
+                    &yld, &ret);
                 continue;
             }
             dinkc_vm_reset();

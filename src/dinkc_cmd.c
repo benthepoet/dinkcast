@@ -156,6 +156,7 @@ static const struct {
     {"say", 0},
     {"say_stop", 0},
     {"say_stop_npc", 0},
+    {"say_xy", 0},
     {"debug", 0},
     {"playsound", 0},
     {"playmidi", 0},
@@ -732,13 +733,20 @@ static int spr_is_dink(int id)
     return id == 1;
 }
 
+/* Map fiber on editor 1: sp_seq(&current_sprite) is that row, not Dink.
+ * freeze(1) / hurt(1) / item 1000 still mean the player. */
+static int slot1_is_editor(int slot)
+{
+    return slot == 1 && g_cmd_sprite == 1;
+}
+
 static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
 {
     int val = nargs < 2 ? -1 : setv;
     int *p = NULL;
     int v;
 
-    if (spr_is_dink(slot) && g_pl != NULL) {
+    if (spr_is_dink(slot) && g_pl != NULL && !slot1_is_editor(slot)) {
         if (prop == DINKC_SP_X) {
             p = &g_pl->x;
         } else if (prop == DINKC_SP_Y) {
@@ -833,6 +841,16 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (yield != NULL && !is_cmd(name, "say")) {
             *yield = 1;
         }
+        return 1;
+    }
+    if (is_cmd(name, "say_xy")) {
+        /* parse_args: string occupies args[0]; x/y follow (same as say). */
+        int x = nargs >= 3 ? a1 : a0;
+        int y = nargs >= 3 ? a2 : a1;
+
+        /* FreeDink dc_say_xy: no yield. start-2.c empty slot. */
+        printf("say_xy %s %d %d\n", str != NULL ? str : "", x, y);
+        saybox_set_xy(str, x, y);
         return 1;
     }
     if (is_cmd(name, "debug")) {

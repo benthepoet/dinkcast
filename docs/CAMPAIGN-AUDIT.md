@@ -57,7 +57,7 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 6. **`get_sprite_with_this_brain`** (and rand / next) — host this PR. ~25 files. `EN-DRAG.c`, castle, cult, `EN-PILL1.c` unlock.
 7. **`sp_frame_delay`** — missing. ~21–37 files. Boss/enemy timing.
 8. Inventory DinkC: `count_item`, `free_items`, `kill_this_item` / `kill_cur_item` — boot/bomb/elixir.
-9. **`say_stop_xy` / `say_xy`** — missing. King / letter / save UI text placement.
+9. **`say_stop_xy`** — missing. King / letter placement. **`say_xy`** is bound (start-2 empty slot).
 10. **`indoor[]` / `last_map`** — parsed, unused. Map HUD dot after indoor warps.
 11. **editor_type 6/7/8 `last_time`** + VMU `save_game` / `load_game` / `game_exist` — bite **17**.
 12. Audio **12** (`playsound` ~339, `playmidi` ~44, `load_sound` in `START.c` only).
