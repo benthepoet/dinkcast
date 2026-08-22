@@ -26,7 +26,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**v0.2.0** (2026-08-22). Campaign DinkC host grafts (`goto`, `spawn`, `load_screen` / `draw_screen`, `screenlock`, `sp_target` / `sp_follow`, `get_sprite_with_this_brain`) plus village playtest leftovers (HUD paper, wizard idle, AlkNuts). Visual gates **V1–V6** and **8.6 house** stay accepted. Spec: [docs/V0.2.md](docs/V0.2.md). Audio, VMU, and **14.6** are not in this tag. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
+**v0.2.0** (2026-08-22). Campaign DinkC host grafts plus village playtest leftovers. Visual gates **V1–V6** and **8.6 house** stay accepted. Next tag: **[v0.3.0 plan](docs/V0.3.md)** (official START menu + VMU **17**, before audio **12**). **14.6** stays gated. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 
