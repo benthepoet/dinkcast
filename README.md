@@ -6,7 +6,7 @@ This repository is the engine and porting plan. It does **not** ship proprietary
 
 - Port spec: [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md)
 - **Progress + feasibility:** [PROGRESS.md](PROGRESS.md)
-- Releases: [CHANGELOG.md](CHANGELOG.md) (`VERSION` / git tag `v0.1.0`)
+- Releases: [CHANGELOG.md](CHANGELOG.md) (`VERSION` / git tag `v0.2.0`)
 - Workflow: [AGENTS.md](AGENTS.md)
 - Gotchas: [docs/GOTCHAS.md](docs/GOTCHAS.md)
 - Toolchain: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
@@ -26,7 +26,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Village PLAYTEST Open is empty (2026-08-22). Next tag: **[v0.2.0 plan](docs/V0.2.md)** (campaign DinkC). Audio, VMU, and **14.6** are not in that slice. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
+**v0.2.0** (2026-08-22). Campaign DinkC host grafts (`goto`, `spawn`, `load_screen` / `draw_screen`, `screenlock`, `sp_target` / `sp_follow`, `get_sprite_with_this_brain`) plus village playtest leftovers (HUD paper, wizard idle, AlkNuts). Visual gates **V1–V6** and **8.6 house** stay accepted. Spec: [docs/V0.2.md](docs/V0.2.md). Audio, VMU, and **14.6** are not in this tag. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 

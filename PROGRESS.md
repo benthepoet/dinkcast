@@ -11,6 +11,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | Tag | When | What |
 |---|---|---|
 | [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
+| [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
 
 ## On master
 
@@ -158,10 +159,12 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | DinkC `screenlock` + `get_hard` clamp | #106 |
 | 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | #107 |
 | 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | #108 |
-| 2026-08-22 | Playtest HUD: LEFTALIGN / `blitNoColorKey` digits + chrome | this PR |
-| 2026-08-22 | Playtest HUD: level 442 loose BMP white key | this PR |
-| 2026-08-22 | Playtest wizard: Screen live is this-tick draw set | this PR |
-| 2026-08-22 | Playtest AlkNuts: `free_items` counts empty slots | this PR |
+| 2026-08-22 | Playtest HUD: LEFTALIGN / `blitNoColorKey` digits + chrome | #109 |
+| 2026-08-22 | Playtest HUD: level 442 loose BMP white key | #109 |
+| 2026-08-22 | Playtest wizard: Screen live is this-tick draw set | #109 |
+| 2026-08-22 | Playtest AlkNuts: `free_items` counts empty slots | #109 |
+| 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
+| 2026-08-22 | **v0.2.0** tagged | #109 |
 
 ## Bites
 
@@ -315,3 +318,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (AlkNuts) | **~90%** | `s1-nut` `free_items()` was unimplemented (0) so pickup always said full. Graft `dc_free_items` slot count. |
 | 2026-08-22 (AlkNuts confirmed) | **~90%** | Requester: “I picked up a nut!” in Flycast. |
 | 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
+| 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
