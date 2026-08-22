@@ -10,6 +10,7 @@ This repository is the engine and porting plan. It does **not** ship proprietary
 - Workflow: [AGENTS.md](AGENTS.md)
 - Gotchas: [docs/GOTCHAS.md](docs/GOTCHAS.md)
 - Toolchain: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
+- Canvases (Cursor): [docs/canvases/](docs/canvases/)
 
 ## License
 
@@ -25,7 +26,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Village PLAYTEST Open is empty (2026-08-22). Audio, VMU, and a full-campaign test are not in this tag. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
+**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Village PLAYTEST Open is empty (2026-08-22). Next tag: **[v0.2.0 plan](docs/V0.2.md)** (campaign DinkC). Audio, VMU, and **14.6** are not in that slice. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 

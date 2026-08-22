@@ -1,0 +1,14 @@
+---
+description: Keep generated Cursor canvases in docs/canvases/
+alwaysApply: true
+---
+
+# Canvases live in the repo
+
+When you generate or update a `.canvas.tsx`:
+
+1. Write the IDE copy under `~/.cursor/projects/home-benh-Source-dinkcast/canvases/` (Cursor only detects that path).
+2. Also write the same canvas under [`docs/canvases/`](docs/canvases/) with SPDX `GPL-3.0-or-later` and a one-line header (see `docs/canvases/vram-budget.canvas.tsx`).
+3. Do not leave a canvas only in the Cursor project folder. Include it in the same PR as the analysis.
+
+Existing snapshots: [v0.2 plan](docs/canvases/v0-2-plan.canvas.tsx), [campaign graft audit](docs/canvases/campaign-graft-audit.canvas.tsx).

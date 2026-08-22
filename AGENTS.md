@@ -6,6 +6,8 @@ Instructions for humans and agents working in this repo.
 
 **Dreamcast skill:** [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md). Learned failures live in [docs/GOTCHAS.md](docs/GOTCHAS.md) — read before FS/CDI/PVR/Docker work; append a class-of-mistake bullet when we learn one.
 
+**Canvases:** Generated Cursor canvases are committed under [docs/canvases/](docs/canvases/) (same PR as the analysis). Also write the IDE copy in the Cursor `canvases/` folder.
+
 **Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed **and** the living **feasibility** snapshot. Every bite/fix PR must update the bite table in the **same PR**. After a **visual gate**, a retired/new risk class, or a human “reassess,” update **Feasibility** (current table + a new log row). Do not treat a green `make host` as “tracked.” Confirmed Flycast pictures live in [docs/PLAYTEST.md](docs/PLAYTEST.md) and `tests/test_playtest.c`.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
@@ -154,6 +156,7 @@ Read GOTCHAS, the HUD, and **`build/emu.log` first** before proposing a patch. I
 - Log unimplemented DinkC; never skip a script file silently.
 - Keep game assets out of git unless license-cleared.
 - New source files: SPDX `GPL-3.0-or-later` (see [LICENSE](LICENSE)). Do not add MIT/Apache-only code that cannot be combined with a FreeDink graft.
+- Generated canvases: `docs/canvases/*.canvas.tsx` plus the Cursor IDE copy. Do not leave a canvas only under `~/.cursor/projects/`.
 
 ---
 

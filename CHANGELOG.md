@@ -4,6 +4,10 @@ Product versions are git tags of the form `vMAJOR.MINOR.PATCH`. They are **not**
 
 The engine still needs original Dink data (`DINK_DATA`). That tree is not in git.
 
+## [Unreleased] — v0.2.0 (planned)
+
+Campaign DinkC slice. Spec: [docs/V0.2.md](docs/V0.2.md). Canvas: [docs/canvases/v0-2-plan.canvas.tsx](docs/canvases/v0-2-plan.canvas.tsx). Not 14.6 / 12 / 17. Item 1 `goto` host-landed #102.
+
 ## [0.1.0] — 2026-08-22
 
 First tagged snapshot. Village playable in Flycast with official `DINK_DATA`. Visual gates **V1–V6** and **8.6 house** are accepted.
