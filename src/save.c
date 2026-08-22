@@ -11,6 +11,7 @@
 #include <string.h>
 
 #ifdef _arch_dreamcast
+#include <dc/fs_vmu.h>
 #include <dc/maple.h>
 #include <dc/maple/vmu.h>
 #include <dc/vmu_pkg.h>
@@ -496,6 +497,25 @@ static void vmu_icon_init(void)
     }
 }
 
+static int blob_looks_ours(const uint8_t *p, size_t n)
+{
+    int magic = 0;
+    size_t o = 0;
+
+    return get_i32(p, n, &o, &magic) == 0 && magic == (int)DINK_SAVE_MAGIC;
+}
+
+static int save_take_bytes(const uint8_t *src, size_t n, uint8_t *dst, size_t cap,
+                           size_t *outn)
+{
+    if (src == NULL || n < 1 || n > cap) {
+        return -1;
+    }
+    memcpy(dst, src, n);
+    *outn = n;
+    return 0;
+}
+
 static int save_read_blob(int slot, uint8_t *dst, size_t cap, size_t *outn)
 {
     maple_device_t *dev;
@@ -535,18 +555,20 @@ static int save_read_blob(int slot, uint8_t *dst, size_t cap, size_t *outn)
         return -1;
     }
     fs_close(fd);
-    if (vmu_pkg_parse(pkgbuf, (size_t)n, &pkg) < 0) {
+    /* This KOS hides the VMS header: fs_read is the payload. */
+    if (blob_looks_ours(pkgbuf, (size_t)n) &&
+        save_take_bytes(pkgbuf, (size_t)n, dst, cap, outn) == 0) {
         free(pkgbuf);
-        return -1;
+        return 0;
     }
-    if (pkg.data == NULL || pkg.data_len < 1 || (size_t)pkg.data_len > cap) {
+    if (vmu_pkg_parse(pkgbuf, (size_t)n, &pkg) == 0 && pkg.data != NULL &&
+        pkg.data_len > 0 &&
+        save_take_bytes(pkg.data, (size_t)pkg.data_len, dst, cap, outn) == 0) {
         free(pkgbuf);
-        return -1;
+        return 0;
     }
-    memcpy(dst, pkg.data, (size_t)pkg.data_len);
-    *outn = (size_t)pkg.data_len;
     free(pkgbuf);
-    return 0;
+    return -1;
 }
 
 int save_game_slot(int slot, const struct Player *pl)
@@ -555,8 +577,6 @@ int save_game_slot(int slot, const struct Player *pl)
     size_t n = 0;
     maple_device_t *dev;
     vmu_pkg_t pkg;
-    uint8_t *out = NULL;
-    int outn = 0;
     file_t fd;
     char path[64];
 
@@ -581,25 +601,23 @@ int save_game_slot(int slot, const struct Player *pl)
     pkg.icon_data = g_icon_px;
     pkg.data_len = (int)n;
     pkg.data = blob;
-    if (vmu_pkg_build(&pkg, &out, &outn) < 0) {
-        printf("save_game vmu_pkg fail\n");
-        return -1;
-    }
     snprintf(path, sizeof(path), "/vmu/%c%d/DINK%02d", (char)('a' + dev->port),
              (int)dev->unit, slot);
     fd = fs_open(path, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd < 0) {
         printf("save_game vmu open fail %s\n", path);
-        free(out);
         return -1;
     }
-    if (fs_write(fd, out, outn) != outn) {
+    if (fs_vmu_set_header(fd, &pkg) < 0) {
+        printf("save_game vmu header fail %s\n", path);
         fs_close(fd);
-        free(out);
+        return -1;
+    }
+    if (fs_write(fd, blob, n) != (ssize_t)n) {
+        fs_close(fd);
         return -1;
     }
     fs_close(fd);
-    free(out);
     return 0;
 }
 
