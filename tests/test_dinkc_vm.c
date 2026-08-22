@@ -11,6 +11,19 @@
 static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_move_on;
+static const char *g_ext_src;
+
+static int stub_bar_sh_external(int sprite, const char *file, const char *proc,
+                                const int *args, int nargs)
+{
+    (void)file;
+    (void)args;
+    (void)nargs;
+    if (g_ext_src == NULL || proc == NULL) {
+        return 0;
+    }
+    return dinkc_vm_start_proc(g_ext_src, strlen(g_ext_src), sprite, proc);
+}
 
 static int stub_sp_change(int slot, int prop, int val)
 {
@@ -116,6 +129,33 @@ int main(void)
         expect(ks > 0 && dinkc_vm_used(ks), "keep arm");
         expect(dinkc_vm_locate(ks, "use") == ks, "locate use");
         expect(dinkc_vm_used(ks), "keep after return");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_used(ks), "item keep survives swap");
+        {
+            const char *sprk = "void main(void) { int &m; }";
+            int ss;
+
+            dinkc_vm_reset();
+            ss = dinkc_vm_start_keep(sprk, strlen(sprk), 4, "main");
+            expect(ss > 0 && dinkc_vm_used(ss), "sprite keep");
+            dinkc_vm_kill_all();
+            expect(!dinkc_vm_used(ss), "sprite keep dies on swap");
+        }
+        {
+            const char *gg =
+                "void main(void) { int &mrandom; }\n"
+                "void hit(void) { &mrandom = random(3, 1);\n"
+                " if (&mrandom == 1) say_stop(\"a\", 4);\n"
+                " if (&mrandom == 2) say_stop(\"b\", 4);\n"
+                " if (&mrandom == 3) say_stop(\"c\", 4); }\n";
+            int gs;
+
+            dinkc_vm_reset();
+            gs = dinkc_vm_start_keep(gg, strlen(gg), 4, "main");
+            expect(gs > 0 && dinkc_vm_sprite_fiber(4) == gs, "gg fiber");
+            expect(dinkc_vm_locate(gs, "hit") == gs, "gg hit");
+            expect(dinkc_vm_waiting_say(), "gg hit say");
+        }
     }
     {
         const char *orphan = "void main(void) { freeze(1); }";
@@ -290,6 +330,55 @@ int main(void)
             "void main(void) { sp_x(5, 77); }",
             strlen("void main(void) { sp_x(5, 77); }"), 1);
         expect(g_stub_x[5] == 77, "sp_x npc write");
+    }
+    {
+        /* BAR-SH hit: external("make","sheart") then sp_hard/draw_hard.
+         * Child is already done; HIT must not stay WAIT_EXT. */
+        const char *hit =
+            "void main(void) { external(\"make\", \"sheart\"); "
+            "sp_brain(4, 5); }";
+        const char *child = "void sheart(void) { }";
+
+        dinkc_vm_reset();
+        memset(g_stub_brain, 0, sizeof(g_stub_brain));
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        dinkc_cmd_bind_external(stub_bar_sh_external);
+        g_ext_src = child;
+        slot = dinkc_vm_start(hit, strlen(hit), 4);
+        expect(slot > 0, "bar-sh hit start");
+        expect(g_stub_brain[4] == 5, "bar-sh hit continues after external");
+        expect(dinkc_vm_live() == 0, "bar-sh hit done");
+        g_ext_src = NULL;
+        dinkc_cmd_bind_external(NULL);
+    }
+    {
+        /* s1-h2-o talk: extra } before unfreeze. FreeDink clamps level. */
+        const char *ethel =
+            "void talk(void) { freeze(1); if (1) { say_stop(\"thanks\", 1); "
+            "} } unfreeze(1); }";
+        const char *keep_ethel =
+            "void main(void) { } void talk(void) { freeze(1); "
+            "say_stop(\"thanks\", 1); } unfreeze(1); }";
+        int ks;
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        slot = dinkc_vm_start_proc(ethel, strlen(ethel), 23, "talk");
+        expect(pl.freeze == 1 && dinkc_vm_waiting_say(), "ethel say");
+        dinkc_vm_advance_say();
+        expect(dinkc_vm_live() == 0 && pl.freeze == 0, "ethel extra } unfreeze");
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        ks = dinkc_vm_start_keep(keep_ethel, strlen(keep_ethel), 23, "main");
+        expect(ks > 0 && dinkc_vm_used(ks), "keep main");
+        expect(dinkc_vm_locate(ks, "talk") == ks, "locate talk");
+        expect(dinkc_vm_waiting_say(), "keep say");
+        dinkc_vm_advance_say();
+        expect(pl.freeze == 0, "keep extra } unfreeze");
+        expect(dinkc_vm_used(ks), "keep still attached");
     }
 
     printf("OK test_dinkc_vm\n");

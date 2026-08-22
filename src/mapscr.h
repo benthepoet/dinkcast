@@ -11,6 +11,9 @@
 #define DINK_MAP_SCRIPT_OFF 30240
 #define DINK_SCREEN_TILES 96
 #define DINK_EDITOR_SPRITES 100
+/* Player is appended after editors. Equal-y scenery stays in front of
+ * Dinkcast's current order (Dink in front); FreeDink ranks spr[1] first. */
+#define DINK_DRAW_PLAYER_SLOT (DINK_EDITOR_SPRITES + 1)
 #define DINK_SPR_TYPE_INVISIBLE 2
 #define DINK_VISION_DEFAULT 0
 
@@ -49,6 +52,10 @@ int editor_sprite_on_vision(const struct EditorSprite *s, int vision);
 int editor_sprite_draw(const struct EditorSprite *s, int vision);
 /* screen_rank_*: que != 0 ? que : y */
 int editor_sprite_rank_y(const struct EditorSprite *s);
+/* 1 if A is drawn first (behind B). Type-0 background, then rank, then
+ * lower editor slot (FreeDink screen_rank h1). */
+int editor_draw_behind(int bg_a, int rank_a, int slot_a, int bg_b, int rank_b,
+                       int slot_b);
 
 struct MapScreen {
     struct MapTile t[97];

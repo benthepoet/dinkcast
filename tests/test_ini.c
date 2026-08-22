@@ -111,6 +111,40 @@ int main(void)
             return 1;
         }
     }
+    {
+        int cx1, cy1, hl1, ht1, hr1, hb1;
+        int cx2, cy2, hl2, ht2, hr2, hb2;
+        const char *pig74 =
+            "load_sequence_now graphics\\dink\\walk\\ds-w4- 74 35 38 72";
+
+        if (ini_apply_line(pig74, seqs, DINK_MAX_SEQ) < 1) {
+            fprintf(stderr, "FAIL pig74 apply\n");
+            return 1;
+        }
+        if (seqs[74].delay != 35 || seqs[74].cx != 38 || seqs[74].cy != 72 ||
+            seqs[74].hr != 0) {
+            fprintf(stderr, "FAIL pig74 meta d=%d cx=%d cy=%d hr=%d\n",
+                    seqs[74].delay, seqs[74].cx, seqs[74].cy, seqs[74].hr);
+            return 1;
+        }
+        ini_frame_geom(&seqs[74], 74, 1, 80, 100, &cx1, &cy1, &hl1, &ht1, &hr1,
+                       &hb1);
+        ini_frame_geom(&seqs[74], 74, 2, 50, 90, &cx2, &cy2, &hl2, &ht2, &hr2,
+                       &hb2);
+        if (cx1 != 38 || cy1 != 72 || cx2 != 38 || cy2 != 72) {
+            fprintf(stderr, "FAIL pig74 center %d,%d vs %d,%d\n", cx1, cy1, cx2,
+                    cy2);
+            return 1;
+        }
+        (void)hl1;
+        (void)ht1;
+        (void)hr1;
+        (void)hb1;
+        (void)hl2;
+        (void)ht2;
+        (void)hr2;
+        (void)hb2;
+    }
     printf("OK test_ini\n");
     return 0;
 }

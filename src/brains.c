@@ -61,6 +61,8 @@ struct BrainSpr {
     int logged;
     int created;
     int hidden;
+    /* FreeDink one_time_brain: last frame stamped under y-sort. */
+    int bg_baked;
     int base_idle;
     int base_attack;
     int move_active;
@@ -869,15 +871,21 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
 /* 5: play once then keep last frame (bg blit). 7: play once then remove. */
 static void one_time_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
-                           const struct HardMask *mask, int stay)
+                           const struct HardMask *mask, int bake)
 {
     if (s->seq == 0 && s->seq_orig == 0 && s->pseq > 0) {
         s->seq = s->pseq;
         return;
     }
     if (s->seq == 0) {
-        if (!stay) {
-            s->live = 0;
+        /* FreeDink one_time_brain (brain 5): draw last frame to the
+         * background, then lsm_remove_sprite. brain 7 removes only. */
+        s->live = 0;
+        if (bake) {
+            s->bg_baked = 1;
+            s->hidden = 0;
+        } else {
+            s->hidden = 1;
         }
         return;
     }
@@ -1399,6 +1407,20 @@ void brains_apply(struct MapScreen *scr)
             scr->sprite[i].active = 0;
             continue;
         }
+        if (s->bg_baked) {
+            scr->sprite[i].active = 1;
+            scr->sprite[i].type = 0;
+            scr->sprite[i].x = s->x;
+            scr->sprite[i].y = s->y;
+            if (s->pseq > 0) {
+                scr->sprite[i].seq = s->pseq;
+            }
+            if (s->pframe > 0) {
+                scr->sprite[i].frame = s->pframe;
+            }
+            scr->sprite[i].hard = s->hard;
+            continue;
+        }
         if (!s->live) {
             continue;
         }
@@ -1632,6 +1654,9 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         g_b[i].seq = 0;
         g_b[i].frame = 0;
         g_b[i].size = 100;
+        /* FreeDink add_sprite / add_sprite_dumb: hard=1 (not solid).
+         * memset left 0 so BAR-SH sheart was stamped into the hitmap. */
+        g_b[i].hard = 1;
         g_b[i].base_walk = -1;
         g_b[i].base_idle = -1;
         g_b[i].base_attack = -1;
@@ -1819,9 +1844,10 @@ int brains_slot_size(int slot)
 
 int brains_slot_hard(int slot)
 {
-    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+    if (slot < 1 || slot > 100) {
         return 0;
     }
+    /* Survives brain-5 bake (live=0). 0 = stamp hardness. */
     return g_b[slot].hard;
 }
 

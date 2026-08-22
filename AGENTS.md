@@ -6,11 +6,11 @@ Instructions for humans and agents working in this repo.
 
 **Dreamcast skill:** [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md). Learned failures live in [docs/GOTCHAS.md](docs/GOTCHAS.md) — read before FS/CDI/PVR/Docker work; append a class-of-mistake bullet when we learn one.
 
-**Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed **and** the living **feasibility** snapshot. Every bite/fix PR must update the bite table in the **same PR**. After a **visual gate**, a retired/new risk class, or a human “reassess,” update **Feasibility** (current table + a new log row). Do not treat a green `make host` as “tracked.”
+**Progress log:** [PROGRESS.md](PROGRESS.md) is what has landed **and** the living **feasibility** snapshot. Every bite/fix PR must update the bite table in the **same PR**. After a **visual gate**, a retired/new risk class, or a human “reassess,” update **Feasibility** (current table + a new log row). Do not treat a green `make host` as “tracked.” Confirmed Flycast pictures live in [docs/PLAYTEST.md](docs/PLAYTEST.md) and `tests/test_playtest.c`.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** V1–**V6** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory (#94). **16.3** HUD (#95). Playtest graft pickup/blood/barrel/pig-pen (#96). Occupancy graft (barrel smash pack / oldman / house walls) is this PR. Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). Ethel-house duck-kill skip (#88). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.6 until the requester says go. Do not `@`-mention anyone.
+**Now:** V1–**V6** + **8.6 house** accepted. **15.2** + duck + die-pack OOM (#78). **14.4a** catalog (#81) + **14.4b** Always/Screen/Prev (#82). **14.4c** pixels (#90). **14.3** leak check (#91). **15.3–15.4** weapons/magic (#92). **16.1** touch/pickup (#93). **16.2** inventory (#94). **16.3** HUD (#95). Playtest graft (#96) + occupancy (#97). Playtest stability is this PR (409 first-visit house). Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.5** distill (#84–#86). Ethel-house duck-kill skip (#88). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.6 until the requester says go. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
@@ -115,14 +115,14 @@ Land: only the orchestrator merges (or explicitly delegates merge on the PR: `me
 
 ### Troubleshooting (when something is wrong on screen or disc)
 
-When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture), **do not** have the implementer guess alone and **do not** spawn Disc/FS + PVR + Boot + Data as four extra agents. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial** on a PR they authored) plus **one** Adversarial with the Dreamcast prompt above. That reviewer covers `/cd` vs probe, twiddle/`NONTWIDDLED`, REIOS vs `dc_boot.bin`, BMP/map identity, and “the first diagnosis is a lie” from GOTCHAS.
+When Flycast/hardware misbehaves (red HUD, stripes, no boot, missing files, wrong picture, spam, hitch), **read `build/emu.log` first** (last `make emu` SCIF). Do not guess from the picture alone. If that log cannot diagnose it, **add logging and reproduce** — do not invent a patch. Then **do not** have the implementer guess alone and **do not** spawn Disc/FS + PVR + Boot + Data as four extra agents. Spawn a **debug orchestrator** (not the implementer who last touched the bug, not **Adversarial** on a PR they authored) plus **one** Adversarial with the Dreamcast prompt above. That reviewer covers `/cd` vs probe, twiddle/`NONTWIDDLED`, REIOS vs `dc_boot.bin`, BMP/map identity, and “the first diagnosis is a lie” from GOTCHAS.
 
 | Role | Does | Must write |
 |---|---|---|
 | **Debug orchestrator** | Assigns Adversarial, synthesizes, picks the first fix. Does not implement the first theory. | `debug-orch:` + `reviewer: adversarial` + `bar:` |
 | **Adversarial** | HUD + GOTCHAS first, then disc / PVR / boot / data as needed. One review. | Attack list on the *theory* + `verdict:` |
 
-Read GOTCHAS and the HUD **before** proposing a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
+Read GOTCHAS, the HUD, and **`build/emu.log` first** before proposing a patch. If the log does not have enough to diagnose, **add logging and reproduce** — do not guess a patch. After a confirmed new class of failure, add one bullet to GOTCHAS in the fix PR.
 
 ---
 

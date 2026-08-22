@@ -695,7 +695,7 @@ Only after 14.4a numbers exist.
 **Start only if** 14.4a printed `14.5: needed` with a pool and byte count. Typical: one 0.7–1.6 MB `dir.ff` from which we need a handful of frames, or Ts01–03 RGB565 over `ts_rgb`. Not a visual gate.
 
 - Offline pack step (CDI only, like MIDI→ADPCM): subset `dir.ff` of used 8-bit BMPs. Host tests keep unmodified `DINK_DATA` `dir.ff` (**original data required**). Disc may add `build/distill/` at `make docker-cdi`.
-- Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). Follow `sp_script` / `script("…")` callees. The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set**. Do not maintain a village map list.
+- Screens: **every nonempty `map.dat` screen** in the stock campaign (all sprite visions on that screen). Follow `sp_script` / `script("…")` / `add_item("…")` / `add_magic("…")` callees. The 14.4a village walk is a host report, not the distill set. Keep the **used-frame set**. Do not maintain a village map list.
 - `file_blob` Always+Screen+Prev can still exceed 4.5 MB on heavy screens after this union. **`mem refuse` is not distill.** Per-frame TOC/offset reads are **14.6**, not this bite. **Pixel class eviction is 14.4c**, not this bite.
 - Do **not** zlib-compress the official tree and commit it.
 

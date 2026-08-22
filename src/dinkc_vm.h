@@ -31,6 +31,10 @@ int dinkc_vm_locate(int slot, const char *proc);
 void dinkc_vm_set_args(int slot, const int *args, int n);
 int dinkc_vm_arg(int slot, int n1);
 int dinkc_vm_used(int slot);
+/* Keep fiber for this sprite, else any live instance. 0 if none. */
+int dinkc_vm_sprite_fiber(int sprite);
+/* FreeDink kill_returning_stuff: drop wait callbacks, keep the script. */
+void dinkc_vm_kill_returning(int slot);
 void dinkc_vm_resume_move(void);
 void dinkc_vm_tick_callbacks(int now_ms);
 int dinkc_vm_waiting_choice(void);

@@ -47,6 +47,26 @@ int main(void)
     if (s0 != 0 || c != 0) {
         die("tile0");
     }
+    /* Map 407 south rails: seq 93 slots 10/22, same rank, lower slot first. */
+    if (!editor_draw_behind(0, 361, 10, 0, 361, 22)) {
+        die("fence slot");
+    }
+    if (editor_draw_behind(0, 361, 22, 0, 361, 10)) {
+        die("fence slot rev");
+    }
+    if (!editor_draw_behind(0, 361, 10, 0, 361, 11) ||
+        !editor_draw_behind(0, 361, 11, 0, 361, 22)) {
+        die("pig between rails");
+    }
+    if (!editor_draw_behind(0, 360, 50, 0, 361, 10)) {
+        die("rank");
+    }
+    if (!editor_draw_behind(1, 400, 5, 0, 100, 1)) {
+        die("bg");
+    }
+    if (!editor_draw_behind(0, 361, 22, 0, 361, DINK_DRAW_PLAYER_SLOT)) {
+        die("dink in front");
+    }
     printf("OK test_world\n");
     return 0;
 }

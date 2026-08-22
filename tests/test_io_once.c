@@ -243,6 +243,15 @@ int main(void)
                 free(seqs);
                 return 1;
             }
+            /* Drop unused extras from the overflow fill, then the working
+             * set is stable — another enter must not fopen. */
+            o0 = dink_disc_opens();
+            if (edraw_load_screen(scr.sprite, seqs, g, &ned, 0) != 0) {
+                fprintf(stderr, "FAIL edraw settled\n");
+                edraw_gfx_release(g);
+                free(seqs);
+                return 1;
+            }
             o1 = dink_disc_opens();
             if (o1 != o0) {
                 fprintf(stderr, "FAIL edraw repeat opens %d -> %d\n", o0, o1);

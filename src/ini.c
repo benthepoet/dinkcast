@@ -256,13 +256,22 @@ void ini_frame_geom(const struct SeqInfo *seq, int seqn, int frame, int fw,
     *ht = -(fh / 10);
     *hr = fw / 4;
     *hb = fh / 10;
-    if (seq != NULL && seq->hr > 0) {
-        *cx = seq->cx > 0 ? seq->cx : *cx;
-        *cy = seq->cy > 0 ? seq->cy : *cy;
-        *hl = seq->hl;
-        *ht = seq->ht;
-        *hr = seq->hr;
-        *hb = seq->hb;
+    /* FreeDink load_sprite_pak: xoffset/yoffset if >0, even when hardbox.right
+     * is 0 (item-pig ARM omits the box on seq 74/76). Gating center on hr
+     * made left/right walk jump every frame. */
+    if (seq != NULL) {
+        if (seq->cx > 0) {
+            *cx = seq->cx;
+        }
+        if (seq->cy > 0) {
+            *cy = seq->cy;
+        }
+        if (seq->hr > 0) {
+            *hl = seq->hl;
+            *ht = seq->ht;
+            *hr = seq->hr;
+            *hb = seq->hb;
+        }
     }
     for (i = 0; i < ini_nframe; i++) {
         if (ini_frame[i].seq == seqn && ini_frame[i].frame == frame) {

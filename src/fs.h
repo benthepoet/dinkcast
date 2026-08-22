@@ -15,7 +15,7 @@ const char *dink_fs_root(void);
 /* Open rel under the resolved root. Tries exact, case-fold, then 8.3.
  * Host: DINK_DISTILL overlay is tried first (14.5 subset dir.ff). */
 FILE *dink_fopen(const char *rel, const char *mode);
-/* ISO9660/Flycast: no SEEK_END; 8 KiB fread, no yield mid-file. */
+/* ISO9660/Flycast: fstat size (no SEEK_END); 8 KiB fread, no yield mid-file. */
 int dink_fread_all(FILE *fp, uint8_t **out, size_t *n);
 int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n);
 /* Copy-out slurp. Repeat path does not fopen. Caller frees *out. */

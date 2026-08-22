@@ -50,6 +50,21 @@ int editor_sprite_rank_y(const struct EditorSprite *s)
     return (int)s->y;
 }
 
+int editor_draw_behind(int bg_a, int rank_a, int slot_a, int bg_b, int rank_b,
+                       int slot_b)
+{
+    int la = bg_a ? 0 : 1;
+    int lb = bg_b ? 0 : 1;
+
+    if (la != lb) {
+        return la < lb;
+    }
+    if (rank_a != rank_b) {
+        return rank_a < rank_b;
+    }
+    return slot_a < slot_b;
+}
+
 int map_file_records(int64_t file_bytes, int *out_count, int *out_rem)
 {
     if (file_bytes < 0 || out_count == NULL || out_rem == NULL) {

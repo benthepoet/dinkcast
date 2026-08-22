@@ -535,6 +535,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
             printf("dinkc vm ops cap slot overflow\n");
             return;
         }
+        /* FreeDink process_line: level never stays < 1. Extra '}' does
+         * not end the proc (s1-h2-o talk has one before unfreeze). */
+        if (f->depth < 1) {
+            f->depth = 1;
+        }
         if (t->kind == DINKC_LBRACE) {
             f->depth++;
             f->ip++;
@@ -543,13 +548,8 @@ static void run_fiber(struct Fiber *f, int now_ms)
         if (t->kind == DINKC_RBRACE) {
             f->depth--;
             f->ip++;
-            if (f->depth <= 0) {
-                if (f->keep) {
-                    f->state = DINKC_IDLE;
-                    return;
-                }
-                fiber_kill(f);
-                return;
+            if (f->depth < 0) {
+                f->depth = 0;
             }
             continue;
         }
@@ -723,6 +723,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     return;
                 }
                 if (yld == 5) {
+                    /* FreeDink run_script(child) then proc_return: sheart()
+                     * is already done, so HIT must reach sp_hard this tick. */
+                    if (!dinkc_vm_used(rv)) {
+                        continue;
+                    }
                     f->wait_child = rv;
                     f->state = DINKC_WAIT_EXT;
                     return;
@@ -880,6 +885,38 @@ int dinkc_vm_used(int slot)
         return 0;
     }
     return g_f[slot].used;
+}
+
+int dinkc_vm_sprite_fiber(int sprite)
+{
+    int i, found = 0;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (!g_f[i].used || g_f[i].sprite != sprite) {
+            continue;
+        }
+        if (g_f[i].keep) {
+            return i;
+        }
+        if (found == 0) {
+            found = i;
+        }
+    }
+    return found;
+}
+
+void dinkc_vm_kill_returning(int slot)
+{
+    int i;
+
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
+        return;
+    }
+    for (i = 1; i < CB_N; i++) {
+        if (g_cb[i].active && g_cb[i].owner == slot) {
+            g_cb[i].active = 0;
+        }
+    }
 }
 
 static int vm_add_cb(const char *proc, int base, int range, int fiber,
@@ -1072,7 +1109,9 @@ void dinkc_vm_kill_all(void)
     int i;
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        if (g_f[i].used && g_f[i].keep) {
+        /* Item ARM (1000) and engine (1001+) survive a screen swap.
+         * Sprite keep fibers must not — FreeDink kill_all_scripts. */
+        if (g_f[i].used && g_f[i].keep && g_f[i].sprite >= 1000) {
             continue;
         }
         fiber_kill(&g_f[i]);
@@ -1109,6 +1148,9 @@ void dinkc_vm_tick(int now_ms)
         if (f->state == DINKC_RUN) {
             run_fiber(f, now_ms);
         } else if (f->state == DINKC_WAIT_MS && now_ms >= f->wait_until) {
+            run_fiber(f, now_ms);
+        } else if (f->state == DINKC_WAIT_EXT &&
+                   !dinkc_vm_used(f->wait_child)) {
             run_fiber(f, now_ms);
         }
     }
