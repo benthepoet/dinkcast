@@ -6,6 +6,7 @@ This repository is the engine and porting plan. It does **not** ship proprietary
 
 - Port spec: [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md)
 - **Progress + feasibility:** [PROGRESS.md](PROGRESS.md)
+- Releases: [CHANGELOG.md](CHANGELOG.md) (`VERSION` / git tag `v0.1.0`)
 - Workflow: [AGENTS.md](AGENTS.md)
 - Gotchas: [docs/GOTCHAS.md](docs/GOTCHAS.md)
 - Toolchain: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
@@ -24,7 +25,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**V1–V4 accepted.** **8.6 house** accepted in Flycast. Next visual gate **V5**.
+**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Audio, VMU, and a full-campaign test are not in this tag. Open pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 

@@ -4,6 +4,14 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 
 **Statuses:** `done` — on master and verified the way the bite requires (host and/or Flycast). `source` — code on master, not seen on DC/Flycast. `next` — first unfinished bite. `pending` — not started.
 
+## Releases
+
+Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo skeleton, not a release.
+
+| Tag | When | What |
+|---|---|---|
+| [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
+
 ## On master
 
 | When | What | Evidence |
@@ -132,13 +140,15 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | 2026-08-21 | **16.3** HUD | #95 |
 | 2026-08-21 | Pickup shrink / blood / barrel smash / pig-pen enter | #96 |
 | 2026-08-21 | Occupancy: smash pack open, sticky 164, `EdGfx` 128 | #97 |
-| 2026-08-21 | Playtest picture tracker; pig blood/HP confirmed | this PR |
-| 2026-08-21 | Grain USE: distill follows `add_item` (seq 430/431) | this PR |
-| 2026-08-21 | Grain toss: upload PVR after play-path `preload_seq` | this PR |
-| 2026-08-21 | Pig pen: drop aged Prev before Screen fopen | this PR |
-| 2026-08-21 | Grain ARM walk: cx/cy even if hardbox omitted | this PR |
-| 2026-08-21 | Pig kill: brain 7 hides editor snap | this PR |
-| 2026-08-21 | preload_seq: frame 1, not whole walk | this PR |
+| 2026-08-21 | Playtest picture tracker; pig blood/HP confirmed | #98 |
+| 2026-08-21 | Grain USE: distill follows `add_item` (seq 430/431) | #98 |
+| 2026-08-21 | Grain toss: upload PVR after play-path `preload_seq` | #98 |
+| 2026-08-21 | Pig pen: drop aged Prev before Screen fopen | #98 |
+| 2026-08-21 | Grain ARM walk: cx/cy even if hardbox omitted | #98 |
+| 2026-08-21 | Pig kill: brain 7 hides editor snap | #98 |
+| 2026-08-21 | preload_seq: frame 1, not whole walk | #98 |
+| 2026-08-22 | Playtest stability: 409 slurp, smash bake/hard, create_sprite `hard=1` | #98 |
+| 2026-08-22 | **v0.1.0** tagged | this PR |
 
 ## Bites
 
@@ -213,7 +223,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-21)
+### Current (2026-08-22)
 
 | | | |
 |---|---|---|
@@ -282,3 +292,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (fence painter) | **~90%** | Pig-pen seq 93 overlap shimmered: PT z-steps vs FreeDink blit. Shared world-sprite z; slot tie-break. Not a seq-93 pin. |
 | 2026-08-22 (barrel hard) | **~90%** | Smash left seq-173 origin hardbox in the hitmap. Type 3 `update_play_changes` on restamp; HIT continues after finished `external`; bake copies `hard`. |
 | 2026-08-22 (create hard) | **~90%** | BAR-SH leftover was seq-54 heart: `add_sprite` hard=1, create memset 0. `draw_hard_sprite` stamped it; TOUCH never restamps. Confirmed in Flycast. |
+| 2026-08-22 (v0.1.0) | **~90%** | First product tag after #98. Village Flycast snapshot. Open: 409 house, smash y-sort, fence shimmer. Audio/VMU/hardware unproven. |
