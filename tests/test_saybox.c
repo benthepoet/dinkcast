@@ -139,6 +139,35 @@ int main(void)
     expect(strcmp(saybox_text(), "bang") == 0, "strip !");
     saybox_clear();
     expect(!saybox_active(), "off");
+    /* FreeDink add_text_sprite: strlen*TEXT_TIMER (77), floor TEXT_MIN 2700.
+     * live_sprite_set_kill_start on first tick; expire when start+ttl < now. */
+    saybox_set("Hi", 1);
+    expect(saybox_tick(0) == 0 && saybox_active(), "kill_start first tick");
+    expect(saybox_tick(2700) == 0 && saybox_active(), "TEXT_MIN not yet");
+    expect(saybox_tick(2701) == 1 && !saybox_active(), "TEXT_MIN expire");
+    {
+        char long_say[41];
+
+        memset(long_say, 'a', 40);
+        long_say[40] = '\0';
+        saybox_set(long_say, 1);
+        expect(saybox_tick(0) == 0 && saybox_active(), "long start");
+        expect(saybox_tick(40 * DINK_SAY_TEXT_TIMER) == 0 && saybox_active(),
+               "long not yet");
+        expect(saybox_tick(40 * DINK_SAY_TEXT_TIMER + 1) == 1 &&
+                   !saybox_active(),
+               "long expire");
+    }
+    saybox_set("`$I'm no wizard!", 1);
+    expect(saybox_tick(0) == 0 && saybox_active(), "wizard start");
+    expect(saybox_tick(DINK_SAY_TEXT_MIN + 1) == 1 && !saybox_active(),
+           "wizard TEXT_MIN");
+    saybox_set("`3Why hello, Dink.", 1);
+    expect(saybox_tick(100) == 0 && saybox_active(), "ethel start");
+    expect(saybox_tick(100 + DINK_SAY_TEXT_MIN) == 0 && saybox_active(),
+           "ethel not yet");
+    expect(saybox_tick(100 + DINK_SAY_TEXT_MIN + 1) == 1 && !saybox_active(),
+           "ethel expire");
     printf("OK test_saybox\n");
     return 0;
 }

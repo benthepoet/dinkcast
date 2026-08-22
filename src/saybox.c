@@ -20,6 +20,7 @@ static struct Player *g_pl;
 static int (*g_live_xy)(int slot, int *x, int *y);
 static char g_text[200];
 static int g_on, g_owner, g_x, g_y, g_color;
+static int g_kill_ttl, g_kill_start, g_kill_armed;
 
 /* FreeDink gfx_fonts.cpp gfx_fonts_init_colors. Index 0 unused. */
 static const uint32_t g_font_argb[16] = {
@@ -198,7 +199,32 @@ void saybox_set(const char *text, int sprite)
     }
     wrap_line(g_text, boxw);
     g_on = 1;
+    /* add_text_sprite: strlen of the DinkC string (color prefix counts). */
+    g_kill_ttl = (int)strlen(text != NULL ? text : "") * DINK_SAY_TEXT_TIMER;
+    if (g_kill_ttl < DINK_SAY_TEXT_MIN) {
+        g_kill_ttl = DINK_SAY_TEXT_MIN;
+    }
+    g_kill_start = 0;
+    g_kill_armed = 0;
     saybox_place();
+}
+
+int saybox_tick(int now_ms)
+{
+    if (!g_on || g_kill_ttl < 1) {
+        return 0;
+    }
+    /* FreeDink kill_start==0; our now_ms can be 0 so keep a flag. */
+    if (!g_kill_armed) {
+        g_kill_start = now_ms;
+        g_kill_armed = 1;
+        return 0;
+    }
+    if (g_kill_start + g_kill_ttl < now_ms) {
+        saybox_clear();
+        return 1;
+    }
+    return 0;
 }
 
 void saybox_clear(void)
@@ -206,6 +232,9 @@ void saybox_clear(void)
     g_on = 0;
     g_owner = 0;
     g_text[0] = '\0';
+    g_kill_ttl = 0;
+    g_kill_start = 0;
+    g_kill_armed = 0;
 }
 
 int saybox_active(void)
