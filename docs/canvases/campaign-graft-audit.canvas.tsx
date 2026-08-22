@@ -91,7 +91,7 @@ export default function CampaignGraftAudit() {
         columnAlign={["left", "left", "left", "left"]}
         rowTone={[
           "success",
-          "danger",
+          "success",
           "danger",
           "danger",
           "warning",
@@ -112,7 +112,7 @@ export default function CampaignGraftAudit() {
             "2",
             "spawn",
             "dc_spawn",
-            "Not in k_fn[]. Bombs, dragons, end sequences.",
+            "Host: sprite 1000, parent continues. Bombs, dragons.",
           ],
           [
             "3",

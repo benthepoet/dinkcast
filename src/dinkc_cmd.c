@@ -42,6 +42,7 @@ static int (*g_moving)(int slot);
 static int (*g_sp_script)(int slot, const char *name);
 static int (*g_external)(int sprite, const char *file, const char *proc,
                          const int *args, int nargs);
+static int (*g_spawn)(const char *file);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
@@ -225,6 +226,7 @@ static const struct {
     {"create_sprite", 0},
     {"script_attach", 0},
     {"external", 0},
+    {"spawn", 0},
     {"set_callback_random", 0},
     {"force_vision", 0},
     {"hurt", 0},
@@ -606,6 +608,11 @@ void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
     g_external = fn;
 }
 
+void dinkc_cmd_bind_spawn(int (*fn)(const char *file))
+{
+    g_spawn = fn;
+}
+
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
                                        int fiber, int sprite))
 {
@@ -912,6 +919,19 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             if (child > 0 && yield != NULL) {
                 *yield = 5;
             }
+        }
+        return 1;
+    }
+    /* FreeDink dc_spawn: load_script(name, 1000), locate MAIN, run.
+     * Parent is DCPS_GOTO_NEXTLINE (no yield). Return is the script slot. */
+    if (is_cmd(name, "spawn")) {
+        int child = 0;
+
+        if (g_spawn != NULL && str != NULL && str[0] != '\0') {
+            child = g_spawn(str);
+        }
+        if (ret != NULL) {
+            *ret = child;
         }
         return 1;
     }

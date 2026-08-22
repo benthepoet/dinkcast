@@ -12,6 +12,7 @@ static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_move_on;
 static const char *g_ext_src;
+static const char *g_spawn_src;
 
 static int stub_bar_sh_external(int sprite, const char *file, const char *proc,
                                 const int *args, int nargs)
@@ -23,6 +24,15 @@ static int stub_bar_sh_external(int sprite, const char *file, const char *proc,
         return 0;
     }
     return dinkc_vm_start_proc(g_ext_src, strlen(g_ext_src), sprite, proc);
+}
+
+static int stub_spawn(const char *file)
+{
+    (void)file;
+    if (g_spawn_src == NULL) {
+        return 0;
+    }
+    return dinkc_vm_start_keep(g_spawn_src, strlen(g_spawn_src), 1000, "main");
 }
 
 static int stub_sp_change(int slot, int prop, int val)
@@ -493,6 +503,49 @@ int main(void)
             expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 2,
                    "goto into skipped if duck:");
         }
+    }
+
+    {
+        const char *parent =
+            "void main(void) { spawn(\"kid\"); &gold = 1; }\n";
+        const char *kid =
+            "void main(void) { wait(1); &gold = 2; }\n";
+        const char *miss =
+            "void main(void) { &gold = spawn(\"nope\"); }\n";
+        int i, kidslot;
+
+        g_spawn_src = kid;
+        dinkc_cmd_bind_spawn(stub_spawn);
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(parent, strlen(parent), 1);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "spawn parent continues");
+        expect(!dinkc_vm_used(slot), "parent done");
+        kidslot = dinkc_vm_sprite_fiber(1000);
+        expect(kidslot > 0 && dinkc_vm_state(kidslot) == DINKC_WAIT_MS,
+               "spawn child wait");
+        for (i = 1; i <= 4; i++) {
+            dinkc_vm_tick(1000 + i * DINKC_TICK_MS);
+        }
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 2,
+               "spawn child ran");
+        expect(dinkc_vm_used(kidslot), "spawn keep after MAIN wait");
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(parent, strlen(parent), 1);
+        kidslot = dinkc_vm_sprite_fiber(1000);
+        expect(kidslot > 0, "spawn keep");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_used(kidslot), "spawn 1000 survives swap");
+
+        dinkc_cmd_bind_spawn(NULL);
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(miss, strlen(miss), 1);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "spawn miss 0");
+        expect(dinkc_vm_live() == 0, "miss spawn done");
+        (void)slot;
+        g_spawn_src = NULL;
     }
 
     printf("OK test_dinkc_vm\n");

@@ -40,7 +40,7 @@ export default function V02Plan() {
       </Callout>
 
       <Grid columns={3} gap={16}>
-        <Stat value="1 / 6" label="Host grafts landed" tone="info" />
+        <Stat value="2 / 6" label="Host grafts landed" tone="info" />
         <Stat value="4" label="Flycast pictures to accept" />
         <Stat value="Out" label="14.6 / 12 / 17" tone="warning" />
       </Grid>
@@ -50,10 +50,10 @@ export default function V02Plan() {
         stickyHeader
         striped
         headers={["#", "Work", "FreeDink", "Unlocks"]}
-        rowTone={["success", "danger", "danger", "warning", "warning", "info"]}
+        rowTone={["success", "success", "danger", "warning", "warning", "info"]}
         rows={[
           ["1", "goto / labels (#102)", "locate_goto", "Host locked. Flycast shop/gossip still a picture."],
-          ["2", "spawn", "dc_spawn", "Bombs, dragons, cutscene scripts"],
+          ["2", "spawn (host)", "dc_spawn", "Host locked. Bombs, dragons, cutscene scripts."],
           [
             "3",
             "load_screen + draw_screen",
