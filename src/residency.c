@@ -3,6 +3,7 @@
 
 #include "ff.h"
 #include "fs.h"
+#include "mem.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -133,6 +134,55 @@ void residency_swap_end(void)
             dink_blob_try_drop(key);
         }
     } while (found);
+}
+
+static int rel_is_dir_ff(const char *rel)
+{
+    size_t n;
+
+    if (rel == NULL) {
+        return 0;
+    }
+    n = strlen(rel);
+    return n >= 6 && strcmp(rel + n - 6, "dir.ff") == 0;
+}
+
+int residency_drop_one_prev(void)
+{
+    char key[DINK_FS_PATH_MAX];
+    const char *rel;
+    size_t n, best_n = 0;
+    int i, cls, found = 0;
+
+    key[0] = '\0';
+    for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
+        dink_blob_get_cls(rel, &cls, NULL);
+        if (!rel_is_dir_ff(rel) || cls != RES_PREV) {
+            continue;
+        }
+        if (n > best_n) {
+            snprintf(key, sizeof(key), "%s", rel);
+            best_n = n;
+            found = 1;
+        }
+    }
+    if (!found) {
+        return -1;
+    }
+    printf("residency drop prev %s\n", key);
+    ff_cache_release(key);
+    dink_blob_try_drop(key);
+    return 0;
+}
+
+int residency_make_room(size_t need)
+{
+    while (dink_blob_bytes() + need > (size_t)DINK_MEM_BLOB_PEAK) {
+        if (residency_drop_one_prev() != 0) {
+            return -1;
+        }
+    }
+    return 0;
 }
 
 static size_t sum_cls(int want, int age_prev_only)

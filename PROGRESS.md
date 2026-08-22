@@ -203,7 +203,7 @@ Living log of what landed on `master`. The bite *definitions* stay in [DREAMCAST
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — pig kill + barrels confirmed; Milder feed spam + oldman/house still open |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — village walk, Ethel, guard punch confirmed |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -218,7 +218,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **playtest leftovers** | Pig blood/HP confirmed. Barrel smash, old man, return-to-house still open |
+| **Next picture** | **playtest leftovers** | Ethel outdoor house first visit (map 409 seq 63) |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -276,3 +276,5 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (playtest graft) | **~90%** | `editor_type` 1 is re-enter only (`scale_brain` shrink). `draw_damage` / `random_blood`. Barrel smash frames. Pig/pill/dragon walk **frame 1** on enter (`need_push` + post-decode). Blood 187–189 with combat pixels. `inside_box`. `g_spmap_seq` is int16 (~155 KB BSS). |
 | 2026-08-21 (occupancy graft) | **~90%** | Enter-path opens `dir.ff` even when `EdGfx` is full. Sticky 164 not prepended on non-die screens. Slot bound 128 under `cpu_pixels`. |
 | 2026-08-21 (playtest tracker) | **~90%** | Pig blood + hit numbers confirmed. Remaining Flycast issues tracked in PLAYTEST.md; host `test_playtest` locks the pig punch path. |
+| 2026-08-21 (say TTL) | **~90%** | `say()` (not `say_stop`) expired via `add_text_sprite` `kill_ttl` (`max(strlen*77, 2700)`). Ethel hello / no-wizard were permanent because Dinkcast only cleared on A/B yield. Confirmed in Flycast. |
+| 2026-08-22 (409 house) | **~90%** | First 409 visit skipped seq 63: slurp doubled to 1 MiB and sbrk-failed before Prev drop. `fstat` + `make_room` before malloc. |

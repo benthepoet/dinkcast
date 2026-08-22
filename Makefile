@@ -127,7 +127,7 @@ tests/test_status: tests/test_status.c src/status.c src/inv.c src/script.c src/d
 
 tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c src/mem.h src/fs.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c
-	./$@
+	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_leak: tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c

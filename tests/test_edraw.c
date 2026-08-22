@@ -646,6 +646,53 @@ int main(void)
             return 1;
         }
     }
+    {
+        struct MapScreen gate;
+        int grec = (int)w.loc[408];
+
+        if (grec < 1 || map_load_record(grec, &gate) != 0) {
+            fprintf(stderr, "FAIL 408 gate map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(gate.sprite, seqs, g, &n, 1) != 0) {
+            fprintf(stderr, "FAIL 408 vis1 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[293].prefix[0] != '\0' && edraw_find(g, n, 293, 1) == NULL) {
+            fprintf(stderr, "FAIL 408 vis1 no guard seq 293\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
+    {
+        struct MapScreen ethel_out;
+        int erec = (int)w.loc[409];
+
+        if (erec < 1 || map_load_record(erec, &ethel_out) != 0) {
+            fprintf(stderr, "FAIL 409 ethel outdoor map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(ethel_out.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL 409 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[63].prefix[0] != '\0' && edraw_find(g, n, 63, 6) == NULL &&
+            edraw_find(g, n, 63, 1) == NULL) {
+            fprintf(stderr, "FAIL 409 no house seq 63 after 408\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);
