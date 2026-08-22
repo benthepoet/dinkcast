@@ -25,7 +25,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Audio, VMU, and a full-campaign test are not in this tag. Open pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
+**v0.1.0** (2026-08-22). Visual gates **V1–V6** and **8.6 house** accepted in Flycast. The opening village is playable with official `DINK_DATA`. Village PLAYTEST Open is empty (2026-08-22). Audio, VMU, and a full-campaign test are not in this tag. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 
