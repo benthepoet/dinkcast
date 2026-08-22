@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "brains.h"
+#include "dinkc_cmd.h"
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "player.h"
 #include "start_map.h"
 #include "world.h"
 
@@ -198,6 +200,66 @@ int main(void)
         brains_enter(&scr, DINK_VISION_DEFAULT);
         expect(brains_change_prop(c, 5, -1) == kept, "enter keeps create");
         expect(brains_slot_created(c), "still created");
+    }
+
+    {
+        struct Player pl;
+        struct MapScreen fol;
+        int c, j, x0;
+
+        memset(&fol, 0, sizeof(fol));
+        memset(&pl, 0, sizeof(pl));
+        player_init(&pl);
+        pl.x = 400;
+        pl.y = 200;
+        brains_bind_player(&pl);
+        brains_bind_screen(&fol);
+        brains_reset();
+        c = brains_create(200, 200, 3, 20, 1);
+        expect(c >= 2, "follow duck slot");
+        expect(brains_change_prop(c, DINKC_SP_SPEED, 1) == 1, "follow speed");
+        expect(brains_change_prop(c, DINKC_SP_BASE_WALK, 20) == 20,
+               "follow base_walk");
+        expect(brains_change_prop(c, DINKC_SP_FOLLOW, 1) == 1, "sp_follow");
+        expect(brains_follow(c) == 1, "follow field");
+        x0 = brains_change_prop(c, DINKC_SP_X, -1);
+        for (j = 0; j < 40; j++) {
+            brains_tick(&fol, seqs, &mask, j * 16, DINK_VISION_DEFAULT);
+        }
+        expect(brains_change_prop(c, DINKC_SP_X, -1) > x0,
+               "process_follow walks east");
+        expect(brains_change_prop(c, DINKC_SP_Y, -1) == 200,
+               "process_follow nosmooth same y");
+        /* nosmooth: equal Y leaves distancey=5000. Offset Y so the
+         * larger axis is the real 20 px and dist < 40 holds. */
+        expect(brains_change_prop(c, DINKC_SP_X, 380) == 380, "close x");
+        expect(brains_change_prop(c, DINKC_SP_Y, 190) == 190, "close y");
+        for (j = 0; j < 10; j++) {
+            brains_tick(&fol, seqs, &mask, 1000 + j * 16, DINK_VISION_DEFAULT);
+        }
+        expect(brains_change_prop(c, DINKC_SP_X, -1) == 380 &&
+                   brains_change_prop(c, DINKC_SP_Y, -1) == 190,
+               "process_follow hold under 40");
+        brains_bind_player(NULL);
+        brains_tick(&fol, seqs, &mask, 2000, DINK_VISION_DEFAULT);
+        expect(brains_follow(c) == 0, "follow kill inactive");
+        brains_bind_player(&pl);
+        pl.x = 400;
+        pl.y = 200;
+        expect(brains_change_prop(c, DINKC_SP_X, 200) == 200, "tgt reset x");
+        expect(brains_change_prop(c, DINKC_SP_Y, 200) == 200, "tgt reset y");
+        expect(brains_change_prop(c, DINKC_SP_BRAIN, 9) == 9, "pill for target");
+        expect(brains_change_prop(c, DINKC_SP_FOLLOW, 0) == 0, "no follow");
+        expect(brains_change_prop(c, DINKC_SP_TARGET, 1) == 1, "sp_target");
+        expect(brains_target(c) == 1, "target field");
+        expect(brains_change_prop(c, DINKC_SP_DISTANCE, 5) == 5, "sp_distance");
+        x0 = 200;
+        for (j = 0; j < 40; j++) {
+            brains_tick(&fol, seqs, &mask, 3000 + j * 16, DINK_VISION_DEFAULT);
+        }
+        expect(brains_change_prop(c, DINKC_SP_X, -1) > x0,
+               "process_target walks east");
+        brains_bind_player(NULL);
     }
 
     brains_set_freeze(26, 0);

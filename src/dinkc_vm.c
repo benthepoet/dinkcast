@@ -1156,6 +1156,7 @@ void dinkc_vm_set_now(int now_ms)
     if (now_ms > 0) {
         g_now_ms = now_ms;
     }
+    dinkc_cmd_set_now(g_now_ms);
 }
 
 void dinkc_vm_kill_all(void)
@@ -1196,6 +1197,7 @@ void dinkc_vm_tick(int now_ms)
     int i;
 
     g_now_ms = now_ms;
+    dinkc_cmd_set_now(now_ms);
     dinkc_vm_tick_callbacks(now_ms);
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         struct Fiber *f = &g_f[i];

@@ -72,7 +72,8 @@ struct BrainSpr {
     int kill_ttl;
     int kill_start;
     int hitpoints, defense, strength, exp, base_die, nohit, range;
-    int touch_damage, damage, last_hit, target, just_hit;
+    int touch_damage, damage, last_hit, target, follow, distance, attack_wait,
+        just_hit;
     int hard, notouch, bloodseq, bloodnum;
     char script[16];
 };
@@ -81,6 +82,7 @@ static struct BrainSpr g_b[101];
 static const struct MapScreen *g_map;
 static int g_unimpl;
 static void (*g_on_kill)(int slot, const char *proc);
+static int (*g_on_proc)(int slot, const char *proc);
 static void (*g_on_exp)(int num);
 static struct Player *g_pl;
 
@@ -517,6 +519,132 @@ static int automove(struct BrainSpr *s, const struct HardMask *mask)
     return hit;
 }
 
+/* Sprite 1 is Dink (g_pl). 2..100 are BrainSpr. */
+static int live_xy(int slot, int *x, int *y)
+{
+    if (slot == 1 && g_pl != NULL) {
+        *x = g_pl->x;
+        *y = g_pl->y;
+        return 1;
+    }
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    *x = g_b[slot].x;
+    *y = g_b[slot].y;
+    return 1;
+}
+
+/* FreeDink get_distance_and_dir_nosmooth (smooth_follow off). */
+static int get_distance_and_dir_nosmooth(const struct BrainSpr *s, int other,
+                                         int *dir)
+{
+    int ox, oy, distancex = 5000, distancey = 5000, dirx = 6, diry = 6;
+
+    if (s == NULL || dir == NULL || !live_xy(other, &ox, &oy)) {
+        if (dir != NULL) {
+            *dir = 6;
+        }
+        return 5000;
+    }
+    if (s->x > ox && (s->x - ox) < distancex) {
+        distancex = s->x - ox;
+        dirx = 4;
+    }
+    if (s->x < ox && (ox - s->x) < distancex) {
+        distancex = ox - s->x;
+        dirx = 6;
+    }
+    if (s->y > oy && (s->y - oy) < distancey) {
+        distancey = s->y - oy;
+        diry = 8;
+    }
+    if (s->y < oy && (oy - s->y) < distancey) {
+        distancey = oy - s->y;
+        diry = 2;
+    }
+    if (distancex > distancey) {
+        *dir = dirx;
+        return distancex;
+    }
+    *dir = diry;
+    return distancey;
+}
+
+/* FreeDink process_follow. */
+static void process_follow(struct BrainSpr *s, const struct SeqInfo *seqs,
+                           const struct HardMask *mask)
+{
+    int dir, distance;
+
+    if (s == NULL) {
+        return;
+    }
+    if (s->follow > 100) {
+        printf("brain follow bad %d\n", s->follow);
+        return;
+    }
+    {
+        int ox, oy;
+
+        if (!live_xy(s->follow, &ox, &oy)) {
+            printf("brain follow kill\n");
+            s->follow = 0;
+            return;
+        }
+    }
+    distance = get_distance_and_dir_nosmooth(s, s->follow, &dir);
+    if (distance < 40) {
+        return;
+    }
+    changedir(dir, s, s->base_walk, seqs);
+    (void)automove(s, mask);
+}
+
+/* FreeDink process_target. */
+static void process_target(struct BrainSpr *s, const struct SeqInfo *seqs,
+                           const struct HardMask *mask)
+{
+    int dir, distance;
+
+    if (s == NULL) {
+        return;
+    }
+    if (s->target > 100) {
+        printf("brain target bad %d\n", s->target);
+        return;
+    }
+    {
+        int ox, oy;
+
+        if (!live_xy(s->target, &ox, &oy)) {
+            printf("brain target kill\n");
+            s->target = 0;
+            return;
+        }
+    }
+    distance = get_distance_and_dir_nosmooth(s, s->target, &dir);
+    if (distance < s->distance) {
+        return;
+    }
+    changedir(dir, s, s->base_walk, seqs);
+    (void)automove(s, mask);
+}
+
+/* FreeDink pig/dragon: locate ATTACK when attack_wait has elapsed. */
+static void process_lateral_attack(struct BrainSpr *s, int now_ms)
+{
+    if (s == NULL || s->target == 0) {
+        return;
+    }
+    if ((unsigned)s->attack_wait >= (unsigned)now_ms) {
+        return;
+    }
+    if (s->script[0] != '\0' && g_on_proc != NULL) {
+        (void)g_on_proc(spr_i(s), "ATTACK");
+    }
+}
+
 static void done_moving(struct BrainSpr *s)
 {
     s->move_active = 0;
@@ -593,10 +721,14 @@ static int autoreverse_diag(struct BrainSpr *s)
     return 0;
 }
 
-static void no_brain(struct BrainSpr *s)
+static void no_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                     const struct HardMask *mask)
 {
     if (s->freeze) {
         return;
+    }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
     }
 }
 
@@ -667,6 +799,10 @@ static void people_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         return;
     }
     if (s->freeze) {
+        return;
+    }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
         return;
     }
     if (s->move_wait < now_ms && s->seq == 0) {
@@ -752,6 +888,7 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         }
         /* FreeDink: flying-head sprite brain 5, base_walk 120. */
         head = brains_create(s->x, s->y, DINK_BRAIN_ONETIME, 1, 1);
+        s->follow = 0;
         s->base_walk = 110;
         s->speed = 1;
         s->timing = 0;
@@ -777,6 +914,10 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         return;
     }
     if (s->freeze) {
+        return;
+    }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
         return;
     }
     if (s->seq == 0) {
@@ -837,6 +978,11 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->freeze) {
         return;
     }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
+        return;
+    }
+    process_lateral_attack(s, now_ms);
     if (s->seq == 0) {
         if ((rand() % 12) + 1 == 1) {
             hold = (rand() % 9) + 1;
@@ -915,6 +1061,41 @@ static void pill_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->freeze) {
         return;
     }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
+    }
+    if (s->target != 0) {
+        int dir, distance;
+
+        if (in_this_base(s->seq, s->base_attack)) {
+            return;
+        }
+        if (s->distance == 0) {
+            s->distance = 5;
+        }
+        distance = get_distance_and_dir_nosmooth(s, s->target, &dir);
+        if (distance < s->distance && (unsigned)s->attack_wait < (unsigned)now_ms) {
+            if (s->base_attack != -1) {
+                get_distance_and_dir_nosmooth(s, s->target, &dir);
+                s->dir = dir;
+                s->seq = s->base_attack + s->dir;
+                s->frame = 0;
+                if (s->script[0] != '\0' && g_on_proc != NULL &&
+                    g_on_proc(spr_i(s), "ATTACK") == 0) {
+                    return;
+                }
+                s->move_wait = now_ms + (rand() % 300) + 10;
+                return;
+            }
+        }
+        if (s->move_wait < now_ms) {
+            process_target(s, seqs, mask);
+            s->move_wait = now_ms + 200;
+            return;
+        }
+        goto walk_normal;
+    }
+walk_normal:
     if (s->base_walk != -1 && s->seq == 0) {
         goto recal;
     }
@@ -954,7 +1135,7 @@ static void pill_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
 /* FreeDink dragon_brain (damage 15.2; no ATTACK script). */
 static void dragon_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
-                         const struct HardMask *mask)
+                         const struct HardMask *mask, int now_ms)
 {
     int hold;
 
@@ -968,6 +1149,11 @@ static void dragon_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     if (s->freeze) {
         return;
     }
+    if (s->follow > 0) {
+        process_follow(s, seqs, mask);
+        return;
+    }
+    process_lateral_attack(s, now_ms);
     if (s->seq == 0) {
     recal:
         if ((rand() % 12) + 1 == 1) {
@@ -1183,7 +1369,7 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         return;
     }
     if (b == DINK_BRAIN_NONE) {
-        no_brain(s);
+        no_brain(s, seqs, mask);
         return;
     }
     if (b == DINK_BRAIN_BOUNCE) {
@@ -1226,7 +1412,7 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         return;
     }
     if (b == DINK_BRAIN_DRAGON) {
-        dragon_brain(s, seqs, mask);
+        dragon_brain(s, seqs, mask, now_ms);
         return;
     }
     if (b == DINK_BRAIN_MISSILE) {
@@ -1601,6 +1787,14 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->hard;
     } else if (prop == DINKC_SP_NOTOUCH) {
         p = &s->notouch;
+    } else if (prop == DINKC_SP_FOLLOW) {
+        p = &s->follow;
+    } else if (prop == DINKC_SP_TARGET) {
+        p = &s->target;
+    } else if (prop == DINKC_SP_DISTANCE) {
+        p = &s->distance;
+    } else if (prop == DINKC_SP_ATTACK_WAIT) {
+        p = &s->attack_wait;
     }
     if (p == NULL) {
         return -1;
@@ -1704,6 +1898,27 @@ void brains_bind_exp(void (*fn)(int num))
 void brains_bind_player(struct Player *p)
 {
     g_pl = p;
+}
+
+void brains_bind_proc(int (*fn)(int slot, const char *proc))
+{
+    g_on_proc = fn;
+}
+
+int brains_follow(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].follow;
+}
+
+int brains_target(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].target;
 }
 
 int brains_hurt(int slot, int damage)

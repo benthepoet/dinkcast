@@ -43,6 +43,9 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_SIZE 32
 #define DINKC_SP_HARD 33
 #define DINKC_SP_NOTOUCH 34
+#define DINKC_SP_FOLLOW 35
+#define DINKC_SP_TARGET 36
+#define DINKC_SP_ATTACK_WAIT 37
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
@@ -59,6 +62,7 @@ void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
 void dinkc_cmd_bind_fiber(int fiber, int sprite);
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage));
 void dinkc_cmd_bind_restart(void (*fn)(void));
+void dinkc_cmd_set_now(int now_ms);
 void dinkc_cmd_set_dink_base_push(int seq);
 int dinkc_cmd_dink_base_push(void);
 /* 1 if move()/move_stop still running. */

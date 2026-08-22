@@ -71,7 +71,7 @@ export default function CampaignGraftAudit() {
           series={[
             {
               name: "Count",
-              data: [98, 125, 45],
+              data: [102, 125, 45],
               tone: "info",
             },
           ]}
@@ -92,9 +92,9 @@ export default function CampaignGraftAudit() {
         rowTone={[
           "success",
           "success",
-          "danger",
-          "danger",
-          "warning",
+          "success",
+          "success",
+          "success",
           "warning",
           "warning",
           "info",
@@ -118,19 +118,19 @@ export default function CampaignGraftAudit() {
             "3",
             "load_screen / draw_screen / fade",
             "game_load_screen / draw_screen_game",
-            "Silent no-op / missing. Holes, caves, scripted warps — not map edges.",
+            "Host #105. Holes, caves, scripted warps — not map edges.",
           ],
           [
             "4",
             "screenlock",
             "dc_screenlock",
-            "Missing. Boss and castle arenas.",
+            "Host #106. Boss and castle arenas. No lock-bar gfx.",
           ],
           [
             "5",
             "sp_target → BrainSpr",
             "process_target / process_follow",
-            "Writes g_target[]. Pill/dragon ATTACK and Quackers follow.",
+            "Host this PR. BrainSpr fields, not g_target[]. Pill/dragon ATTACK and Quackers follow.",
           ],
           [
             "6",
@@ -228,7 +228,7 @@ export default function CampaignGraftAudit() {
       <Text>
         Confirmed 2026-08-22: Ethel outdoor house 409, smash y-sort, pig-pen
         fence. Those were occupancy and paint, not DinkC. Campaign holes continue
-        at spawn, load_screen, screenlock, and pill/dragon targeting.
+        at get_sprite_with_this_brain after target/follow.
       </Text>
     </Stack>
   );

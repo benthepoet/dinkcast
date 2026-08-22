@@ -320,6 +320,27 @@ int main(void)
         expect(dinkc_cmd("sp_strength", args, 2, "", "", &yld, &rv) == 1,
                "sp_strength cmd");
         expect(brains_strength(5) == 4, "sp_strength npc");
+        args[1] = 1;
+        expect(dinkc_cmd("sp_follow", args, 2, "", "", &yld, &rv) == 1 &&
+                   brains_follow(5) == 1,
+               "sp_follow BrainSpr");
+        expect(dinkc_cmd("sp_target", args, 2, "", "", &yld, &rv) == 1 &&
+                   brains_target(5) == 1,
+               "sp_target BrainSpr");
+        args[1] = 12;
+        expect(dinkc_cmd("sp_distance", args, 2, "", "", &yld, &rv) == 1 &&
+                   brains_change_prop(5, DINKC_SP_DISTANCE, -1) == 12,
+               "sp_distance BrainSpr");
+        dinkc_cmd_set_now(0);
+        args[1] = 50;
+        expect(dinkc_cmd("sp_attack_wait", args, 2, "", "", &yld, &rv) == 1 &&
+                   rv == 50,
+               "sp_attack_wait now=0 stores arg");
+        dinkc_cmd_set_now(1000);
+        args[1] = 50;
+        expect(dinkc_cmd("sp_attack_wait", args, 2, "", "", &yld, &rv) == 1 &&
+                   rv == 1050,
+               "sp_attack_wait + thisTickCount");
     }
 
     dinkc_var_init();
