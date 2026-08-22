@@ -175,11 +175,12 @@ int main(void)
         brains_enter(&scr, DINK_VISION_DEFAULT);
         c = brains_create(40, 50, 0, 32, 1);
         expect(c >= 2 && c <= 100, "create_sprite slot");
+        expect(brains_slot_hard(c) == 1, "add_sprite hard=1");
         expect(brains_change_prop(c, 2, 3) == 3, "created speed");
         expect(brains_change_prop(c, 5, 80) == 80, "sp_x created");
         brains_apply(&scr);
         expect((int)scr.sprite[c].active == 1 && (int)scr.sprite[c].type == 1 &&
-                   (int)scr.sprite[c].x == 80,
+                   (int)scr.sprite[c].x == 80 && (int)scr.sprite[c].hard == 1,
                "created overlay after apply");
         brains_set_script(c, "s1-lg");
         scr.sprite[c].script[0] = '\0';

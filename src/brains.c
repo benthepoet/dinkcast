@@ -1654,6 +1654,9 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         g_b[i].seq = 0;
         g_b[i].frame = 0;
         g_b[i].size = 100;
+        /* FreeDink add_sprite / add_sprite_dumb: hard=1 (not solid).
+         * memset left 0 so BAR-SH sheart was stamped into the hitmap. */
+        g_b[i].hard = 1;
         g_b[i].base_walk = -1;
         g_b[i].base_idle = -1;
         g_b[i].base_attack = -1;
