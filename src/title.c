@@ -3,8 +3,8 @@
 
 #include "bmp.h"
 #include "fs.h"
-#include "pad.h"
 #include "rgb565.h"
+#include "tiles.h"
 #include "title_path.h"
 
 #include <stdio.h>
@@ -128,7 +128,10 @@ int title_present_pvr(const struct TitleStill *t)
                t->rgb565 + (size_t)y * (size_t)t->w,
                (size_t)t->w * 2u);
     }
-    pvr_init_defaults();
+    if (tiles_pvr_ensure() != 0) {
+        free(pad);
+        return -1;
+    }
     tex = pvr_mem_malloc((size_t)tw * (size_t)th * 2u);
     if (tex == NULL) {
         free(pad);
@@ -144,50 +147,38 @@ int title_present_pvr(const struct TitleStill *t)
     u = (float)t->w / (float)tw;
     v = (float)t->h / (float)th;
 
-    for (;;) {
-        uint32_t buttons = 0;
-        int have;
-
-        have = (pad_poll_port0(&buttons) == 0);
-        if (pad_title_wants_leave(have, buttons)) {
-            pvr_wait_ready();
-            pvr_mem_free(tex);
-            /* Leave PVR so main can vid_clear + bfont on vram_s. */
-            pvr_shutdown();
-            return 0;
-        }
-
-        pvr_wait_ready();
-        pvr_scene_begin();
-        pvr_list_begin(PVR_LIST_OP_POLY);
-        pvr_prim(&hdr, sizeof(hdr));
-        vert.argb = 0xffffffff;
-        vert.oargb = 0;
-        vert.z = 1.0f;
-        vert.flags = PVR_CMD_VERTEX;
-        vert.x = 0.0f;
-        vert.y = 0.0f;
-        vert.u = 0.0f;
-        vert.v = 0.0f;
-        pvr_prim(&vert, sizeof(vert));
-        vert.x = 640.0f;
-        vert.y = 0.0f;
-        vert.u = u;
-        vert.v = 0.0f;
-        pvr_prim(&vert, sizeof(vert));
-        vert.x = 0.0f;
-        vert.y = 480.0f;
-        vert.u = 0.0f;
-        vert.v = v;
-        pvr_prim(&vert, sizeof(vert));
-        vert.flags = PVR_CMD_VERTEX_EOL;
-        vert.x = 640.0f;
-        vert.y = 480.0f;
-        vert.u = u;
-        vert.v = v;
-        pvr_prim(&vert, sizeof(vert));
-        pvr_list_finish();
-        pvr_scene_finish();
-    }
+    pvr_scene_begin();
+    pvr_list_begin(PVR_LIST_OP_POLY);
+    pvr_prim(&hdr, sizeof(hdr));
+    vert.argb = 0xffffffff;
+    vert.oargb = 0;
+    vert.z = 1.0f;
+    vert.flags = PVR_CMD_VERTEX;
+    vert.x = 0.0f;
+    vert.y = 0.0f;
+    vert.u = 0.0f;
+    vert.v = 0.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = 640.0f;
+    vert.y = 0.0f;
+    vert.u = u;
+    vert.v = 0.0f;
+    pvr_prim(&vert, sizeof(vert));
+    vert.x = 0.0f;
+    vert.y = 480.0f;
+    vert.u = 0.0f;
+    vert.v = v;
+    pvr_prim(&vert, sizeof(vert));
+    vert.flags = PVR_CMD_VERTEX_EOL;
+    vert.x = 640.0f;
+    vert.y = 480.0f;
+    vert.u = u;
+    vert.v = v;
+    pvr_prim(&vert, sizeof(vert));
+    pvr_list_finish();
+    pvr_scene_finish();
+    pvr_wait_ready();
+    pvr_mem_free(tex);
+    return 0;
 }
 #endif

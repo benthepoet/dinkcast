@@ -6,6 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "src" / "main.c"
+TITLE = ROOT / "src" / "title.c"
 
 
 def main() -> int:
@@ -53,6 +54,14 @@ def main() -> int:
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]
+    title = TITLE.read_text(encoding="utf-8")
+    need.append(
+        (
+            "splash no pad",
+            "pad_title_wants_leave" not in title and "pvr_shutdown" not in title
+            and "tiles_pvr_ensure" in title,
+        )
+    )
     missing = [n for n, ok in need if not ok]
     if missing:
         print("FAIL", MAIN, missing)
