@@ -45,6 +45,10 @@ def main() -> int:
         ("dinkc load_screen", "play_load_screen" in text and
          "play_draw_screen" in text and
          "dinkc_cmd_bind_load_screen" in text),
+        ("start menu", "startmenu_present_pvr" in text and
+         "give_start_fists" in text),
+        ("start pause", "startpause_tick" in text and "STARTPAUSE_SAVE" in text),
+        ("save load", "load_game" in text and "save_game" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

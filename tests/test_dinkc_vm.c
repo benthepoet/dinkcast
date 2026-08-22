@@ -4,6 +4,7 @@
 #include "dinkc_vm.h"
 #include "hard.h"
 #include "player.h"
+#include "save.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,6 +225,28 @@ int main(void)
         expect(dinkc_vm_choice_cur() == 2, "cur2");
         dinkc_vm_choice_pick(dinkc_vm_choice_cur());
         expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2, "pick B");
+    }
+    {
+        /* start-2.c load(): ten &savegameinfo + Nevermind. */
+        const char *loadc =
+            "void main(void) { choice_start(); \"&savegameinfo\"; "
+            "\"Nevermind\"; choice_end(); }";
+        char dir[] = "build/savetest2";
+
+        (void)system("mkdir -p build/savetest2");
+        save_set_dir(dir);
+        dinkc_vm_reset();
+        dinkc_var_init();
+        slot = dinkc_vm_start(loadc, strlen(loadc), 1);
+        expect(slot > 0 && dinkc_vm_waiting_choice(), "savegameinfo choice");
+        expect(dinkc_vm_choice_n() == 2, "two lines");
+        expect(strstr(dinkc_vm_choice_line(1), "Empty") != NULL ||
+                   strstr(dinkc_vm_choice_line(1), "empty") != NULL,
+               "slot empty token");
+        expect(strcmp(dinkc_vm_choice_line(2), "Nevermind") == 0, "nevermind");
+        dinkc_vm_choice_pick(2);
+        (void)system("rm -rf build/savetest2");
+        (void)dir;
     }
     {
         const char *titled =
