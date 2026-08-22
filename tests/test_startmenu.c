@@ -28,6 +28,13 @@ int main(void)
     expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_NEW, "click new");
     startmenu_reset();
     expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_NEW, "click new again");
+    {
+        int cx = 0, cy = 0;
+
+        /* but7-01 115x29 cx 77 cy 22 → but7-02 135x51 glow. */
+        startmenu_highlight_center(115, 29, 77, 22, 135, 51, &cx, &cy);
+        expect(cx == 87 && cy == 33, "highlight center");
+    }
 
     /* start-1.c buttonon/off: seq 199 plays then reverses (brain 7). */
     startmenu_hover_bind(STARTMENU_NEW, STARTMENU_HOVER_NEW,

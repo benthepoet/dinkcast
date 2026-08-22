@@ -36,6 +36,10 @@ int startmenu_hover_live(int i);
 int startmenu_hover_pframe(int i);
 int startmenu_hover_x(int i);
 int startmenu_hover_y(int i);
+/* but7-/but9- pframe 2 is a glow around the idle word (larger BMP).
+ * Keep the letters still: extra pixels grow equally on all sides. */
+void startmenu_highlight_center(int w0, int h0, int cx0, int cy0, int w1,
+                                int h1, int *cx1, int *cy1);
 /* -1 still choosing; else STARTMENU_*. */
 int startmenu_tick(uint32_t prev, uint32_t now);
 const char *startmenu_script(int focus);

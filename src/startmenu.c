@@ -167,6 +167,17 @@ int startmenu_hover_y(int i)
     return hover_ok(i) ? g_hover[i].y : 0;
 }
 
+void startmenu_highlight_center(int w0, int h0, int cx0, int cy0, int w1,
+                                int h1, int *cx1, int *cy1)
+{
+    if (cx1 != NULL) {
+        *cx1 = cx0 + (w1 - w0) / 2;
+    }
+    if (cy1 != NULL) {
+        *cy1 = cy0 + (h1 - h0) / 2;
+    }
+}
+
 int startmenu_focus(void)
 {
     return g_focus;
@@ -321,7 +332,7 @@ static int load_seq_fr(struct SeqInfo *seqs, int seq, int frame,
 
 int startmenu_present_pvr(struct SeqInfo *seqs)
 {
-    struct SpriteFrame logo, btn[STARTMENU_N];
+    struct SpriteFrame logo, btn[STARTMENU_N][2];
     struct SpriteFrame hover[STARTMENU_N][16];
     static const int bseq[STARTMENU_N] = {STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD};
     static const int bx[STARTMENU_N] = {76, 524};
@@ -332,7 +343,7 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
                                         STARTMENU_HOVER_LOAD_X};
     static const int hy[STARTMENU_N] = {STARTMENU_HOVER_NEW_Y,
                                         STARTMENU_HOVER_LOAD_Y};
-    int i, f, nfr, pick = -1, last = -1;
+    int i, f, nfr, fr, pick = -1, last = -1;
     uint32_t prev = 0;
 
     memset(&logo, 0, sizeof(logo));
@@ -341,9 +352,16 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     (void)tiles_pvr_ensure();
     (void)load_seq_fr(seqs, STARTMENU_SEQ_LOGO, 1, &logo);
     for (i = 0; i < STARTMENU_N; i++) {
-        /* Pad focus is the hover arrow only. buttonon pframe 2 shifts the
-         * word (mouse highlight); do not swap the label. */
-        (void)load_seq_fr(seqs, bseq[i], 1, &btn[i]);
+        (void)load_seq_fr(seqs, bseq[i], 1, &btn[i][0]);
+        if (load_seq_fr(seqs, bseq[i], 2, &btn[i][1]) != 0) {
+            btn[i][1] = btn[i][0];
+            btn[i][1].tex = btn[i][0].tex;
+            btn[i][1].argb1555 = NULL;
+        } else {
+            startmenu_highlight_center(btn[i][0].w, btn[i][0].h, btn[i][0].cx,
+                                       btn[i][0].cy, btn[i][1].w, btn[i][1].h,
+                                       &btn[i][1].cx, &btn[i][1].cy);
+        }
         nfr = 0;
         if (seqs != NULL && hseq[i] > 0 && hseq[i] < DINK_MAX_SEQ) {
             nfr = seqs[hseq[i]].nframes;
@@ -399,7 +417,9 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         /* START.c / buttonon: sp_noclip 1. Logo is on-screen either way. */
         sprite_draw_pvr_noclip(&logo, 320.0f, 240.0f, 2.0f);
         for (i = 0; i < STARTMENU_N; i++) {
-            sprite_draw_pvr_noclip(&btn[i], (float)bx[i], (float)by[i], 3.0f);
+            fr = (foc == i) ? 1 : 0;
+            sprite_draw_pvr_noclip(&btn[i][fr], (float)bx[i], (float)by[i],
+                                   3.0f);
             if (startmenu_hover_live(i)) {
                 int pf = startmenu_hover_pframe(i);
 
@@ -417,7 +437,11 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     }
     sprite_frame_free(&logo);
     for (i = 0; i < STARTMENU_N; i++) {
-        sprite_frame_free(&btn[i]);
+        sprite_frame_free(&btn[i][0]);
+        if (btn[i][1].argb1555 != NULL ||
+            (btn[i][1].tex != NULL && btn[i][1].tex != btn[i][0].tex)) {
+            sprite_frame_free(&btn[i][1]);
+        }
         for (f = 1; f <= 15; f++) {
             if (hover[i][f].argb1555 != NULL || hover[i][f].tex != NULL) {
                 sprite_frame_free(&hover[i][f]);
