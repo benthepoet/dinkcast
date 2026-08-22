@@ -9,6 +9,7 @@
 #include "status.h"
 #include "residency.h"
 #include "script.h"
+#include "sprite.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,10 +63,18 @@ int main(void)
     }
     expect(status_glyph(442, 1, &sl, &st, &sr, &sb, &adv) == 0, "level 1");
     {
-        int area = (sr - sl) * (sb - st);
-        int op = status_glyph_opaque_n(442, 1);
+        uint16_t px = SPRITE_ARGB1555_OPAQUE;
 
-        expect(area > 0 && op > area / 2, "level 1 paper opaque");
+        expect(status_glyph_argb(181, 10, 0, 0, &px) == 0 &&
+                   sprite_pixel_opaque(px),
+               "exp 0 corner paper");
+        expect(status_glyph_argb(442, 1, 0, 0, &px) == 0 &&
+                   !sprite_pixel_opaque(px),
+               "level 1 white keyed");
+        expect(status_glyph_argb(442, 1, (sr - sl) / 2, (sb - st) / 2, &px) ==
+                   0 &&
+                   sprite_pixel_opaque(px),
+               "level 1 ink");
     }
     expect(status_chrome_opaque_n() > (DINK_HUD_ATLAS * 80) / 2,
            "chrome paper opaque");

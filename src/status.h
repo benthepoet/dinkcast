@@ -5,6 +5,7 @@
 #include "ini.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 /* Plan §1.2 HUD atlas: digits + health chunks + magic gauge. */
 #define DINK_HUD_ATLAS 256
@@ -28,6 +29,7 @@ int status_glyph(int seq, int frame, int *sl, int *st, int *sr, int *sb,
                  int *adv);
 int status_glyph_opaque_n(int seq, int frame);
 int status_chrome_opaque_n(void);
+int status_glyph_argb(int seq, int frame, int lx, int ly, uint16_t *out);
 size_t status_cpu_bytes(void);
 void status_drop_cpu(void);
 int status_atlas_bytes(void);

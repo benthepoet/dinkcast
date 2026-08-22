@@ -153,6 +153,23 @@ int status_chrome_opaque_n(void)
     return n;
 }
 
+int status_glyph_argb(int seq, int frame, int lx, int ly, uint16_t *out)
+{
+    int i, x, y;
+
+    i = glyph_find(seq, frame);
+    if (i < 0 || g_digit == NULL || out == NULL || lx < 0 || ly < 0) {
+        return -1;
+    }
+    x = g_glyph[i].sl + lx;
+    y = g_glyph[i].st + ly;
+    if (x >= g_glyph[i].sr || y >= g_glyph[i].sb) {
+        return -1;
+    }
+    *out = g_digit[y * DINK_HUD_ATLAS + x];
+    return 0;
+}
+
 static int pack_copy(uint16_t *atlas, int aw, int ah, const struct SpriteFrame *fr,
                      int *ox, int *oy)
 {
@@ -259,9 +276,14 @@ static int add_level_digit(int frame)
                 g = bm.pal[i * 3 + 1];
                 b = bm.pal[i * 3 + 2];
             }
-            pad[y * tw + x] = (uint16_t)(SPRITE_ARGB1555_OPAQUE |
-                                         ((r >> 3) << 10) | ((g >> 3) << 5) |
-                                         (b >> 3));
+            /* load_sprites loose BMP: white key (ini LEFTALIGN is ignored). */
+            if (r > 240 && g > 240 && b > 240) {
+                pad[y * tw + x] = 0;
+            } else {
+                pad[y * tw + x] = (uint16_t)(SPRITE_ARGB1555_OPAQUE |
+                                             ((r >> 3) << 10) |
+                                             ((g >> 3) << 5) | (b >> 3));
+            }
         }
     }
     fr.w = bm.w;
