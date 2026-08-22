@@ -145,6 +145,25 @@ int main(void)
     dinkc_cmd_apply_spmap(&scr, DINK_START_PLAYER_MAP);
     expect(scr.sprite[5].active == 0, "spmap type 1");
 
+    {
+        struct MapScreen barrel;
+        int yld = 0, rv = 0, args[2];
+
+        memset(&barrel, 0, sizeof(barrel));
+        barrel.sprite[4].active = 1;
+        barrel.sprite[4].type = 1;
+        barrel.sprite[4].hard = 0;
+        dinkc_var_set("&player_map", DINK_START_PLAYER_MAP, DINKC_GLOBAL_SCOPE,
+                      1);
+        args[0] = 4;
+        args[1] = 3;
+        expect(dinkc_cmd("editor_type", args, 2, "", "", &yld, &rv) == 1,
+               "editor_type 3");
+        dinkc_cmd_apply_spmap(&barrel, DINK_START_PLAYER_MAP);
+        expect(barrel.sprite[4].type == 0 && barrel.sprite[4].hard == 1,
+               "type 3 is bg not hard");
+    }
+
     printf("OK test_touch\n");
     return 0;
 }

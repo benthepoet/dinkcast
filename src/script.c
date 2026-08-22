@@ -115,7 +115,7 @@ static int start_main(const char *name, int sprite)
     if (dinkc_load(name, &buf, &n) != 0) {
         return -1;
     }
-    if (dinkc_vm_start(buf, n, sprite) < 0) {
+    if (dinkc_vm_start_keep(buf, n, sprite, "main") < 0) {
         printf("dinkc attach no main %s spr=%d\n", name, sprite);
         dinkc_free(buf);
         return -1;
@@ -167,10 +167,20 @@ static int start_named(int sprite, const char *file, const char *proc)
     if (dinkc_load(file, &buf, &n) != 0) {
         return -1;
     }
-    /* FreeDink locate then kill_returning_stuff. Do not abort wait/say. */
+    /* FreeDink locate then kill_returning_stuff; keep MAIN locals. */
     if (!src_has_proc(buf, n, proc)) {
         dinkc_free(buf);
         return -1;
+    }
+    /* Editor sprites: locate on the MAIN keep fiber (s1-gg &mrandom). */
+    if (sprite >= 1 && sprite <= 99) {
+        int slot = dinkc_vm_sprite_fiber(sprite);
+
+        if (slot > 0) {
+            dinkc_vm_kill_returning(slot);
+            dinkc_free(buf);
+            return dinkc_vm_locate(slot, proc) >= 0 ? 0 : -1;
+        }
     }
     dinkc_vm_kill_sprite(sprite);
     if (dinkc_vm_start_proc(buf, n, sprite, proc) < 0) {
@@ -380,8 +390,6 @@ void script_on_main(int script_id)
 
 void script_on_talk(int sprite)
 {
-    char *buf = NULL;
-    size_t n = 0;
     const char *nm = slot_script(sprite);
 
     snprintf(g_log, sizeof(g_log), "talk sprite=%d script=%s", sprite, nm);
@@ -389,14 +397,7 @@ void script_on_talk(int sprite)
     if (nm[0] == '\0') {
         return;
     }
-    if (dinkc_load(nm, &buf, &n) != 0) {
-        return;
-    }
-    dinkc_vm_kill_sprite(sprite);
-    if (dinkc_vm_start_proc(buf, n, sprite, "talk") < 0) {
-        printf("dinkc talk no proc %s\n", nm);
-    }
-    dinkc_free(buf);
+    (void)start_named(sprite, nm, "talk");
 }
 
 void script_on_hit(int sprite)

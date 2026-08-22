@@ -538,8 +538,8 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
         if (t == 0) {
             continue;
         }
-        /* FreeDink update_play_changes: only on screen load. Types 6/7/8
-         * also clear active; timers that restore them are 17. */
+        /* FreeDink update_play_changes: screen load and draw_hard_sprite.
+         * Types 6/7/8 also clear active; timers that restore them are 17. */
         if (t == 1 || t == 6 || t == 7 || t == 8) {
             scr->sprite[i].active = 0;
         }

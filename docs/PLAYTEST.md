@@ -30,5 +30,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 |---|---|---|
 | Ethel outdoor house (map 409 seq 63) on first visit from 408 | Prev drop before slurp malloc; not a seq-63 pin | `test_edraw` 408→409 seq 63; `test_mem` make_room |
 | Dink draws over smashed barrels | FreeDink brain 5 stamps last frame to background | `test_playtest` barrel type 0 |
+| Pig-pen south fence joint does not flip-flop (map 407 seq 93 slots 10/22) | Shared world-sprite z (painter); not a seq-93 pin | `test_world` editor_draw_behind |
+| Smashed barrel has no leftover hardness (409/441 seq 173) | Type 3 apply + HIT after `external`; not a seq-173 pin | `test_playtest` baked hard; `test_dinkc_vm` bar-sh external |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.

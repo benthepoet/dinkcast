@@ -1418,6 +1418,7 @@ void brains_apply(struct MapScreen *scr)
             if (s->pframe > 0) {
                 scr->sprite[i].frame = s->pframe;
             }
+            scr->sprite[i].hard = s->hard;
             continue;
         }
         if (!s->live) {
@@ -1840,9 +1841,10 @@ int brains_slot_size(int slot)
 
 int brains_slot_hard(int slot)
 {
-    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+    if (slot < 1 || slot > 100) {
         return 0;
     }
+    /* Survives brain-5 bake (live=0). 0 = stamp hardness. */
     return g_b[slot].hard;
 }
 

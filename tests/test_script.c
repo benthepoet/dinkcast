@@ -115,6 +115,8 @@ int main(void)
                 script_enter_vision();
                 expect(script_play_vision() == 1, "s1-gate story1 vision");
                 expect(script_attach_live() >= 1, "guard script attaches");
+                script_on_hit(4);
+                expect(dinkc_vm_waiting_say(), "guard hit say");
             }
             {
                 struct MapScreen duck;
