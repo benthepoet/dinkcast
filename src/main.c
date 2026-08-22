@@ -481,18 +481,10 @@ static void game_kill_cmd(void)
 
 static void title_show_splash(void)
 {
-    struct TitleStill title;
-
-    memset(&title, 0, sizeof(title));
-    if (title_load(&title) != 0) {
-        printf("title reload fail\n");
-        return;
-    }
-    if (title_present_pvr(&title) != 0) {
-        title_free(&title);
-        return;
-    }
-    title_free(&title);
+    /* Do not call title_present_pvr here: it pvr_shutdown() and leaves
+     * tiles g_pvr_ready set, so tiles_pvr_ensure is a no-op on a dead
+     * PVR and wipes saybox/font/inv uploads. Quit/Title return to the
+     * START menu (fill_screen 0), not a second Splash.bmp present. */
     tiles_draw_clear_pvr(0xff000000);
 }
 
@@ -514,12 +506,23 @@ static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
             continue;
         }
         if (pick == STARTMENU_LOAD) {
+            int args[8];
+            int ret = 0;
+
             slot = startmenu_present_slots_pvr();
             if (slot < 1) {
                 continue;
             }
-            if (save_game_exist(slot) == 0 || save_load_slot(slot, pl) != 0) {
+            if (save_game_exist(slot) == 0) {
                 printf("start-2 load empty slot=%d\n", slot);
+                continue;
+            }
+            dinkc_vm_reset();
+            memset(args, 0, sizeof(args));
+            args[0] = slot;
+            (void)dinkc_cmd("load_game", args, 1, NULL, NULL, NULL, &ret);
+            if (ret != 1) {
+                printf("start-2 load_game fail slot=%d\n", slot);
                 continue;
             }
             if (player_map != NULL) {

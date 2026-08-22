@@ -48,7 +48,7 @@ def main() -> int:
         ("start menu", "startmenu_present_pvr" in text and
          "give_start_fists" in text),
         ("start pause", "startpause_tick" in text and "STARTPAUSE_SAVE" in text),
-        ("save load", "save_load_slot" in text and "save_game" in text),
+        ("save load", "load_game" in text and "save_game" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

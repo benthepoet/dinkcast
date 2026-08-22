@@ -131,6 +131,7 @@ tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src
 
 tests/test_leak: tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
+	./$@
 
 tests/test_save: tests/test_save.c src/save.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_save.c src/save.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c

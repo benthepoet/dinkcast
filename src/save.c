@@ -236,63 +236,57 @@ int save_pack(uint8_t *dst, size_t cap, size_t *n, const struct Player *pl)
     return 0;
 }
 
-int save_unpack(const uint8_t *src, size_t n, struct Player *pl)
+static int save_parse_body(const uint8_t *src, size_t n, size_t *o,
+                           struct Player *pl, int apply)
 {
-    size_t o = 0;
-    int magic = 0, ver = 0, map = 0, x = 0, y = 0, dir = 2;
+    int map = 0, x = 0, y = 0, dir = 2;
     int hp = 0, def = 0, str = 0, bw = 0, bi = 0, ba = 0, bh = 0, cw = 0,
         cm = 0;
     unsigned nv = 0, ns = 0, i;
     char info[80];
 
-    if (src == NULL) {
-        return -1;
-    }
-    if (get_i32(src, n, &o, &magic) != 0 || magic != (int)DINK_SAVE_MAGIC ||
-        get_i32(src, n, &o, &ver) != 0 || ver != (int)DINK_SAVE_VERSION) {
-        return -1;
-    }
-    dinkc_var_init();
-    dinkc_cmd_reset_inv();
-    if (get_i32(src, n, &o, &map) != 0 || get_i32(src, n, &o, &x) != 0 ||
-        get_i32(src, n, &o, &y) != 0 || get_i32(src, n, &o, &dir) != 0 ||
-        get_i32(src, n, &o, &hp) != 0 || get_i32(src, n, &o, &def) != 0 ||
-        get_i32(src, n, &o, &str) != 0 || get_i32(src, n, &o, &bw) != 0 ||
-        get_i32(src, n, &o, &bi) != 0 || get_i32(src, n, &o, &ba) != 0 ||
-        get_i32(src, n, &o, &bh) != 0 || get_i32(src, n, &o, &cw) != 0 ||
-        get_i32(src, n, &o, &cm) != 0 ||
-        get_bytes(src, n, &o, info, sizeof(info)) != 0) {
+    if (get_i32(src, n, o, &map) != 0 || get_i32(src, n, o, &x) != 0 ||
+        get_i32(src, n, o, &y) != 0 || get_i32(src, n, o, &dir) != 0 ||
+        get_i32(src, n, o, &hp) != 0 || get_i32(src, n, o, &def) != 0 ||
+        get_i32(src, n, o, &str) != 0 || get_i32(src, n, o, &bw) != 0 ||
+        get_i32(src, n, o, &bi) != 0 || get_i32(src, n, o, &ba) != 0 ||
+        get_i32(src, n, o, &bh) != 0 || get_i32(src, n, o, &cw) != 0 ||
+        get_i32(src, n, o, &cm) != 0 ||
+        get_bytes(src, n, o, info, sizeof(info)) != 0) {
         return -1;
     }
     info[sizeof(info) - 1] = '\0';
-    memcpy(g_info, info, sizeof(g_info));
     for (i = 0; i < 16; i++) {
         unsigned act = 0;
         int seq = 0, fr = 0;
         char name[16];
 
-        if (get_u8(src, n, &o, &act) != 0 ||
-            get_bytes(src, n, &o, name, 16) != 0 ||
-            get_i32(src, n, &o, &seq) != 0 || get_i32(src, n, &o, &fr) != 0) {
+        if (get_u8(src, n, o, &act) != 0 ||
+            get_bytes(src, n, o, name, 16) != 0 ||
+            get_i32(src, n, o, &seq) != 0 || get_i32(src, n, o, &fr) != 0) {
             return -1;
         }
         name[15] = '\0';
-        dinkc_cmd_inv_put(0, (int)i, (int)act, name, seq, fr);
+        if (apply) {
+            dinkc_cmd_inv_put(0, (int)i, (int)act, name, seq, fr);
+        }
     }
     for (i = 0; i < 8; i++) {
         unsigned act = 0;
         int seq = 0, fr = 0;
         char name[16];
 
-        if (get_u8(src, n, &o, &act) != 0 ||
-            get_bytes(src, n, &o, name, 16) != 0 ||
-            get_i32(src, n, &o, &seq) != 0 || get_i32(src, n, &o, &fr) != 0) {
+        if (get_u8(src, n, o, &act) != 0 ||
+            get_bytes(src, n, o, name, 16) != 0 ||
+            get_i32(src, n, o, &seq) != 0 || get_i32(src, n, o, &fr) != 0) {
             return -1;
         }
         name[15] = '\0';
-        dinkc_cmd_inv_put(1, (int)i, (int)act, name, seq, fr);
+        if (apply) {
+            dinkc_cmd_inv_put(1, (int)i, (int)act, name, seq, fr);
+        }
     }
-    if (get_u16(src, n, &o, &nv) != 0) {
+    if (get_u16(src, n, o, &nv) != 0 || nv > (unsigned)DINKC_MAX_VARS) {
         return -1;
     }
     for (i = 0; i < nv; i++) {
@@ -300,30 +294,36 @@ int save_unpack(const uint8_t *src, size_t n, struct Player *pl)
         int val = 0;
 
         memset(name, 0, sizeof(name));
-        if (get_bytes(src, n, &o, name, 20) != 0 ||
-            get_i32(src, n, &o, &val) != 0) {
+        if (get_bytes(src, n, o, name, 20) != 0 ||
+            get_i32(src, n, o, &val) != 0) {
             return -1;
         }
         name[19] = '\0';
-        if (name[0] == '&') {
+        if (apply && name[0] == '&') {
             dinkc_var_make_global(name, val);
             dinkc_var_set(name, val, DINKC_GLOBAL_SCOPE, 1);
         }
     }
-    if (get_u16(src, n, &o, &ns) != 0) {
+    if (get_u16(src, n, o, &ns) != 0 || ns > 2000) {
         return -1;
     }
     for (i = 0; i < ns; i++) {
         unsigned mapu = 0, ed = 0, type = 0, sequ = 0, fr = 0;
 
-        if (get_u16(src, n, &o, &mapu) != 0 || get_u8(src, n, &o, &ed) != 0 ||
-            get_u8(src, n, &o, &type) != 0 || get_u16(src, n, &o, &sequ) != 0 ||
-            get_u8(src, n, &o, &fr) != 0) {
+        if (get_u16(src, n, o, &mapu) != 0 || get_u8(src, n, o, &ed) != 0 ||
+            get_u8(src, n, o, &type) != 0 || get_u16(src, n, o, &sequ) != 0 ||
+            get_u8(src, n, o, &fr) != 0) {
             return -1;
         }
-        dinkc_cmd_spmap_put((int)mapu, (int)ed, (int)type, (int)(int16_t)sequ,
-                            (int)fr);
+        if (apply) {
+            dinkc_cmd_spmap_put((int)mapu, (int)ed, (int)type, (int)(int16_t)sequ,
+                                (int)fr);
+        }
     }
+    if (!apply) {
+        return 0;
+    }
+    memcpy(g_info, info, sizeof(g_info));
     dinkc_var_set("&player_map", map, DINKC_GLOBAL_SCOPE, 1);
     dinkc_var_set("&cur_weapon", cw, DINKC_GLOBAL_SCOPE, 1);
     dinkc_var_set("&cur_magic", cm, DINKC_GLOBAL_SCOPE, 1);
@@ -342,6 +342,27 @@ int save_unpack(const uint8_t *src, size_t n, struct Player *pl)
         pl->frame = 1;
     }
     return 0;
+}
+
+int save_unpack(const uint8_t *src, size_t n, struct Player *pl)
+{
+    size_t o = 0;
+    int magic = 0, ver = 0;
+
+    if (src == NULL) {
+        return -1;
+    }
+    if (get_i32(src, n, &o, &magic) != 0 || magic != (int)DINK_SAVE_MAGIC ||
+        get_i32(src, n, &o, &ver) != 0 || ver != (int)DINK_SAVE_VERSION) {
+        return -1;
+    }
+    if (save_parse_body(src, n, &o, NULL, 0) != 0) {
+        return -1;
+    }
+    o = 8;
+    dinkc_var_init();
+    dinkc_cmd_reset_inv();
+    return save_parse_body(src, n, &o, pl, 1);
 }
 
 void save_set_info(const char *info)
