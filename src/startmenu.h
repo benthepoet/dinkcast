@@ -34,6 +34,9 @@ int startmenu_slot_tick(uint32_t prev, uint32_t now);
 void startpause_reset(void);
 int startpause_focus(void);
 int startpause_open(void);
+/* True only when Start-pause or the slot picker should own the pad.
+ * Normal play (A talk, Y inv, B hit) must not match. */
+int startpause_eats_pad(uint32_t prev, uint32_t now, int slots);
 /* -1 still open; -2 closed (B); else STARTPAUSE_*. */
 int startpause_tick(uint32_t prev, uint32_t now);
 

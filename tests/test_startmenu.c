@@ -45,8 +45,14 @@ int main(void)
 
     startpause_reset();
     expect(!startpause_open(), "closed");
+    expect(!startpause_eats_pad(0, DINK_PAD_A, 0), "a free");
+    expect(!startpause_eats_pad(0, DINK_PAD_Y, 0), "y free");
+    expect(!startpause_eats_pad(0, DINK_PAD_B, 0), "b free");
+    expect(startpause_eats_pad(0, DINK_PAD_START, 0), "start eats");
+    expect(startpause_eats_pad(0, DINK_PAD_A, 1), "slots eat");
     expect(startpause_tick(0, DINK_PAD_START) == -1, "open");
     expect(startpause_open(), "opened");
+    expect(startpause_eats_pad(0, DINK_PAD_A, 0), "open eats a");
     expect(startpause_focus() == STARTPAUSE_SAVE, "save");
     expect(startpause_tick(0, DINK_PAD_DOWN) == -1, "to title");
     expect(startpause_focus() == STARTPAUSE_TITLE, "title");

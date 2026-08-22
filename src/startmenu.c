@@ -105,6 +105,12 @@ int startpause_open(void)
     return g_pause_open;
 }
 
+int startpause_eats_pad(uint32_t prev, uint32_t now, int slots)
+{
+    return slots || g_pause_open ||
+           pad_just_pressed(prev, now, DINK_PAD_START);
+}
+
 int startpause_tick(uint32_t prev, uint32_t now)
 {
     if (!g_pause_open) {

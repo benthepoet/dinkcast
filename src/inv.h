@@ -27,6 +27,7 @@ void inv_cell_xy(int magic, int idx0, int *x, int *y);
 int inv_load(struct SeqInfo *seqs);
 void inv_free(void);
 void inv_reset(void);
+void inv_sync_icons(void);
 void inv_open(int now_ms);
 void inv_close(void);
 int inv_showing(void);

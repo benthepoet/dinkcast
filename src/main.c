@@ -925,6 +925,10 @@ int main(int argc, char **argv)
 
                     if (need_menu) {
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
+                        inv_sync_icons();
+#ifdef _arch_dreamcast
+                        (void)inv_upload_pvr();
+#endif
                         g_need_title = 0;
                         g_pause_slots = 0;
                         startpause_reset();
@@ -954,6 +958,10 @@ int main(int argc, char **argv)
                         g_need_restart = 0;
                         mem_swap_reset();
                         give_start_fists();
+                        inv_sync_icons();
+#ifdef _arch_dreamcast
+                        (void)inv_upload_pvr();
+#endif
                         swap = 1;
                     }
 
@@ -1043,7 +1051,9 @@ int main(int argc, char **argv)
                         }
                     } else if (have && !inv_showing() && !status_map_active() &&
                                !dinkc_vm_waiting_say() &&
-                               !dinkc_vm_waiting_choice()) {
+                               !dinkc_vm_waiting_choice() &&
+                               startpause_eats_pad(prev_buttons, buttons,
+                                                   g_pause_slots)) {
                         if (g_pause_slots) {
                             int sl = startmenu_slot_tick(prev_buttons, buttons);
 
