@@ -381,6 +381,120 @@ int main(void)
         expect(dinkc_vm_used(ks), "keep still attached");
     }
 
+    {
+        const char *bounded =
+            "void main(void) {\n"
+            "loop:\n"
+            "&gold += 1;\n"
+            "if (&gold < 3)\n"
+            "goto loop;\n"
+            "}\n";
+        const char *fwd =
+            "void main(void) { goto there; &gold = 1; there: }\n";
+        const char *miss =
+            "void main(void) { goto nosuch; &gold = 1; }\n";
+        const char *waitloop =
+            "void main(void) {\n"
+            "loop:\n"
+            "&gold += 1;\n"
+            "wait(1);\n"
+            "goto loop;\n"
+            "}\n";
+        const char *shop =
+            "void main(void) {\n"
+            "mainloop:\n"
+            "&gold += 1;\n"
+            "wait(1);\n"
+            "goto mainloop;\n"
+            "}\n"
+            "void hit(void) { goto mainloop; }\n";
+        int i;
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(bounded, strlen(bounded), 1);
+        expect(dinkc_vm_live() == 0, "bounded goto done");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "goto loop three times");
+        (void)slot;
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(fwd, strlen(fwd), 1);
+        expect(dinkc_vm_live() == 0, "fwd goto done");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "goto skips assign");
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(miss, strlen(miss), 1);
+        expect(dinkc_vm_live() == 0, "miss goto done");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "missing label is EOF not fallthrough");
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(waitloop, strlen(waitloop), 1);
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MS, "goto wait yield");
+        for (i = 0; i < 6; i++) {
+            dinkc_vm_tick(i * DINKC_TICK_MS);
+        }
+        expect(dinkc_vm_live() == 1, "goto wait loop does not fall through");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) >= 2,
+               "goto wait loop ran");
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start_proc(shop, strlen(shop), 4, "hit");
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MS, "hit goto mainloop");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "file-global label");
+        {
+            const char *saycol =
+                "void main(void) { say_stop(\"bonus: 5\", 1); &gold = 1; }\n";
+            const char *fold =
+                "void main(void) {\n"
+                "loop:\n"
+                "&gold += 1;\n"
+                "if (&gold < 3)\n"
+                "GOTO LOOP;\n"
+                "}\n";
+            const char *empty =
+                "void main(void) { goto; &gold = 1; }\n";
+            const char *duck =
+                "void main(void) {\n"
+                "if (0) {\n"
+                "duck:\n"
+                "&gold = 2;\n"
+                "return;\n"
+                "}\n"
+                "goto duck;\n"
+                "&gold = 1;\n"
+                "}\n";
+
+            dinkc_vm_reset();
+            slot = dinkc_vm_start(saycol, strlen(saycol), 1);
+            expect(dinkc_vm_waiting_say(), "say colon not a label");
+            dinkc_vm_advance_say();
+            expect(dinkc_vm_live() == 0 &&
+                       dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+                   "after bonus: say");
+
+            dinkc_vm_reset();
+            slot = dinkc_vm_start(fold, strlen(fold), 1);
+            expect(dinkc_vm_live() == 0, "fold goto done");
+            expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+                   "GOTO LOOP case fold");
+
+            dinkc_vm_reset();
+            slot = dinkc_vm_start(empty, strlen(empty), 1);
+            expect(dinkc_vm_live() == 0, "empty goto done");
+            expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+                   "empty goto is EOF");
+
+            dinkc_vm_reset();
+            slot = dinkc_vm_start(duck, strlen(duck), 1);
+            expect(dinkc_vm_live() == 0, "duck goto done");
+            expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 2,
+                   "goto into skipped if duck:");
+        }
+    }
+
     printf("OK test_dinkc_vm\n");
     return 0;
 }

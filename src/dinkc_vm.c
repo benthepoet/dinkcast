@@ -473,6 +473,25 @@ static int find_proc(struct Fiber *f, const char *proc)
     return -1;
 }
 
+/* FreeDink locate_goto: from the start of the script, first word of a
+ * line matching "name:". skipnext/onlevel/level reset; we reset depth. */
+static int locate_goto(struct Fiber *f, const char *name)
+{
+    int i;
+
+    if (name == NULL || name[0] == '\0') {
+        return 0;
+    }
+    for (i = 0; i + 1 < f->ntok; i++) {
+        if (f->tok[i + 1].kind == DINKC_COLON && tok_is(&f->tok[i], name)) {
+            f->ip = i + 2;
+            f->depth = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void skip_balanced(struct Fiber *f, enum DinkcKind open, enum DinkcKind close)
 {
     int d = 1;
@@ -565,6 +584,29 @@ static void run_fiber(struct Fiber *f, int now_ms)
             }
             fiber_kill(f);
             return;
+        }
+        if (tok_is(t, "goto")) {
+            char name[40];
+
+            f->ip++;
+            name[0] = '\0';
+            if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_IDENT) {
+                copy_tok(&f->tok[f->ip], name, sizeof(name));
+                f->ip++;
+            }
+            eat_semi(f);
+            if (!locate_goto(f, name)) {
+                printf("dinkc cannot goto %s:\n", name);
+                /* FreeDink scan left current at EOF; do not fall through. */
+                f->ip = f->ntok;
+            }
+            continue;
+        }
+        /* label: FreeDink process_line DCPS_GOTO_NEXTLINE */
+        if (t->kind == DINKC_IDENT && f->ip + 1 < f->ntok &&
+            f->tok[f->ip + 1].kind == DINKC_COLON) {
+            f->ip += 2;
+            continue;
         }
         if (t->kind == DINKC_IDENT && f->ip + 1 < f->ntok &&
             f->tok[f->ip + 1].kind == DINKC_LPAREN && !tok_is(t, "if") &&

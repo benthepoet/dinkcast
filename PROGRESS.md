@@ -149,7 +149,9 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-21 | preload_seq: frame 1, not whole walk | #98 |
 | 2026-08-22 | Playtest stability: 409 slurp, smash bake/hard, create_sprite `hard=1` | #98 |
 | 2026-08-22 | **v0.1.0** tagged | #99 |
-| 2026-08-22 | `say()` TTL + `edraw_mark_need` (callers were in #98) | this PR |
+| 2026-08-22 | `say()` TTL + `edraw_mark_need` (callers were in #98) | #100 |
+| 2026-08-22 | Campaign graft audit; village PLAYTEST Open empty | #101 |
+| 2026-08-22 | VM `goto` / labels (`locate_goto`) | this PR |
 
 ## Bites
 
@@ -179,7 +181,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.0 | DinkC files on disc | source | preload unique sprite `.c`; screen `script` at 30240 |
 | 11.1 | DinkC lexer | source | `//` comments; hyphen `&name` |
 | 11.2 | DinkC parser | source | 0 fail on 381 stock `story/*.c` |
-| 11.3 | DinkC VM yield | source | max 20; `wait` / say_stop / choice; no attach |
+| 11.3 | DinkC VM yield | source | max 20; `wait` / say_stop / choice; `locate_goto` this PR |
 | 11.4 | DinkC variables | source | 1.08 local-then-global; MAIN.c list |
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39. Live sprite cmds leftover → **11.10** |
 | 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40. Script field 30240 this PR |
