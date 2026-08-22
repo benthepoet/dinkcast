@@ -4,11 +4,11 @@
 
 #include <stdint.h>
 
-/* START.c buttons: start-1 New, start-2 Load, start-4 Quit. Pad, not mouse. */
+/* START.c start-1 New + start-2 Load. No start-4 Quit on DC. Pad, not mouse. */
 #define STARTMENU_NEW 0
 #define STARTMENU_LOAD 1
 #define STARTMENU_QUIT 2
-#define STARTMENU_N 3
+#define STARTMENU_N 2
 
 #define STARTMENU_SEQ_LOGO 196
 #define STARTMENU_SEQ_NEW 194
@@ -61,7 +61,7 @@ int startpause_tick(uint32_t prev, uint32_t now);
 
 #ifdef _arch_dreamcast
 struct SeqInfo;
-/* Official 196 + start-1/2/4. Pad, not START.c main(). */
+/* Official 196 + start-1/2. Pad, not START.c main(). */
 int startmenu_present_pvr(struct SeqInfo *seqs);
 /* Slots 1–10 + Nevermind. 0 nevermind; 1–10 slot. */
 int startmenu_present_slots_pvr(void);

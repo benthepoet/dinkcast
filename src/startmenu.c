@@ -321,19 +321,18 @@ static int load_seq_fr(struct SeqInfo *seqs, int seq, int frame,
 
 int startmenu_present_pvr(struct SeqInfo *seqs)
 {
-    struct SpriteFrame logo, btn[3][2];
+    struct SpriteFrame logo, btn[STARTMENU_N];
     struct SpriteFrame hover[STARTMENU_N][16];
-    static const int bseq[3] = {STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD,
-                                STARTMENU_SEQ_QUIT};
-    static const int bx[3] = {76, 524, 560};
-    static const int by[3] = {40, 40, 440};
-    static const int hseq[3] = {STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD,
-                                STARTMENU_HOVER_QUIT};
-    static const int hx[3] = {STARTMENU_HOVER_NEW_X, STARTMENU_HOVER_LOAD_X,
-                              STARTMENU_HOVER_QUIT_X};
-    static const int hy[3] = {STARTMENU_HOVER_NEW_Y, STARTMENU_HOVER_LOAD_Y,
-                              STARTMENU_HOVER_QUIT_Y};
-    int i, f, nfr, fr, pick = -1, last = -1;
+    static const int bseq[STARTMENU_N] = {STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD};
+    static const int bx[STARTMENU_N] = {76, 524};
+    static const int by[STARTMENU_N] = {40, 40};
+    static const int hseq[STARTMENU_N] = {STARTMENU_HOVER_NEW,
+                                          STARTMENU_HOVER_LOAD};
+    static const int hx[STARTMENU_N] = {STARTMENU_HOVER_NEW_X,
+                                        STARTMENU_HOVER_LOAD_X};
+    static const int hy[STARTMENU_N] = {STARTMENU_HOVER_NEW_Y,
+                                        STARTMENU_HOVER_LOAD_Y};
+    int i, f, nfr, pick = -1, last = -1;
     uint32_t prev = 0;
 
     memset(&logo, 0, sizeof(logo));
@@ -341,16 +340,10 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     memset(hover, 0, sizeof(hover));
     (void)tiles_pvr_ensure();
     (void)load_seq_fr(seqs, STARTMENU_SEQ_LOGO, 1, &logo);
-    for (i = 0; i < 3; i++) {
-        (void)load_seq_fr(seqs, bseq[i], 1, &btn[i][0]);
-        if (load_seq_fr(seqs, bseq[i], 2, &btn[i][1]) != 0) {
-            btn[i][1] = btn[i][0];
-            btn[i][1].tex = btn[i][0].tex;
-            btn[i][1].argb1555 = NULL;
-        } else {
-            btn[i][1].cx = btn[i][0].cx;
-            btn[i][1].cy = btn[i][0].cy;
-        }
+    for (i = 0; i < STARTMENU_N; i++) {
+        /* Pad focus is the hover arrow only. buttonon pframe 2 shifts the
+         * word (mouse highlight); do not swap the label. */
+        (void)load_seq_fr(seqs, bseq[i], 1, &btn[i]);
         nfr = 0;
         if (seqs != NULL && hseq[i] > 0 && hseq[i] < DINK_MAX_SEQ) {
             nfr = seqs[hseq[i]].nframes;
@@ -378,10 +371,9 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     startmenu_reset();
     startmenu_hover_on(STARTMENU_NEW);
     last = STARTMENU_NEW;
-    printf("startmenu seq=%d buttons=%d,%d,%d hover=%d,%d,%d\n",
+    printf("startmenu seq=%d buttons=%d,%d hover=%d,%d\n",
            STARTMENU_SEQ_LOGO, STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD,
-           STARTMENU_SEQ_QUIT, STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD,
-           STARTMENU_HOVER_QUIT);
+           STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD);
     while (pick < 0) {
         uint32_t buttons = 0;
         int have = (pad_poll_port0(&buttons) == 0);
@@ -406,10 +398,8 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         pvr_list_begin(PVR_LIST_PT_POLY);
         /* START.c / buttonon: sp_noclip 1. Logo is on-screen either way. */
         sprite_draw_pvr_noclip(&logo, 320.0f, 240.0f, 2.0f);
-        for (i = 0; i < 3; i++) {
-            fr = (foc == i) ? 1 : 0;
-            sprite_draw_pvr_noclip(&btn[i][fr], (float)bx[i], (float)by[i],
-                                   3.0f);
+        for (i = 0; i < STARTMENU_N; i++) {
+            sprite_draw_pvr_noclip(&btn[i], (float)bx[i], (float)by[i], 3.0f);
             if (startmenu_hover_live(i)) {
                 int pf = startmenu_hover_pframe(i);
 
@@ -426,12 +416,8 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         pvr_scene_finish();
     }
     sprite_frame_free(&logo);
-    for (i = 0; i < 3; i++) {
-        sprite_frame_free(&btn[i][0]);
-        if (btn[i][1].argb1555 != NULL ||
-            (btn[i][1].tex != NULL && btn[i][1].tex != btn[i][0].tex)) {
-            sprite_frame_free(&btn[i][1]);
-        }
+    for (i = 0; i < STARTMENU_N; i++) {
+        sprite_frame_free(&btn[i]);
         for (f = 1; f <= 15; f++) {
             if (hover[i][f].argb1555 != NULL || hover[i][f].tex != NULL) {
                 sprite_frame_free(&hover[i][f]);

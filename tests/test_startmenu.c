@@ -23,11 +23,11 @@ int main(void)
     expect(strcmp(startmenu_script(STARTMENU_QUIT), "start-4") == 0, "s4");
     expect(startmenu_tick(0, DINK_PAD_DOWN) == -1, "cycle");
     expect(startmenu_focus() == STARTMENU_LOAD, "load");
-    expect(startmenu_tick(0, DINK_PAD_DOWN) == -1, "cycle2");
-    expect(startmenu_focus() == STARTMENU_QUIT, "quit");
-    expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_QUIT, "click quit");
-    startmenu_reset();
+    expect(startmenu_tick(0, DINK_PAD_DOWN) == -1, "cycle wrap");
+    expect(startmenu_focus() == STARTMENU_NEW, "wrap new");
     expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_NEW, "click new");
+    startmenu_reset();
+    expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_NEW, "click new again");
 
     /* start-1.c buttonon/off: seq 199 plays then reverses (brain 7). */
     startmenu_hover_bind(STARTMENU_NEW, STARTMENU_HOVER_NEW,

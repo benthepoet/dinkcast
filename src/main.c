@@ -487,7 +487,7 @@ static void title_show_splash(void)
     tiles_draw_clear_pvr(0xff000000);
 }
 
-/* START.c picture + start-1/2/4 click. Not START.c main() (audio). */
+/* START.c picture + start-1/2 click. Not START.c main() (audio). */
 static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
                                 int *player_map)
 {
