@@ -6,6 +6,8 @@
 #include <string.h>
 
 #ifdef _arch_dreamcast
+#include "choice.h"
+#include "dinkc_vm.h"
 #include "ini.h"
 #include "mem.h"
 #include "save.h"
@@ -227,14 +229,14 @@ int startmenu_slot_tick(uint32_t prev, uint32_t now)
 {
     if (pad_just_pressed(prev, now, DINK_PAD_DOWN) ||
         pad_just_pressed(prev, now, DINK_PAD_RIGHT)) {
-        g_slot = (g_slot >= 10) ? 0 : g_slot + 1;
+        g_slot = (g_slot >= STARTMENU_SLOT_N) ? 1 : g_slot + 1;
     }
     if (pad_just_pressed(prev, now, DINK_PAD_UP) ||
         pad_just_pressed(prev, now, DINK_PAD_LEFT)) {
-        g_slot = (g_slot <= 0) ? 10 : g_slot - 1;
+        g_slot = (g_slot <= 1) ? STARTMENU_SLOT_N : g_slot - 1;
     }
     if (pad_just_pressed(prev, now, DINK_PAD_B)) {
-        return 0;
+        return STARTMENU_SLOT_NEVERMIND;
     }
     if (pad_just_pressed(prev, now, DINK_PAD_A)) {
         return g_slot;
@@ -452,41 +454,80 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     return pick;
 }
 
-int startmenu_present_slots_pvr(void)
+int startmenu_present_slots_pvr(struct SeqInfo *seqs)
 {
+    struct SpriteFrame logo, start, cont[2];
+    struct SpriteFrame *cont_fr;
     int pick = -1;
     uint32_t prev = 0, held = 0;
-    char line[80];
 
-    startmenu_slot_reset();
-    /* start-2 load() is a choice. The Continue click A is still down;
-     * seed prev so that press cannot confirm slot 1. */
+    memset(&logo, 0, sizeof(logo));
+    memset(&start, 0, sizeof(start));
+    memset(cont, 0, sizeof(cont));
+    (void)load_seq_fr(seqs, STARTMENU_SEQ_LOGO, 1, &logo);
+    (void)load_seq_fr(seqs, STARTMENU_SEQ_NEW, 1, &start);
+    (void)load_seq_fr(seqs, STARTMENU_SEQ_LOAD, 1, &cont[0]);
+    if (load_seq_fr(seqs, STARTMENU_SEQ_LOAD, 2, &cont[1]) == 0) {
+        startmenu_highlight_center(cont[0].w, cont[0].h, cont[0].cx, cont[0].cy,
+                                   cont[1].w, cont[1].h, &cont[1].cx,
+                                   &cont[1].cy);
+        cont_fr = &cont[1];
+    } else {
+        cont_fr = &cont[0];
+    }
+    if (choice_frame(DINK_CHOICE_SEQ, 2) == NULL) {
+        (void)choice_load(seqs);
+        (void)choice_upload_pvr();
+    }
+    dinkc_vm_choice_open_saves();
+    /* start-2 load() is a choice. Continue A is still down. */
     if (pad_poll_port0(&held) == 0) {
         prev = held;
     }
+    printf("startmenu load choice n=%d\n", dinkc_vm_choice_n());
     while (pick < 0) {
         uint32_t buttons = 0;
         int have = (pad_poll_port0(&buttons) == 0);
-        int foc;
 
         if (have) {
-            pick = startmenu_slot_tick(prev, buttons);
+            if (pad_just_pressed(prev, buttons, DINK_PAD_DOWN) ||
+                pad_just_pressed(prev, buttons, DINK_PAD_RIGHT)) {
+                dinkc_vm_choice_move(1);
+            }
+            if (pad_just_pressed(prev, buttons, DINK_PAD_UP) ||
+                pad_just_pressed(prev, buttons, DINK_PAD_LEFT)) {
+                dinkc_vm_choice_move(-1);
+            }
+            if (pad_just_pressed(prev, buttons, DINK_PAD_B)) {
+                pick = STARTMENU_SLOT_NEVERMIND;
+            } else if (pad_just_pressed(prev, buttons, DINK_PAD_A)) {
+                pick = dinkc_vm_choice_cur();
+            }
         }
         prev = have ? buttons : 0;
-        foc = startmenu_slot_focus();
-        save_info_line(foc, line, sizeof(line));
-        saybox_set(line, 0);
+        choice_tick((int)mem_now_ms());
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);
         startmenu_fill_black();
         pvr_list_finish();
         pvr_list_begin(PVR_LIST_PT_POLY);
-        saybox_draw_pvr(3.0f);
+        sprite_draw_pvr_noclip(&logo, 320.0f, 240.0f, 2.0f);
+        sprite_draw_pvr_noclip(&start, 76.0f, 40.0f, 3.0f);
+        sprite_draw_pvr_noclip(cont_fr, 524.0f, 40.0f, 3.0f);
+        saybox_draw_choices_pvr(3.4f);
         pvr_list_finish();
         pvr_scene_finish();
     }
-    saybox_clear();
+    dinkc_vm_choice_close_saves();
+    sprite_frame_free(&logo);
+    sprite_frame_free(&start);
+    sprite_frame_free(&cont[0]);
+    if (cont[1].argb1555 != NULL ||
+        (cont[1].tex != NULL && cont[1].tex != cont[0].tex)) {
+        sprite_frame_free(&cont[1]);
+    }
+    printf("startmenu load pick %d\n", pick);
     return pick;
 }
 #endif

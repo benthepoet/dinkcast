@@ -89,12 +89,13 @@ int main(void)
     expect(startmenu_slot_tick(0, DINK_PAD_A) == 2, "pick 2");
     startmenu_slot_reset();
     expect(startmenu_slot_tick(0, DINK_PAD_UP) == -1, "wrap");
-    expect(startmenu_slot_focus() == 0, "nevermind up");
+    expect(startmenu_slot_focus() == STARTMENU_SLOT_NEVERMIND, "nevermind up");
     expect(startmenu_slot_tick(0, DINK_PAD_UP) == -1, "to slot10");
     expect(startmenu_slot_focus() == 10, "slot10");
     expect(startmenu_slot_tick(0, DINK_PAD_DOWN) == -1, "to nevermind");
-    expect(startmenu_slot_focus() == 0, "nevermind");
-    expect(startmenu_slot_tick(0, DINK_PAD_A) == 0, "pick nevermind");
+    expect(startmenu_slot_focus() == STARTMENU_SLOT_NEVERMIND, "nevermind");
+    expect(startmenu_slot_tick(0, DINK_PAD_A) == STARTMENU_SLOT_NEVERMIND,
+           "pick nevermind");
 
     startpause_reset();
     expect(!startpause_open(), "closed");

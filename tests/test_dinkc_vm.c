@@ -245,6 +245,16 @@ int main(void)
                "slot empty token");
         expect(strcmp(dinkc_vm_choice_line(2), "Nevermind") == 0, "nevermind");
         dinkc_vm_choice_pick(2);
+        dinkc_vm_choice_open_saves();
+        expect(dinkc_vm_choice_n() == 11, "start-2 ten plus nevermind");
+        expect(dinkc_vm_choice_cur() == 1, "save cur1");
+        expect(strstr(dinkc_vm_choice_line(1), "Slot 1") != NULL, "slot1 line");
+        expect(strcmp(dinkc_vm_choice_line(11), "Nevermind") == 0,
+               "line 11 nevermind");
+        dinkc_vm_choice_move(-1);
+        expect(dinkc_vm_choice_cur() == 11, "wrap to nevermind");
+        dinkc_vm_choice_close_saves();
+        expect(dinkc_vm_choice_n() == 0, "closed");
         (void)system("rm -rf build/savetest2");
         (void)dir;
     }

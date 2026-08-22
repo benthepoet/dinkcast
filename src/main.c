@@ -508,8 +508,8 @@ static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
             int args[8];
             int ret = 0;
 
-            slot = startmenu_present_slots_pvr();
-            if (slot < 1) {
+            slot = startmenu_present_slots_pvr(seqs);
+            if (slot < 1 || slot > 10) {
                 continue;
             }
             if (save_game_exist(slot) == 0) {

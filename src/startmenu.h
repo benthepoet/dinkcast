@@ -43,10 +43,12 @@ void startmenu_highlight_center(int w0, int h0, int cx0, int cy0, int w1,
 /* -1 still choosing; else STARTMENU_*. */
 int startmenu_tick(uint32_t prev, uint32_t now);
 const char *startmenu_script(int focus);
-/* Load picker: slots 1–10, 0 is Nevermind. */
+/* start-2.c load(): lines 1–10 slots, 11 Nevermind. */
+#define STARTMENU_SLOT_N 11
+#define STARTMENU_SLOT_NEVERMIND 11
 void startmenu_slot_reset(void);
 int startmenu_slot_focus(void);
-/* -1 still; 0 nevermind; 1–10 slot. */
+/* -1 still; 1–10 slot; 11 Nevermind. */
 int startmenu_slot_tick(uint32_t prev, uint32_t now);
 
 /* In-play Start pause: Continue / Title. Save is SAVEBOT.c only. */
@@ -67,8 +69,8 @@ int startpause_tick(uint32_t prev, uint32_t now);
 struct SeqInfo;
 /* Official 196 + start-1/2. Pad, not START.c main(). */
 int startmenu_present_pvr(struct SeqInfo *seqs);
-/* Slots 1–10 + Nevermind. 0 nevermind; 1–10 slot. */
-int startmenu_present_slots_pvr(void);
+/* start-2 load() choice on the START picture. 1–10 slot; 11 Nevermind. */
+int startmenu_present_slots_pvr(struct SeqInfo *seqs);
 #endif
 
 #endif
