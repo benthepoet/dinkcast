@@ -159,6 +159,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | #107 |
 | 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | #108 |
 | 2026-08-22 | Playtest HUD: LEFTALIGN / `blitNoColorKey` digits + chrome | this PR |
+| 2026-08-22 | Playtest HUD: level 442 loose BMP white key | this PR |
+| 2026-08-22 | Playtest wizard: Screen live is this-tick draw set | this PR |
 
 ## Bites
 
@@ -223,7 +225,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD paper Open (this PR) |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD paper confirmed; wizard + AlkNuts Open |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -238,7 +240,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **HUD paper** | Exp/gold/level digits must keep LEFTALIGN white. Long pole is still campaign DinkC |
+| **Next picture** | **wizard idle** | Map 376 `s1-wiz` 563/567. HUD paper confirmed. Long pole is still campaign DinkC |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -306,3 +308,5 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (say TTL) | **~90%** | #98 called `saybox_tick` / `edraw_mark_need` without bodies. `say()` TTL + Screen mark for MAIN `create_sprite`. |
 | 2026-08-22 (village Open) | **~90%** | Requester: last PLAYTEST Open pictures confirmed (409 house, smash y-sort, pig-pen fence). Village leftovers empty. |
 | 2026-08-22 (HUD paper) | **~90%** | Status digits/chrome punched RGB>240 so white paper fell through PT to black. Graft LEFTALIGN / `blitNoColorKey`; host `test_status` locks opaque paper. |
+| 2026-08-22 (HUD confirmed) | **~90%** | Requester: status paper + level 442 key look right in Flycast. |
+| 2026-08-22 (wizard live) | **~90%** | Play-path Screen `live` until swap: 167 explode filled `cpu_pixels`, 563/567 refused. Remake live from this tick’s draw set. |

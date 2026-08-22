@@ -693,6 +693,61 @@ int main(void)
             return 1;
         }
     }
+    if (seqs[167].prefix[0] != '\0' && seqs[563].prefix[0] != '\0') {
+        struct MapScreen wiz;
+        int wrec = (int)w.loc[376];
+        int f, n2, unused167 = 0, i, have167;
+
+        if (wrec < 1 || map_load_record(wrec, &wiz) != 0) {
+            fprintf(stderr, "FAIL 376 wizard map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(wiz.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL 376 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        edraw_load_frame(g, &n, seqs, 167, 1);
+        for (f = 2; f <= 14; f++) {
+            (void)edraw_ensure_frame(g, &n, seqs, 167, f);
+        }
+        edraw_load_frame(g, &n, seqs, 563, 1);
+        have167 = edraw_find(g, n, 167, 1) != NULL;
+        edraw_live_begin(g, n, seqs);
+        edraw_live_touch(g, n, 563, 1);
+        for (i = 0; i < n; i++) {
+            if (g[i].seq == 167 && !g[i].live) {
+                unused167++;
+            }
+        }
+        if (have167 && unused167 < 1) {
+            fprintf(stderr, "FAIL wizard 167 still live after begin\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (have167) {
+            edraw_live_touch(g, n, 167, 1);
+        }
+        n2 = n;
+        if (edraw_ensure_frame(g, &n2, seqs, 563, 6) != 0 ||
+            edraw_find(g, n2, 563, 6) == NULL) {
+            fprintf(stderr, "FAIL wizard 563/6 after Screen live remake\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        if (have167 && edraw_find(g, n2, 167, 1) == NULL) {
+            fprintf(stderr, "FAIL wizard evicted live explode 167/1\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        n = n2;
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);
