@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "hard.h"
 #include "player.h"
 
 #include <stdio.h>
@@ -620,6 +621,40 @@ int main(void)
         dinkc_cmd_bind_load_screen(NULL);
         dinkc_cmd_bind_draw_screen(NULL);
         (void)waitslot;
+    }
+
+    {
+        const char *lock =
+            "void main(void) {\n"
+            "  screenlock(1);\n"
+            "  &gold = screenlock(-1);\n"
+            "  screenlock(2);\n"
+            "  &exp = screenlock();\n"
+            "  screenlock(0);\n"
+            "  &strength = screenlock(-1);\n"
+            "}\n";
+        int yld = 0, rv = 0, args[2] = {1, 0};
+
+        hard_screenlock_set(0);
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(lock, strlen(lock), 1);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "screenlock(1) then read");
+        expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "screenlock(2) does not set");
+        expect(dinkc_var_get("&strength", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "screenlock(0)");
+        expect(hard_screenlock_get() == 0, "cleared");
+        expect(dinkc_cmd("screenlock", args, 1, "", "", &yld, &rv) == 1 &&
+                   rv == 1,
+               "cmd set 1");
+        args[0] = -1;
+        expect(dinkc_cmd("screenlock", args, 1, "", "", &yld, &rv) == 1 &&
+                   rv == 1,
+               "cmd read");
+        args[0] = 0;
+        (void)dinkc_cmd("screenlock", args, 1, "", "", &yld, &rv);
+        expect(!dinkc_vm_used(slot), "lock script done");
     }
 
     printf("OK test_dinkc_vm\n");

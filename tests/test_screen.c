@@ -34,6 +34,16 @@ int main(void)
     p.x = 700;
     expect(screen_try_cross(&w, &map, &p) == 1, "east");
     expect(map == 2 && p.x == DINK_PLAYL, "east wrap");
+    screen_lock_set(1);
+    map = 1;
+    p.x = 700;
+    expect(screen_try_cross(&w, &map, &p) == 0, "lock no east");
+    expect(map == 1 && p.x == DINK_PLAYX, "lock clamp east");
+    screen_lock_set(0);
+    map = 1;
+    p.x = 700;
+    expect(screen_try_cross(&w, &map, &p) == 1, "unlock east");
+    expect(map == 2 && p.x == DINK_PLAYL, "unlock wrap");
     {
         struct MapScreen s;
 

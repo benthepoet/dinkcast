@@ -252,6 +252,7 @@ static const struct {
     {"fill_screen", 0},
     {"load_screen", 0},
     {"draw_screen", 0},
+    {"screenlock", 0},
     {"compare_weapon", 0},
     {"compare_magic", 0},
     {"editor_type", 0},
@@ -1224,6 +1225,16 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         if (g_cmd_sprite != 1000 && yield != NULL) {
             *yield = 3;
+        }
+        return 1;
+    }
+    /* FreeDink dc_screenlock (1.08): 0 or 1 sets; always return current. */
+    if (is_cmd(name, "screenlock")) {
+        if (nargs >= 1 && (a0 == 0 || a0 == 1)) {
+            hard_screenlock_set(a0);
+        }
+        if (ret != NULL) {
+            *ret = hard_screenlock_get();
         }
         return 1;
     }

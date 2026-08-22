@@ -4,16 +4,15 @@
 #include <stdio.h>
 
 static int g_process_warp;
-static int g_screenlock;
 
 int screen_lock_get(void)
 {
-    return g_screenlock;
+    return hard_screenlock_get();
 }
 
 void screen_lock_set(int on)
 {
-    g_screenlock = on ? 1 : 0;
+    hard_screenlock_set(on);
 }
 
 int screen_map_rec(const struct World *w, int player_map)
@@ -59,8 +58,9 @@ int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
         return 0;
     }
     m = *player_map;
+    /* FreeDink did_player_cross_screen: screenlock == 0 to wrap. */
     if (p->x < DINK_PLAYL) {
-        if (m - 1 >= 1 && w->loc[m - 1] > 0) {
+        if (hard_screenlock_get() == 0 && m - 1 >= 1 && w->loc[m - 1] > 0) {
             *player_map = m - 1;
             p->x = DINK_PLAYX;
             printf("screen west map %d\n", *player_map);
@@ -70,7 +70,7 @@ int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
         return 0;
     }
     if (p->x > DINK_PLAYX) {
-        if (m + 1 <= 24 * 32 && w->loc[m + 1] > 0) {
+        if (hard_screenlock_get() == 0 && m + 1 <= 24 * 32 && w->loc[m + 1] > 0) {
             *player_map = m + 1;
             p->x = DINK_PLAYL;
             printf("screen east map %d\n", *player_map);
@@ -80,7 +80,8 @@ int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
         return 0;
     }
     if (p->y < 0) {
-        if (m - 32 >= 1 && w->loc[m - 32] > 0) {
+        if (hard_screenlock_get() == 0 && m - 32 >= 1 &&
+            w->loc[m - 32] > 0) {
             *player_map = m - 32;
             p->y = DINK_PLAYY;
             printf("screen north map %d\n", *player_map);
@@ -90,7 +91,8 @@ int screen_try_cross(const struct World *w, int *player_map, struct Player *p)
         return 0;
     }
     if (p->y > DINK_PLAYY) {
-        if (m + 32 <= 24 * 32 && w->loc[m + 32] > 0) {
+        if (hard_screenlock_get() == 0 && m + 32 <= 24 * 32 &&
+            w->loc[m + 32] > 0) {
             *player_map = m + 32;
             p->y = 0;
             printf("screen south map %d\n", *player_map);

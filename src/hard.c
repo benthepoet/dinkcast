@@ -12,6 +12,17 @@ static FILE *g_fp;
 static uint8_t *g_rec[DINK_HARD_TILES];
 static uint16_t g_def[DINK_BTILE_MAX];
 static int g_def_ok;
+static int g_screenlock;
+
+int hard_screenlock_get(void)
+{
+    return g_screenlock;
+}
+
+void hard_screenlock_set(int on)
+{
+    g_screenlock = on ? 1 : 0;
+}
 
 int hard_parse_defaults(const uint8_t *p, size_t n, struct HardMap *out)
 {
@@ -243,6 +254,20 @@ int hard_get(const struct HardMask *m, int sx, int sy)
     }
     px = sx - DINK_PLAY_LEFT;
     py = sy - DINK_PLAY_TOP;
+    /* FreeDink get_hard: screenlock clamps before the OOB→0 test
+     * (diag off the border would skip hardness). */
+    if (g_screenlock) {
+        if (px < 0) {
+            px = 0;
+        } else if (px > DINK_PLAY_W - 1) {
+            px = DINK_PLAY_W - 1;
+        }
+        if (py < 0) {
+            py = 0;
+        } else if (py > DINK_PLAY_H - 1) {
+            py = DINK_PLAY_H - 1;
+        }
+    }
     if (px < 0 || py < 0 || px >= DINK_PLAY_W || py >= DINK_PLAY_H) {
         return 0;
     }
