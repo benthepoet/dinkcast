@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Tagged **v0.2.0** (2026-08-22). **V6** + **8.6 house** accepted. Campaign DinkC host #102–#108. Playtest HUD / wizard / AlkNuts (#109). Audio **12 after 16**. **14.6** per-frame reads wait for full-campaign go. Next engine bite only when the requester says.
+**Where we are:** Tagged **v0.2.0** (2026-08-22). Next slice **[v0.3.0](docs/V0.3.md)** — START menu + VMU **17** before audio **12** (requester QoL). **V6** + **8.6 house** accepted. Campaign DinkC host #102–#108. Playtest HUD / wizard / AlkNuts (#109). **14.6** per-frame reads wait for full-campaign go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 

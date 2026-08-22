@@ -4,9 +4,9 @@ Product versions are git tags of the form `vMAJOR.MINOR.PATCH`. They are **not**
 
 The engine still needs original Dink data (`DINK_DATA`). That tree is not in git.
 
-## [Unreleased]
+## [Unreleased] — v0.3.0 (planned)
 
-Next slice is not opened here. **14.6**, audio (**12**), and VMU (**17**) stay gated.
+Title menu + VMU save/load. Spec: [docs/V0.3.md](docs/V0.3.md). Canvas: [docs/canvases/v0-3-plan.canvas.tsx](docs/canvases/v0-3-plan.canvas.tsx). Opens **17** before audio **12**. **14.6** stays gated.
 
 ## [0.2.0] — 2026-08-22
 
