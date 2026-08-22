@@ -30,6 +30,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Status-bar exp / gold / level digits keep their white paper | 2026-08-22 | `test_status` glyph + chrome opaque; level 442 white keyed |
 | Wizard idle/walk stays on screen for the whole `s1-wiz` meeting (map 376) | 2026-08-22 | `test_edraw` 376 + 167 unused + 563/6 |
 | Walk into a fallen AlkNut and pick it up (`s1-nut` / `item-nut`) | 2026-08-22 | `test_inv` `free_items` + s1-nut path |
+| Punch map 408 editor-1 `bar-sh`: only the barrel smashes (Dink stays punch) | 2026-08-22 | `test_dinkc_vm` editor 1 `sp_seq` |
 
 ## Open
 

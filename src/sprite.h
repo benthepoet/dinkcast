@@ -36,6 +36,9 @@ int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f);
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z);
+/* get_box when spr[].noclip: playl=0 playx=640 playy=480. */
+void sprite_draw_pvr_noclip(const struct SpriteFrame *f, float x, float y,
+                            float z);
 void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
                          float z, int al, int at, int ar, int ab);
 /* FreeDink live_screen size/100. size 100 is 1:1. */

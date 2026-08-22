@@ -927,8 +927,8 @@ dinkcast/
                          → 14.3 leak check
                          → 15.3–15.4
                          → 16.1–16.3 inventory / HUD (V6)
-                         → 12.1–12.4 audio (after 16; playsound was stub)
-                         → 17.1–17.3 VMU
+                         → 17.1–17.3 VMU (v0.3.0; requester before audio)
+                         → 12.1–12.4 audio (after 16; skipped this tag)
                          → 18.1–18.3 harden
                          → 14.6 per-frame dir.ff reads (full campaign; human go)
 ```

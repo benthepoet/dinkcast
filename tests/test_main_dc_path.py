@@ -6,6 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "src" / "main.c"
+TITLE = ROOT / "src" / "title.c"
 
 
 def main() -> int:
@@ -45,9 +46,22 @@ def main() -> int:
         ("dinkc load_screen", "play_load_screen" in text and
          "play_draw_screen" in text and
          "dinkc_cmd_bind_load_screen" in text),
+        ("start menu", "startmenu_present_pvr" in text and
+         "give_start_fists" in text),
+        ("start pause", "startpause_tick" in text and "STARTPAUSE_TITLE" in text and
+         "STARTPAUSE_SAVE" not in text and "startpause_eats_pad" in text),
+        ("save load", "load_game" in text and "save_game" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]
+    title = TITLE.read_text(encoding="utf-8")
+    need.append(
+        (
+            "splash no pad",
+            "pad_title_wants_leave" not in title and "pvr_shutdown" not in title
+            and "tiles_pvr_ensure" in title,
+        )
+    )
     missing = [n for n, ok in need if not ok]
     if missing:
         print("FAIL", MAIN, missing)

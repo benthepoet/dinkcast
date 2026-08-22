@@ -166,6 +166,13 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
 | 2026-08-22 | **v0.2.0** tagged | #109 |
 | 2026-08-22 | **v0.3.0** plan (START menu + VMU **17** before **12**) | this PR |
+| 2026-08-22 | START hover seq 199/200/198 (`live_sprite_animate` + noclip) | this PR |
+| 2026-08-22 | START: no Quit; buttons stay pframe 1 | this PR |
+| 2026-08-22 | START: pframe 2 glow, idle word stays put | this PR |
+| 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | this PR |
+| 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | this PR |
+| 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | this PR |
+| 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
 
 ## Bites
 
@@ -219,7 +226,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1 on **re-enter**; live `scale_brain` |
 | 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
 | 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6. LEFTALIGN / `blitNoColorKey` paper (this PR) |
-| 17.1–17.3 | VMU save | next | v0.3.0 ([docs/V0.3.md](docs/V0.3.md)); **17** before **12** |
+| 17.1–17.3 | VMU save | source | Compact LE blob &lt; 8 KB; host `build/saveNN.bin`; Maple first VMU + 32×32 icon; `save_game` / `load_game` / `game_exist` / `&savegameinfo`. Soft-fail if no VMU. Flycast stamp pending |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
 
 ## Blocked / outside bites

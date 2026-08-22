@@ -22,6 +22,8 @@
 void saybox_bind(const struct MapScreen *scr, struct Player *pl);
 void saybox_bind_live_xy(int (*fn)(int slot, int *x, int *y));
 void saybox_set(const char *text, int sprite);
+/* FreeDink say_text_xy: text_owner 1000, box at (x,y) size 620×400. */
+void saybox_set_xy(const char *text, int x, int y);
 /* FreeDink live_sprite_is_expired: 1 if this tick killed the line. */
 int saybox_tick(int now_ms);
 void saybox_clear(void);
