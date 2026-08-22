@@ -164,6 +164,11 @@ void inv_reset(void)
     g_timer = 0;
 }
 
+void inv_sync_icons(void)
+{
+    sync_icons();
+}
+
 void inv_open(int now_ms)
 {
     g_show = 1;

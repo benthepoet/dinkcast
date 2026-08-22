@@ -46,6 +46,9 @@ const char *dinkc_vm_choice_title(void);
 int dinkc_vm_choice_newy(void);
 int dinkc_vm_choice_color(void);
 void dinkc_vm_choice_move(int delta);
+/* start-2.c load() lines without a fiber (title Continue). */
+void dinkc_vm_choice_open_saves(void);
+void dinkc_vm_choice_close_saves(void);
 void dinkc_vm_kill(int slot);
 /* FreeDink: one instance per sprite; locate talk() on it. */
 void dinkc_vm_kill_sprite(int sprite);

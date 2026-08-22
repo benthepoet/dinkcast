@@ -5,6 +5,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
+#include "save.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -54,6 +55,10 @@ static int g_var_ready;
 static char g_choice_title[3000];
 static int g_choice_newy = DINK_CHOICE_NEWY_NONE;
 static int g_choice_color;
+static int g_sa_on;
+static int g_sa_n;
+static int g_sa_cur;
+static char g_sa_line[20][80];
 
 static int fiber_slot(const struct Fiber *f)
 {
@@ -732,6 +737,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
                             }
                             memcpy(f->choice_line[f->nchoice], p, ln);
                             f->choice_line[f->nchoice][ln] = '\0';
+                            if (strcmp(f->choice_line[f->nchoice],
+                                       "&savegameinfo") == 0) {
+                                save_info_line(retnum, f->choice_line[f->nchoice],
+                                               sizeof(f->choice_line[0]));
+                            }
                             f->choice_ret[f->nchoice] = retnum;
                             f->nchoice++;
                             printf("choice %d %s\n", retnum, f->choice_line[f->nchoice - 1]);
@@ -1190,6 +1200,7 @@ void dinkc_vm_reset(void)
     g_var_ready = 1;
     dinkc_cmd_bind_callback(vm_add_cb);
     choice_meta_clear();
+    dinkc_vm_choice_close_saves();
 }
 
 void dinkc_vm_tick(int now_ms)
@@ -1274,18 +1285,49 @@ static struct Fiber *choice_fiber(void)
     return NULL;
 }
 
+void dinkc_vm_choice_open_saves(void)
+{
+    int i;
+
+    choice_meta_clear();
+    g_sa_n = 0;
+    for (i = 1; i <= DINK_SAVE_SLOTS && g_sa_n < 20; i++) {
+        save_info_line(i, g_sa_line[g_sa_n], sizeof(g_sa_line[0]));
+        g_sa_n++;
+    }
+    if (g_sa_n < 20) {
+        snprintf(g_sa_line[g_sa_n], sizeof(g_sa_line[0]), "Nevermind");
+        g_sa_n++;
+    }
+    g_sa_cur = 1;
+    g_sa_on = 1;
+}
+
+void dinkc_vm_choice_close_saves(void)
+{
+    g_sa_on = 0;
+    g_sa_n = 0;
+    g_sa_cur = 0;
+}
+
 int dinkc_vm_choice_n(void)
 {
     struct Fiber *f = choice_fiber();
 
-    return f != NULL ? f->nchoice : 0;
+    if (f != NULL) {
+        return f->nchoice;
+    }
+    return g_sa_on ? g_sa_n : 0;
 }
 
 int dinkc_vm_choice_cur(void)
 {
     struct Fiber *f = choice_fiber();
 
-    return f != NULL ? f->choice_cur : 0;
+    if (f != NULL) {
+        return f->choice_cur;
+    }
+    return g_sa_on ? g_sa_cur : 0;
 }
 
 const char *dinkc_vm_choice_line(int vis1)
@@ -1293,10 +1335,16 @@ const char *dinkc_vm_choice_line(int vis1)
     struct Fiber *f = choice_fiber();
     int i = vis1 - 1;
 
-    if (f == NULL || i < 0 || i >= f->nchoice) {
+    if (f != NULL) {
+        if (i < 0 || i >= f->nchoice) {
+            return "";
+        }
+        return f->choice_line[i];
+    }
+    if (!g_sa_on || i < 0 || i >= g_sa_n) {
         return "";
     }
-    return f->choice_line[i];
+    return g_sa_line[i];
 }
 
 const char *dinkc_vm_choice_title(void)
@@ -1317,20 +1365,25 @@ int dinkc_vm_choice_color(void)
 void dinkc_vm_choice_move(int delta)
 {
     struct Fiber *f = choice_fiber();
-    int n, c;
+    int n, c, *cur;
 
-    if (f == NULL || f->nchoice < 1) {
+    if (f != NULL && f->nchoice > 0) {
+        n = f->nchoice;
+        cur = &f->choice_cur;
+    } else if (g_sa_on && g_sa_n > 0) {
+        n = g_sa_n;
+        cur = &g_sa_cur;
+    } else {
         return;
     }
-    n = f->nchoice;
-    c = f->choice_cur + delta;
+    c = *cur + delta;
     while (c < 1) {
         c += n;
     }
     while (c > n) {
         c -= n;
     }
-    f->choice_cur = c;
+    *cur = c;
 }
 
 void dinkc_vm_choice_pick(int result)

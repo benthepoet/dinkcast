@@ -4,6 +4,8 @@
 #include "dinkc_vm.h"
 #include "hard.h"
 #include "player.h"
+#include "saybox.h"
+#include "save.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +13,7 @@
 
 static int g_stub_brain[100];
 static int g_stub_x[100];
+static int g_stub_seq[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
@@ -66,6 +69,8 @@ static int stub_sp_change(int slot, int prop, int val)
         p = &g_stub_brain[slot];
     } else if (prop == DINKC_SP_X) {
         p = &g_stub_x[slot];
+    } else if (prop == DINKC_SP_SEQ) {
+        p = &g_stub_seq[slot];
     } else {
         return -1;
     }
@@ -137,6 +142,34 @@ int main(void)
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0, "A ends say_stop");
 
+    {
+        const char *xy =
+            "void main(void) { say_xy(\"`%Try loading a saved game that "
+            "exists, friend.\", 0, 390); &gold = 7; }";
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(xy, strlen(xy), 1);
+        expect(slot > 0 && !dinkc_vm_waiting_say(), "say_xy no yield");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 7, "say_xy continues");
+        expect(saybox_active() && saybox_y() == 390, "say_xy placed");
+        expect(saybox_x() == 0, "say_xy x");
+        expect(saybox_color() == 15, "say_xy `%");
+    }
+    {
+        int args[8], yld = 0, ret = 0;
+
+        memset(args, 0, sizeof(args));
+        args[0] = 0;
+        args[1] = 390;
+        saybox_clear();
+        expect(dinkc_cmd("say_xy", args, 2,
+                         "`%Try loading a saved game that exists, friend.",
+                         NULL, &yld, &ret) == 1,
+               "say_xy cmd");
+        expect(yld == 0 && saybox_x() == 0 && saybox_y() == 390,
+               "say_xy cmd xy");
+    }
+
     memset(&pl, 0, sizeof(pl));
     dinkc_cmd_bind_player(&pl);
     dinkc_vm_reset();
@@ -149,6 +182,35 @@ int main(void)
     expect(dinkc_vm_choice_n() == 0, "choice over");
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0 && pl.freeze == 0, "unfreeze");
+    {
+        const char *bar =
+            "void hit(void) { sp_seq(&current_sprite, 173); }";
+        const char *fist = "void main(void) { sp_seq(1, 106); }";
+        const char *mom = "void main(void) { sp_seq(1, 102); }";
+
+        /* map 408 sprite 1 is bar-sh. */
+        memset(g_stub_seq, 0, sizeof(g_stub_seq));
+        dinkc_cmd_bind_sprite_change(stub_sp_change);
+        pl.seq = 16;
+        dinkc_vm_reset();
+        slot = dinkc_vm_start_proc(bar, strlen(bar), 1, "hit");
+        expect(slot > 0 && !dinkc_vm_used(slot), "bar-sh hit done");
+        expect(pl.seq == 16, "editor 1 smash is not Dink");
+        expect(g_stub_seq[1] == 173, "smash on editor 1");
+
+        dinkc_vm_reset();
+        pl.seq = 16;
+        g_stub_seq[1] = 0;
+        slot = dinkc_vm_start(fist, strlen(fist), 1000);
+        expect(slot > 0 && pl.seq == 106, "item sp_seq(1) is Dink");
+        expect(g_stub_seq[1] == 0, "item does not write editor 1");
+
+        dinkc_vm_reset();
+        pl.seq = 16;
+        slot = dinkc_vm_start(mom, strlen(mom), 26);
+        expect(slot > 0 && pl.seq == 102, "other map sp_seq(1) is Dink");
+        dinkc_cmd_bind_fiber(0, 0);
+    }
     {
         const char *keep =
             "void arm(void) { int &x; } void use(void) { &x = 1; return; }";
@@ -224,6 +286,38 @@ int main(void)
         expect(dinkc_vm_choice_cur() == 2, "cur2");
         dinkc_vm_choice_pick(dinkc_vm_choice_cur());
         expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2, "pick B");
+    }
+    {
+        /* start-2.c load(): ten &savegameinfo + Nevermind. */
+        const char *loadc =
+            "void main(void) { choice_start(); \"&savegameinfo\"; "
+            "\"Nevermind\"; choice_end(); }";
+        char dir[] = "build/savetest2";
+
+        (void)system("mkdir -p build/savetest2");
+        save_set_dir(dir);
+        dinkc_vm_reset();
+        dinkc_var_init();
+        slot = dinkc_vm_start(loadc, strlen(loadc), 1);
+        expect(slot > 0 && dinkc_vm_waiting_choice(), "savegameinfo choice");
+        expect(dinkc_vm_choice_n() == 2, "two lines");
+        expect(strstr(dinkc_vm_choice_line(1), "Empty") != NULL ||
+                   strstr(dinkc_vm_choice_line(1), "empty") != NULL,
+               "slot empty token");
+        expect(strcmp(dinkc_vm_choice_line(2), "Nevermind") == 0, "nevermind");
+        dinkc_vm_choice_pick(2);
+        dinkc_vm_choice_open_saves();
+        expect(dinkc_vm_choice_n() == 11, "start-2 ten plus nevermind");
+        expect(dinkc_vm_choice_cur() == 1, "save cur1");
+        expect(strstr(dinkc_vm_choice_line(1), "Slot 1") != NULL, "slot1 line");
+        expect(strcmp(dinkc_vm_choice_line(11), "Nevermind") == 0,
+               "line 11 nevermind");
+        dinkc_vm_choice_move(-1);
+        expect(dinkc_vm_choice_cur() == 11, "wrap to nevermind");
+        dinkc_vm_choice_close_saves();
+        expect(dinkc_vm_choice_n() == 0, "closed");
+        (void)system("rm -rf build/savetest2");
+        (void)dir;
     }
     {
         const char *titled =

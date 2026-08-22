@@ -21,6 +21,7 @@ static int (*g_live_xy)(int slot, int *x, int *y);
 static char g_text[200];
 static int g_on, g_owner, g_x, g_y, g_color;
 static int g_kill_ttl, g_kill_start, g_kill_armed;
+static int g_xy;
 
 /* FreeDink gfx_fonts.cpp gfx_fonts_init_colors. Index 0 unused. */
 static const uint32_t g_font_argb[16] = {
@@ -89,6 +90,9 @@ static void owner_xy(int sprite, int *x, int *y)
 
 static int say_box_w(void)
 {
+    if (g_xy) {
+        return DINK_SAY_PLAYX;
+    }
     return g_owner == 1000 ? DINK_SAY_PLAYX - 20 : DINK_SAY_BOX_W;
 }
 
@@ -181,10 +185,24 @@ static void wrap_line(char *s, int max_px)
     }
 }
 
+static void saybox_arm(const char *text, int boxw)
+{
+    wrap_line(g_text, boxw);
+    g_on = 1;
+    /* add_text_sprite: strlen of the DinkC string (color prefix counts). */
+    g_kill_ttl = (int)strlen(text != NULL ? text : "") * DINK_SAY_TEXT_TIMER;
+    if (g_kill_ttl < DINK_SAY_TEXT_MIN) {
+        g_kill_ttl = DINK_SAY_TEXT_MIN;
+    }
+    g_kill_start = 0;
+    g_kill_armed = 0;
+}
+
 void saybox_set(const char *text, int sprite)
 {
     int ox, oy, boxw;
 
+    g_xy = 0;
     g_owner = sprite;
     if (g_owner == 0) {
         g_owner = 1;
@@ -197,16 +215,19 @@ void saybox_set(const char *text, int sprite)
         g_x = ox;
         g_y = oy;
     }
-    wrap_line(g_text, boxw);
-    g_on = 1;
-    /* add_text_sprite: strlen of the DinkC string (color prefix counts). */
-    g_kill_ttl = (int)strlen(text != NULL ? text : "") * DINK_SAY_TEXT_TIMER;
-    if (g_kill_ttl < DINK_SAY_TEXT_MIN) {
-        g_kill_ttl = DINK_SAY_TEXT_MIN;
-    }
-    g_kill_start = 0;
-    g_kill_armed = 0;
+    saybox_arm(text, boxw);
     saybox_place();
+}
+
+void saybox_set_xy(const char *text, int x, int y)
+{
+    /* say_text_xy: add_text_sprite at (mx,my), text_owner 1000. */
+    g_xy = 1;
+    g_owner = 1000;
+    strip_color(text, g_text, sizeof(g_text), &g_color);
+    g_x = x;
+    g_y = y;
+    saybox_arm(text, DINK_SAY_PLAYX);
 }
 
 int saybox_tick(int now_ms)
@@ -231,6 +252,7 @@ void saybox_clear(void)
 {
     g_on = 0;
     g_owner = 0;
+    g_xy = 0;
     g_text[0] = '\0';
     g_kill_ttl = 0;
     g_kill_start = 0;

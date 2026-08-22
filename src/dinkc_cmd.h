@@ -2,6 +2,8 @@
 #ifndef DINKCAST_DINKC_CMD_H
 #define DINKCAST_DINKC_CMD_H
 
+#include <stddef.h>
+
 struct Player;
 struct SeqInfo;
 struct MapScreen;
@@ -62,6 +64,7 @@ void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
 void dinkc_cmd_bind_fiber(int fiber, int sprite);
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage));
 void dinkc_cmd_bind_restart(void (*fn)(void));
+void dinkc_cmd_bind_kill_game(void (*fn)(void));
 void dinkc_cmd_bind_brain_lookup(int (*first)(int brain, int ignore, int start),
                                  int (*rnd)(int brain, int ignore));
 void dinkc_cmd_set_now(int now_ms);
@@ -100,5 +103,13 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map);
 void dinkc_cmd_bind_blood(void (*fn)(int slot));
 void dinkc_cmd_bind_hard_redraw(void (*fn)(void));
 int dinkc_cmd_hard_redraw_take(void);
+void dinkc_cmd_inv_get(int magic, int idx0, int *active, char *name, size_t n,
+                       int *seq, int *frame);
+void dinkc_cmd_inv_put(int magic, int idx0, int active, const char *name,
+                       int seq, int frame);
+int dinkc_cmd_spmap_count(void);
+int dinkc_cmd_spmap_at(int idx0, int *map, int *ed, int *type, int *seq,
+                       int *frame);
+void dinkc_cmd_spmap_put(int map, int ed, int type, int seq, int frame);
 
 #endif

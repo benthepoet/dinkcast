@@ -241,6 +241,41 @@ void dinkc_var_kill_scope(int scope)
     }
 }
 
+int dinkc_var_global_count(void)
+{
+    int i, n = 0;
+
+    for (i = 1; i < DINKC_MAX_VARS; i++) {
+        if (g_var[i].active && g_var[i].scope == DINKC_GLOBAL_SCOPE) {
+            n++;
+        }
+    }
+    return n;
+}
+
+int dinkc_var_global_at(int idx0, char *name, size_t n, int *value)
+{
+    int i, seen = 0;
+
+    for (i = 1; i < DINKC_MAX_VARS; i++) {
+        if (!g_var[i].active || g_var[i].scope != DINKC_GLOBAL_SCOPE) {
+            continue;
+        }
+        if (seen == idx0) {
+            if (name != NULL && n > 0) {
+                strncpy(name, g_var[i].name, n - 1);
+                name[n - 1] = '\0';
+            }
+            if (value != NULL) {
+                *value = g_var[i].value;
+            }
+            return 0;
+        }
+        seen++;
+    }
+    return -1;
+}
+
 void dinkc_var_set(const char *name, int value, int scope, int sprite)
 {
     int i;

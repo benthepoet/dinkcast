@@ -165,6 +165,14 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | Playtest AlkNuts: `free_items` counts empty slots | #109 |
 | 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
 | 2026-08-22 | **v0.2.0** tagged | #109 |
+| 2026-08-22 | **v0.3.0** plan (START menu + VMU **17** before **12**) | this PR |
+| 2026-08-22 | START hover seq 199/200/198 (`live_sprite_animate` + noclip) | this PR |
+| 2026-08-22 | START: no Quit; buttons stay pframe 1 | this PR |
+| 2026-08-22 | START: pframe 2 glow, idle word stays put | this PR |
+| 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | this PR |
+| 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | this PR |
+| 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | this PR |
+| 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
 
 ## Bites
 
@@ -218,7 +226,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1 on **re-enter**; live `scale_brain` |
 | 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
 | 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6. LEFTALIGN / `blitNoColorKey` paper (this PR) |
-| 17.1–17.3 | VMU save | pending | |
+| 17.1–17.3 | VMU save | source | Compact LE blob &lt; 8 KB; host `build/saveNN.bin`; Maple first VMU + 32×32 icon; `save_game` / `load_game` / `game_exist` / `&savegameinfo`. Soft-fail if no VMU. Flycast stamp pending |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
 
 ## Blocked / outside bites
@@ -230,6 +238,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
 | Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts confirmed; burning-house exit Open |
+| v0.3.0 | [docs/V0.3.md](docs/V0.3.md) — START menu + VMU; **17** before **12** |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -244,8 +253,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **Burning-house exit** | `s1-h1-s` `move_stop` onto the door while frozen. AlkNuts confirmed. Long pole is still campaign DinkC |
-| **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
+| **Next picture** | **START menu + VMU load** | v0.3.0. Burning-house exit stays Open. **14.6** gated |
+| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **17** this slice; **12** after |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -319,3 +328,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (AlkNuts confirmed) | **~90%** | Requester: “I picked up a nut!” in Flycast. |
 | 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
 | 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
+| 2026-08-22 (v0.3 plan) | **~90%** | Requester: title + VMU before remaining campaign issues. **17** before **12**. **14.6** still gated. |

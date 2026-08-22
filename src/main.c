@@ -28,8 +28,10 @@
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "save.h"
 #include "sprite.h"
 #include "start_map.h"
+#include "startmenu.h"
 #include "status.h"
 #include "talk.h"
 #include "tiles.h"
@@ -463,10 +465,100 @@ static void list_cd_hud(void)
 }
 
 static int g_need_restart;
+static int g_need_title;
+static int g_show_splash;
 
 static void game_restart_cmd(void)
 {
     g_need_restart = 1;
+}
+
+static void game_kill_cmd(void)
+{
+    g_need_title = 1;
+}
+
+static void title_show_splash(void)
+{
+    /* Do not call title_present_pvr here: it pvr_shutdown() and leaves
+     * tiles g_pvr_ready set, so tiles_pvr_ensure is a no-op on a dead
+     * PVR and wipes saybox/font/inv uploads. Quit/Title return to the
+     * START menu (fill_screen 0), not a second Splash.bmp present. */
+    tiles_draw_clear_pvr(0xff000000);
+}
+
+/* START.c picture + start-1/2 click. Not START.c main() (audio). */
+static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
+                                int *player_map)
+{
+    for (;;) {
+        int pick, slot;
+
+        if (g_show_splash) {
+            title_show_splash();
+            g_show_splash = 0;
+        }
+        pick = startmenu_present_pvr(seqs);
+        if (pick == STARTMENU_QUIT) {
+            printf("start-4 click kill_game\n");
+            g_show_splash = 1;
+            continue;
+        }
+        if (pick == STARTMENU_LOAD) {
+            int args[8];
+            int ret = 0;
+
+            slot = startmenu_present_slots_pvr(seqs);
+            if (slot < 1 || slot > 10) {
+                continue;
+            }
+            if (save_game_exist(slot) == 0) {
+                int yld = 0;
+
+                /* start-2.c click(): Say_xy if &result != 11. */
+                printf("start-2 load empty slot=%d\n", slot);
+                memset(args, 0, sizeof(args));
+                args[0] = 0;
+                args[1] = 390;
+                (void)dinkc_cmd(
+                    "say_xy", args, 2,
+                    "`%Try loading a saved game that exists, friend.", NULL,
+                    &yld, &ret);
+                continue;
+            }
+            dinkc_vm_reset();
+            memset(args, 0, sizeof(args));
+            args[0] = slot;
+            (void)dinkc_cmd("load_game", args, 1, NULL, NULL, NULL, &ret);
+            if (ret != 1) {
+                printf("start-2 load_game fail slot=%d\n", slot);
+                continue;
+            }
+            if (player_map != NULL) {
+                *player_map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+                if (*player_map < 1) {
+                    *player_map = DINK_START_PLAYER_MAP;
+                }
+            }
+            printf("start-2 load slot=%d map=%d\n", slot,
+                   player_map != NULL ? *player_map : 0);
+            return STARTMENU_LOAD;
+        }
+        dinkc_vm_reset();
+        dinkc_var_init();
+        dinkc_cmd_reset_inv();
+        inv_reset();
+        player_init(pl);
+        dinkc_cmd_bind_player(pl);
+        hit_bind_player(pl);
+        script_clear_dink_die();
+        if (player_map != NULL) {
+            *player_map = DINK_START_PLAYER_MAP;
+        }
+        give_start_fists();
+        printf("start-1 click new game\n");
+        return STARTMENU_NEW;
+    }
 }
 
 static void game_add_exp(int num)
@@ -538,18 +630,12 @@ int main(int argc, char **argv)
         }
     }
     title_free(&title);
-    /* Title tex already pvr_mem_free'd inside present (Bite 4.2). */
+    /* Splash frame stays on PVR while we load. No pad. Then START. */
     {
         enum GameState st = GAME_STATE_LOADING;
 
         (void)st;
         printf("leave_title\n");
-        vid_set_mode(DM_640x480, PM_RGB565);
-        vid_clear(DINK_BOOT_R, DINK_BOOT_G, DINK_BOOT_B);
-        hud("leave_title", "GAME_STATE_LOADING", msg);
-        /* pvr_shutdown left the splash in the last PVR frame. Re-init and
-         * draw brown or Flycast keeps showing the title during house load. */
-        tiles_draw_clear_pvr(0xff5a3a1a);
     }
     {
         int rec;
@@ -688,6 +774,7 @@ int main(int argc, char **argv)
                                             brains_rand_with_brain);
                 dinkc_cmd_bind_blood(on_blood);
                 dinkc_cmd_bind_restart(game_restart_cmd);
+                dinkc_cmd_bind_kill_game(game_kill_cmd);
                 hit_bind_player(&pl);
                 hit_bind_hit(script_on_hit_from);
                 hit_bind_push(script_on_push);
@@ -700,7 +787,13 @@ int main(int argc, char **argv)
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
-                give_start_fists();
+                if (font_init() == 0) {
+                    printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
+                           font_atlas_h(), font_atlas_bytes());
+                    if (saybox_upload() != 0) {
+                        printf("saybox upload fail\n");
+                    }
+                }
                 if (seqs != NULL && inv_load(seqs) != 0) {
                     printf("inv gfx load fail\n");
                 }
@@ -789,18 +882,11 @@ int main(int argc, char **argv)
                 last_seq = pl.seq;
                 last_frame = pl.frame;
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
-                if (font_init() == 0) {
-                    printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
-                           font_atlas_h(), font_atlas_bytes());
-                    if (saybox_upload() != 0) {
-                        printf("saybox upload fail\n");
-                    }
-                    if (choice_upload_pvr() != 0) {
-                        printf("choice upload fail\n");
-                    }
-                    if (inv_upload_pvr() != 0) {
-                        printf("inv upload fail\n");
-                    }
+                if (choice_upload_pvr() != 0) {
+                    printf("choice upload fail\n");
+                }
+                if (inv_upload_pvr() != 0) {
+                    printf("inv upload fail\n");
                 }
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
@@ -832,11 +918,33 @@ int main(int argc, char **argv)
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
                     int now_ms = 0;
+                    int need_menu = 1;
 
                     g_play_have_scene = &have_scene;
+                    startpause_reset();
                     for (;;) {
                         uint32_t buttons = 0;
-                        int have, pdir;
+                        int have, pdir, paused;
+
+                    if (need_menu) {
+                        (void)title_pick_and_apply(seqs, &pl, &player_map);
+                        inv_sync_icons();
+#ifdef _arch_dreamcast
+                        (void)inv_upload_pvr();
+#endif
+                        g_need_title = 0;
+                        startpause_reset();
+                        swap = 1;
+                        need_menu = 0;
+                    }
+                    if (g_need_title) {
+                        g_need_title = 0;
+                        g_show_splash = 1;
+                        startpause_reset();
+                        saybox_clear();
+                        need_menu = 1;
+                        continue;
+                    }
 
                     if (g_need_restart) {
                         dinkc_vm_reset();
@@ -851,6 +959,10 @@ int main(int argc, char **argv)
                         g_need_restart = 0;
                         mem_swap_reset();
                         give_start_fists();
+                        inv_sync_icons();
+#ifdef _arch_dreamcast
+                        (void)inv_upload_pvr();
+#endif
                         swap = 1;
                     }
 
@@ -888,6 +1000,7 @@ int main(int argc, char **argv)
                     }
                     brains_apply(&g_scr);
                     have = (pad_poll_port0(&buttons) == 0);
+                    paused = startpause_open();
                     if (have && status_map_active()) {
 #ifdef _arch_dreamcast
                         (void)status_upload_pvr();
@@ -937,7 +1050,24 @@ int main(int argc, char **argv)
                                                     DINK_PAD_A)) {
                             dinkc_vm_choice_pick(dinkc_vm_choice_cur());
                         }
-                    } else if (have && pl.freeze == 0 &&
+                    } else if (have && !inv_showing() && !status_map_active() &&
+                               !dinkc_vm_waiting_say() &&
+                               !dinkc_vm_waiting_choice() &&
+                               startpause_eats_pad(prev_buttons, buttons)) {
+                        int pr = startpause_tick(prev_buttons, buttons);
+
+                        if (pr == STARTPAUSE_TITLE) {
+                            g_need_title = 1;
+                            g_show_splash = 1;
+                        } else if (pr == STARTPAUSE_CONTINUE || pr == -2) {
+                            saybox_clear();
+                        } else if (startpause_open()) {
+                            saybox_set(startpause_focus() == STARTPAUSE_TITLE
+                                           ? "Title"
+                                           : "Continue",
+                                       0);
+                        }
+                    } else if (have && !paused && pl.freeze == 0 &&
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_L)) {
@@ -952,7 +1082,7 @@ int main(int argc, char **argv)
                             }
                         }
 #endif
-                    } else if (have && pl.freeze == 0 &&
+                    } else if (have && !paused && pl.freeze == 0 &&
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
@@ -962,7 +1092,8 @@ int main(int argc, char **argv)
                             printf("inv upload fail\n");
                         }
 #endif
-                    } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                    } else if (have && !paused && pl.freeze == 0 &&
+                        pl.nocontrol == 0 &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
                         int slot = talk_probe(&g_scr, g_edg, g_ned, seqs, pl.x,
                                               pl.y, pl.dir, script_play_vision());
@@ -972,7 +1103,8 @@ int main(int argc, char **argv)
                         } else {
                             script_on_talk(slot);
                         }
-                    } else if (have && pl.freeze == 0 && pl.nocontrol == 0 &&
+                    } else if (have && !paused && pl.freeze == 0 &&
+                        pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
@@ -982,7 +1114,8 @@ int main(int argc, char **argv)
                             player_attack(&pl, seqs);
                         }
                     }
-                    if (have && !inv_showing() && !status_map_active() &&
+                    if (have && !paused && !inv_showing() &&
+                        !status_map_active() &&
                         pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_say() &&
@@ -1082,11 +1215,13 @@ int main(int argc, char **argv)
                     }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
                     if (seqs != NULL) {
-                        int wed = (inv_showing() || status_map_active())
+                        int wed = (inv_showing() || status_map_active() ||
+                                   paused)
                                       ? 0
                                       : screen_process_warp();
 
-                        if (!inv_showing() && !status_map_active()) {
+                        if (!inv_showing() && !status_map_active() &&
+                            !paused) {
                             dinkc_vm_resume_move();
                         }
                         if (wed > 0) {
@@ -1100,7 +1235,8 @@ int main(int argc, char **argv)
                                 }
                                 screen_warp_clear();
                             }
-                        } else if (!inv_showing() && !status_map_active()) {
+                        } else if (!inv_showing() && !status_map_active() &&
+                                   !paused) {
                             player_step(&pl, pdir, &mask, seqs, now_ms);
                             hit_touch_list(pl.x, pl.y, now_ms, g_edg, g_ned,
                                            seqs);

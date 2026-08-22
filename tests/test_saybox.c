@@ -162,6 +162,16 @@ int main(void)
     expect(saybox_tick(0) == 0 && saybox_active(), "wizard start");
     expect(saybox_tick(DINK_SAY_TEXT_MIN + 1) == 1 && !saybox_active(),
            "wizard TEXT_MIN");
+    /* start-2.c click() empty slot. */
+    saybox_set_xy("`%Try loading a saved game that exists, friend.", 0, 390);
+    expect(saybox_active(), "xy on");
+    expect(saybox_color() == 15, "xy `% is 15");
+    expect(strcmp(saybox_text(),
+                  "Try loading a saved game that exists, friend.") == 0,
+           "xy strip");
+    expect(saybox_x() == 0 && saybox_y() == 390, "xy 0,390");
+    pl.x = 500;
+    expect(saybox_x() == 0 && saybox_y() == 390, "xy does not follow");
     saybox_set("`3Why hello, Dink.", 1);
     expect(saybox_tick(100) == 0 && saybox_active(), "ethel start");
     expect(saybox_tick(100 + DINK_SAY_TEXT_MIN) == 0 && saybox_active(),

@@ -53,6 +53,8 @@ tests/test_weapon
 tests/test_touch
 tests/test_inv
 tests/test_status
+tests/test_save
+tests/test_startmenu
 
 # Toolchain / local
 .kosenv

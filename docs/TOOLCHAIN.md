@@ -166,6 +166,18 @@ make emu         # Flycast on the MIL-CD CHD
 
 A CDI **without** the data tree will boot the color field / red `missing dink.dat` screen. Title splash needs `tiles/Splash.bmp` on the disc.
 
+## 6.1 Flycast VMU (v0.3 save/load)
+
+Saves are Maple VMU slots **1–10**, not a PC `savegame` file. Host tests write `build/saveNN.bin` and never need Maple.
+
+In Flycast:
+
+1. **Settings → Controls** (or Maple): Port A, **Slot 1 = VMU**. A second VMU in Slot 2 is unused; Dinkcast uses the first memcard (`maple_enum_type(0, MAPLE_FUNC_MEMCARD)`).
+2. Start the CHD with **`make emu`**. The VMU file is usually `vmu_save_A1.bin` under Flycast’s config dir (often `~/.config/flycast/` or `~/.local/share/flycast/`).
+3. No VMU: **New Game** still works. **Load** / `save_game` fail soft (`save_game no VMU` on SCIF) and do not hang.
+
+Do not type a save name. Slots match `save_game(n)` / `start-2.c` `&savegameinfo`.
+
 ## 7. Hardware
 
 - Burn **Disc-at-Once** if you use a real GD/CD (or use GDEMU / ODE with the `.cdi`).
