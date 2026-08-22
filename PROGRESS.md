@@ -226,7 +226,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard confirmed; AlkNuts Open |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts confirmed; burning-house exit Open |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -241,7 +241,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **AlkNuts pickup** | `s1-nut` / `free_items`. Wizard idle confirmed. Long pole is still campaign DinkC |
+| **Next picture** | **Burning-house exit** | `s1-h1-s` `move_stop` onto the door while frozen. AlkNuts confirmed. Long pole is still campaign DinkC |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -313,3 +313,5 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (wizard live) | **~90%** | Play-path Screen `live` until swap: 167 explode filled `cpu_pixels`, 563/567 refused. Remake live from this tick’s draw set. |
 | 2026-08-22 (wizard confirmed) | **~90%** | Requester: gnome stayed visible for the `s1-wiz` meeting. refuse/evict at the cap is the policy. |
 | 2026-08-22 (AlkNuts) | **~90%** | `s1-nut` `free_items()` was unimplemented (0) so pickup always said full. Graft `dc_free_items` slot count. |
+| 2026-08-22 (AlkNuts confirmed) | **~90%** | Requester: “I picked up a nut!” in Flycast. |
+| 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
