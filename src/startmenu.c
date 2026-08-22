@@ -250,10 +250,15 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
 int startmenu_present_slots_pvr(void)
 {
     int pick = -1;
-    uint32_t prev = 0;
+    uint32_t prev = 0, held = 0;
     char line[80];
 
     startmenu_slot_reset();
+    /* start-2 load() is a choice. The Continue click A is still down;
+     * seed prev so that press cannot confirm slot 1. */
+    if (pad_poll_port0(&held) == 0) {
+        prev = held;
+    }
     while (pick < 0) {
         uint32_t buttons = 0;
         int have = (pad_poll_port0(&buttons) == 0);

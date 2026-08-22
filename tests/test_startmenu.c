@@ -31,6 +31,12 @@ int main(void)
 
     startmenu_slot_reset();
     expect(startmenu_slot_focus() == 1, "slot1");
+    expect(startmenu_slot_tick(DINK_PAD_A, DINK_PAD_A) == -1,
+           "held continue a");
+    expect(startmenu_slot_tick(DINK_PAD_A, 0) == -1, "release a");
+    expect(startmenu_slot_tick(0, DINK_PAD_A) == 1, "confirm slot1");
+    startmenu_slot_reset();
+    expect(startmenu_slot_focus() == 1, "slot1 again");
     expect(startmenu_slot_tick(0, DINK_PAD_DOWN) == -1, "slot cycle");
     expect(startmenu_slot_focus() == 2, "slot2");
     expect(startmenu_slot_tick(0, DINK_PAD_A) == 2, "pick 2");
