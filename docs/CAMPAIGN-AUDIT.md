@@ -2,7 +2,8 @@
 
 **When:** 2026-08-22. **Tree:** `master` at `#100` (say TTL) after tag **v0.1.0**.  
 **Kind:** analysis only. No code in this document.  
-**Canon:** GNU FreeDink graft. Official 1.08 `Story/` only (381 files). Not D-Mods, not DinkEdit.
+**Canon:** GNU FreeDink graft. Official 1.08 `Story/` only (381 files). Not D-Mods, not DinkEdit.  
+**Canvas:** [docs/canvases/campaign-graft-audit.canvas.tsx](canvases/campaign-graft-audit.canvas.tsx). **v0.2.0** slice: [docs/V0.2.md](V0.2.md).
 
 Four parallel passes: DinkC bindings vs `k_fn[]` vs stock scripts; brains 0–17 vs `update_frame`; engine systems vs the plan table; quest scripts vs dispatch.
 
@@ -19,7 +20,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 ## Verdict
 
 **Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **98 / 186** FreeDink DinkC names in `k_fn[]` (~52%). Stock scripts use **~125** of those 186. The rest of the pole is VM control flow (`goto`, `spawn`), screen-script helpers (`load_screen` / `draw_screen` / `screenlock`), enemy AI wiring (`sp_target` → brains, `get_sprite_with_this_brain`), then audio **12**, VMU **17**, and **14.6**.
+**The full 1.08 campaign is not.** Coverage is about **98 / 186** FreeDink DinkC names in `k_fn[]` (~52%). Stock scripts use **~125** of those 186. The rest of the pole is VM control flow (`spawn`; `goto` is host #102), screen-script helpers (`load_screen` / `draw_screen` / `screenlock`), enemy AI wiring (`sp_target` → brains, `get_sprite_with_this_brain`), then audio **12**, VMU **17**, and **14.6**.
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -46,9 +47,9 @@ Plan feasibility already called full campaign **~55–65%**. This audit agrees: 
 
 ## Recommended order (still analysis)
 
-Work that unblocks **stock scripts**, in campaign order. Plan bite ids stay; this is not a license to skip gates.
+Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [docs/V0.2.md](V0.2.md) (items 1–6). Plan bite ids stay; this is not a license to skip gates.
 
-1. **VM `goto`** — parsed, never jumps (`dinkc_parse.c` vs `run_fiber`). ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
+1. **VM `goto`** — host [#102](https://github.com/benthepoet/dinkcast/pull/102) (`locate_goto`). Flycast gossip/shop loop still a picture. ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
 2. **`spawn`** — not in `k_fn[]`. ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`). FreeDink `dc_spawn`.
 3. **`load_screen` + `draw_screen` + fades** — `load_screen` silent no-op (`dinkc_cmd.c` with `fade_*` / `fill_screen`); `draw_screen` missing. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
 4. **`screenlock`** — missing. ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas.
@@ -84,7 +85,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 
 | Gap | FreeDink | Dinkcast | Campaign |
 |---|---|---|---|
-| `goto` / labels | `locate_goto` in `process_line` | Parse only | Gossip, shops, escape, late-game |
+| `goto` / labels | `locate_goto` in `process_line` | Host #102 | Flycast gossip/shop still a picture |
 | `spawn` | `dc_spawn` | Absent | Bombs, dragons, end sequences |
 | `kill_this_task` | Resume `proc_return` | `fiber_kill` | Mostly OK; nested parent resume unverified |
 | `external` | `process_line` | `bind_external` + `WAIT_EXT` | Loot (`MAKE.c` / `EMAKE.c`) — village smash depends on this |
@@ -179,7 +180,7 @@ Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this por
 
 Village Open is **empty** (requester 2026-08-22): 409 house, smash y-sort, and pig-pen fence are confirmed. Those were occupancy/paint, not DinkC holes.
 
-Campaign-hard failures start at **`goto`**, **`spawn`**, **`load_screen`/`draw_screen`**, **`screenlock`**, and **pill/dragon targeting**.
+Campaign-hard failures continue at **`spawn`**, **`load_screen`/`draw_screen`**, **`screenlock`**, and **pill/dragon targeting**. (`goto` is host #102; Flycast loop still a picture.)
 
 ---
 
@@ -192,7 +193,7 @@ D-Mod loader, DinkEdit, keyboard/mouse brains, `wait_for_button` (0 story hits),
 ## Sources
 
 - `/home/benh/Source/dinkcast/src/dinkc_cmd.c` (`k_fn[]`, stubs at `load_screen` / `fade_*`)
-- `/home/benh/Source/dinkcast/src/dinkc_vm.c` (`run_fiber`, no `goto`)
+- `/home/benh/Source/dinkcast/src/dinkc_vm.c` (`run_fiber`, `locate_goto` #102)
 - `/home/benh/Source/dinkcast/src/brains.c`
 - `/home/benh/Source/gnu_freedink/src/dinkc_bindings.cpp` (`dinkc_bindings_init`)
 - `/home/benh/Source/gnu_freedink/src/update_frame.cpp`
