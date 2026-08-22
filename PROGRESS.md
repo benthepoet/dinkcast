@@ -152,7 +152,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | `say()` TTL + `edraw_mark_need` (callers were in #98) | #100 |
 | 2026-08-22 | Campaign graft audit; village PLAYTEST Open empty | #101 |
 | 2026-08-22 | VM `goto` / labels (`locate_goto`) | #102 |
-| 2026-08-22 | Keep generated canvases in `docs/canvases/` (v0.2 + campaign audit) | this PR |
+| 2026-08-22 | Keep generated canvases in `docs/canvases/` (v0.2 + campaign audit) | #103 |
+| 2026-08-22 | DinkC `spawn` (`dc_spawn`, sprite 1000, no parent yield) | this PR |
 
 ## Bites
 

@@ -50,7 +50,7 @@ Plan feasibility already called full campaign **~55–65%**. This audit agrees: 
 Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [docs/V0.2.md](V0.2.md) (items 1–6). Plan bite ids stay; this is not a license to skip gates.
 
 1. **VM `goto`** — host [#102](https://github.com/benthepoet/dinkcast/pull/102) (`locate_goto`). Flycast gossip/shop loop still a picture. ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
-2. **`spawn`** — not in `k_fn[]`. ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`). FreeDink `dc_spawn`.
+2. **`spawn`** — host this PR (`dc_spawn`, sprite 1000, parent continues). ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`).
 3. **`load_screen` + `draw_screen` + fades** — `load_screen` silent no-op (`dinkc_cmd.c` with `fade_*` / `fill_screen`); `draw_screen` missing. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
 4. **`screenlock`** — missing. ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas.
 5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
@@ -86,7 +86,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 | Gap | FreeDink | Dinkcast | Campaign |
 |---|---|---|---|
 | `goto` / labels | `locate_goto` in `process_line` | Host #102 | Flycast gossip/shop still a picture |
-| `spawn` | `dc_spawn` | Absent | Bombs, dragons, end sequences |
+| `spawn` | `dc_spawn` | Host this PR | Sprite 1000; parent continues |
 | `kill_this_task` | Resume `proc_return` | `fiber_kill` | Mostly OK; nested parent resume unverified |
 | `external` | `process_line` | `bind_external` + `WAIT_EXT` | Loot (`MAKE.c` / `EMAKE.c`) — village smash depends on this |
 | Same-file `void foo()` | `locate` + `run_script` | Fiber starts at one proc | Possible silent skip |
@@ -97,7 +97,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 ### Commands used in campaign and missing or stubbed
 
 **Missing (not in `k_fn[]`), used in 1.08:**  
-`spawn`, `draw_screen`, `screenlock`, `save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_follow`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `get_sprite_with_this_brain`, `get_rand_sprite_with_this_brain`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`draw_screen`, `screenlock`, `save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_follow`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `get_sprite_with_this_brain`, `get_rand_sprite_with_this_brain`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
 `playsound`, `playmidi`, `load_screen`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `sp_target` (side array), `sp_attack_wait` (same), `get_next_sprite_with_this_brain` (no-op), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
@@ -180,7 +180,7 @@ Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this por
 
 Village Open is **empty** (requester 2026-08-22): 409 house, smash y-sort, and pig-pen fence are confirmed. Those were occupancy/paint, not DinkC holes.
 
-Campaign-hard failures continue at **`spawn`**, **`load_screen`/`draw_screen`**, **`screenlock`**, and **pill/dragon targeting**. (`goto` is host #102; Flycast loop still a picture.)
+Campaign-hard failures continue at **`load_screen`/`draw_screen`**, **`screenlock`**, and **pill/dragon targeting**. (`goto` #102; `spawn` host this PR.)
 
 ---
 

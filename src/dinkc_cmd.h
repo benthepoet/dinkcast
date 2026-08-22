@@ -51,6 +51,7 @@ void dinkc_cmd_bind_sp_script(int (*fn)(int slot, const char *name));
 void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
                                        const char *proc, const int *args,
                                        int nargs));
+void dinkc_cmd_bind_spawn(int (*fn)(const char *file));
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
                                        int fiber, int sprite));
 void dinkc_cmd_bind_fiber(int fiber, int sprite);

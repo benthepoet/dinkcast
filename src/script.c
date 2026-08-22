@@ -48,11 +48,33 @@ static int bind_external(int sprite, const char *file, const char *proc,
     return slot > 0 ? slot : 0;
 }
 
+/* FreeDink dc_spawn: load_script(name, 1000) then locate(MAIN). */
+static int bind_spawn(const char *file)
+{
+    char *buf = NULL;
+    size_t n = 0;
+    int slot;
+
+    if (dinkc_load(file, &buf, &n) != 0) {
+        printf("dinkc spawn miss %s\n", file != NULL ? file : "");
+        return 0;
+    }
+    slot = dinkc_vm_start_keep(buf, n, 1000, "main");
+    dinkc_free(buf);
+    if (slot < 1) {
+        printf("dinkc spawn no main %s\n", file != NULL ? file : "");
+        return 0;
+    }
+    printf("dinkc spawn %s slot=%d\n", file, slot);
+    return slot;
+}
+
 void script_bind_screen(const struct MapScreen *scr)
 {
     g_scr = scr;
     dinkc_cmd_bind_sp_script(bind_sp_script);
     dinkc_cmd_bind_external(bind_external);
+    dinkc_cmd_bind_spawn(bind_spawn);
     dinkc_cmd_bind_item(script_item_arm, script_item_locate, script_item_pickup);
     printf("script bind esz=%d spr26=%s type=%d\n",
            (int)sizeof(struct EditorSprite),
