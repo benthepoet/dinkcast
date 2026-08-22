@@ -28,13 +28,13 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Dink draws over smashed barrels | 2026-08-22 | `test_playtest` barrel type 0 |
 | Pig-pen south fence joint does not flip-flop (map 407 seq 93 slots 10/22) | 2026-08-22 | `test_world` editor_draw_behind |
 | Status-bar exp / gold / level digits keep their white paper | 2026-08-22 | `test_status` glyph + chrome opaque; level 442 white keyed |
+| Wizard idle/walk stays on screen for the whole `s1-wiz` meeting (map 376) | 2026-08-22 | `test_edraw` 376 + 167 unused + 563/6 |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
-| Wizard idle/walk stays on screen for the whole `s1-wiz` meeting (map 376) | `test_edraw` 376 + 167 unused + 563/6 |
-| Walk into a fallen AlkNut and pick it up (`s1-nut` / `item-nut`) | (none yet — log named `dinkc unimplemented free_items`) |
+| Walk into a fallen AlkNut and pick it up (`s1-nut` / `item-nut`) | `test_inv` `free_items` + s1-nut path |
 
 Village leftovers above were confirmed 2026-08-22.
 
@@ -68,6 +68,6 @@ add_item("item-nut", 438, 19);
 
 Log: `dinkc unimplemented free_items` then the full line, many times. Unimplemented commands return **0** (`eval_prim`). Inventory at that point was fists + grain (slots 1–2 of **16**). `add_item` is implemented; the script never reaches it.
 
-FreeDink `dc_free_items` (`dinkc_bindings.cpp`) is a count of inactive `play.item[0..NB_ITEMS)` (`NB_ITEMS` 16). Graft that. `free_magic` is the 8-slot analog (not this pickup).
+FreeDink `dc_free_items` (`dinkc_bindings.cpp`) is a count of inactive `play.item[0..NB_ITEMS)` (`NB_ITEMS` 16). Grafted. Host lock: `test_inv`. `free_magic` is the 8-slot analog (not this pickup).
 
 `scripts_used` is also unimplemented (`s1-ntree` `hit` cap at 170). It returned 0 so nuts still spawned. Adjacent, not the pickup fail.
