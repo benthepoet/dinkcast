@@ -23,6 +23,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Start-house textures after walking back | 2026-08-21 | (Flycast; no host lock yet) |
 | Village-entrance guard punch (`s1-gg` `hit()`) | 2026-08-21 | `test_script` / `test_dinkc_vm` locate `hit` |
 | `say()` lines expire (Ethel “Why hello, Dink.”, X “I'm no wizard!”) | 2026-08-21 | `test_saybox` TEXT_MIN |
+| Smashed barrel leftover hardness gone (heart barrels / `BAR-SH`) | 2026-08-22 | `test_brains` created hard; `test_playtest` baked hard |
 
 ## Open
 
@@ -31,6 +32,5 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Ethel outdoor house (map 409 seq 63) on first visit from 408 | Prev drop before slurp malloc; not a seq-63 pin | `test_edraw` 408→409 seq 63; `test_mem` make_room |
 | Dink draws over smashed barrels | FreeDink brain 5 stamps last frame to background | `test_playtest` barrel type 0 |
 | Pig-pen south fence joint does not flip-flop (map 407 seq 93 slots 10/22) | Shared world-sprite z (painter); not a seq-93 pin | `test_world` editor_draw_behind |
-| Smashed barrel has no leftover hardness (409/441 seq 173) | `create_sprite` hard=1 (FreeDink add_sprite); not a seq-54 pin | `test_brains` created hard; `test_playtest` baked hard |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.

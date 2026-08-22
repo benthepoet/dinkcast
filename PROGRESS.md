@@ -218,7 +218,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **playtest leftovers** | Ethel outdoor house (409); smashed-barrel y-sort; pig-pen fence shimmer; barrel leftover hard |
+| **Next picture** | **playtest leftovers** | Ethel outdoor house (409); smashed-barrel y-sort; pig-pen fence shimmer |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -281,4 +281,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (barrel bg) | **~90%** | Brain 5 smash left type-1 last frame; Dink y-sorted under debris. Graft `one_time_brain` bake-to-background (`type` 0). |
 | 2026-08-22 (fence painter) | **~90%** | Pig-pen seq 93 overlap shimmered: PT z-steps vs FreeDink blit. Shared world-sprite z; slot tie-break. Not a seq-93 pin. |
 | 2026-08-22 (barrel hard) | **~90%** | Smash left seq-173 origin hardbox in the hitmap. Type 3 `update_play_changes` on restamp; HIT continues after finished `external`; bake copies `hard`. |
-| 2026-08-22 (create hard) | **~90%** | BAR-SH leftover was seq-54 heart: `add_sprite` hard=1, create memset 0. `draw_hard_sprite` stamped it; TOUCH never restamps. |
+| 2026-08-22 (create hard) | **~90%** | BAR-SH leftover was seq-54 heart: `add_sprite` hard=1, create memset 0. `draw_hard_sprite` stamped it; TOUCH never restamps. Confirmed in Flycast. |
