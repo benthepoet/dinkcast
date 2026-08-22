@@ -148,7 +148,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-21 | Pig kill: brain 7 hides editor snap | #98 |
 | 2026-08-21 | preload_seq: frame 1, not whole walk | #98 |
 | 2026-08-22 | Playtest stability: 409 slurp, smash bake/hard, create_sprite `hard=1` | #98 |
-| 2026-08-22 | **v0.1.0** tagged | this PR |
+| 2026-08-22 | **v0.1.0** tagged | #99 |
+| 2026-08-22 | `say()` TTL + `edraw_mark_need` (callers were in #98) | this PR |
 
 ## Bites
 
@@ -293,3 +294,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (barrel hard) | **~90%** | Smash left seq-173 origin hardbox in the hitmap. Type 3 `update_play_changes` on restamp; HIT continues after finished `external`; bake copies `hard`. |
 | 2026-08-22 (create hard) | **~90%** | BAR-SH leftover was seq-54 heart: `add_sprite` hard=1, create memset 0. `draw_hard_sprite` stamped it; TOUCH never restamps. Confirmed in Flycast. |
 | 2026-08-22 (v0.1.0) | **~90%** | First product tag after #98. Village Flycast snapshot. Open: 409 house, smash y-sort, fence shimmer. Audio/VMU/hardware unproven. |
+| 2026-08-22 (say TTL) | **~90%** | #98 called `saybox_tick` / `edraw_mark_need` without bodies. `say()` TTL + Screen mark for MAIN `create_sprite`. |

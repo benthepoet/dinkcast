@@ -208,6 +208,28 @@ static void miss_clear(void)
     g_nmiss = 0;
 }
 
+#define DINK_EDRAW_MARK_MAX 32
+static int g_mark_s[DINK_EDRAW_MARK_MAX];
+static int g_mark_f[DINK_EDRAW_MARK_MAX];
+static int g_nmark;
+
+void edraw_mark_need(int seq, int frame)
+{
+    int i;
+
+    if (seq < 1 || frame < 1 || g_nmark >= DINK_EDRAW_MARK_MAX) {
+        return;
+    }
+    for (i = 0; i < g_nmark; i++) {
+        if (g_mark_s[i] == seq && g_mark_f[i] == frame) {
+            return;
+        }
+    }
+    g_mark_s[g_nmark] = seq;
+    g_mark_f[g_nmark] = frame;
+    g_nmark++;
+}
+
 static int miss_has(int seq, int frame)
 {
     int i;
@@ -518,6 +540,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
+        /* create_sprite during screen MAIN (Chealse) is not an editor row.
+         * swap_begin already demoted her pack to Prev; keep it Screen. */
+        for (k = 0; k < g_nmark; k++) {
+            need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
+        }
+        g_nmark = 0;
         /* Re-mark this Screen's packs before drop. Aged Prev (two screens
          * old) still occupies file_blob until swap_end — fopen Screen then
          * misses pigs on the first 407 visit. */
