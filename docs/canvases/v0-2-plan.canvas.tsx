@@ -29,7 +29,7 @@ export default function V02Plan() {
         </Text>
         <Row gap={8} wrap>
           <Pill active>From v0.1.0 village</Pill>
-          <Pill tone="info">goto #102 · spawn #104</Pill>
+          <Pill tone="info">goto #102 · spawn #104 · load #105</Pill>
           <Pill tone="warning">Not full campaign</Pill>
         </Row>
       </Stack>
@@ -40,7 +40,7 @@ export default function V02Plan() {
       </Callout>
 
       <Grid columns={3} gap={16}>
-        <Stat value="3 / 6" label="Host grafts landed" tone="info" />
+        <Stat value="4 / 6" label="Host grafts landed" tone="info" />
         <Stat value="4" label="Flycast pictures to accept" />
         <Stat value="Out" label="14.6 / 12 / 17" tone="warning" />
       </Grid>
@@ -50,17 +50,17 @@ export default function V02Plan() {
         stickyHeader
         striped
         headers={["#", "Work", "FreeDink", "Unlocks"]}
-        rowTone={["success", "success", "success", "warning", "warning", "info"]}
+        rowTone={["success", "success", "success", "success", "warning", "info"]}
         rows={[
           ["1", "goto / labels (#102)", "locate_goto", "Host locked. Flycast shop/gossip still a picture."],
           ["2", "spawn (#104)", "dc_spawn", "Host locked. Bombs, dragons, cutscene scripts."],
           [
             "3",
-            "load_screen + draw_screen (host)",
+            "load_screen + draw_screen (#105)",
             "game_load_screen / draw_screen_game",
             "Holes, letter, caves — not edge warp. Flycast picture still open.",
           ],
-          ["4", "screenlock", "dc_screenlock + get_hard", "Arenas cannot walk off"],
+          ["4", "screenlock (host)", "dc_screenlock + get_hard", "Arenas cannot walk off. No lock-bar gfx. Flycast once reachable."],
           [
             "5",
             "sp_target / follow on BrainSpr",

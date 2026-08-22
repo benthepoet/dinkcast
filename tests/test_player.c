@@ -130,6 +130,26 @@ int main(void)
         }
     }
     {
+        int i;
+
+        for (i = 0; i < DINK_PLAY_H; i++) {
+            mask.pix[i * DINK_PLAY_W] = 7;
+        }
+        if (hard_get(&mask, 10, 100) != 0) {
+            fprintf(stderr, "FAIL oob walkable unlocked\n");
+            hard_mask_free(&mask);
+            return 1;
+        }
+        hard_screenlock_set(1);
+        if (hard_get(&mask, 10, 100) != 7) {
+            fprintf(stderr, "FAIL lock clamps to edge hid %d\n",
+                    hard_get(&mask, 10, 100));
+            hard_mask_free(&mask);
+            return 1;
+        }
+        hard_screenlock_set(0);
+    }
+    {
         int ox = p.x, oy = p.y;
 
         p.freeze = 1;
