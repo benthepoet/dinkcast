@@ -12,7 +12,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 - Walking off Stonebrook is engine **edge/warp** (`14.1–14.2`), not DinkC `load_screen`.
 - New game is engine `leave_title`, not `START-1.c` `set_mode`.
 - Magic USE is **held X**; bow is **instant power 100**, not a log-only stub.
-- `sp_target` / `sp_follow` write `BrainSpr` (`process_target` / `process_follow`). Host this PR.
+- `sp_target` / `sp_follow` write `BrainSpr` (`process_target` / `process_follow`). Host #107.
 - `script_attach` rebinds the fiber sprite in the VM; it is not a full FreeDink `dc_script_attach`.
 
 ---
@@ -20,7 +20,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 ## Verdict
 
 **Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **102 / 186** FreeDink DinkC names in `k_fn[]` (~55%). Stock scripts use **~125** of those 186. The rest of the pole is `get_sprite_with_this_brain`, then audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow this PR.)
+**The full 1.08 campaign is not.** Coverage is about **104 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -53,8 +53,8 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 2. **`spawn`** — host [#104](https://github.com/benthepoet/dinkcast/pull/104) (`dc_spawn`, sprite 1000, parent continues). ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`).
 3. **`load_screen` + `draw_screen` + fades** — host [#105](https://github.com/benthepoet/dinkcast/pull/105) (`dc_load_screen` / `dc_draw_screen`). Fades stay instant. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
 4. **`screenlock`** — host [#106](https://github.com/benthepoet/dinkcast/pull/106). ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas. No lock-bar gfx.
-5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Host this PR. Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
-6. **`get_sprite_with_this_brain`** (and rand variant) — missing. ~25 files. `EN-DRAG.c`, castle, cult.
+5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Host [#107](https://github.com/benthepoet/dinkcast/pull/107). Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
+6. **`get_sprite_with_this_brain`** (and rand / next) — host this PR. ~25 files. `EN-DRAG.c`, castle, cult, `EN-PILL1.c` unlock.
 7. **`sp_frame_delay`** — missing. ~21–37 files. Boss/enemy timing.
 8. Inventory DinkC: `count_item`, `free_items`, `kill_this_item` / `kill_cur_item` — boot/bomb/elixir.
 9. **`say_stop_xy` / `say_xy`** — missing. King / letter / save UI text placement.
@@ -72,7 +72,7 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 | Metric | Count |
 |---|---|
 | FreeDink `DCBD_ADD` names (+ `sp_base_death` alias) | 186 |
-| Dinkcast `k_fn[]` | 102 |
+| Dinkcast `k_fn[]` | 104 |
 | Real handlers (approx.) | ~77 |
 | In table but stub / silent success | ~15 (`playsound`, `playmidi`, fades, `fill_screen`, `activate_bow` instant-100, …) |
 | Missing from table → `dinkc unimplemented` | ~90 |
@@ -98,10 +98,10 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 ### Commands used in campaign and missing or stubbed
 
 **Missing (not in `k_fn[]`), used in 1.08:**  
-`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `get_sprite_with_this_brain`, `get_rand_sprite_with_this_brain`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
-`playsound`, `playmidi`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `get_next_sprite_with_this_brain` (no-op), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
+`playsound`, `playmidi`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
 
 **0 stock hits (defer):**  
 `copy_bmp_to_screen`, `wait_for_button`, `callback_kill`, `math_*`, `get_date_*`, `sp_clip_*`, `sp_gold`, `make_global_function`, `set_keep_mouse`, most editor/truecolor helpers.
@@ -114,7 +114,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 
 | ID | Name | Status | Notes |
 |---|---|---|---|
-| 0 | none | Gap | No `process_follow` |
+| 0 | none | Aligned | `process_follow` grafted |
 | 1 | human | Mixed | Walk/push/talk/USE/held magic/inventory OK. Missing: diagonal slide, `sp_base_idle` on idle seq, player hurt floater/sfx, freeze+talk hurry text. Bow charge later. Brains 13/14 N/A |
 | 2 | bounce | Aligned | Bounds use playfield constants vs `getpic` |
 | 3 | duck | DIE aligned | Follow grafted; no idle SFX; no dead-duck blood drip |
@@ -123,7 +123,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | 6 | repeat | Gap | `seq_orig` may follow live `pseq` after `brains_apply` |
 | 7 | one_time stay | Aligned | `hidden=1` so snapshot does not respawn |
 | 8 | text | Mixed | Say is `saybox_*`. Hit numbers OK. Kill exp is `&exp` only (no +N floater) |
-| 9 | pill | Mixed | `process_target` + ATTACK locate; `get_sprite_with_this_brain` still missing |
+| 9 | pill | Mixed | `process_target` + ATTACK locate; brain lookup this PR |
 | 10 | dragon | Mixed | Follow + ATTACK wait locate; no pill-style walk-in |
 | 11 | missile | Gap | Hit + `last_hit` OK. No hard>100 HIT script, sfx, blood, `strength==1` roll |
 | 12 | scale | Aligned | Pickup shrink |
@@ -181,7 +181,7 @@ Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this por
 
 Village Open is **empty** (requester 2026-08-22): 409 house, smash y-sort, and pig-pen fence are confirmed. Those were occupancy/paint, not DinkC holes.
 
-Campaign-hard failures continue at **`get_sprite_with_this_brain`**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow this PR.)
+Campaign-hard failures continue at **audio 12 / VMU 17 / 14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
 
 ---
 

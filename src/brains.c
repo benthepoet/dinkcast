@@ -1506,6 +1506,62 @@ int brains_slot_brain(int slot)
     return g_b[slot].brain;
 }
 
+/* Sprite 1 is Dink (brain 1) when g_pl is bound. Editor slot 1 may
+ * also be a live BrainSpr (en-pill). */
+static int spr_brain_match(int slot, int brain)
+{
+    if (slot == 1 && g_pl != NULL && brain == 1) {
+        return 1;
+    }
+    return slot >= 1 && slot <= 100 && g_b[slot].live &&
+           g_b[slot].brain == brain;
+}
+
+/* FreeDink dc_get_sprite_with_this_brain / dc_get_next (start inclusive). */
+int brains_first_with_brain(int brain, int ignore, int start)
+{
+    int i;
+
+    if (start < 1) {
+        start = 1;
+    }
+    for (i = start; i <= 100; i++) {
+        if (i == ignore) {
+            continue;
+        }
+        if (spr_brain_match(i, brain)) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+/* FreeDink dc_get_rand_sprite_with_this_brain. */
+int brains_rand_with_brain(int brain, int ignore)
+{
+    int i, n = 0, pick, cur = 0;
+
+    for (i = 1; i <= 100; i++) {
+        if (i != ignore && spr_brain_match(i, brain)) {
+            n++;
+        }
+    }
+    if (n == 0) {
+        return 0;
+    }
+    pick = (rand() % n) + 1;
+    for (i = 1; i <= 100; i++) {
+        if (i == ignore || !spr_brain_match(i, brain)) {
+            continue;
+        }
+        cur++;
+        if (cur == pick) {
+            return i;
+        }
+    }
+    return 0;
+}
+
 void brains_set_script(int slot, const char *name)
 {
     if (slot < 1 || slot > 99 || name == NULL) {

@@ -52,6 +52,8 @@ static void (*g_blood)(int slot);
 static void (*g_hard_redraw)(void);
 static int g_hard_redraw_pending;
 static void (*g_restart)(void);
+static int (*g_brain_first)(int brain, int ignore, int start);
+static int (*g_brain_rand)(int brain, int ignore);
 static int (*g_item_arm)(const char *name);
 static int (*g_item_locate)(int slot, const char *proc);
 static int (*g_item_pickup)(const char *name);
@@ -225,6 +227,8 @@ static const struct {
     {"add_magic", 0},
     {"init", 0},
     {"initfont", 0},
+    {"get_sprite_with_this_brain", 0},
+    {"get_rand_sprite_with_this_brain", 0},
     {"get_next_sprite_with_this_brain", 0},
     {"draw_status", 0},
     {"update_status", 0},
@@ -650,6 +654,13 @@ int dinkc_cmd_hard_redraw_take(void)
 void dinkc_cmd_bind_restart(void (*fn)(void))
 {
     g_restart = fn;
+}
+
+void dinkc_cmd_bind_brain_lookup(int (*first)(int brain, int ignore, int start),
+                                 int (*rnd)(int brain, int ignore))
+{
+    g_brain_first = first;
+    g_brain_rand = rnd;
 }
 
 void dinkc_cmd_set_now(int now_ms)
@@ -1092,8 +1103,25 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "initfont") ||
-        is_cmd(name, "get_next_sprite_with_this_brain")) {
+    if (is_cmd(name, "initfont")) {
+        return 1;
+    }
+    if (is_cmd(name, "get_sprite_with_this_brain")) {
+        if (ret != NULL && g_brain_first != NULL) {
+            *ret = g_brain_first(a0, a1, 1);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "get_rand_sprite_with_this_brain")) {
+        if (ret != NULL && g_brain_rand != NULL) {
+            *ret = g_brain_rand(a0, a1);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "get_next_sprite_with_this_brain")) {
+        if (ret != NULL && g_brain_first != NULL) {
+            *ret = g_brain_first(a0, a1, a2);
+        }
         return 1;
     }
     if (is_cmd(name, "sp_nohit")) {

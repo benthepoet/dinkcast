@@ -29,7 +29,7 @@ export default function V02Plan() {
         </Text>
         <Row gap={8} wrap>
           <Pill active>From v0.1.0 village</Pill>
-          <Pill tone="info">goto #102 · spawn #104 · load #105 · lock #106</Pill>
+          <Pill tone="info">goto #102 · spawn #104 · load #105 · lock #106 · follow #107</Pill>
           <Pill tone="warning">Not full campaign</Pill>
         </Row>
       </Stack>
@@ -40,7 +40,7 @@ export default function V02Plan() {
       </Callout>
 
       <Grid columns={3} gap={16}>
-        <Stat value="5 / 6" label="Host grafts landed" tone="info" />
+        <Stat value="6 / 6" label="Host grafts landed" tone="success" />
         <Stat value="4" label="Flycast pictures to accept" />
         <Stat value="Out" label="14.6 / 12 / 17" tone="warning" />
       </Grid>
@@ -50,7 +50,7 @@ export default function V02Plan() {
         stickyHeader
         striped
         headers={["#", "Work", "FreeDink", "Unlocks"]}
-        rowTone={["success", "success", "success", "success", "success", "warning"]}
+        rowTone={["success", "success", "success", "success", "success", "success"]}
         rows={[
           ["1", "goto / labels (#102)", "locate_goto", "Host locked. Flycast shop/gossip still a picture."],
           ["2", "spawn (#104)", "dc_spawn", "Host locked. Bombs, dragons, cutscene scripts."],
@@ -63,15 +63,15 @@ export default function V02Plan() {
           ["4", "screenlock (#106)", "dc_screenlock + get_hard", "Arenas cannot walk off. No lock-bar gfx. Flycast once reachable."],
           [
             "5",
-            "sp_target / follow on BrainSpr (this PR)",
+            "sp_target / follow on BrainSpr (#107)",
             "process_target / process_follow",
             "Host: BrainSpr fields, not g_target[]. Pill/dragon ATTACK; Quackers.",
           ],
           [
             "6",
-            "get_sprite_with_this_brain",
+            "get_sprite_with_this_brain (this PR)",
             "dc_get_sprite_with_this_brain",
-            "Cult / dragon / castle scripts",
+            "Host: live scan + rand + next. EN-PILL1 die unlock. Cult / dragon / castle.",
           ],
         ]}
       />

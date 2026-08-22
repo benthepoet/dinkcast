@@ -314,6 +314,7 @@ int main(void)
     brains_bind_screen(&scr);
     brains_enter(&scr, 0);
     dinkc_cmd_bind_sprite_change(brains_change_prop);
+    dinkc_cmd_bind_brain_lookup(brains_first_with_brain, brains_rand_with_brain);
     {
         int yld = 0, rv = 0, args[2] = {5, 4};
 
@@ -340,7 +341,27 @@ int main(void)
         args[1] = 50;
         expect(dinkc_cmd("sp_attack_wait", args, 2, "", "", &yld, &rv) == 1 &&
                    rv == 1050,
-               "sp_attack_wait + thisTickCount");
+                   "sp_attack_wait + thisTickCount");
+        {
+            int look[3] = {16, 0, 0};
+
+            expect(dinkc_cmd("get_sprite_with_this_brain", look, 2, "", "",
+                             &yld, &rv) == 1 &&
+                       rv == 5,
+                   "get_sprite people");
+            look[1] = 5;
+            expect(dinkc_cmd("get_sprite_with_this_brain", look, 2, "", "",
+                             &yld, &rv) == 1 &&
+                       rv == 0,
+                   "get_sprite ignore self");
+            look[0] = 16;
+            look[1] = 0;
+            look[2] = 5;
+            expect(dinkc_cmd("get_next_sprite_with_this_brain", look, 3, "", "",
+                             &yld, &rv) == 1 &&
+                       rv == 5,
+                   "get_next from 5");
+        }
     }
 
     dinkc_var_init();
