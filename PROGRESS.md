@@ -166,6 +166,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
 | 2026-08-22 | **v0.2.0** tagged | #109 |
 | 2026-08-22 | **v0.3.0** plan (START menu + VMU **17** before **12**) | this PR |
+| 2026-08-22 | START hover seq 199/200/198 (`live_sprite_animate` + noclip) | this PR |
 
 ## Bites
 

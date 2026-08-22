@@ -278,20 +278,9 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     return 0;
 }
 
-void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
-{
-    sprite_draw_pvr_alt(f, x, y, z, 0, 0, 0, 0);
-}
-
-void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
-                         float z, int al, int at, int ar, int ab)
-{
-    sprite_draw_pvr_alt_size(f, x, y, z, al, at, ar, ab, 100);
-}
-
-void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
-                              float z, int al, int at, int ar, int ab,
-                              int size)
+static void sprite_draw_pvr_clip(const struct SpriteFrame *f, float x, float y,
+                                 float z, int al, int at, int ar, int ab,
+                                 int size, int noclip)
 {
     pvr_poly_cxt_t cxt;
     pvr_poly_hdr_t hdr;
@@ -327,8 +316,12 @@ void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
     y0 = y - (float)f->cy - ycompat + (float)st * ratio;
     x1 = x - (float)f->cx - xcompat + (float)sr * ratio;
     y1 = y - (float)f->cy - ycompat + (float)sb * ratio;
-    /* get_box: skip if fully outside playl..playx, 0..playy */
-    if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
+    /* get_box: skip if fully outside. noclip uses 0..640, 0..480. */
+    if (noclip) {
+        if (x1 <= 0.0f || y1 <= 0.0f || x0 >= 640.0f || y0 >= 480.0f) {
+            return;
+        }
+    } else if (x1 <= 20.0f || y1 <= 0.0f || x0 >= 620.0f || y0 >= 400.0f) {
         return;
     }
     vert.argb = 0xffffffff;
@@ -356,6 +349,30 @@ void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
     vert.u = u1;
     vert.v = v1;
     pvr_prim(&vert, sizeof(vert));
+}
+
+void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z)
+{
+    sprite_draw_pvr_clip(f, x, y, z, 0, 0, 0, 0, 100, 0);
+}
+
+void sprite_draw_pvr_noclip(const struct SpriteFrame *f, float x, float y,
+                            float z)
+{
+    sprite_draw_pvr_clip(f, x, y, z, 0, 0, 0, 0, 100, 1);
+}
+
+void sprite_draw_pvr_alt(const struct SpriteFrame *f, float x, float y,
+                         float z, int al, int at, int ar, int ab)
+{
+    sprite_draw_pvr_clip(f, x, y, z, al, at, ar, ab, 100, 0);
+}
+
+void sprite_draw_pvr_alt_size(const struct SpriteFrame *f, float x, float y,
+                              float z, int al, int at, int ar, int ab,
+                              int size)
+{
+    sprite_draw_pvr_clip(f, x, y, z, al, at, ar, ab, size, 0);
 }
 
 void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z)

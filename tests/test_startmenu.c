@@ -29,6 +29,46 @@ int main(void)
     startmenu_reset();
     expect(startmenu_tick(0, DINK_PAD_A) == STARTMENU_NEW, "click new");
 
+    /* start-1.c buttonon/off: seq 199 plays then reverses (brain 7). */
+    startmenu_hover_bind(STARTMENU_NEW, STARTMENU_HOVER_NEW,
+                         STARTMENU_HOVER_NEW_X, STARTMENU_HOVER_NEW_Y, 9, 50);
+    startmenu_hover_on(STARTMENU_NEW);
+    startmenu_hover_tick(0);
+    expect(startmenu_hover_live(STARTMENU_NEW) &&
+               startmenu_hover_pframe(STARTMENU_NEW) == 1,
+           "hover start fr1");
+    startmenu_hover_tick(51);
+    expect(startmenu_hover_pframe(STARTMENU_NEW) == 2, "hover move");
+    {
+        int t, want;
+
+        for (want = 3, t = 102; want <= 9; want++, t += 51) {
+            startmenu_hover_tick(t);
+            expect(startmenu_hover_pframe(STARTMENU_NEW) == want, "hover to last");
+        }
+        startmenu_hover_tick(t);
+        expect(startmenu_hover_pframe(STARTMENU_NEW) == 9 &&
+                   startmenu_hover_live(STARTMENU_NEW),
+               "hover hold last");
+        startmenu_hover_tick(t + 51);
+        expect(startmenu_hover_pframe(STARTMENU_NEW) == 9 &&
+                   startmenu_hover_live(STARTMENU_NEW),
+               "hover stay last");
+    }
+    startmenu_hover_off(STARTMENU_NEW);
+    startmenu_hover_tick(500);
+    expect(startmenu_hover_pframe(STARTMENU_NEW) == 9, "reverse from last");
+    startmenu_hover_tick(551);
+    expect(startmenu_hover_pframe(STARTMENU_NEW) == 8, "reverse step");
+    {
+        int t;
+
+        for (t = 602; t <= 1100; t += 51) {
+            startmenu_hover_tick(t);
+        }
+    }
+    expect(!startmenu_hover_live(STARTMENU_NEW), "brain 7 gone");
+
     startmenu_slot_reset();
     expect(startmenu_slot_focus() == 1, "slot1");
     expect(startmenu_slot_tick(DINK_PAD_A, DINK_PAD_A) == -1,

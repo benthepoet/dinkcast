@@ -14,9 +14,28 @@
 #define STARTMENU_SEQ_NEW 194
 #define STARTMENU_SEQ_LOAD 195
 #define STARTMENU_SEQ_QUIT 193
+/* start-1/2/4 buttonon create_sprite + seq. */
+#define STARTMENU_HOVER_NEW 199
+#define STARTMENU_HOVER_LOAD 200
+#define STARTMENU_HOVER_QUIT 198
+#define STARTMENU_HOVER_NEW_X 204
+#define STARTMENU_HOVER_NEW_Y 86
+#define STARTMENU_HOVER_LOAD_X 358
+#define STARTMENU_HOVER_LOAD_Y 93
+#define STARTMENU_HOVER_QUIT_X 446
+#define STARTMENU_HOVER_QUIT_Y 417
 
 void startmenu_reset(void);
 int startmenu_focus(void);
+/* start-1.c buttonon / buttonoff. live_sprite_animate + brain 7. */
+void startmenu_hover_bind(int i, int seq, int x, int y, int nframes, int delay);
+void startmenu_hover_on(int i);
+void startmenu_hover_off(int i);
+void startmenu_hover_tick(int now_ms);
+int startmenu_hover_live(int i);
+int startmenu_hover_pframe(int i);
+int startmenu_hover_x(int i);
+int startmenu_hover_y(int i);
 /* -1 still choosing; else STARTMENU_*. */
 int startmenu_tick(uint32_t prev, uint32_t now);
 const char *startmenu_script(int focus);

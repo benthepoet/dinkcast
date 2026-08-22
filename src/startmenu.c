@@ -3,8 +3,11 @@
 
 #include "pad.h"
 
+#include <string.h>
+
 #ifdef _arch_dreamcast
 #include "ini.h"
+#include "mem.h"
 #include "save.h"
 #include "saybox.h"
 #include "sprite.h"
@@ -12,17 +15,156 @@
 
 #include <kos.h>
 #include <stdio.h>
-#include <string.h>
 #endif
+
+struct StartHover {
+    int seq;
+    int x, y;
+    int nframes;
+    int delay_ms;
+    int frame;
+    int pframe;
+    int reverse;
+    int wait;
+    int live;
+    /* spr[].seq != 0. Forward end clears this (hold last pframe). */
+    int anim;
+};
 
 static int g_focus;
 static int g_pause_focus;
 static int g_pause_open;
 static int g_slot;
+static struct StartHover g_hover[STARTMENU_N];
 
 void startmenu_reset(void)
 {
     g_focus = STARTMENU_NEW;
+}
+
+static int hover_ok(int i)
+{
+    return i >= 0 && i < STARTMENU_N;
+}
+
+void startmenu_hover_bind(int i, int seq, int x, int y, int nframes, int delay)
+{
+    if (!hover_ok(i)) {
+        return;
+    }
+    memset(&g_hover[i], 0, sizeof(g_hover[i]));
+    g_hover[i].seq = seq;
+    g_hover[i].x = x;
+    g_hover[i].y = y;
+    g_hover[i].nframes = nframes < 1 ? 1 : nframes;
+    g_hover[i].delay_ms = delay;
+}
+
+void startmenu_hover_on(int i)
+{
+    if (!hover_ok(i)) {
+        return;
+    }
+    /* start-1.c buttonon: sp_reverse 0; sp_seq. */
+    g_hover[i].reverse = 0;
+    g_hover[i].frame = 0;
+    g_hover[i].anim = 1;
+    g_hover[i].live = 1;
+}
+
+void startmenu_hover_off(int i)
+{
+    if (!hover_ok(i) || !g_hover[i].live) {
+        return;
+    }
+    /* start-1.c buttonoff: sp_reverse 1; sp_seq; brain 7. */
+    g_hover[i].reverse = 1;
+    g_hover[i].frame = 0;
+    g_hover[i].anim = 1;
+}
+
+static int hover_delay(const struct StartHover *h, int frame)
+{
+    (void)frame;
+    return h->delay_ms;
+}
+
+void startmenu_hover_tick(int now_ms)
+{
+    int i;
+
+    for (i = 0; i < STARTMENU_N; i++) {
+        struct StartHover *h = &g_hover[i];
+        int n;
+
+        if (!h->live) {
+            continue;
+        }
+        n = h->nframes;
+        if (!h->anim) {
+            continue;
+        }
+        if (h->reverse) {
+            if (h->frame < 1) {
+                h->pframe = n;
+                h->frame = n;
+                h->wait = now_ms + hover_delay(h, n);
+                continue;
+            }
+            if (now_ms <= h->wait) {
+                continue;
+            }
+            h->frame--;
+            h->wait = now_ms + hover_delay(h, h->frame);
+            h->pframe = h->frame;
+            if (h->frame < 1) {
+                /* live_sprite_animate end + one_time_brain_for_real. */
+                h->pframe = 1;
+                h->frame = 0;
+                h->anim = 0;
+                h->live = 0;
+            }
+            continue;
+        }
+        if (h->frame < 1) {
+            h->pframe = 1;
+            h->frame = 1;
+            h->wait = now_ms + hover_delay(h, 1);
+            continue;
+        }
+        if (now_ms <= h->wait) {
+            continue;
+        }
+        h->frame++;
+        h->wait = now_ms + hover_delay(h, h->frame);
+        h->pframe = h->frame;
+        if (h->frame > n) {
+            /* seq.frame[n+1] is 0: hold last, seq=0. Do not restart. */
+            h->pframe = n;
+            h->frame = 0;
+            h->anim = 0;
+        }
+    }
+}
+
+int startmenu_hover_live(int i)
+{
+    return hover_ok(i) ? g_hover[i].live : 0;
+}
+
+int startmenu_hover_pframe(int i)
+{
+    return hover_ok(i) && g_hover[i].pframe > 0 ? g_hover[i].pframe : 1;
+}
+
+int startmenu_hover_x(int i)
+{
+    return hover_ok(i) ? g_hover[i].x : 0;
+}
+
+int startmenu_hover_y(int i)
+{
+    return hover_ok(i) ? g_hover[i].y : 0;
 }
 
 int startmenu_focus(void)
@@ -179,15 +321,19 @@ static int load_seq_fr(struct SeqInfo *seqs, int seq, int frame,
 
 int startmenu_present_pvr(struct SeqInfo *seqs)
 {
-    struct SpriteFrame logo, btn[3][2], hover[3];
+    struct SpriteFrame logo, btn[3][2];
+    struct SpriteFrame hover[STARTMENU_N][16];
     static const int bseq[3] = {STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD,
                                 STARTMENU_SEQ_QUIT};
     static const int bx[3] = {76, 524, 560};
     static const int by[3] = {40, 40, 440};
-    static const int hseq[3] = {199, 200, 198};
-    static const int hx[3] = {204, 358, 446};
-    static const int hy[3] = {86, 93, 417};
-    int i, fr, pick = -1;
+    static const int hseq[3] = {STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD,
+                                STARTMENU_HOVER_QUIT};
+    static const int hx[3] = {STARTMENU_HOVER_NEW_X, STARTMENU_HOVER_LOAD_X,
+                              STARTMENU_HOVER_QUIT_X};
+    static const int hy[3] = {STARTMENU_HOVER_NEW_Y, STARTMENU_HOVER_LOAD_Y,
+                              STARTMENU_HOVER_QUIT_Y};
+    int i, f, nfr, fr, pick = -1, last = -1;
     uint32_t prev = 0;
 
     memset(&logo, 0, sizeof(logo));
@@ -201,12 +347,41 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
             btn[i][1] = btn[i][0];
             btn[i][1].tex = btn[i][0].tex;
             btn[i][1].argb1555 = NULL;
+        } else {
+            btn[i][1].cx = btn[i][0].cx;
+            btn[i][1].cy = btn[i][0].cy;
         }
-        (void)load_seq_fr(seqs, hseq[i], 1, &hover[i]);
+        nfr = 0;
+        if (seqs != NULL && hseq[i] > 0 && hseq[i] < DINK_MAX_SEQ) {
+            nfr = seqs[hseq[i]].nframes;
+        }
+        if (nfr < 1) {
+            nfr = 15;
+        }
+        for (f = 1; f <= nfr && f <= 15; f++) {
+            if (load_seq_fr(seqs, hseq[i], f, &hover[i][f]) != 0) {
+                nfr = f - 1;
+                break;
+            }
+        }
+        if (nfr < 1) {
+            nfr = 1;
+        }
+        /* BLACK/NOTANIM: later frames reuse frame 1 xoffset/yoffset. */
+        for (f = 2; f <= nfr && f <= 15; f++) {
+            hover[i][f].cx = hover[i][1].cx;
+            hover[i][f].cy = hover[i][1].cy;
+        }
+        startmenu_hover_bind(i, hseq[i], hx[i], hy[i], nfr,
+                             seqs != NULL ? seqs[hseq[i]].delay : 0);
     }
     startmenu_reset();
-    printf("startmenu seq=%d buttons=%d,%d,%d\n", STARTMENU_SEQ_LOGO,
-           STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD, STARTMENU_SEQ_QUIT);
+    startmenu_hover_on(STARTMENU_NEW);
+    last = STARTMENU_NEW;
+    printf("startmenu seq=%d buttons=%d,%d,%d hover=%d,%d,%d\n",
+           STARTMENU_SEQ_LOGO, STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD,
+           STARTMENU_SEQ_QUIT, STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD,
+           STARTMENU_HOVER_QUIT);
     while (pick < 0) {
         uint32_t buttons = 0;
         int have = (pad_poll_port0(&buttons) == 0);
@@ -217,18 +392,34 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         }
         prev = have ? buttons : 0;
         foc = startmenu_focus();
+        if (foc != last) {
+            startmenu_hover_off(last);
+            startmenu_hover_on(foc);
+            last = foc;
+        }
+        startmenu_hover_tick((int)mem_now_ms());
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);
         startmenu_fill_black();
         pvr_list_finish();
         pvr_list_begin(PVR_LIST_PT_POLY);
-        sprite_draw_pvr(&logo, 320.0f, 240.0f, 2.0f);
+        /* START.c / buttonon: sp_noclip 1. Logo is on-screen either way. */
+        sprite_draw_pvr_noclip(&logo, 320.0f, 240.0f, 2.0f);
         for (i = 0; i < 3; i++) {
             fr = (foc == i) ? 1 : 0;
-            sprite_draw_pvr(&btn[i][fr], (float)bx[i], (float)by[i], 3.0f);
-            if (foc == i) {
-                sprite_draw_pvr(&hover[i], (float)hx[i], (float)hy[i], 3.2f);
+            sprite_draw_pvr_noclip(&btn[i][fr], (float)bx[i], (float)by[i],
+                                   3.0f);
+            if (startmenu_hover_live(i)) {
+                int pf = startmenu_hover_pframe(i);
+
+                if (pf >= 1 && pf <= 15 &&
+                    (hover[i][pf].tex != NULL ||
+                     hover[i][pf].argb1555 != NULL)) {
+                    sprite_draw_pvr_noclip(&hover[i][pf],
+                                           (float)startmenu_hover_x(i),
+                                           (float)startmenu_hover_y(i), 3.2f);
+                }
             }
         }
         pvr_list_finish();
@@ -241,7 +432,11 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
             (btn[i][1].tex != NULL && btn[i][1].tex != btn[i][0].tex)) {
             sprite_frame_free(&btn[i][1]);
         }
-        sprite_frame_free(&hover[i]);
+        for (f = 1; f <= 15; f++) {
+            if (hover[i][f].argb1555 != NULL || hover[i][f].tex != NULL) {
+                sprite_frame_free(&hover[i][f]);
+            }
+        }
     }
     printf("startmenu click %s\n", startmenu_script(pick));
     return pick;
