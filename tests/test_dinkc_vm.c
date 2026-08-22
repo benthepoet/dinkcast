@@ -13,6 +13,25 @@ static int g_stub_x[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
+static int g_load_map;
+static int g_draw_spr;
+static int g_nload;
+static int g_ndraw;
+
+static int stub_load_screen(int map)
+{
+    g_load_map = map;
+    g_nload++;
+    return 0;
+}
+
+static int stub_draw_screen(int sprite)
+{
+    g_draw_spr = sprite;
+    g_ndraw++;
+    dinkc_vm_kill_all();
+    return 0;
+}
 
 static int stub_bar_sh_external(int sprite, const char *file, const char *proc,
                                 const int *args, int nargs)
@@ -546,6 +565,61 @@ int main(void)
         expect(dinkc_vm_live() == 0, "miss spawn done");
         (void)slot;
         g_spawn_src = NULL;
+    }
+
+    {
+        const char *loader =
+            "void main(void) { &player_map = 131; load_screen(999); &gold = 1; }\n";
+        const char *waiter =
+            "void main(void) { wait(500); &gold = 9; }\n";
+        const char *hole =
+            "void main(void) { draw_screen(); &gold = 2; }\n";
+        const char *letter =
+            "void main(void) { script_attach(1000); draw_screen(); &gold = 3; }\n";
+        const char *keep1000 =
+            "void main(void) { script_attach(1000); wait(1); }\n";
+        int waitslot, holeslot, letterslot, keepslot;
+
+        g_nload = 0;
+        g_ndraw = 0;
+        g_load_map = 0;
+        g_draw_spr = 0;
+        dinkc_cmd_bind_load_screen(stub_load_screen);
+        dinkc_cmd_bind_draw_screen(stub_draw_screen);
+
+        dinkc_vm_reset();
+        waitslot = dinkc_vm_start(waiter, strlen(waiter), 4);
+        expect(dinkc_vm_state(waitslot) == DINKC_WAIT_MS, "waiter");
+        slot = dinkc_vm_start(loader, strlen(loader), 1);
+        expect(g_nload == 1 && g_load_map == 131, "load uses &player_map");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "load parent continues");
+        expect(!dinkc_vm_used(slot), "loader done");
+        expect(dinkc_vm_used(waitslot), "load_screen does not kill_all");
+
+        dinkc_vm_reset();
+        holeslot = dinkc_vm_start(hole, strlen(hole), 4);
+        expect(g_ndraw == 1 && g_draw_spr == 4, "draw hole sprite");
+        expect(!dinkc_vm_used(holeslot), "draw_screen kills non-1000");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 2,
+               "nothing after draw_screen on hole");
+
+        dinkc_vm_reset();
+        letterslot = dinkc_vm_start(letter, strlen(letter), 7);
+        expect(g_draw_spr == 1000, "draw after script_attach");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "letter continues after draw");
+        expect(!dinkc_vm_used(letterslot), "letter MAIN finished");
+
+        dinkc_vm_reset();
+        keepslot = dinkc_vm_start(keep1000, strlen(keep1000), 8);
+        expect(dinkc_vm_state(keepslot) == DINKC_WAIT_MS, "attached wait");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_used(keepslot), "attach 1000 survives kill_all");
+
+        dinkc_cmd_bind_load_screen(NULL);
+        dinkc_cmd_bind_draw_screen(NULL);
+        (void)waitslot;
     }
 
     printf("OK test_dinkc_vm\n");

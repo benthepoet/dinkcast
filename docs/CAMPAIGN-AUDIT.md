@@ -20,7 +20,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 ## Verdict
 
 **Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **98 / 186** FreeDink DinkC names in `k_fn[]` (~52%). Stock scripts use **~125** of those 186. The rest of the pole is VM control flow (`spawn`; `goto` is host #102), screen-script helpers (`load_screen` / `draw_screen` / `screenlock`), enemy AI wiring (`sp_target` → brains, `get_sprite_with_this_brain`), then audio **12**, VMU **17**, and **14.6**.
+**The full 1.08 campaign is not.** Coverage is about **100 / 186** FreeDink DinkC names in `k_fn[]` (~54%). Stock scripts use **~125** of those 186. The rest of the pole is `screenlock`, enemy AI wiring (`sp_target` → brains, `get_sprite_with_this_brain`), then audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` this PR.)
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -51,7 +51,7 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 
 1. **VM `goto`** — host [#102](https://github.com/benthepoet/dinkcast/pull/102) (`locate_goto`). Flycast gossip/shop loop still a picture. ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
 2. **`spawn`** — host this PR (`dc_spawn`, sprite 1000, parent continues). ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`).
-3. **`load_screen` + `draw_screen` + fades** — `load_screen` silent no-op (`dinkc_cmd.c` with `fade_*` / `fill_screen`); `draw_screen` missing. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
+3. **`load_screen` + `draw_screen` + fades** — host this PR (`dc_load_screen` / `dc_draw_screen`). Fades stay instant. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
 4. **`screenlock`** — missing. ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas.
 5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
 6. **`get_sprite_with_this_brain`** (and rand variant) — missing. ~25 files. `EN-DRAG.c`, castle, cult.
@@ -72,10 +72,10 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 | Metric | Count |
 |---|---|
 | FreeDink `DCBD_ADD` names (+ `sp_base_death` alias) | 186 |
-| Dinkcast `k_fn[]` | 98 |
-| Real handlers (approx.) | ~74 |
-| In table but stub / silent success | ~16 (`playsound`, `playmidi`, `load_screen`, fades, `fill_screen`, `activate_bow` instant-100, …) |
-| Missing from table → `dinkc unimplemented` | ~92 |
+| Dinkcast `k_fn[]` | 100 |
+| Real handlers (approx.) | ~76 |
+| In table but stub / silent success | ~15 (`playsound`, `playmidi`, fades, `fill_screen`, `activate_bow` instant-100, …) |
+| Missing from table → `dinkc unimplemented` | ~91 |
 | Used in official `Story/` | ~125 of 186 |
 | Missing/stub **and** used in campaign | ~39–54 distinct names |
 
@@ -86,7 +86,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 | Gap | FreeDink | Dinkcast | Campaign |
 |---|---|---|---|
 | `goto` / labels | `locate_goto` in `process_line` | Host #102 | Flycast gossip/shop still a picture |
-| `spawn` | `dc_spawn` | Host this PR | Sprite 1000; parent continues |
+| `spawn` | `dc_spawn` | Host #104 | Sprite 1000; parent continues |
 | `kill_this_task` | Resume `proc_return` | `fiber_kill` | Mostly OK; nested parent resume unverified |
 | `external` | `process_line` | `bind_external` + `WAIT_EXT` | Loot (`MAKE.c` / `EMAKE.c`) — village smash depends on this |
 | Same-file `void foo()` | `locate` + `run_script` | Fiber starts at one proc | Possible silent skip |
@@ -97,10 +97,10 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 ### Commands used in campaign and missing or stubbed
 
 **Missing (not in `k_fn[]`), used in 1.08:**  
-`draw_screen`, `screenlock`, `save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_follow`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `get_sprite_with_this_brain`, `get_rand_sprite_with_this_brain`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`screenlock`, `save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_follow`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `get_sprite_with_this_brain`, `get_rand_sprite_with_this_brain`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
-`playsound`, `playmidi`, `load_screen`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `sp_target` (side array), `sp_attack_wait` (same), `get_next_sprite_with_this_brain` (no-op), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
+`playsound`, `playmidi`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `sp_target` (side array), `sp_attack_wait` (same), `get_next_sprite_with_this_brain` (no-op), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
 
 **0 stock hits (defer):**  
 `copy_bmp_to_screen`, `wait_for_button`, `callback_kill`, `math_*`, `get_date_*`, `sp_clip_*`, `sp_gold`, `make_global_function`, `set_keep_mouse`, most editor/truecolor helpers.
@@ -180,7 +180,7 @@ Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this por
 
 Village Open is **empty** (requester 2026-08-22): 409 house, smash y-sort, and pig-pen fence are confirmed. Those were occupancy/paint, not DinkC holes.
 
-Campaign-hard failures continue at **`load_screen`/`draw_screen`**, **`screenlock`**, and **pill/dragon targeting**. (`goto` #102; `spawn` host this PR.)
+Campaign-hard failures continue at **`screenlock`** and **pill/dragon targeting**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` host this PR.)
 
 ---
 
@@ -192,7 +192,7 @@ D-Mod loader, DinkEdit, keyboard/mouse brains, `wait_for_button` (0 story hits),
 
 ## Sources
 
-- `/home/benh/Source/dinkcast/src/dinkc_cmd.c` (`k_fn[]`, stubs at `load_screen` / `fade_*`)
+- `/home/benh/Source/dinkcast/src/dinkc_cmd.c` (`k_fn[]`, fade/`fill_screen` stubs)
 - `/home/benh/Source/dinkcast/src/dinkc_vm.c` (`run_fiber`, `locate_goto` #102)
 - `/home/benh/Source/dinkcast/src/brains.c`
 - `/home/benh/Source/gnu_freedink/src/dinkc_bindings.cpp` (`dinkc_bindings_init`)

@@ -42,6 +42,9 @@ def main() -> int:
         ("edg heap", "edraw_gfx_alloc" in text),
         ("leave pvr", "tiles_draw_clear_pvr" in text),
         ("swap keep tiles", "swap atlas ok" in text),
+        ("dinkc load_screen", "play_load_screen" in text and
+         "play_draw_screen" in text and
+         "dinkc_cmd_bind_load_screen" in text),
         ("kos guard", "#ifdef _arch_dreamcast" in text),
         ("include boot", '#include "boot.h"' in text),
     ]

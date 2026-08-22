@@ -52,6 +52,13 @@ static struct HardMap g_hard;
 static struct EdGfx *g_edg;
 static struct SeqInfo *g_seqs_play;
 static int g_ned;
+static struct Player *g_play_pl;
+static struct HardMask *g_play_mask;
+static struct SpriteFrame *g_play_spr;
+static int *g_play_map;
+static int *g_play_last_seq;
+static int *g_play_last_frame;
+static int *g_play_have_scene;
 
 static void preload_seq_cb(int seq)
 {
@@ -242,6 +249,159 @@ static void edraw_mark_created(void)
             }
         }
     }
+}
+
+/* FreeDink game_load_screen: record + thaw + screenlock=0. No kill_all. */
+static int play_load_screen(int map)
+{
+    int rec;
+
+    rec = screen_map_rec(&g_world, map);
+    if (rec < 1) {
+        printf("load_screen skip map %d loc %d\n", map, rec);
+        return -1;
+    }
+    if (g_play_map != NULL) {
+        *g_play_map = map;
+    }
+    if (g_play_pl != NULL) {
+        g_play_pl->freeze = 0;
+        g_play_pl->move_active = 0;
+        g_play_pl->move_nohard = 0;
+    }
+    screen_lock_set(0);
+    printf("load_screen map %d loc %d\n", map, rec);
+    if (map_load_record(rec, &g_scr) != 0) {
+        printf("load_screen fail %d\n", rec);
+        return -1;
+    }
+    dinkc_cmd_apply_spmap(&g_scr, map);
+    spr_snap("load_screen");
+    dinkc_var_set("&player_map", map, DINKC_GLOBAL_SCOPE, 1);
+    if (!g_hard.ready) {
+        printf("load_screen hard load\n");
+        if (hard_load(&g_hard) != 0) {
+            printf("load_screen hard fail\n");
+        }
+    }
+    if (g_play_mask != NULL &&
+        hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
+        printf("load_screen stamp fail\n");
+    }
+    return 0;
+}
+
+/* FreeDink draw_screen_game: kill_all except 1000, tiles, MAIN, place. */
+static int play_draw_screen(int sprite)
+{
+    struct SeqInfo *seqs = g_seqs_play;
+    int nstamp;
+
+    (void)sprite;
+    if (g_play_have_scene != NULL && *g_play_have_scene) {
+        pvr_wait_ready();
+        *g_play_have_scene = 0;
+    }
+    dinkc_vm_kill_all();
+    dinkc_cmd_thaw_if_idle();
+    saybox_clear();
+    if (g_play_spr != NULL) {
+        sprite_frame_free(g_play_spr);
+    }
+    spr_restore("draw_screen");
+    script_bind_screen(&g_scr);
+    script_bind_note_script(brains_set_script);
+    if (g_play_pl != NULL) {
+        saybox_bind(&g_scr, g_play_pl);
+    }
+    brains_bind_screen(&g_scr);
+    brains_reset();
+    script_enter_vision();
+    if (seqs != NULL) {
+        edraw_mark_created();
+        (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &g_ned,
+                                script_play_vision());
+    }
+    spr_restore("draw-post-edraw");
+    printf("edraw unique %d\n", g_ned);
+    if (g_play_mask != NULL) {
+        for (nstamp = 1; nstamp <= 100; nstamp++) {
+            struct SpriteFrame *ef;
+            int hl, ht, hr, hb, cx, cy, hid, seq, fr;
+
+            if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
+                                         script_play_vision()) ||
+                g_scr.sprite[nstamp].hard != 0) {
+                continue;
+            }
+            seq = (int)g_scr.sprite[nstamp].seq;
+            fr = (int)g_scr.sprite[nstamp].frame < 1
+                     ? 1
+                     : (int)g_scr.sprite[nstamp].frame;
+            if (seq < 1 || seq >= DINK_MAX_SEQ) {
+                continue;
+            }
+            hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp : 1;
+            ef = edraw_find(g_edg, g_ned, seq, fr);
+            if (ef != NULL) {
+                hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
+                               (int)g_scr.sprite[nstamp].y, ef->hl, ef->ht,
+                               ef->hr, ef->hb, hid);
+                continue;
+            }
+            if (seqs == NULL) {
+                continue;
+            }
+            ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht,
+                           &hr, &hb);
+            hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
+                           (int)g_scr.sprite[nstamp].y, hl, ht, hr, hb, hid);
+        }
+    }
+    dink_cd_settle();
+    {
+        struct TileAtlas nxt;
+
+        memset(&nxt, 0, sizeof(nxt));
+        if (tiles_build_atlas(&g_scr, &nxt) == 0) {
+            tiles_free(&g_atlas);
+            g_atlas = nxt;
+            printf("swap atlas ok\n");
+            if (tiles_upload_pvr(&g_atlas) != 0) {
+                printf("draw_screen tiles upload fail\n");
+            }
+        } else {
+            printf("draw_screen atlas fail keep\n");
+        }
+    }
+    if (edraw_upload_pvr(g_edg, g_ned) != 0) {
+        printf("draw_screen edraw upload fail\n");
+    }
+    if (seqs != NULL && g_play_pl != NULL && g_play_spr != NULL) {
+        sprite_load_seq_frame(&seqs[g_play_pl->seq], g_play_pl->seq,
+                              g_play_pl->frame, g_play_spr);
+        if (g_play_spr->argb1555 != NULL) {
+            (void)sprite_upload_pvr(g_play_spr);
+        }
+        if (g_play_last_seq != NULL) {
+            *g_play_last_seq = g_play_pl->seq;
+        }
+        if (g_play_last_frame != NULL) {
+            *g_play_last_frame = g_play_pl->frame;
+        }
+        printf("draw_screen dink seq=%d\n", g_play_pl->seq);
+    }
+    spr_restore("draw-pre-attach");
+    brains_enter(&g_scr, script_play_vision());
+    brains_apply(&g_scr);
+    if (seqs != NULL) {
+        edraw_created_sprites(seqs, &g_ned);
+        if (edraw_upload_pvr(g_edg, g_ned) != 0) {
+            printf("draw_screen created upload fail\n");
+        }
+    }
+    script_attach_live();
+    return 0;
 }
 
 static void hud(const char *line0, const char *line1, const char *line2)
@@ -657,11 +817,20 @@ int main(int argc, char **argv)
                     }
                 }
                 script_attach_live();
+                g_play_pl = &pl;
+                g_play_mask = &mask;
+                g_play_spr = &spr;
+                g_play_map = &player_map;
+                g_play_last_seq = &last_seq;
+                g_play_last_frame = &last_frame;
+                dinkc_cmd_bind_load_screen(play_load_screen);
+                dinkc_cmd_bind_draw_screen(play_draw_screen);
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
                     int now_ms = 0;
 
+                    g_play_have_scene = &have_scene;
                     for (;;) {
                         uint32_t buttons = 0;
                         int have, pdir;
@@ -683,152 +852,18 @@ int main(int argc, char **argv)
                     }
 
                     if (swap) {
-                        int rec2, nstamp;
-                        unsigned swap_t0;
+                        unsigned swap_t0 = mem_now_ms();
 
-                        rec2 = (int)g_world.loc[player_map];
-                        if (rec2 < 1) {
-                            printf("swap skip map %d loc %d\n", player_map,
-                                   rec2);
+                        /* Edge/warp is load then draw (FreeDink). DinkC
+                         * calls them separately (S1-HOLE / S1-LTR). */
+                        if (play_load_screen(player_map) != 0) {
                             swap = 0;
                             continue;
                         }
-                        if (have_scene) {
-                            pvr_wait_ready();
-                            have_scene = 0;
-                        }
-                        swap_t0 = mem_now_ms();
-                        dinkc_vm_kill_all();
-                        pl.freeze = 0;
-                        dinkc_cmd_thaw_if_idle();
-                        saybox_clear();
-                        /* Keep editor gfx that the next screen still uses. */
-                        /* Keep tile CPU+PVR until a new atlas is ready. */
-                        sprite_frame_free(&spr);
-                        hard_mask_free(&mask);
-                        printf("enter map %d loc %d\n", player_map, rec2);
-                        if (map_load_record(rec2, &g_scr) != 0) {
-                            printf("map load fail %d\n", rec2);
+                        if (play_draw_screen(0) != 0) {
                             swap = 0;
                             continue;
                         }
-                        dinkc_cmd_apply_spmap(&g_scr, player_map);
-                        spr_snap("swap");
-                        dinkc_var_set("&player_map", player_map,
-                                      DINKC_GLOBAL_SCOPE, 1);
-                        memset(&mask, 0, sizeof(mask));
-                        if (!g_hard.ready) {
-                            printf("swap hard load\n");
-                            if (hard_load(&g_hard) != 0) {
-                                printf("hard reload fail\n");
-                            }
-                            printf("swap hard loaded\n");
-                        } else {
-                            printf("swap hard keep\n");
-                        }
-                        /* Stamp even if reload failed: empty hid still
-                         * allocates the mask so sprite/warp boxes apply. */
-                        if (hard_stamp_tiles(&g_hard, &g_scr, &mask) != 0) {
-                            printf("hard restamp fail\n");
-                        }
-                        spr_restore("swap-edraw");
-                        script_bind_screen(&g_scr);
-                        script_bind_note_script(brains_set_script);
-                        saybox_bind(&g_scr, &pl);
-                        brains_bind_screen(&g_scr);
-                        brains_reset();
-                        script_enter_vision();
-                        if (seqs != NULL) {
-                            edraw_mark_created();
-                            (void)edraw_load_screen(g_spr_ok, seqs, g_edg, &g_ned,
-                                                    script_play_vision());
-                        }
-                        spr_restore("swap-post-edraw");
-                        printf("edraw unique %d\n", g_ned);
-                        for (nstamp = 1; nstamp <= 100; nstamp++) {
-                            struct SpriteFrame *ef;
-                            int hl, ht, hr, hb, cx, cy, hid, seq, fr;
-
-                            if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
-                                                         script_play_vision()) ||
-                                g_scr.sprite[nstamp].hard != 0) {
-                                continue;
-                            }
-                            seq = (int)g_scr.sprite[nstamp].seq;
-                            fr = (int)g_scr.sprite[nstamp].frame < 1
-                                     ? 1
-                                     : (int)g_scr.sprite[nstamp].frame;
-                            if (seq < 1 || seq >= DINK_MAX_SEQ) {
-                                continue;
-                            }
-                            hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp
-                                                               : 1;
-                            ef = edraw_find(g_edg, g_ned, seq, fr);
-                            if (ef != NULL) {
-                                hard_stamp_box(&mask,
-                                               (int)g_scr.sprite[nstamp].x,
-                                               (int)g_scr.sprite[nstamp].y,
-                                               ef->hl, ef->ht, ef->hr, ef->hb,
-                                               hid);
-                                continue;
-                            }
-                            if (seqs == NULL) {
-                                continue;
-                            }
-                            ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx,
-                                           &cy, &hl, &ht, &hr, &hb);
-                            hard_stamp_box(&mask, (int)g_scr.sprite[nstamp].x,
-                                           (int)g_scr.sprite[nstamp].y, hl, ht,
-                                           hr, hb, hid);
-                        }
-                        printf("swap stamp ok\n");
-                        fflush(stdout);
-                        dink_cd_settle();
-                        printf("swap tiles build\n");
-                        fflush(stdout);
-                        {
-                            struct TileAtlas nxt;
-
-                            memset(&nxt, 0, sizeof(nxt));
-                            if (tiles_build_atlas(&g_scr, &nxt) == 0) {
-                                tiles_free(&g_atlas);
-                                g_atlas = nxt;
-                                printf("swap atlas ok\n");
-                                printf("swap tiles upload\n");
-                                if (tiles_upload_pvr(&g_atlas) != 0) {
-                                    printf("swap tiles upload fail\n");
-                                } else {
-                                    printf("swap tiles upload ok\n");
-                                }
-                            } else {
-                                printf("swap atlas fail keep\n");
-                            }
-                        }
-                        if (edraw_upload_pvr(g_edg, g_ned) != 0) {
-                            printf("swap edraw upload fail\n");
-                        } else {
-                            printf("swap edraw upload ok n=%d\n", g_ned);
-                        }
-                        if (seqs != NULL) {
-                            sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
-                                                  pl.frame, &spr);
-                            if (spr.argb1555 != NULL) {
-                                (void)sprite_upload_pvr(&spr);
-                            }
-                            last_seq = pl.seq;
-                            last_frame = pl.frame;
-                            printf("swap dink seq=%d\n", pl.seq);
-                        }
-                        spr_restore("swap-pre-attach");
-                        brains_enter(&g_scr, script_play_vision());
-                        brains_apply(&g_scr);
-                        if (seqs != NULL) {
-                            edraw_created_sprites(seqs, &g_ned);
-                            if (edraw_upload_pvr(g_edg, g_ned) != 0) {
-                                printf("swap created upload fail\n");
-                            }
-                        }
-                        script_attach_live();
                         mem_log("swap",
                                 edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes() +
                                     status_cpu_bytes(),

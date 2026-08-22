@@ -43,6 +43,8 @@ static int (*g_sp_script)(int slot, const char *name);
 static int (*g_external)(int sprite, const char *file, const char *proc,
                          const int *args, int nargs);
 static int (*g_spawn)(const char *file);
+static int (*g_load_screen)(int player_map);
+static int (*g_draw_screen)(int sprite);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
@@ -249,6 +251,7 @@ static const struct {
     {"fade_down", 0},
     {"fill_screen", 0},
     {"load_screen", 0},
+    {"draw_screen", 0},
     {"compare_weapon", 0},
     {"compare_magic", 0},
     {"editor_type", 0},
@@ -611,6 +614,16 @@ void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
 void dinkc_cmd_bind_spawn(int (*fn)(const char *file))
 {
     g_spawn = fn;
+}
+
+void dinkc_cmd_bind_load_screen(int (*fn)(int player_map))
+{
+    g_load_screen = fn;
+}
+
+void dinkc_cmd_bind_draw_screen(int (*fn)(int sprite))
+{
+    g_draw_screen = fn;
 }
 
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
@@ -1190,8 +1203,28 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "kill_shadow") || is_cmd(name, "fade_up") ||
-        is_cmd(name, "fade_down") || is_cmd(name, "fill_screen") ||
-        is_cmd(name, "load_screen")) {
+        is_cmd(name, "fade_down") || is_cmd(name, "fill_screen")) {
+        return 1;
+    }
+    /* FreeDink dc_load_screen: game_load_screen(loc[&player_map]).
+     * Args are ignored (S1-HOLE.c load_screen(131) after &player_map=). */
+    if (is_cmd(name, "load_screen")) {
+        int map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+
+        if (g_load_screen != NULL) {
+            (void)g_load_screen(map);
+        }
+        return 1;
+    }
+    /* FreeDink dc_draw_screen: yield if sprite != 1000, then
+     * draw_screen_game (kill_all except 1000). yld=1 is WAIT_SAY here. */
+    if (is_cmd(name, "draw_screen")) {
+        if (g_draw_screen != NULL) {
+            (void)g_draw_screen(g_cmd_sprite);
+        }
+        if (g_cmd_sprite != 1000 && yield != NULL) {
+            *yield = 3;
+        }
         return 1;
     }
     if (is_cmd(name, "sp_range")) {

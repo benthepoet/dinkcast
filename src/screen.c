@@ -4,6 +4,42 @@
 #include <stdio.h>
 
 static int g_process_warp;
+static int g_screenlock;
+
+int screen_lock_get(void)
+{
+    return g_screenlock;
+}
+
+void screen_lock_set(int on)
+{
+    g_screenlock = on ? 1 : 0;
+}
+
+int screen_map_rec(const struct World *w, int player_map)
+{
+    if (w == NULL || player_map < 1 || player_map >= DINK_WORLD_SLOTS) {
+        return 0;
+    }
+    return (int)w->loc[player_map];
+}
+
+/* FreeDink game_load_screen(loc[&player_map]): record only. No kill_all. */
+int screen_game_load(const struct World *w, int player_map, struct MapScreen *scr)
+{
+    int rec;
+
+    rec = screen_map_rec(w, player_map);
+    if (rec < 1 || scr == NULL) {
+        return -1;
+    }
+    if (map_load_record(rec, scr) != 0) {
+        return -1;
+    }
+    /* game_load_screen: screenlock = 0. Command itself is 0.2 item 4. */
+    screen_lock_set(0);
+    return rec;
+}
 
 int screen_process_warp(void)
 {

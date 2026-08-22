@@ -22,4 +22,11 @@ int screen_try_warp(const struct World *w, const struct MapScreen *scr,
 int screen_process_warp(void);
 void screen_warp_clear(void);
 
+/* dink.dat loc[] for &player_map. 0 if empty or out of range. */
+int screen_map_rec(const struct World *w, int player_map);
+/* FreeDink game_load_screen: map.dat record + screenlock=0. Not draw. */
+int screen_game_load(const struct World *w, int player_map, struct MapScreen *scr);
+int screen_lock_get(void);
+void screen_lock_set(int on);
+
 #endif

@@ -47,6 +47,7 @@ static struct {
 } g_cb[CB_N];
 
 static struct Fiber g_f[DINKC_MAX_LIVE + 1];
+static struct Fiber *g_running;
 static int g_ops_ovf;
 static int g_now_ms;
 static int g_var_ready;
@@ -57,6 +58,20 @@ static int g_choice_color;
 static int fiber_slot(const struct Fiber *f)
 {
     return (int)(f - g_f);
+}
+
+/* draw_screen → kill_all must not fiber_kill the caller mid-dinkc_cmd. */
+static int run_cmd(struct Fiber *f, const char *name, int *args, int nargs,
+                   const char *str, const char *str2, int *yield, int *ret)
+{
+    struct Fiber *prev = g_running;
+    int ok;
+
+    g_running = f;
+    dinkc_cmd_bind_fiber(fiber_slot(f), f->sprite);
+    ok = dinkc_cmd(name, args, nargs, str, str2, yield, ret);
+    g_running = prev;
+    return ok;
 }
 
 static void copy_tok(const struct DinkcTok *t, char *buf, size_t sz)
@@ -197,8 +212,7 @@ static int eval_prim(struct Fiber *f)
         if (f->ip < f->ntok && f->tok[f->ip].kind == DINKC_LPAREN) {
             parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                        sizeof(sarg2));
-            dinkc_cmd_bind_fiber(fiber_slot(f), f->sprite);
-            if (dinkc_cmd(cname, args, nargs, sarg, sarg2, &yld, &rv)) {
+            if (run_cmd(f, cname, args, nargs, sarg, sarg2, &yld, &rv)) {
                 dinkc_var_set("&return", rv, DINKC_GLOBAL_SCOPE, f->sprite);
                 return rv;
             }
@@ -632,8 +646,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
             if (tok_is(t, "move_stop")) {
                 parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                            sizeof(sarg2));
-                dinkc_cmd_bind_fiber(fiber_slot(f), f->sprite);
-                (void)dinkc_cmd("move", args, nargs, sarg, sarg2, &yld, &rv);
+                (void)run_cmd(f, "move", args, nargs, sarg, sarg2, &yld, &rv);
                 f->move_spr = nargs > 0 ? args[0] : 0;
                 if (!dinkc_cmd_move_busy(f->move_spr)) {
                     continue;
@@ -744,8 +757,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
             }
             parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                        sizeof(sarg2));
-            dinkc_cmd_bind_fiber(fiber_slot(f), f->sprite);
-            if (dinkc_cmd(cname, args, nargs, sarg, sarg2, &yld, &rv)) {
+            if (run_cmd(f, cname, args, nargs, sarg, sarg2, &yld, &rv)) {
                 dinkc_var_set("&return", rv, DINKC_GLOBAL_SCOPE, f->sprite);
                 if (cname[0] == 's' && strstr(cname, "script_attach") != NULL) {
                     f->sprite = nargs > 0 ? args[0] : f->sprite;
@@ -1151,9 +1163,13 @@ void dinkc_vm_kill_all(void)
     int i;
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        /* Item ARM (1000) and engine (1001+) survive a screen swap.
-         * Sprite keep fibers must not — FreeDink kill_all_scripts. */
-        if (g_f[i].used && g_f[i].keep && g_f[i].sprite >= 1000) {
+        /* FreeDink kill_all_scripts: skip sprite 1000. Engine 1001+
+         * is the same class (GOTCHAS). Skip the running fiber so
+         * draw_screen can kill_all then yield=3 after return. */
+        if (g_running == &g_f[i]) {
+            continue;
+        }
+        if (g_f[i].used && g_f[i].sprite >= 1000) {
             continue;
         }
         fiber_kill(&g_f[i]);

@@ -52,6 +52,8 @@ void dinkc_cmd_bind_external(int (*fn)(int sprite, const char *file,
                                        const char *proc, const int *args,
                                        int nargs));
 void dinkc_cmd_bind_spawn(int (*fn)(const char *file));
+void dinkc_cmd_bind_load_screen(int (*fn)(int player_map));
+void dinkc_cmd_bind_draw_screen(int (*fn)(int sprite));
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
                                        int fiber, int sprite));
 void dinkc_cmd_bind_fiber(int fiber, int sprite);
