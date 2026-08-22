@@ -47,7 +47,28 @@ int main(void)
     expect(status_load(seqs) == 0, "status_load");
     expect(status_glyph(181, 10, &sl, &st, &sr, &sb, &adv) == 0 && adv > 0,
            "exp 0 glyph");
+    {
+        int area = (sr - sl) * (sb - st);
+        int op = status_glyph_opaque_n(181, 10);
+
+        expect(area > 0 && op > area / 2, "exp 0 paper opaque");
+    }
     expect(status_glyph(181, 11, &sl, &st, &sr, &sb, &adv) == 0, "exp slash");
+    {
+        int area = (sr - sl) * (sb - st);
+        int op = status_glyph_opaque_n(181, 11);
+
+        expect(area > 0 && op > area / 2, "exp slash paper opaque");
+    }
+    expect(status_glyph(442, 1, &sl, &st, &sr, &sb, &adv) == 0, "level 1");
+    {
+        int area = (sr - sl) * (sb - st);
+        int op = status_glyph_opaque_n(442, 1);
+
+        expect(area > 0 && op > area / 2, "level 1 paper opaque");
+    }
+    expect(status_chrome_opaque_n() > (DINK_HUD_ATLAS * 80) / 2,
+           "chrome paper opaque");
     expect(status_glyph(190, 1, &sl, &st, &sr, &sb, &adv) == 0, "lifemax chunk");
     expect(status_glyph(451, 2, &sl, &st, &sr, &sb, &adv) == 0, "life chunk");
     expect(status_glyph(180, 6, &sl, &st, &sr, &sb, &adv) == 0, "magic vert");

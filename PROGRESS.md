@@ -157,7 +157,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | DinkC `load_screen` + `draw_screen` (`game_load_screen` / `draw_screen_game`) | #105 |
 | 2026-08-22 | DinkC `screenlock` + `get_hard` clamp | #106 |
 | 2026-08-22 | `sp_follow` / `sp_target` on `BrainSpr` (`process_follow` / `process_target`) | #107 |
-| 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | this PR |
+| 2026-08-22 | DinkC `get_sprite_with_this_brain` (+ rand / next) | #108 |
+| 2026-08-22 | Playtest HUD: LEFTALIGN / `blitNoColorKey` digits + chrome | this PR |
 
 ## Bites
 
@@ -210,7 +211,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
 | 16.1 | Touch / pickup | source | `run_through_touch_damage_list`; `s1-sack` `TOUCH` → `item-pig`; `editor_type` 1 on **re-enter**; live `scale_brain` |
 | 16.2 | Inventory UI | source | `process_item`; Y toggle; seq 423 blit; A `arm_weapon`/`arm_magic`. HUD is 16.3. #94 |
-| 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6 |
+| 16.3 | HUD | source | `draw_status_all` / `update_status_all`; digit atlas 128 KB; L map `button6` / seq 165. V6. LEFTALIGN / `blitNoColorKey` paper (this PR) |
 | 17.1–17.3 | VMU save | pending | |
 | 18.1–18.3 | Perf / disc / 240p | pending | |
 
@@ -222,7 +223,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — village Open empty (2026-08-22) |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD paper Open (this PR) |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -237,7 +238,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **none (village)** | PLAYTEST Open empty. Long pole is campaign DinkC (`goto` / `spawn` / `load_screen`) |
+| **Next picture** | **HUD paper** | Exp/gold/level digits must keep LEFTALIGN white. Long pole is still campaign DinkC |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -304,3 +305,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (v0.1.0) | **~90%** | First product tag after #98. Village Flycast snapshot. Open: 409 house, smash y-sort, fence shimmer. Audio/VMU/hardware unproven. |
 | 2026-08-22 (say TTL) | **~90%** | #98 called `saybox_tick` / `edraw_mark_need` without bodies. `say()` TTL + Screen mark for MAIN `create_sprite`. |
 | 2026-08-22 (village Open) | **~90%** | Requester: last PLAYTEST Open pictures confirmed (409 house, smash y-sort, pig-pen fence). Village leftovers empty. |
+| 2026-08-22 (HUD paper) | **~90%** | Status digits/chrome punched RGB>240 so white paper fell through PT to black. Graft LEFTALIGN / `blitNoColorKey`; host `test_status` locks opaque paper. |

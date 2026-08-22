@@ -30,6 +30,10 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 ## Open
 
-None. Village leftovers above were confirmed 2026-08-22.
+| Picture | Host lock |
+|---|---|
+| Status-bar exp / gold / level digits keep their white paper (not thin dark holes over black) | `test_status` glyph + chrome opaque |
+
+Village leftovers above were confirmed 2026-08-22.
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.

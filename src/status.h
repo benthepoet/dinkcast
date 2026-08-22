@@ -26,6 +26,8 @@ int status_fgold(void);
 int status_fexp(void);
 int status_glyph(int seq, int frame, int *sl, int *st, int *sr, int *sb,
                  int *adv);
+int status_glyph_opaque_n(int seq, int frame);
+int status_chrome_opaque_n(void);
 size_t status_cpu_bytes(void);
 void status_drop_cpu(void);
 int status_atlas_bytes(void);
