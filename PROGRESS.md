@@ -214,7 +214,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — village walk, Ethel, guard punch confirmed |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — village Open empty (2026-08-22) |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -229,7 +229,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **playtest leftovers** | Ethel outdoor house (409); smashed-barrel y-sort; pig-pen fence shimmer |
+| **Next picture** | **none (village)** | PLAYTEST Open empty. Long pole is campaign DinkC (`goto` / `spawn` / `load_screen`) |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -295,3 +295,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (create hard) | **~90%** | BAR-SH leftover was seq-54 heart: `add_sprite` hard=1, create memset 0. `draw_hard_sprite` stamped it; TOUCH never restamps. Confirmed in Flycast. |
 | 2026-08-22 (v0.1.0) | **~90%** | First product tag after #98. Village Flycast snapshot. Open: 409 house, smash y-sort, fence shimmer. Audio/VMU/hardware unproven. |
 | 2026-08-22 (say TTL) | **~90%** | #98 called `saybox_tick` / `edraw_mark_need` without bodies. `say()` TTL + Screen mark for MAIN `create_sprite`. |
+| 2026-08-22 (village Open) | **~90%** | Requester: last PLAYTEST Open pictures confirmed (409 house, smash y-sort, pig-pen fence). Village leftovers empty. |
