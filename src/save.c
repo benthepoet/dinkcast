@@ -473,9 +473,9 @@ static maple_device_t *first_vmu(void)
     return maple_enum_type(0, MAPLE_FUNC_MEMCARD);
 }
 
-/* 32×32 4bpp: green square on black. Plan 17.2. */
-static uint16 g_icon_pal[16];
-static uint8 g_icon_px[512];
+/* 32×32 4bpp: green square on black. Plan 17.2. Palette is ARGB4444. */
+static uint16_t g_icon_pal[16];
+static uint8_t g_icon_px[512];
 
 static void vmu_icon_init(void)
 {
@@ -483,10 +483,10 @@ static void vmu_icon_init(void)
 
     memset(g_icon_pal, 0, sizeof(g_icon_pal));
     memset(g_icon_px, 0, sizeof(g_icon_px));
-    g_icon_pal[1] = 0x07E0;
+    g_icon_pal[1] = 0xF0F0;
     for (y = 0; y < 32; y++) {
         for (x = 0; x < 32; x += 2) {
-            uint8 p = 0;
+            uint8_t p = 0;
 
             if (x >= 8 && x < 24 && y >= 8 && y < 24) {
                 p = 0x11;
@@ -535,7 +535,7 @@ static int save_read_blob(int slot, uint8_t *dst, size_t cap, size_t *outn)
         return -1;
     }
     fs_close(fd);
-    if (vmu_pkg_parse(pkgbuf, &pkg) < 0) {
+    if (vmu_pkg_parse(pkgbuf, (size_t)n, &pkg) < 0) {
         free(pkgbuf);
         return -1;
     }
@@ -555,7 +555,7 @@ int save_game_slot(int slot, const struct Player *pl)
     size_t n = 0;
     maple_device_t *dev;
     vmu_pkg_t pkg;
-    uint8 *out = NULL;
+    uint8_t *out = NULL;
     int outn = 0;
     file_t fd;
     char path[64];
@@ -577,9 +577,9 @@ int save_game_slot(int slot, const struct Player *pl)
     strcpy(pkg.desc_long, "Dink Smallwood save");
     strcpy(pkg.app_id, "DINKCAST");
     pkg.icon_cnt = 1;
-    pkg.icon_pal = g_icon_pal;
+    memcpy(pkg.icon_pal, g_icon_pal, sizeof(pkg.icon_pal));
     pkg.icon_data = g_icon_px;
-    pkg.data_len = (uint32)n;
+    pkg.data_len = (int)n;
     pkg.data = blob;
     if (vmu_pkg_build(&pkg, &out, &outn) < 0) {
         printf("save_game vmu_pkg fail\n");
