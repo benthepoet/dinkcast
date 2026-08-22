@@ -26,17 +26,17 @@ int startmenu_slot_focus(void);
 /* -1 still; 0 nevermind; 1–10 slot. */
 int startmenu_slot_tick(uint32_t prev, uint32_t now);
 
-/* In-play Start pause: Save / Title. */
-#define STARTPAUSE_SAVE 0
+/* In-play Start pause: Continue / Title. Save is SAVEBOT.c only. */
+#define STARTPAUSE_CONTINUE 0
 #define STARTPAUSE_TITLE 1
 #define STARTPAUSE_N 2
 
 void startpause_reset(void);
 int startpause_focus(void);
 int startpause_open(void);
-/* True only when Start-pause or the slot picker should own the pad.
+/* True only when Start-pause should own the pad.
  * Normal play (A talk, Y inv, B hit) must not match. */
-int startpause_eats_pad(uint32_t prev, uint32_t now, int slots);
+int startpause_eats_pad(uint32_t prev, uint32_t now);
 /* -1 still open; -2 closed (B); else STARTPAUSE_*. */
 int startpause_tick(uint32_t prev, uint32_t now);
 

@@ -467,7 +467,6 @@ static void list_cd_hud(void)
 static int g_need_restart;
 static int g_need_title;
 static int g_show_splash;
-static int g_pause_slots;
 
 static void game_restart_cmd(void)
 {
@@ -930,7 +929,6 @@ int main(int argc, char **argv)
                         (void)inv_upload_pvr();
 #endif
                         g_need_title = 0;
-                        g_pause_slots = 0;
                         startpause_reset();
                         swap = 1;
                         need_menu = 0;
@@ -938,7 +936,6 @@ int main(int argc, char **argv)
                     if (g_need_title) {
                         g_need_title = 0;
                         g_show_splash = 1;
-                        g_pause_slots = 0;
                         startpause_reset();
                         saybox_clear();
                         need_menu = 1;
@@ -999,7 +996,7 @@ int main(int argc, char **argv)
                     }
                     brains_apply(&g_scr);
                     have = (pad_poll_port0(&buttons) == 0);
-                    paused = startpause_open() || g_pause_slots;
+                    paused = startpause_open();
                     if (have && status_map_active()) {
 #ifdef _arch_dreamcast
                         (void)status_upload_pvr();
@@ -1052,45 +1049,19 @@ int main(int argc, char **argv)
                     } else if (have && !inv_showing() && !status_map_active() &&
                                !dinkc_vm_waiting_say() &&
                                !dinkc_vm_waiting_choice() &&
-                               startpause_eats_pad(prev_buttons, buttons,
-                                                   g_pause_slots)) {
-                        if (g_pause_slots) {
-                            int sl = startmenu_slot_tick(prev_buttons, buttons);
+                               startpause_eats_pad(prev_buttons, buttons)) {
+                        int pr = startpause_tick(prev_buttons, buttons);
 
-                            if (sl == 0) {
-                                g_pause_slots = 0;
-                                saybox_clear();
-                            } else if (sl > 0) {
-                                int args[8];
-
-                                memset(args, 0, sizeof(args));
-                                args[0] = sl;
-                                (void)dinkc_cmd("save_game", args, 1, NULL, NULL,
-                                                NULL, NULL);
-                                g_pause_slots = 0;
-                                saybox_clear();
-                            } else {
-                                char line[80];
-
-                                save_info_line(startmenu_slot_focus(), line,
-                                               sizeof(line));
-                                saybox_set(line, 0);
-                            }
-                        } else {
-                            int pr = startpause_tick(prev_buttons, buttons);
-
-                            if (pr == STARTPAUSE_SAVE) {
-                                startmenu_slot_reset();
-                                g_pause_slots = 1;
-                            } else if (pr == STARTPAUSE_TITLE) {
-                                g_need_title = 1;
-                                g_show_splash = 1;
-                            } else if (startpause_open()) {
-                                saybox_set(startpause_focus() == STARTPAUSE_SAVE
-                                               ? "Save"
-                                               : "Title",
-                                           0);
-                            }
+                        if (pr == STARTPAUSE_TITLE) {
+                            g_need_title = 1;
+                            g_show_splash = 1;
+                        } else if (pr == STARTPAUSE_CONTINUE || pr == -2) {
+                            saybox_clear();
+                        } else if (startpause_open()) {
+                            saybox_set(startpause_focus() == STARTPAUSE_TITLE
+                                           ? "Title"
+                                           : "Continue",
+                                       0);
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         !dinkc_vm_waiting_say() &&

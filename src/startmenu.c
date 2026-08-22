@@ -91,7 +91,7 @@ int startmenu_slot_tick(uint32_t prev, uint32_t now)
 
 void startpause_reset(void)
 {
-    g_pause_focus = STARTPAUSE_SAVE;
+    g_pause_focus = STARTPAUSE_CONTINUE;
     g_pause_open = 0;
 }
 
@@ -105,10 +105,9 @@ int startpause_open(void)
     return g_pause_open;
 }
 
-int startpause_eats_pad(uint32_t prev, uint32_t now, int slots)
+int startpause_eats_pad(uint32_t prev, uint32_t now)
 {
-    return slots || g_pause_open ||
-           pad_just_pressed(prev, now, DINK_PAD_START);
+    return g_pause_open || pad_just_pressed(prev, now, DINK_PAD_START);
 }
 
 int startpause_tick(uint32_t prev, uint32_t now)
@@ -116,7 +115,7 @@ int startpause_tick(uint32_t prev, uint32_t now)
     if (!g_pause_open) {
         if (pad_just_pressed(prev, now, DINK_PAD_START)) {
             g_pause_open = 1;
-            g_pause_focus = STARTPAUSE_SAVE;
+            g_pause_focus = STARTPAUSE_CONTINUE;
         }
         return -1;
     }

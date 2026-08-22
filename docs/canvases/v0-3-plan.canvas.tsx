@@ -35,7 +35,7 @@ export default function V03Plan() {
       </Stack>
 
       <Callout tone="info" title="Goal">
-        Official START menu can Load, and Start during play can Save, through a
+        Official START menu can Load, and SAVEBOT.c can Save, through a
         compact VMU blob under 8 KB. Not a PC savegame clone.
       </Callout>
 
@@ -78,8 +78,8 @@ export default function V03Plan() {
           [
             "5",
             "Start pause",
-            "Escape save; Start = pause",
-            "Save / Title so playtest does not wait for a machine.",
+            "ESCAPE.c Continue; Start = pause",
+            "Continue / Title. Save is the machine only.",
           ],
         ]}
       />
@@ -90,7 +90,7 @@ export default function V03Plan() {
         rows={[
           ["START wordmark + buttons", "D-pad + A after Splash.bmp"],
           ["New Game reaches the house", "start-1.c click()"],
-          ["Save, reset, Load", "Same map + inventory"],
+          ["Save machine, reset, Load", "Same map + inventory"],
           ["No VMU fails soft", "New Game still works"],
         ]}
       />
