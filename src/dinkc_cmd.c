@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 
 #include "dinkc_var.h"
+#include "save.h"
 #include "dinkc_vm.h"
 #include "ff.h"
 #include "hurt.h"
@@ -52,6 +53,7 @@ static void (*g_blood)(int slot);
 static void (*g_hard_redraw)(void);
 static int g_hard_redraw_pending;
 static void (*g_restart)(void);
+static void (*g_kill_game)(void);
 static int (*g_brain_first)(int brain, int ignore, int start);
 static int (*g_brain_rand)(int brain, int ignore);
 static int (*g_item_arm)(const char *name);
@@ -74,12 +76,13 @@ static int g_magic_slot;
 static int g_bow_power;
 static int g_cmd_now;
 static int g_midi;
-static struct {
+typedef struct {
     int active;
     int seq;
     int frame;
     char name[16];
-} g_item[16], g_mitem[8];
+} InvSlot;
+static InvSlot g_item[16], g_mitem[8];
 static struct {
     int spr;
     int val;
@@ -255,6 +258,10 @@ static const struct {
     {"draw_hard_sprite", 0},
     {"show_inventory", 0},
     {"show_bmp", 0},
+    {"save_game", 0},
+    {"load_game", 0},
+    {"game_exist", 0},
+    {"set_save_game_info", 0},
 };
 
 #define CMD_N ((int)(sizeof(k_fn) / sizeof(k_fn[0])))
@@ -655,6 +662,31 @@ int dinkc_cmd_hard_redraw_take(void)
 void dinkc_cmd_bind_restart(void (*fn)(void))
 {
     g_restart = fn;
+}
+
+void dinkc_cmd_bind_kill_game(void (*fn)(void))
+{
+    g_kill_game = fn;
+}
+
+static void disarm_armed(void)
+{
+    if (g_weapon_slot > 0 && g_item_locate != NULL) {
+        (void)g_item_locate(g_weapon_slot, "disarm");
+        if (dinkc_vm_used(g_weapon_slot)) {
+            dinkc_vm_kill(g_weapon_slot);
+        }
+        g_weapon_slot = 0;
+        pin_clear(0);
+    }
+    if (g_magic_slot > 0 && g_item_locate != NULL) {
+        (void)g_item_locate(g_magic_slot, "disarm");
+        if (dinkc_vm_used(g_magic_slot)) {
+            dinkc_vm_kill(g_magic_slot);
+        }
+        g_magic_slot = 0;
+        pin_clear(1);
+    }
 }
 
 void dinkc_cmd_bind_brain_lookup(int (*first)(int brain, int ignore, int start),
@@ -1078,6 +1110,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "kill_game")) {
         printf("kill_game\n");
+        if (g_kill_game != NULL) {
+            g_kill_game();
+        }
         return 1;
     }
     if (is_cmd(name, "add_item")) {
@@ -1476,5 +1511,157 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
+    if (is_cmd(name, "save_game")) {
+        int ok = save_game_slot(a0, g_pl);
+
+        printf("save_game slot=%d ok=%d\n", a0, ok);
+        if (ret != NULL) {
+            *ret = ok == 0 ? 1 : 0;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "load_game")) {
+        int ok;
+
+        disarm_armed();
+        ok = save_load_slot(a0, g_pl);
+        printf("load_game slot=%d ok=%d\n", a0, ok);
+        if (ret != NULL) {
+            *ret = ok == 0 ? 1 : 0;
+        }
+        if (ok == 0) {
+            (void)dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, NULL, NULL);
+            (void)dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, NULL, NULL);
+            dinkc_var_set("&update_status", 1, DINKC_GLOBAL_SCOPE, 1);
+            if (g_load_screen != NULL) {
+                int map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1);
+
+                (void)g_load_screen(map);
+                if (g_draw_screen != NULL) {
+                    (void)g_draw_screen(1);
+                }
+            }
+        }
+        return 1;
+    }
+    if (is_cmd(name, "game_exist")) {
+        int ex = save_game_exist(a0);
+
+        if (ret != NULL) {
+            *ret = ex;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "set_save_game_info")) {
+        save_set_info(str);
+        return 1;
+    }
     return 1; /* in k_fn: default stub */
+}
+
+void dinkc_cmd_inv_get(int magic, int idx0, int *active, char *name, size_t n,
+                       int *seq, int *frame)
+{
+    const InvSlot *it;
+
+    if (idx0 < 0 || idx0 >= (magic ? 8 : 16)) {
+        if (active != NULL) {
+            *active = 0;
+        }
+        return;
+    }
+    it = magic ? &g_mitem[idx0] : &g_item[idx0];
+    if (active != NULL) {
+        *active = it->active;
+    }
+    if (name != NULL && n > 0) {
+        strncpy(name, it->name, n - 1);
+        name[n - 1] = '\0';
+    }
+    if (seq != NULL) {
+        *seq = it->seq;
+    }
+    if (frame != NULL) {
+        *frame = it->frame;
+    }
+}
+
+void dinkc_cmd_inv_put(int magic, int idx0, int active, const char *name,
+                       int seq, int frame)
+{
+    InvSlot *it;
+
+    if (idx0 < 0 || idx0 >= (magic ? 8 : 16)) {
+        return;
+    }
+    it = magic ? &g_mitem[idx0] : &g_item[idx0];
+    it->active = active ? 1 : 0;
+    it->seq = seq;
+    it->frame = frame;
+    if (name != NULL) {
+        strncpy(it->name, name, sizeof(it->name) - 1);
+        it->name[sizeof(it->name) - 1] = '\0';
+    } else {
+        it->name[0] = '\0';
+    }
+}
+
+int dinkc_cmd_spmap_count(void)
+{
+    int map, ed, n = 0;
+
+    for (map = 1; map < DINK_WORLD_SLOTS; map++) {
+        for (ed = 1; ed <= 99; ed++) {
+            if (g_spmap_type[map][ed] != 0 || g_spmap_seq[map][ed] != 0 ||
+                g_spmap_frame[map][ed] != 0) {
+                n++;
+            }
+        }
+    }
+    return n;
+}
+
+int dinkc_cmd_spmap_at(int idx0, int *map, int *ed, int *type, int *seq,
+                       int *frame)
+{
+    int m, e, seen = 0;
+
+    for (m = 1; m < DINK_WORLD_SLOTS; m++) {
+        for (e = 1; e <= 99; e++) {
+            if (g_spmap_type[m][e] == 0 && g_spmap_seq[m][e] == 0 &&
+                g_spmap_frame[m][e] == 0) {
+                continue;
+            }
+            if (seen == idx0) {
+                if (map != NULL) {
+                    *map = m;
+                }
+                if (ed != NULL) {
+                    *ed = e;
+                }
+                if (type != NULL) {
+                    *type = (int)g_spmap_type[m][e];
+                }
+                if (seq != NULL) {
+                    *seq = (int)g_spmap_seq[m][e];
+                }
+                if (frame != NULL) {
+                    *frame = (int)g_spmap_frame[m][e];
+                }
+                return 0;
+            }
+            seen++;
+        }
+    }
+    return -1;
+}
+
+void dinkc_cmd_spmap_put(int map, int ed, int type, int seq, int frame)
+{
+    if (ed < 1 || ed > 99 || map < 1 || map >= DINK_WORLD_SLOTS) {
+        return;
+    }
+    g_spmap_type[map][ed] = (unsigned char)type;
+    g_spmap_seq[map][ed] = (int16_t)seq;
+    g_spmap_frame[map][ed] = (unsigned char)frame;
 }

@@ -5,6 +5,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
+#include "save.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -732,6 +733,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
                             }
                             memcpy(f->choice_line[f->nchoice], p, ln);
                             f->choice_line[f->nchoice][ln] = '\0';
+                            if (strcmp(f->choice_line[f->nchoice],
+                                       "&savegameinfo") == 0) {
+                                save_info_line(retnum, f->choice_line[f->nchoice],
+                                               sizeof(f->choice_line[0]));
+                            }
                             f->choice_ret[f->nchoice] = retnum;
                             f->nchoice++;
                             printf("choice %d %s\n", retnum, f->choice_line[f->nchoice - 1]);
