@@ -218,7 +218,7 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | | | |
 |---|---|---|
 | **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **playtest leftovers** | Ethel outdoor house first visit (map 409 seq 63) |
+| **Next picture** | **playtest leftovers** | Ethel outdoor house (409); smashed-barrel y-sort |
 | **Hardest remaining** | DinkC long tail | then 14.6 RAM, then 12/17 unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
@@ -278,3 +278,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-21 (playtest tracker) | **~90%** | Pig blood + hit numbers confirmed. Remaining Flycast issues tracked in PLAYTEST.md; host `test_playtest` locks the pig punch path. |
 | 2026-08-21 (say TTL) | **~90%** | `say()` (not `say_stop`) expired via `add_text_sprite` `kill_ttl` (`max(strlen*77, 2700)`). Ethel hello / no-wizard were permanent because Dinkcast only cleared on A/B yield. Confirmed in Flycast. |
 | 2026-08-22 (409 house) | **~90%** | First 409 visit skipped seq 63: slurp doubled to 1 MiB and sbrk-failed before Prev drop. `fstat` + `make_room` before malloc. |
+| 2026-08-22 (barrel bg) | **~90%** | Brain 5 smash left type-1 last frame; Dink y-sorted under debris. Graft `one_time_brain` bake-to-background (`type` 0). |

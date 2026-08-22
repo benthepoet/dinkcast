@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Confirmed playtest pictures — see docs/PLAYTEST.md. */
 #include "brains.h"
+#include "dinkc_cmd.h"
 #include "hit.h"
 #include "mapscr.h"
 #include "player.h"
@@ -109,6 +110,27 @@ int main(void)
     }
     expect(!brains_slot_live(7), "pig 7 gone after seq 164");
     expect(!scr.sprite[7].active, "pig 7 editor hidden after kill");
+
+    /* FreeDink one_time_brain: smash last frame is background (under Dink). */
+    scr.sprite[8].active = 1;
+    scr.sprite[8].type = 1;
+    scr.sprite[8].seq = 173;
+    scr.sprite[8].frame = 1;
+    scr.sprite[8].x = 150;
+    scr.sprite[8].y = 250;
+    seqs[173].nframes = 2;
+    seqs[173].delay = 1;
+    brains_enter(&scr, 0);
+    expect(brains_slot_live(8), "barrel live");
+    expect(brains_change_prop(8, DINKC_SP_BRAIN, 5) == 5, "barrel brain 5");
+    expect(brains_change_prop(8, DINKC_SP_SEQ, 173) == 173, "barrel smash seq");
+    for (i = 0; i < 8; i++) {
+        brains_tick(&scr, seqs, &mask, 100 * (i + 20), 0);
+    }
+    expect(!brains_slot_live(8), "barrel live gone after smash");
+    expect(scr.sprite[8].active, "barrel debris stays");
+    expect(scr.sprite[8].type == 0, "barrel debris is background");
+    expect(scr.sprite[8].seq == 173, "barrel debris seq 173");
 
     printf("OK test_playtest\n");
     return 0;

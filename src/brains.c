@@ -61,6 +61,8 @@ struct BrainSpr {
     int logged;
     int created;
     int hidden;
+    /* FreeDink one_time_brain: last frame stamped under y-sort. */
+    int bg_baked;
     int base_idle;
     int base_attack;
     int move_active;
@@ -869,17 +871,20 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
 /* 5: play once then keep last frame (bg blit). 7: play once then remove. */
 static void one_time_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
-                           const struct HardMask *mask, int stay)
+                           const struct HardMask *mask, int bake)
 {
     if (s->seq == 0 && s->seq_orig == 0 && s->pseq > 0) {
         s->seq = s->pseq;
         return;
     }
     if (s->seq == 0) {
-        if (!stay) {
-            /* lsm_remove_sprite: active=0. live=0 alone leaves the map snap
-             * drawn (pig looks like it respawned). */
-            s->live = 0;
+        /* FreeDink one_time_brain (brain 5): draw last frame to the
+         * background, then lsm_remove_sprite. brain 7 removes only. */
+        s->live = 0;
+        if (bake) {
+            s->bg_baked = 1;
+            s->hidden = 0;
+        } else {
             s->hidden = 1;
         }
         return;
@@ -1400,6 +1405,19 @@ void brains_apply(struct MapScreen *scr)
 
         if (s->hidden && !s->live) {
             scr->sprite[i].active = 0;
+            continue;
+        }
+        if (s->bg_baked) {
+            scr->sprite[i].active = 1;
+            scr->sprite[i].type = 0;
+            scr->sprite[i].x = s->x;
+            scr->sprite[i].y = s->y;
+            if (s->pseq > 0) {
+                scr->sprite[i].seq = s->pseq;
+            }
+            if (s->pframe > 0) {
+                scr->sprite[i].frame = s->pframe;
+            }
             continue;
         }
         if (!s->live) {

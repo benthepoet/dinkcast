@@ -29,5 +29,6 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Notes | Host lock |
 |---|---|---|
 | Ethel outdoor house (map 409 seq 63) on first visit from 408 | Prev drop before slurp malloc; not a seq-63 pin | `test_edraw` 408→409 seq 63; `test_mem` make_room |
+| Dink draws over smashed barrels | FreeDink brain 5 stamps last frame to background | `test_playtest` barrel type 0 |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
