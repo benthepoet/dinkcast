@@ -48,6 +48,18 @@ static int stub_draw_screen(int sprite)
     return 0;
 }
 
+/* play_draw_screen nests screen MAIN / attach_live; those rebind. */
+static int stub_draw_screen_nested(int sprite)
+{
+    g_fill_before_draw = g_nfill;
+    g_draw_spr = sprite;
+    g_ndraw++;
+    dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_cmd_bind_fiber(2, 22);
+    dinkc_vm_kill_all();
+    return 0;
+}
+
 static int stub_bar_sh_external(int sprite, const char *file, const char *proc,
                                 const int *args, int nargs)
 {
@@ -790,6 +802,21 @@ int main(void)
         expect(dinkc_vm_state(keepslot) == DINKC_WAIT_MS, "attached wait");
         dinkc_vm_kill_all();
         expect(dinkc_vm_used(keepslot), "attach 1000 survives kill_all");
+
+        /* Nested bind must not steal the caller's sprite for yield=3. */
+        dinkc_cmd_bind_draw_screen(stub_draw_screen_nested);
+        dinkc_vm_reset();
+        letterslot = dinkc_vm_start(letter, strlen(letter), 7);
+        expect(g_draw_spr == 1000, "nested draw still caller 1000");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "letter continues after nested bind");
+        expect(!dinkc_vm_used(letterslot), "letter MAIN finished after nested");
+
+        dinkc_vm_reset();
+        holeslot = dinkc_vm_start(hole, strlen(hole), 4);
+        expect(!dinkc_vm_used(holeslot), "hole still dies after nested bind");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 2,
+               "nothing after hole draw with nested bind");
 
         dinkc_cmd_bind_load_screen(NULL);
         dinkc_cmd_bind_draw_screen(NULL);

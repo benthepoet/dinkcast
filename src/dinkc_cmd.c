@@ -1335,13 +1335,16 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    /* FreeDink dc_draw_screen: yield if sprite != 1000, then
-     * draw_screen_game (kill_all except 1000). yld=1 is WAIT_SAY here. */
+    /* FreeDink dc_draw_screen: yield if the *calling* script's sprite
+     * != 1000, then draw_screen_game. Nested MAIN / attach_live rebind
+     * g_cmd_sprite (bar-e 22); S1-LTR.c is already 1000. */
     if (is_cmd(name, "draw_screen")) {
+        int caller = g_cmd_sprite;
+
         if (g_draw_screen != NULL) {
-            (void)g_draw_screen(g_cmd_sprite);
+            (void)g_draw_screen(caller);
         }
-        if (g_cmd_sprite != 1000 && yield != NULL) {
+        if (caller != 1000 && yield != NULL) {
             *yield = 3;
         }
         return 1;
