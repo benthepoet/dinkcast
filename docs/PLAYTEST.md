@@ -31,17 +31,21 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Wizard idle/walk stays on screen for the whole `s1-wiz` meeting (map 376) | 2026-08-22 | `test_edraw` 376 + 167 unused + 563/6 |
 | Walk into a fallen AlkNut and pick it up (`s1-nut` / `item-nut`) | 2026-08-22 | `test_inv` `free_items` + s1-nut path |
 | Punch map 408 editor-1 `bar-sh`: only the barrel smashes (Dink stays punch) | 2026-08-22 | `test_dinkc_vm` editor 1 `sp_seq` |
+| Wizard screen pathway/trees after Load + village (map 376) | 2026-08-23 | `test_mem` ts41 over cap (Prev dir.ff drop; Prev ts01 survives). `test_edraw` 408→376 seq 32 + atlas is not the cap lock |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
 | Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | (none yet; log + named FreeDink only) |
-| Wizard screen pathway/trees after Load + village (map 376) | `test_mem` ts41 over cap (Prev dir.ff drop; Prev ts01 survives). `test_edraw` 408→376 seq 32 + atlas is not the cap lock |
 
 Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed — Dink could not leave. Village leftovers above were confirmed 2026-08-22.
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
+
+## Log notes (2026-08-23, confirmed)
+
+408→376 after Load: `tiles slurp ok tiles/ts41.bmp` then `swap atlas ok`. `edraw load seq=32` frames 1/9/10. No `tiles slurp fail` / `atlas fail keep`. Requester stamped the path.
 
 ## Log notes (2026-08-22, not confirmed)
 

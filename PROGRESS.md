@@ -172,7 +172,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | this PR |
 | 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | this PR |
 | 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | this PR |
-| 2026-08-23 | Tilesheet slurp drops Prev `dir.ff` (376 path after 408) | this PR |
+| 2026-08-23 | Tilesheet slurp drops Prev `dir.ff` (376 path after 408) | #114 |
+| 2026-08-23 | Playtest: 376 pathway after Load confirmed | this PR |
 | 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
 
 ## Bites
@@ -238,7 +239,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | GitHub `gh pr merge` | Fine-grained PAT often **403** on `mergePullRequest`. Human merges in the UI. **Do not** squash-push `master`. |
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
-| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts confirmed; burning-house exit Open; 376 pathway after Load Open |
+| Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts + 376 pathway after Load confirmed; burning-house exit Open |
 | v0.3.0 | [docs/V0.3.md](docs/V0.3.md) — START menu + VMU; **17** before **12** |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
