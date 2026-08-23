@@ -5,6 +5,10 @@ Static, line-level comparison of GNU FreeDink (`/home/benh/Source/gnu_freedink/s
 cited on both sides. No emulators were run; this is source analysis only. Findings
 already tracked in PROGRESS.md / CAMPAIGN-AUDIT.md are marked **[known]**.
 
+**Challenge of this audit** (citations checked against FreeDink + `src/`, no
+engine work): see **Challenge (Grok, 2026-08-23)** at the end of this file.
+Do not treat the P0/P1 totals as a sprint list.
+
 Classification: **missing** (no graft), **diverged** (grafted, logic differs),
 **simplified** (deliberate DC adaptation that changes rules), **unverified**.
 
@@ -303,3 +307,63 @@ with this:
 9. Then the P2 tail, grouped by module.
 
 Nothing here is started — per AGENTS.md, engine bites wait for the requester.
+
+---
+
+## Challenge (Grok, 2026-08-23)
+
+Source-only. Same trees the audit used. **Do not implement this catalog wholesale.**
+Severity is inflated; several items would regress playtest-accepted pictures.
+
+### P0
+
+| Claim | Verdict |
+|---|---|
+| Map.dat **+100/+104/+108** (`base_idle` / `base_attack` / `base_hit`) never parsed; `brains_enter` hardcodes `-1` | **Confirmed parse gap.** FreeDink `editor_screen.cpp:153-155`; `game_place_sprites` copies them. Dinkcast `mapscr.c` goes `base_walk` +96 → `timing` +112. |
+| “All editor monsters lose attack/idle; campaign combat is broken” | **Overstated — not P0.** Stock `EN-BONC.c` / `EN-SLAY.c` / `EN-GH.c` set `sp_base_attack` in `main()`. `EN-PILL.c` never sets it and does not melee (touch only). Idle/attack from **map only** is the hole. Treat as **P1, small graft** if we do anything next. |
+
+### Confirmed real (backlog, not a batch)
+
+- Hardness **2** flattened to 1 (`hard_sample` boolean; stamp `1`). Shore push / flying-over-water wrong. **High walk/push regression.**
+- Flying `automove` skips **all** hardness; missiles can pass walls. Same cluster.
+- Missile hit contract weaker (no HIT/DAMAGE/notouch/blood; missile `live=0`).
+- `set_dink_speed` missing (`MAIN.c`, herb boots `item-bt.c`). Walk stays `DINK_SPEED 3`.
+- User-defined `void foo()` → `k_fn` / unimplemented. Interpreter hole; **high `wait`/`external` regression** if grafted wrong.
+- `fill_screen` / `kill_shadow` / `sp_kill_wait` stubs. Letter fade was **accepted without** a real black fill — implementing `fill_screen` now can regress that.
+- `compare_sprite_script` missing (`S4-ROCK.c` / `S4-SEC1.c` / `S5-SEC1.c`). Later secrets, not village.
+- Magic regen: `status_update` early-returns `< 100 ms` then `lv += magic`. FreeDink adds every frame. At 60 Hz ~**6×** slower, not ~8×. Combat feel change.
+- `brains_enter` **keeps `created`** across screens (opposite FreeDink). Can leak loot/dummies. Evicting all created on swap would regress food / `s1-nopas` / bridge dummy / crowd sprites.
+- Inventory/map: `dinkc_vm_tick` still runs. `wait()`/say can advance behind the overlay.
+
+### Overstated, partial, or gated
+
+| Claim | Challenge |
+|---|---|
+| Talk cannot hit `create_sprite` NPCs | `talk_probe` walks `g_scr.sprite[]`. After `brains_apply`, created rows are type 1 + script. Not proven campaign-wide. |
+| Unarmed punch always | START-1 arms fists; `weapon_use` exists. Fallback is the unarmed case. |
+| `sp()` / `sp_editor_num` identity | Stub is real. Stock smash uses `sp_editor_num` on the **current** editor sprite (identity is correct). Breaks “is this still the editor row” after death. |
+| `dnotalk` / `dnomagic` | Official data has **no** those files (`talk.c` already notes that). |
+| Bow charge | Known; instant 100 until that bite. |
+| Audio / `stopmidi` | Bite **12**. |
+| Cap 100 vs 300 | DC RAM. Do not raise the cap to “match FreeDink.” |
+| BLACK keyword | Real ini gap; HUD already special-cases. Few in-world BLACK seqs. |
+| Single saybox | Known V5 shape. |
+| Scripts before brains | True. **Do not reorder `main` without its own bite.** |
+
+### What would regress if we implemented the audit’s numbered list as written
+
+- Hardness 2 + flying + missile walls → walk, push, water, fireballs.
+- Kill all `created` on swap → food, hearts, nopas, bridge dummy, 439 crowd.
+- Real `fill_screen` → letter fade_up.
+- Magic regen 6× faster → mana in every fight.
+- VM proc calls / callback fibers → `wait` / `external` / item USE.
+- Main-loop reorder → everything.
+
+### Recommended next steps (requester go; one concern per PR)
+
+1. **Do not** start a “fix GRAFT-AUDIT” mega-PR. Do not mix this catalog into playtest **#118**.
+2. **If** a next engine bite: parse +100/+104/+108 into `EditorSprite`, copy in `brains_enter`. Host: dump one stock bonca/pill screen vs FreeDink bases. No hardness/VM/loop change in that PR.
+3. Leave hardness-2, missiles, interpreter procs, `fill_screen`, magic cadence, and main-loop order until a named playtest picture demands them.
+4. Keep #118 playtest leftovers (`sp_nodraw`, food `repeat_brain`, 421 hardbox, `frame_delay` init) on their own merge path.
+
+Nothing in this challenge section is an implementation license.
