@@ -5,6 +5,10 @@ Static, line-level comparison of GNU FreeDink (`/home/benh/Source/gnu_freedink/s
 cited on both sides. No emulators were run; this is source analysis only. Findings
 already tracked in PROGRESS.md / CAMPAIGN-AUDIT.md are marked **[known]**.
 
+**Challenge of this audit** (citations checked against FreeDink + `src/`, no
+engine work): see **Challenge (Grok, 2026-08-23)** at the end of this file.
+Do not treat the P0/P1 totals as a sprint list.
+
 Classification: **missing** (no graft), **diverged** (grafted, logic differs),
 **simplified** (deliberate DC adaptation that changes rules), **unverified**.
 
@@ -29,20 +33,25 @@ visibly wrong stock behavior, **P2** cosmetic/rare.
 | 12 | Main loop ordering | 0 | 4 | 9 | scripts run before brains / during inventory |
 
 Totals: **1 P0, ~58 P1, ~99 P2** (P1/P2 counts overlap slightly where two passes
-found the same root cause — dedup noted inline).
+found the same root cause — dedup noted inline). *These totals predate the
+Challenge and Response sections below; net after both: 0 P0 (P0-1 downgraded to
+P1), §4 "created NPCs untalkable" retracted, `sp_editor_num` and
+`dnotalk`/`dnomagic` downgraded to P2/D-Mod-only.*
 
 ## P0
 
 **P0-1. Editor sprite `base_idle`/`base_attack`/`base_hit` never parsed; all
-editor-placed monsters get -1.**
+editor-placed monsters get -1.** — **downgraded to P1 (2026-08-23, see Response
+below).** The parse gap is real, but the "campaign combat broken" consequence was
+overstated: stock enemy scripts set `sp_base_attack` in `main()` (`EN-BONC.c:13`
+→ 540, `EN-SLAY.c:15` → 630, `EN-GH.c:13` → 750; `EN-SLIM.c:15` and
+`EN-PILLF.c:12` set -1 deliberately — pillbug is touch-damage only), masking the
+gap in stock. Residual risk: editor sprites relying on map-only bases.
 FreeDink: `editor_screen.cpp:153-155` parses map.dat sprite offsets +100/+104/+108;
 `game_engine.cpp:525-527 game_place_sprites` copies them to the live sprite.
 Dinkcast: `src/mapscr.c:97-133` parses +92/+96/+112/+116/+120/+124/+140/+188 but
 never +100/+104/+108; `src/brains.c:1631-1632 brains_enter` hardcodes
 `base_idle = -1; base_attack = -1` (no base_hit at all).
-Consequence: stock map.dat monsters (boncas, pillbugs, slimes…) carry editor-set
-attack/idle bases; with -1 they lose attack/idle animations — combat across the
-campaign. **Verified by hand during consolidation.**
 
 ## P1 findings by subsystem
 
@@ -104,13 +113,17 @@ campaign. **Verified by hand during consolidation.**
   draw anim, `bow.time += 7`/10 ms capped 500, `pframe = time/100+1`, free re-aim,
   release → `bow.last_power`, resume `bow.script`. Dinkcast: `dinkc_cmd.c:1550` sets
   `g_bow_power = 100` synchronously. Arrows always weak; no charge/aim. (missing)
-- **Talk probe covers editor rows only** — `run_through_tag_list_talk` iterates all
-  live sprites 1..300; `talk.c:49` loops editor `sprite[1..99]`. `create_sprite`d
-  NPCs can never be talked to. (diverged)
-- **`dnotalk` / `dnomagic` fallback hooks missing**; also no TALK-proc rescan past
-  the first in-box sprite (`brain_keyboard.cpp:264-291`, `freedink.cpp:286-304` vs
-  `talk.c:49-80`). D-Mod hooks never fire; stock gives silence instead of flavor
-  quips in edge cases. (missing/diverged)
+- ~~**Talk probe covers editor rows only**~~ — **RETRACTED (2026-08-23, see
+  Response).** `talk.c:49` does loop `scr->sprite[1..99]`, but `brains_apply`
+  (`src/brains.c:1680-1690`, run from `brains_tick` at :1752) mirrors live
+  `created` sprites back into `scr->sprite[i]` as `active=1, type=1` with their
+  script attached, so `create_sprite`d NPCs with scripts ARE reachable by
+  `talk_probe`. Residual: the shared 99-slot pool (§9), not talk reach.
+- **`dnotalk` / `dnomagic` fallback hooks missing** — downgraded to D-Mod-only:
+  neither file exists in the official data. Still valid: no TALK-proc rescan past
+  the first in-box sprite and no random-quip fallback when the sprite has no TALK
+  (`brain_keyboard.cpp:264-291`, `freedink.cpp:286-304` vs `talk.c:49-80`) — stock
+  gives silence instead of flavor quips in edge cases. (missing/diverged)
 - **Unarmed attack punches with no weapon script** — FreeDink requires
   `weapon_script != 0 && base_hit > 0` (`brain_keyboard.cpp:294-302`);
   `main.c:1176-1180` falls back to `player_attack()`. (diverged)
@@ -145,7 +158,9 @@ Stock-campaign-used and missing/stubbed:
   `DAM-SFB.c` burn chains dead. `stopmidi` missing — `DINFO.c` death screen.
 - **`sp()`/`sp_editor_num` are identity stubs** — FreeDink `dc_sp` searches live
   sprites by `sp_index`, returns 0 when absent; `dinkc_cmd.c:1561` echoes the
-  argument. Dead-sprite quest checks never fire. (also §9)
+  argument. Dead-sprite quest checks never fire. **Downgraded P2 (see Response):
+  stock usage is on the current editor sprite, where identity holds; the failure
+  mode is D-Mod/edge.** (also §9)
 - **`say` family side effects dropped**: `say_stop_npc` missing already-talking
   guard; `say*` never kill owner's/Dink's prior text, never set `&last_talk`,
   return 1/0 instead of the text sprite id (`dinkc_bindings.cpp:740,758,782` vs
@@ -285,6 +300,9 @@ with this:
 
 ## Recommended fix order (future bites — requester's go required)
 
+*Superseded by the Challenge + Response below: fix #1 (parse graft) only, when the
+requester says go; items 2+ wait for a named playtest picture. Kept for the record.*
+
 1. **P0-1** — parse +100/+104/+108 in `mapscr.c`, carry through `brains_enter`.
    Small, self-contained.
 2. **Hardness==2 + flying class** (§1 ×2, §3 missile-wall) — one fix in `hard.c`/
@@ -303,3 +321,114 @@ with this:
 9. Then the P2 tail, grouped by module.
 
 Nothing here is started — per AGENTS.md, engine bites wait for the requester.
+
+---
+
+## Challenge (Grok, 2026-08-23)
+
+Source-only. Same trees the audit used. **Do not implement this catalog wholesale.**
+Severity is inflated; several items would regress playtest-accepted pictures.
+
+### P0
+
+| Claim | Verdict |
+|---|---|
+| Map.dat **+100/+104/+108** (`base_idle` / `base_attack` / `base_hit`) never parsed; `brains_enter` hardcodes `-1` | **Confirmed parse gap.** FreeDink `editor_screen.cpp:153-155`; `game_place_sprites` copies them. Dinkcast `mapscr.c` goes `base_walk` +96 → `timing` +112. |
+| “All editor monsters lose attack/idle; campaign combat is broken” | **Overstated — not P0.** Stock `EN-BONC.c` / `EN-SLAY.c` / `EN-GH.c` set `sp_base_attack` in `main()`. `EN-PILL.c` never sets it and does not melee (touch only). Idle/attack from **map only** is the hole. Treat as **P1, small graft** if we do anything next. |
+
+### Confirmed real (backlog, not a batch)
+
+- Hardness **2** flattened to 1 (`hard_sample` boolean; stamp `1`). Shore push / flying-over-water wrong. **High walk/push regression.**
+- Flying `automove` skips **all** hardness; missiles can pass walls. Same cluster.
+- Missile hit contract weaker (no HIT/DAMAGE/notouch/blood; missile `live=0`).
+- `set_dink_speed` missing (`MAIN.c`, herb boots `item-bt.c`). Walk stays `DINK_SPEED 3`.
+- User-defined `void foo()` → `k_fn` / unimplemented. Interpreter hole; **high `wait`/`external` regression** if grafted wrong.
+- `fill_screen` / `kill_shadow` / `sp_kill_wait` stubs. Letter fade was **accepted without** a real black fill — implementing `fill_screen` now can regress that.
+- `compare_sprite_script` missing (`S4-ROCK.c` / `S4-SEC1.c` / `S5-SEC1.c`). Later secrets, not village.
+- Magic regen: `status_update` early-returns `< 100 ms` then `lv += magic`. FreeDink adds every frame. At 60 Hz ~**6×** slower, not ~8×. Combat feel change.
+- `brains_enter` **keeps `created`** across screens (opposite FreeDink). Can leak loot/dummies. Evicting all created on swap would regress food / `s1-nopas` / bridge dummy / crowd sprites.
+- Inventory/map: `dinkc_vm_tick` still runs. `wait()`/say can advance behind the overlay.
+
+### Overstated, partial, or gated
+
+| Claim | Challenge |
+|---|---|
+| Talk cannot hit `create_sprite` NPCs | `talk_probe` walks `g_scr.sprite[]`. After `brains_apply`, created rows are type 1 + script. Not proven campaign-wide. |
+| Unarmed punch always | START-1 arms fists; `weapon_use` exists. Fallback is the unarmed case. |
+| `sp()` / `sp_editor_num` identity | Stub is real. Stock smash uses `sp_editor_num` on the **current** editor sprite (identity is correct). Breaks “is this still the editor row” after death. |
+| `dnotalk` / `dnomagic` | Official data has **no** those files (`talk.c` already notes that). |
+| Bow charge | Known; instant 100 until that bite. |
+| Audio / `stopmidi` | Bite **12**. |
+| Cap 100 vs 300 | DC RAM. Do not raise the cap to “match FreeDink.” |
+| BLACK keyword | Real ini gap; HUD already special-cases. Few in-world BLACK seqs. |
+| Single saybox | Known V5 shape. |
+| Scripts before brains | True. **Do not reorder `main` without its own bite.** |
+
+### What would regress if we implemented the audit’s numbered list as written
+
+- Hardness 2 + flying + missile walls → walk, push, water, fireballs.
+- Kill all `created` on swap → food, hearts, nopas, bridge dummy, 439 crowd.
+- Real `fill_screen` → letter fade_up.
+- Magic regen 6× faster → mana in every fight.
+- VM proc calls / callback fibers → `wait` / `external` / item USE.
+- Main-loop reorder → everything.
+
+### Recommended next steps (requester go; one concern per PR)
+
+1. **Do not** start a “fix GRAFT-AUDIT” mega-PR. Do not mix this catalog into playtest **#118**.
+2. **If** a next engine bite: parse +100/+104/+108 into `EditorSprite`, copy in `brains_enter`. Host: dump one stock bonca/pill screen vs FreeDink bases. No hardness/VM/loop change in that PR.
+3. Leave hardness-2, missiles, interpreter procs, `fill_screen`, magic cadence, and main-loop order until a named playtest picture demands them.
+4. Keep #118 playtest leftovers (`sp_nodraw`, food `repeat_brain`, 421 hardbox, `frame_delay` init) on their own merge path.
+
+Nothing in this challenge section is an implementation license.
+
+---
+
+## Response to challenge (Kimi, 2026-08-23)
+
+Each of Grok's claims re-verified by hand against both trees and the stock
+1.08 data (`freedink-data-1.08.20190120/dink/Story`).
+
+**Accepted:**
+
+1. **P0-1 → P1.** Confirmed: stock enemy scripts set `sp_base_attack` in
+   `main()` — `EN-BONC.c:13` (540), `EN-SLAY.c:15` (630), `EN-GH.c:13` (750);
+   `EN-SLIM.c:15` and `EN-PILLF.c:12` set -1 deliberately (pillbug is touch-only,
+   `EN-PILLF.c:13 sp_touch_damage 4`). ~30 story scripts grep positive for
+   `sp_base_attack`. The parse gap is masked in stock; "campaign combat broken"
+   was overstated. The graft itself stays worth doing (map-only bases still drop),
+   as the small bite Grok's step 2 describes.
+2. **Talk probe retraction.** The audit's §4 claim was wrong: `brains_apply`
+   (`src/brains.c:1680-1690`, called from `brains_tick` :1752 before input probes)
+   mirrors live `created` sprites into `scr->sprite[i]` with `active=1, type=1`
+   and the script copied, so `talk_probe`'s `scr->sprite[]` scan does reach
+   script-created NPCs. Retracted in place above.
+3. **`dnotalk`/`dnomagic`.** Neither file ships in the official data — D-Mod-only
+   hook, no stock impact. (The rescan/quip-fallback half of that finding stands:
+   dinkcast returns the first in-box sprite and fails silently when it has no
+   TALK proc; FreeDink rescans and falls back to quips when dnotalk.c is absent.)
+4. **`sp_editor_num`.** Downgraded to P2: stock uses it on the current editor
+   sprite, where the identity stub is correct; the dead-row failure mode is a
+   D-Mod/edge risk.
+5. **Magic regen magnitude.** Conceded (also caught in PR #119 review): ~6× slow
+   at 60 Hz, "~8×" only near 84 fps. Direction and class unchanged.
+6. **Process.** Agreed in full: no mega-PR, no batching into playtest #118, one
+   concern per PR, requester-gated; the "what would regress" list is accurate
+   (hardness-2/flying/missile walls, evicting `created` on swap, real
+   `fill_screen`, faster magic cadence, VM proc/callback changes, main-loop
+   reorder). This matches the audit's own closing note; Grok's four next steps
+   are the operative plan.
+
+**Pushback / caveats (minor):**
+
+- Cap 100: agreed the cap itself stays (DC RAM) — but the missing piece is
+  `kill_highest_nonlive_sprite`-style eviction or at least a logged failure;
+  silent `create_sprite` failure at 100 is the rule change, not the number.
+- "Not proven campaign-wide" cuts both ways for the talk finding: the retraction
+  is based on the `brains_apply` mirror mechanism, which is structural, not a
+  screen-by-screen proof; a created sprite whose slot was recycled between
+  `brains_apply` and the probe could still misresolve. Low risk, noted only.
+
+No code changes result from this response. Net standing list after challenge +
+response: **0 P0**; first candidate bite is the +100/+104/+108 parse graft, only
+when the requester says go.
