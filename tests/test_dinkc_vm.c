@@ -412,6 +412,10 @@ int main(void)
                "unknown");
         expect(dinkc_cmd_missing_count() == miss0 + 1, "miss logged");
         expect(dinkc_cmd("draw_status", args, 0, "", "", &yld, &rv) == 1, "known");
+        expect(dinkc_cmd("draw_hard_map", args, 0, "", "", &yld, &rv) == 1,
+               "draw_hard_map");
+        expect(dinkc_cmd_hard_redraw_take() == 1, "draw_hard_map restamp");
+        expect(dinkc_cmd_hard_redraw_take() == 0, "draw_hard_map take once");
         dinkc_cmd_bind_sprite_change(stub_sp_change);
         args[0] = 7;
         args[1] = 9;
@@ -890,6 +894,27 @@ int main(void)
                "S1-H1-O fade_up done");
         dinkc_cmd_bind_draw_screen(NULL);
         dinkc_cmd_bind_fill_hard(NULL);
+    }
+
+    {
+        /* Official S1-H1-4.c &story > 3: hide table+beds then draw_hard_map. */
+        const char *s1 =
+            "void main(void) {\n"
+            "  int &who = sp(22);\n"
+            "  int &who2 = sp(23);\n"
+            "  int &who3 = sp(24);\n"
+            "  sp_active(&who,0);\n"
+            "  sp_active(&who2,0);\n"
+            "  sp_active(&who3,0);\n"
+            "  draw_hard_map();\n"
+            "}\n";
+
+        dinkc_vm_reset();
+        (void)dinkc_cmd_hard_redraw_take();
+        slot = dinkc_vm_start(s1, strlen(s1), 22);
+        expect(slot > 0, "s1-h1-4 start");
+        expect(dinkc_vm_live() == 0, "s1-h1-4 done");
+        expect(dinkc_cmd_hard_redraw_take() == 1, "s1-h1-4 draw_hard_map");
     }
 
     printf("OK test_dinkc_vm\n");

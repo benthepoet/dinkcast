@@ -20,7 +20,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 ## Verdict
 
 **Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **104 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
+**The full 1.08 campaign is not.** Coverage is about **105 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -72,7 +72,7 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 | Metric | Count |
 |---|---|
 | FreeDink `DCBD_ADD` names (+ `sp_base_death` alias) | 186 |
-| Dinkcast `k_fn[]` | 104 |
+| Dinkcast `k_fn[]` | 105 |
 | Real handlers (approx.) | ~77 |
 | In table but stub / silent success | ~14 (`playsound`, `playmidi`, `fill_screen`, `activate_bow` instant-100, …) |
 | Missing from table → `dinkc unimplemented` | ~90 |
@@ -98,7 +98,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 ### Commands used in campaign and missing or stubbed
 
 **Missing (not in `k_fn[]`), used in 1.08:**  
-`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
 `playsound`, `playmidi`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).

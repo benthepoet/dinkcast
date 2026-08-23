@@ -259,6 +259,7 @@ static const struct {
     {"sp_hard", 0},
     {"sp_notouch", 0},
     {"draw_hard_sprite", 0},
+    {"draw_hard_map", 0},
     {"show_inventory", 0},
     {"show_bmp", 0},
     {"save_game", 0},
@@ -1516,7 +1517,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "draw_hard_sprite")) {
+    if (is_cmd(name, "draw_hard_sprite") || is_cmd(name, "draw_hard_map")) {
+        /* FreeDink dc_draw_hard_map: tiles + live + type 0/2. Same restamp. */
         g_hard_redraw_pending = 1;
         if (g_hard_redraw != NULL) {
             g_hard_redraw();

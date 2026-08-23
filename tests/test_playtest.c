@@ -160,6 +160,39 @@ int main(void)
         hard_mask_free(&table);
     }
 
+    /* Official S1-H1-4.c &story > 3: sp_active table (22) + beds (23/24)
+     * then draw_hard_map. Type 1 hardness is live sprites only. */
+    {
+        struct HardMask house;
+        int hl = -39, ht = -33, hr = 43, hb = 7;
+
+        expect(!hard_stamp_editor_slot(1, 0), "dead type 1 no stamp");
+        expect(hard_stamp_editor_slot(1, 1), "live type 1 stamps");
+        expect(hard_stamp_editor_slot(0, 0), "type 0 still stamps");
+        expect(hard_stamp_editor_slot(2, 0), "type 2 still stamps");
+        memset(&house, 0, sizeof(house));
+        house.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(house.pix != NULL, "house mask");
+        hard_stamp_editor(&house, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+        hard_stamp_editor(&house, 235, 298, 1, 1, 1, hl, ht, hr, hb);
+        hard_stamp_editor(&house, 448, 297, 1, 1, 1, hl, ht, hr, hb);
+        expect(hard_get(&house, 319, 243) != 0, "table hard while live");
+        expect(hard_get(&house, 235, 298) != 0, "dink bed hard while live");
+        expect(hard_get(&house, 448, 297) != 0, "mom bed hard while live");
+        memset(house.pix, 0, (size_t)DINK_PLAY_W * DINK_PLAY_H);
+        if (hard_stamp_editor_slot(1, 0)) {
+            hard_stamp_editor(&house, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+            hard_stamp_editor(&house, 235, 298, 1, 1, 1, hl, ht, hr, hb);
+            hard_stamp_editor(&house, 448, 297, 1, 1, 1, hl, ht, hr, hb);
+        }
+        hard_stamp_editor(&house, 199, 88, 0, 1, 1, -20, -20, 20, 20);
+        expect(hard_get(&house, 319, 243) == 0, "table hard gone after sp_active");
+        expect(hard_get(&house, 235, 298) == 0, "dink bed hard gone");
+        expect(hard_get(&house, 448, 297) == 0, "mom bed hard gone");
+        expect(hard_get(&house, 199, 88) != 0, "type 0 wall stays");
+        hard_mask_free(&house);
+    }
+
     printf("OK test_playtest\n");
     return 0;
 }

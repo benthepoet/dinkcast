@@ -41,7 +41,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 | Picture | Host lock |
 |---|---|
-| Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
+| Burned start-house: leftover table **and bed** hardness after the fire | `test_dinkc_vm` `S1-H1-4` `draw_hard_map`; `test_playtest` type 1 live-only. Flycast stamp Open. |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 | 439 fire-crowd: Libby (blue maiden seq 257) missing | `test_edraw` mark 257/2 before 439 vis 1. Flycast stamp Open. |
 
@@ -53,7 +53,7 @@ Do not mark new pictures confirmed until the requester says so. Name them here w
 
 Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows.
 
-Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87.
+House leftover hardness after the fire: not table-only. Official `S1-H1-4.c` `&story > 3` `sp_active`s editor 22/23/24/20/21 + current, then `draw_hard_map`. That command was missing; `sp_active` hid the furniture and the enter-path stamp stayed. Do not pin 87. Do not hide all vis-0 furniture on vis 2.
 
 Indoor fire hitch: requester “That fixed it.” Screen frames drop CPU after PVR.
 

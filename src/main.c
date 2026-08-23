@@ -175,7 +175,8 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 {
     int si;
 
-    /* FreeDink dc_draw_hard_sprite: update_play_changes then fill. */
+    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes,
+     * fill_whole_hard, fill_hard_sprites, fill_back_sprites. */
     dinkc_cmd_apply_spmap(&g_scr, dinkc_var_get("&player_map",
                                                 DINKC_GLOBAL_SCOPE, 1));
     if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
@@ -185,6 +186,10 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
         if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                      script_play_vision()) ||
             g_scr.sprite[si].hard != 0 || brains_slot_hard(si) != 0) {
+            continue;
+        }
+        if (!hard_stamp_editor_slot((int)g_scr.sprite[si].type,
+                                    brains_slot_live(si))) {
             continue;
         }
         stamp_one_editor(mask, seqs, si);
