@@ -744,10 +744,11 @@ static void no_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
 }
 
-/* FreeDink repeat_brain. */
+/* FreeDink repeat_brain. seq_orig from editor only if sp_index != 0.
+ * create_sprite food (brain 6, seq 0, pseq 421) stays on pframe. */
 static void repeat_brain(struct BrainSpr *s, const struct EditorSprite *es)
 {
-    if (s->seq_orig == 0 && es != NULL) {
+    if (s->seq_orig == 0 && !s->created && es != NULL && es->active) {
         s->seq_orig = (int)es->seq;
         s->frame = (int)es->frame;
         s->wait = 0;

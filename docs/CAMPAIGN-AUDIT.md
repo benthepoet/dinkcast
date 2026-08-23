@@ -119,7 +119,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | 3 | duck | DIE aligned | Follow grafted; no idle SFX; no dead-duck blood drip |
 | 4 | pig | Aligned | SFX nit |
 | 5 | one_time bake | Aligned | `bg_baked` → type 0 (smash under Dink confirmed 2026-08-22) |
-| 6 | repeat | Gap | `seq_orig` may follow live `pseq` after `brains_apply` |
+| 6 | repeat | Aligned | editor `sp_index` only; create_sprite food stays `pseq`/`pframe` |
 | 7 | one_time stay | Aligned | `hidden=1` so snapshot does not respawn |
 | 8 | text | Mixed | Say is `saybox_*`. Hit numbers OK. Kill exp is `&exp` only (no +N floater) |
 | 9 | pill | Mixed | `process_target` + ATTACK locate; brain lookup this PR |

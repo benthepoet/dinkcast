@@ -209,6 +209,24 @@ int main(void)
         expect(brains_change_prop(c, 5, -1) == kept, "enter keeps create");
         expect(brains_slot_created(c), "still created");
     }
+    {
+        int food, sq = 0, fr = 0, t;
+        struct MapScreen empty;
+
+        memset(&empty, 0, sizeof(empty));
+        seqs[421].nframes = 31;
+        seqs[421].delay = 1;
+        brains_reset();
+        brains_bind_screen(&empty);
+        brains_enter(&empty, 0);
+        food = brains_create(349, 359, 6, 421, 1);
+        expect(food >= 2, "MAKE food1 slot");
+        for (t = 0; t < 40; t++) {
+            brains_tick(&empty, seqs, &mask, t * 16, 0);
+        }
+        expect(brains_seq_frame(food, &sq, &fr) && sq == 421 && fr == 1,
+               "food stays pframe 1");
+    }
 
     {
         struct Player pl;
