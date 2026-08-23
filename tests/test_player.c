@@ -41,6 +41,11 @@ int main(void)
         mask.pix[i * DINK_PLAY_W + 200] = 1;
     }
     player_init(&p);
+    if (p.frame_delay != 0) {
+        fprintf(stderr, "FAIL init frame_delay %d\n", p.frame_delay);
+        hard_mask_free(&mask);
+        return 1;
+    }
     /* FreeDink human_brain: game_choice.active goto freeze. SAVEBOT
      * unfreeze(1) before the 10-slot menu. */
     if (player_walk_pad(2, 0, 0) != 2 || player_walk_pad(2, 1, 0) != 0 ||
@@ -90,6 +95,11 @@ int main(void)
         return 1;
     }
     player_init(&p);
+    if (p.frame_delay != 0) {
+        fprintf(stderr, "FAIL init frame_delay %d\n", p.frame_delay);
+        hard_mask_free(&mask);
+        return 1;
+    }
     p.x = 100;
     p.y = 100;
     player_step(&p, 9, &mask, seqs, 0, NULL); /* up-right: speed-speed/3 = 2 */

@@ -59,6 +59,7 @@ void player_init(struct Player *p)
     p->push_timer = 0;
     p->notouch = 0;
     p->notouch_timer = 0;
+    p->frame_delay = 0; /* FreeDink default; MAIN.c sp_frame_delay(1,0) */
 }
 
 int player_hurt(struct Player *p, int damage)
