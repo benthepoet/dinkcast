@@ -331,6 +331,56 @@ int main(void)
         (void)dir;
     }
     {
+        /* Official SAVEBOT.c talk: unfreeze(1) before the 10-slot menu. */
+        const char *savebot =
+            "void talk(void) {\n"
+            "  freeze(1);\n"
+            "  choice_start();\n"
+            "  \"Save your game\"\n"
+            "  \"Leave the strange machine\"\n"
+            "  choice_end();\n"
+            "  unfreeze(1);\n"
+            "  choice_start();\n"
+            "  \"&savegameinfo\"\n"
+            "  \"Nevermind\"\n"
+            "  choice_end();\n"
+            "}\n";
+        struct HardMask mask;
+        struct SeqInfo seqs[DINK_MAX_SEQ];
+        int ox, oy, i;
+
+        memset(&pl, 0, sizeof(pl));
+        player_init(&pl);
+        pl.x = 200;
+        pl.y = 200;
+        dinkc_cmd_bind_player(&pl);
+        dinkc_vm_reset();
+        slot = dinkc_vm_start_proc(savebot, strlen(savebot), 26, "talk");
+        expect(slot > 0 && dinkc_vm_waiting_choice() && pl.freeze == 1,
+               "savebot first frozen");
+        dinkc_vm_choice_pick(1);
+        expect(dinkc_vm_waiting_choice() && pl.freeze == 0,
+               "savebot slots unfrozen");
+        expect(player_walk_pad(2, pl.freeze, dinkc_vm_waiting_choice()) == 0,
+               "savebot Down no walk pad");
+        memset(&seqs, 0, sizeof(seqs));
+        for (i = 1; i < DINK_MAX_SEQ; i++) {
+            seqs[i].delay = 50;
+            seqs[i].nframes = 2;
+        }
+        memset(&mask, 0, sizeof(mask));
+        mask.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(mask.pix != NULL, "savebot mask");
+        ox = pl.x;
+        oy = pl.y;
+        player_step(&pl,
+                    player_walk_pad(2, pl.freeze, dinkc_vm_waiting_choice()),
+                    &mask, seqs, 0, NULL);
+        expect(pl.x == ox && pl.y == oy, "savebot Down stays");
+        hard_mask_free(&mask);
+        dinkc_vm_choice_pick(2);
+    }
+    {
         const char *titled =
             "void main(void) { choice_start(); set_y 240; set_title_color 5; "
             "title_start(); Hello title_end(); \"A\"; choice_end(); }";

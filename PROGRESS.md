@@ -189,6 +189,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | 14.4b: create_sprite marks before editor unique (257) | this PR |
 | 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
 | 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
+| 2026-08-23 | Playtest: burned-house hardness + Libby confirmed | this PR |
+| 2026-08-23 | Choice Down does not walk (`player_walk_pad`; SAVEBOT slots) | this PR |
 
 ## Bites
 

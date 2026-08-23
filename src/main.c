@@ -1248,6 +1248,8 @@ int main(int argc, char **argv)
                         choice_tick(now_ms);
                     }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
+                    pdir = player_walk_pad(pdir, pl.freeze,
+                                           dinkc_vm_waiting_choice());
                     if (seqs != NULL) {
                         int wed = (inv_showing() || status_map_active() ||
                                    paused)

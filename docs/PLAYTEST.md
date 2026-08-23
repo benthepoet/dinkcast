@@ -36,14 +36,14 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | 2026-08-23 | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
 | Outdoor fire ends / crowd leaves with `fade_down` / `fade_up` (`S1-H1-O`) | 2026-08-23 | `test_dinkc_vm` fade_down 1000 ms yield + 400 ms to black; fade_up 400 ms; S1-H1-O wait/force_vision in between |
 | Indoor fire scene no longer hitchy (`make emu-fast` / after leave) | 2026-08-23 | `test_edraw` house vis 1 current+next; Screen CPU drop after PVR |
+| Burned start-house: leftover table and bed hardness gone after the fire | 2026-08-23 | `test_dinkc_vm` `S1-H1-4` `draw_hard_map`; `test_playtest` type 1 live-only |
+| 439 fire-crowd: Libby (blue maiden seq 257) | 2026-08-23 | `test_edraw` mark 257/2 before 439 vis 1 |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
-| Burned start-house: leftover table **and bed** hardness after the fire | `test_dinkc_vm` `S1-H1-4` `draw_hard_map`; `test_playtest` type 1 live-only. Flycast stamp Open. |
-| START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
-| 439 fire-crowd: Libby (blue maiden seq 257) missing | `test_edraw` mark 257/2 before 439 vis 1. Flycast stamp Open. |
+| START Continue / SAVEBOT slot choice: Down walks Dink | `test_player` `player_walk_pad`; `test_dinkc_vm` SAVEBOT unfreeze then slots. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
@@ -53,7 +53,9 @@ Do not mark new pictures confirmed until the requester says so. Name them here w
 
 Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows.
 
-House leftover hardness after the fire: not table-only. Official `S1-H1-4.c` `&story > 3` `sp_active`s editor 22/23/24/20/21 + current, then `draw_hard_map`. That command was missing; `sp_active` hid the furniture and the enter-path stamp stayed. Do not pin 87. Do not hide all vis-0 furniture on vis 2.
+House leftover hardness after the fire: requester “Fixed.” Official `S1-H1-4.c` `&story > 3` `sp_active`s editor 22/23/24/20/21 + current, then `draw_hard_map`. Host lock already on that row.
+
+439 crowd Libby: requester “Alright fixed.” Mark 257/2 before editor unique.
 
 Indoor fire hitch: requester “That fixed it.” Screen frames drop CPU after PVR.
 
