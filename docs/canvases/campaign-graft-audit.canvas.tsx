@@ -26,8 +26,8 @@ export default function CampaignGraftAudit() {
       <Stack gap={8}>
         <H1>Campaign graft audit</H1>
         <Text tone="secondary">
-          v0.1.0 + say TTL (#100). Analysis only. FreeDink graft vs official
-          1.08 Story/ (381 files). Full write-up: docs/CAMPAIGN-AUDIT.md.
+          Refreshed after v0.3.0. FreeDink graft vs official 1.08 Story/
+          (381 files). Full write-up: docs/CAMPAIGN-AUDIT.md.
         </Text>
         <Row gap={8} wrap>
           <Pill active>Village playable</Pill>
@@ -43,7 +43,7 @@ export default function CampaignGraftAudit() {
       </Callout>
 
       <Grid columns={4} gap={16}>
-        <Stat value="98 / 186" label="DinkC names in k_fn[]" tone="warning" />
+        <Stat value="v0.3+" label="START + VMU + village" tone="success" />
         <Stat value="~125" label="Commands used in Story/" />
         <Stat value="~52%" label="Binding coverage" tone="warning" />
         <Stat value="~55–65%" label="Plan full-campaign confidence" />

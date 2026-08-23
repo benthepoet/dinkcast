@@ -3,6 +3,7 @@
 #include "dinkc_vm.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 struct Slot {
@@ -251,6 +252,43 @@ int dinkc_var_global_count(void)
         }
     }
     return n;
+}
+
+void dinkc_var_expand(char *dst, size_t n, const char *src, int scope,
+                      int sprite)
+{
+    size_t o = 0;
+
+    if (dst == NULL || n < 1) {
+        return;
+    }
+    dst[0] = '\0';
+    if (src == NULL) {
+        return;
+    }
+    while (*src != '\0' && o + 1 < n) {
+        if (*src == '&') {
+            char name[DINKC_VAR_NAME];
+            int ni = 0, v;
+            char num[16];
+            size_t k;
+
+            name[ni++] = *src++;
+            while (*src != '\0' && ni + 1 < (int)sizeof(name) &&
+                   (isalnum((unsigned char)*src) || *src == '_')) {
+                name[ni++] = *src++;
+            }
+            name[ni] = '\0';
+            v = dinkc_var_get(name, scope, sprite);
+            snprintf(num, sizeof(num), "%d", v);
+            for (k = 0; num[k] != '\0' && o + 1 < n; k++) {
+                dst[o++] = num[k];
+            }
+            continue;
+        }
+        dst[o++] = *src++;
+    }
+    dst[o] = '\0';
 }
 
 int dinkc_var_global_at(int idx0, char *name, size_t n, int *value)

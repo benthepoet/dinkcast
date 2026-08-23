@@ -1086,7 +1086,7 @@ void status_draw_map_pvr(float z)
     if (!g_map_dot) {
         return;
     }
-    map = dinkc_var_get("&player_map", DINKC_GLOBAL_SCOPE, 1) - 1;
+    map = dinkc_cmd_last_map() - 1;
     if (map < 0) {
         map = 0;
     }

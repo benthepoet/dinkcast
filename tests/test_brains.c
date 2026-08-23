@@ -179,6 +179,8 @@ int main(void)
         expect(c >= 2 && c <= 100, "create_sprite slot");
         expect(brains_slot_hard(c) == 1, "add_sprite hard=1");
         expect(brains_change_prop(c, 2, 3) == 3, "created speed");
+        expect(brains_change_prop(c, DINKC_SP_FRAME_DELAY, 200) == 200,
+               "frame_delay");
         expect(brains_change_prop(c, DINKC_SP_DISABLED, 1) == 1,
                "sp_disabled set");
         expect(brains_slot_disabled(c), "disabled flag");

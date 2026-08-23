@@ -76,6 +76,7 @@ struct BrainSpr {
         just_hit;
     int hard, notouch, bloodseq, bloodnum;
     int disabled;
+    int frame_delay;
     char script[16];
 };
 
@@ -104,6 +105,15 @@ static int seq_delay(const struct SeqInfo *seqs, int seq, int frame)
         d = 50;
     }
     return d;
+}
+
+static int spr_frame_wait(const struct BrainSpr *s, const struct SeqInfo *seqs,
+                          int frame)
+{
+    if (s != NULL && s->frame_delay != 0) {
+        return s->frame_delay;
+    }
+    return seq_delay(seqs, s != NULL ? s->seq : 0, frame);
 }
 
 static int seq_len(const struct SeqInfo *seqs, int seq)
@@ -326,11 +336,11 @@ static int brain_animate(struct BrainSpr *s, const struct SeqInfo *seqs,
         s->pseq = s->seq;
         s->pframe = 1;
         s->frame = 1;
-        s->delay = now_ms + seq_delay(seqs, s->seq, 1);
+        s->delay = now_ms + spr_frame_wait(s, seqs, 1);
         return 0;
     }
     if (s->delay == 0) {
-        s->delay = now_ms + seq_delay(seqs, s->seq, s->frame);
+        s->delay = now_ms + spr_frame_wait(s, seqs, s->frame);
         s->pseq = s->seq;
         s->pframe = s->frame;
         return 0;
@@ -340,7 +350,7 @@ static int brain_animate(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
     s->frame++;
     nfr = seq_len(seqs, s->seq);
-    s->delay = now_ms + seq_delay(seqs, s->seq, s->frame);
+    s->delay = now_ms + spr_frame_wait(s, seqs, s->frame);
     s->pseq = s->seq;
     s->pframe = s->frame;
     if (ini_resolve_frame(s->seq, s->frame, &dseq, &dfr) != 0 ||
@@ -1846,6 +1856,8 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->hard;
     } else if (prop == DINKC_SP_DISABLED) {
         p = &s->disabled;
+    } else if (prop == DINKC_SP_FRAME_DELAY) {
+        p = &s->frame_delay;
     } else if (prop == DINKC_SP_NOTOUCH) {
         p = &s->notouch;
     } else if (prop == DINKC_SP_FOLLOW) {

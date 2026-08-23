@@ -31,6 +31,12 @@ int main(void)
     expect(dinkc_var_get("&s2-map", 0, 1) == 0, "s2-map");
     expect(dinkc_var_get("&nope", 0, 1) == 0, "unknown 0");
     expect(dinkc_var_get("&current_sprite", 3, 7) == 7, "engine sprite");
+    {
+        char out[64];
+
+        dinkc_var_expand(out, sizeof(out), "life is &life", 0, 1);
+        expect(strcmp(out, "life is 10") == 0, out);
+    }
 
     dinkc_var_make("&gold", 5, 2);
     expect(dinkc_var_get("&gold", 2, 1) == 5, "local gold");

@@ -19,5 +19,8 @@ void dinkc_var_kill_scope(int scope);
 /* Active globals only (scope 0). idx0 is 0-based among those. */
 int dinkc_var_global_count(void);
 int dinkc_var_global_at(int idx0, char *name, size_t n, int *value);
+/* FreeDink decipher_string: replace &vars in a say/choice line. */
+void dinkc_var_expand(char *dst, size_t n, const char *src, int scope,
+                      int sprite);
 
 #endif

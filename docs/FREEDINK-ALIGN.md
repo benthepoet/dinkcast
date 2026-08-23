@@ -33,7 +33,7 @@ Source: GNU FreeDink `master` (`gitGNU/gnu_freedink`). Official freeware data vi
 | DinkC fibers | `run_script` + `wait` callback | `dinkc_vm_*` | hold (11.3) |
 | Attach on enter | `draw_screen_game` + `game_place_sprites` + `game_screen_init_scripts` | `script_attach_screen` | hold (11.6); type 1, `strlen>1`, rank |
 | Vars 1.08 | `lookup_var_local_global_108` | `dinkc_var_*` | hold (11.4); MAIN.c + engine specials |
-| Wave 1 cmds | `dinkc_bindings` | `dinkc_cmd` | hold (11.5); say=serial; freeze spr[1]; live sprite leftover → **11.10**; `sp_disabled` |
+| Wave 1 cmds | `dinkc_bindings` | `dinkc_cmd` | hold (11.5); `sp_disabled`; `sp_frame_delay`; `say_stop_xy`; count/kill item |
 | Choice lines | `dinkc_get_choices` | `choice_start` + `choice_ret[]` | hold (11.7); A = first visible; `&result` = official # |
 | Wave 2 cmds | `add_item` / `hurt` / `sp_hitpoints` | `dinkc_cmd` | hold (11.7); no inv UI; `playsound` stub |
 | Wave 3 cmds | `playmidi` / `draw_status` / `compare_weapon` | `dinkc_cmd` | hold (11.8); midi stub; `draw_status` **16.3** |

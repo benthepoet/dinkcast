@@ -46,6 +46,10 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | In-play Start pause: Continue / Title on the choice overlay | `test_dinkc_vm` `open_pause` Continue/Title. Flycast stamp Open. |
+| Holes warp (`S1-HOLE*` `load_screen` + `draw_screen`) | Host #105. Flycast stamp Open. |
+| Gossip/shop `goto` does not fall through (`S1-LG.c` / `S2-OUT.c`) | Host #102. Flycast stamp Open. |
+| Quackers tracks Dink (`S1-DUCK.c` `sp_follow`) | Host #107. Flycast stamp Open. |
+| `screenlock` arena cannot be walked off | Host #106. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
