@@ -541,6 +541,23 @@ static struct {
 static int g_nblob;
 static int g_disc_opens;
 
+/* Prev dir.ff must drop for this Screen's tilesheet too. ts41.bmp is
+ * 161 KB; village 408 already sits on the 4.5 MB cap. Do not treat
+ * tiles/ as a make_room victim (drop_one_prev stays dir.ff only). */
+static int blob_needs_room(const char *key)
+{
+    size_t kn;
+
+    if (key == NULL || key[0] == '\0') {
+        return 0;
+    }
+    kn = strlen(key);
+    if (kn >= 6 && strcmp(key + kn - 6, "dir.ff") == 0) {
+        return 1;
+    }
+    return strncmp(key, "tiles/", 6) == 0;
+}
+
 static int blob_slot_empty(void)
 {
     int i, ncap;
@@ -754,12 +771,11 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
     /* Drop Prev before the slurp alloc. Post-read drop is too late: KOS
      * already sbrk-failed the 1 MiB doubling buffer (map 409 seq 63). */
     {
-        size_t kn = strlen(key);
         size_t need = 0;
 
-        if (residency_swap_open() && !residency_is_always(key) && kn >= 6 &&
-            strcmp(key + kn - 6, "dir.ff") == 0 &&
-            file_size(fp, &need) == 0 && residency_make_room(need) != 0) {
+        if (residency_swap_open() && !residency_is_always(key) &&
+            blob_needs_room(key) && file_size(fp, &need) == 0 &&
+            residency_make_room(need) != 0) {
             printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)dink_blob_bytes(),
                    (unsigned)DINK_MEM_BLOB_PEAK);
@@ -775,9 +791,7 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
     }
     if (residency_swap_open() && !residency_is_always(key) &&
         dink_blob_bytes() + got > (size_t)DINK_MEM_BLOB_PEAK) {
-        size_t kn = strlen(key);
-
-        if (kn >= 6 && strcmp(key + kn - 6, "dir.ff") == 0) {
+        if (blob_needs_room(key)) {
             (void)residency_make_room(got);
         }
         if (dink_blob_bytes() + got > (size_t)DINK_MEM_BLOB_PEAK) {

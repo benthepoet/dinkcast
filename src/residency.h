@@ -16,8 +16,8 @@ void residency_touch(const char *rel);
 /* Drop packs that are neither Always, Screen, nor Prev. */
 void residency_swap_end(void);
 /* 14.4b: drop the largest Prev dir.ff (not tiles / hard.dat).
- * Screen sprite-pack fopen uses this when Always+Screen+Prev would exceed
- * file_blob. */
+ * Screen sprite-pack or tilesheet fopen uses this when Always+Screen+Prev
+ * would exceed file_blob. */
 int residency_drop_one_prev(void);
 /* Drop Prev dir.ff until file_blob + need fits the cap. 0 if room. */
 int residency_make_room(size_t need);

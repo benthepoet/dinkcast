@@ -6,6 +6,7 @@
 #include "mapscr.h"
 #include "residency.h"
 #include "start_map.h"
+#include "tiles.h"
 #include "world.h"
 
 #include <stdio.h>
@@ -668,6 +669,44 @@ int main(void)
             free(seqs);
             return 1;
         }
+    }
+    /* 408→376 is the play path after Load (no 409 in between). ts41
+     * path + seq 32 trees must survive village file_blob. */
+    {
+        struct MapScreen wiz;
+        struct TileAtlas atlas;
+        int wrec = (int)w.loc[376];
+
+        if (wrec < 1 || map_load_record(wrec, &wiz) != 0) {
+            fprintf(stderr, "FAIL 376 after 408 map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(wiz.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL 376 after 408 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[32].prefix[0] != '\0' && edraw_find(g, n, 32, 1) == NULL &&
+            edraw_find(g, n, 32, 9) == NULL &&
+            edraw_find(g, n, 32, 2) == NULL) {
+            fprintf(stderr, "FAIL 376 after 408 no tree seq 32\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        memset(&atlas, 0, sizeof(atlas));
+        if (tiles_build_atlas(&wiz, &atlas) != 0 ||
+            atlas.used != DINK_SCREEN_TILES) {
+            fprintf(stderr, "FAIL 376 after 408 atlas used=%d\n", atlas.used);
+            tiles_free(&atlas);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        tiles_free(&atlas);
     }
     {
         struct MapScreen ethel_out;
