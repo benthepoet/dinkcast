@@ -924,9 +924,17 @@ int edraw_upload_pvr(struct EdGfx *g, int n)
         if (!g[i].live) {
             continue;
         }
-        if (sprite_upload_pvr(&g[i].fr) != 0) {
-            printf("edraw upload fail seq=%d\n", g[i].seq);
-            continue;
+        {
+            int need = sprite_upload_needed(&g[i].fr);
+
+            if (need == 0) {
+                ok++;
+                continue;
+            }
+            if (need < 0 || sprite_upload_pvr(&g[i].fr) != 0) {
+                printf("edraw upload fail seq=%d\n", g[i].seq);
+                continue;
+            }
         }
         sprite_drop_cpu(&g[i].fr);
         ok++;

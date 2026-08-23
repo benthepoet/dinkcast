@@ -38,12 +38,13 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Indoor fire scene no longer hitchy (`make emu-fast` / after leave) | 2026-08-23 | `test_edraw` house vis 1 current+next; Screen CPU drop after PVR |
 | Burned start-house: leftover table and bed hardness gone after the fire | 2026-08-23 | `test_dinkc_vm` `S1-H1-4` `draw_hard_map`; `test_playtest` type 1 live-only |
 | 439 fire-crowd: Libby (blue maiden seq 257) | 2026-08-23 | `test_edraw` mark 257/2 before 439 vis 1 |
+| START Continue / SAVEBOT slot choice: Down does not walk Dink | 2026-08-23 | `test_player` `player_walk_pad`; `test_dinkc_vm` SAVEBOT unfreeze then slots |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
-| START Continue / SAVEBOT slot choice: Down walks Dink | `test_player` `player_walk_pad`; `test_dinkc_vm` SAVEBOT unfreeze then slots. Flycast stamp Open. |
+| (none) | |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
@@ -56,6 +57,10 @@ Burning-house exit + 439 crowd: requester “The crowd showed up this time.” H
 House leftover hardness after the fire: requester “Fixed.” Official `S1-H1-4.c` `&story > 3` `sp_active`s editor 22/23/24/20/21 + current, then `draw_hard_map`. Host lock already on that row.
 
 439 crowd Libby: requester “Alright fixed.” Mark 257/2 before editor unique.
+
+SAVEBOT / START Continue Down: requester “That's fixed now.”
+
+Boot `edraw upload fail seq=31` (and 64/86/87/351… then 164 on Load 408): `load_one` already uploaded and dropped CPU. Batch `edraw_upload_pvr` treated `argb1555==NULL` as fail. `vram_free` stayed high. Not a missing house pack.
 
 Indoor fire hitch: requester “That fixed it.” Screen frames drop CPU after PVR.
 
