@@ -39,13 +39,13 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Burned start-house: leftover table and bed hardness gone after the fire | 2026-08-23 | `test_dinkc_vm` `S1-H1-4` `draw_hard_map`; `test_playtest` type 1 live-only |
 | 439 fire-crowd: Libby (blue maiden seq 257) | 2026-08-23 | `test_edraw` mark 257/2 before 439 vis 1 |
 | START Continue / SAVEBOT slot choice: Down does not walk Dink | 2026-08-23 | `test_player` `player_walk_pad`; `test_dinkc_vm` SAVEBOT unfreeze then slots |
+| Letter fade_up onto map 439 (not stuck black) | 2026-08-23 | `test_dinkc_vm` `draw_screen` yield uses caller sprite after nested bind |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
 | In-play Start pause: Continue / Title on the choice overlay | `test_dinkc_vm` `open_pause` Continue/Title. Flycast stamp Open. |
-| Letter fade_up onto map 439 (not stuck black) | `test_dinkc_vm` `draw_screen` yield uses caller sprite after nested bind. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
@@ -61,7 +61,7 @@ House leftover hardness after the fire: requester “Fixed.” Official `S1-H1-4
 
 SAVEBOT / START Continue Down: requester “That's fixed now.”
 
-Letter → 439 stayed black: `S1-LTR.c` `script_attach(1000)` survived `kill_all`, then `draw_screen` yield=3 used the last nested bind (bar-e 22) instead of the caller. `fade_up` never ran. Host lock above. Flycast stamp Open.
+Letter → 439 fade_up: requester “Fixed.” `S1-LTR.c` `script_attach(1000)` survived `kill_all`; yield=3 now uses the caller, not the last nested bind. Host lock already on that row.
 
 Boot `edraw upload fail seq=31` (and 64/86/87/351… then 164 on Load 408): `load_one` already uploaded and dropped CPU. Batch `edraw_upload_pvr` treated `argb1555==NULL` as fail. `vram_free` stayed high. Not a missing house pack.
 

@@ -194,6 +194,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `edraw upload fail` after CPU drop is a second pass, not a miss | this PR |
 | 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | this PR |
 | 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | this PR |
+| 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
 
 ## Bites
 
