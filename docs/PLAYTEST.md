@@ -34,6 +34,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Wizard screen pathway/trees after Load + village (map 376) | 2026-08-23 | `test_mem` ts41 over cap (Prev dir.ff drop; Prev ts01 survives). `test_edraw` 408→376 seq 32 + atlas is not the cap lock |
 | Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | 2026-08-23 | `test_player` get_hard_play + frozen move onto warp |
 | Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | 2026-08-23 | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
+| Outdoor fire ends / crowd leaves with `fade_down` / `fade_up` (`S1-H1-O`) | 2026-08-23 | `test_dinkc_vm` fade_down 1000 ms yield + 400 ms to black; fade_up 400 ms; S1-H1-O wait/force_vision in between |
 
 ## Open
 
@@ -41,7 +42,6 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 |---|---|
 | Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
 | Indoor fire scene hitch (SCIF off still slow) | later |
-| Abrupt snap when outdoor fire ends / crowd leaves (`S1-H1-O` `fade_down` / `fade_up`) | `test_dinkc_vm` fade_down 1000 ms yield + 400 ms to black; fade_up 400 ms; S1-H1-O wait/force_vision in between |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
@@ -54,9 +54,21 @@ Burning-house exit + 439 crowd: requester “The crowd showed up this time.” H
 
 Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87.
 
-Indoor fire hitch: still noticeable with `make emu-fast` (SCIF off). Come back later.
+Indoor fire hitch: still noticeable with `make emu-fast` (SCIF off). Come back later. Not serial. See log notes below.
 
-Next Open: fade snap (this PR grafts `fade_*`); SAVEBOT Down walks Dink.
+Fade: requester “Fade works as expected.” Host lock already on that row.
+
+### Indoor fire hitch (`s1-h1-s` map 1 vis 1)
+
+Not SCIF. Same **14.4c** class as the wizard walk ping-pong, louder.
+
+Vision 1 is **on top of vis 0**. Intact furniture still draws. Added looping **brain 6** (`repeat_brain`): five `fire1-` **427**, two `explo-` **70**, two `atomc-` **161**, plus small `fire2/3/4` **155/156/157**. Official slots 21, 27–33, 35, 36, 38, 41.
+
+Enter-path `edraw_load_screen` queues **every** brain-6 frame (`need_push` 1..nfr). Seq **161** is 26 BMPs, each ~91×140 padded to **128×256** ARGB1555 = **64 KB**. All 26 = **1.70 MB** of the **2.00 MB** `cpu_pixels` cap before walls, 15 explo frames (~467 KB), or six fire1 (~192 KB). Enter refuses. Play-path then remakes Screen `live` from **this tick’s** draw frames only, so unused 161/70/427 become evictable.
+
+`repeat_brain` + `brain_animate`: 161 delay **50 ms** (two sprites, phases 4 and 14), 70 delay **40 ms**, 427 delay **75 ms**. Each advance `ensure_frame` misses, evicts an unused Screen frame, **re-decodes the BMP from the cached pack**, `sprite_upload_pvr`. A prior Flycast log: **747** `mem refuse` / **745** Screen evict (almost all 161) / **1540** loads (**1421** of 161) on that enter. Pictures work because evict+retry succeeds; the hitch is decode+PVR every tick.
+
+Do **not** pin seq 161 / 70 / 427. Current-only fire pixels would fit (two 161 + a handful of 427/70 ≈ 360 KB plus vis-0 house). The enter “load the whole loop” pass is what fills the cap and turns the loop into a per-frame evict. Later: 14.4c should treat a playing brain-6 seq as current-frame (or current+next), not `nfr` at enter.
 
 ## Log notes (2026-08-22, not confirmed)
 
@@ -100,7 +112,7 @@ This log (after the fire enter): `say Mother noooooo!` … `say Ahh, too much sm
 
 **Spam (named, not a missing BMP).** Play-path `ensure` of **seq 161** (`graphics/effects/atomic/atomc-`, 26 frames) plus fire **157** / explo **70** at the 2 MB `cpu_pixels` cap: `mem refuse` then `edraw evict class=screen` then load, **every tick**, many looping sprites. After that enter: **747** refuse / **745** Screen evict (almost all seq 161) / **1540** loads (**1421** of 161). Pictures worked because evict+retry succeeded. Same class as the wizard walk ping-pong, much louder. Do **not** pin 161 or grow a seq-id victim list.
 
-**Exit + crowd — grafted, Flycast still Open.** `S1-H1-S.c` never thaws Dink. FreeDink `dc_freeze` stores **that script id** on `spr[1]`. Exit is `move_stop` onto the type-2 door warp while still frozen. `get_hard_play` treats `is_warp` hardness as **0** and records `warp_editor_sprite`. `special_block` has **no freeze check**. Host: `test_player`.
+**Exit + crowd + fade — Flycast confirmed 2026-08-23.** `S1-H1-S.c` never thaws Dink. FreeDink `dc_freeze` stores **that script id** on `spr[1]`. Exit is `move_stop` onto the type-2 door warp while still frozen. `get_hard_play` treats `is_warp` hardness as **0** and records `warp_editor_sprite`. `special_block` has **no freeze check**. Host: `test_player`.
 
 Outdoor `&story == 4` creates the crowd then `force_vision(2)`. That is `dc_force_vision` (sprite **1000** + `draw_screen_game`), not a `&vision` write. Enter-path remakes Screen live before `create_sprite` `load_frame` so unused fire frames evict (14.4c; no seq-id pin). Host: `test_dinkc_vm`, `test_edraw`.
 

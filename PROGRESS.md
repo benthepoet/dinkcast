@@ -184,6 +184,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
 | 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
 | 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
+| 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
 
 ## Bites
 
