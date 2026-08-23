@@ -43,5 +43,10 @@ int hard_box_blocked(const struct HardMask *m, int x, int y, int hl, int ht,
                      int hr, int hb);
 void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
                     int hb, int hid);
+/* Type 2 is hardness-only (no draw). Type 0/1 must match loaded pixels. */
+int hard_stamp_without_pixels(int type);
+/* have_pixels=0 uses geom only for type 2. Draw skips missing frames. */
+void hard_stamp_editor(struct HardMask *m, int x, int y, int type, int hid,
+                       int have_pixels, int hl, int ht, int hr, int hb);
 
 #endif

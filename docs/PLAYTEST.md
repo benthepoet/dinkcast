@@ -32,21 +32,24 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Walk into a fallen AlkNut and pick it up (`s1-nut` / `item-nut`) | 2026-08-22 | `test_inv` `free_items` + s1-nut path |
 | Punch map 408 editor-1 `bar-sh`: only the barrel smashes (Dink stays punch) | 2026-08-22 | `test_dinkc_vm` editor 1 `sp_seq` |
 | Wizard screen pathway/trees after Load + village (map 376) | 2026-08-23 | `test_mem` ts41 over cap (Prev dir.ff drop; Prev ts01 survives). `test_edraw` 408→376 seq 32 + atlas is not the cap lock |
+| Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | 2026-08-23 | `test_player` get_hard_play + frozen move onto warp |
+| Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | 2026-08-23 | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
-| Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | `test_player` get_hard_play + frozen move onto warp |
-| Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
-
-Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed until the requester stamps the exit and the crowd. Village leftovers above were confirmed 2026-08-22.
+| Burned start-house: leftover pie-table hardness (seq 87/9) after the fire | `test_playtest` type 1 missing-pixels skip; `test_edraw` editor 22 is official vis 0 |
+| Abrupt snap when outdoor fire ends / crowd leaves (`S1-H1-O` `fade_down` / `fade_up`) | (later; `fade_*` are instant stubs) |
+| START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
 ## Log notes (2026-08-23, confirmed)
 
 408→376 after Load: `tiles slurp ok tiles/ts41.bmp` then `swap atlas ok`. `edraw load seq=32` frames 1/9/10. No `tiles slurp fail` / `atlas fail keep`. Requester stamped the path.
+
+Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows. Next Open: leftover pie-table hardness inside after the fire; fade snap; SAVEBOT Down walks Dink.
 
 ## Log notes (2026-08-22, not confirmed)
 

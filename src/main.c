@@ -142,6 +142,34 @@ static void on_blood(int slot)
     }
 }
 
+static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si)
+{
+    struct SpriteFrame *ef;
+    int hl, ht, hr, hb, cx, cy, hid, seq, fr, type;
+
+    seq = (int)g_scr.sprite[si].seq;
+    fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
+    if (seq < 1 || seq >= DINK_MAX_SEQ) {
+        return;
+    }
+    type = (int)g_scr.sprite[si].type;
+    hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
+    ef = edraw_find(g_edg, g_ned, seq, fr);
+    if (ef != NULL) {
+        hard_stamp_editor(mask, (int)g_scr.sprite[si].x,
+                          (int)g_scr.sprite[si].y, type, hid, 1, ef->hl, ef->ht,
+                          ef->hr, ef->hb);
+        return;
+    }
+    /* Type 0/1: no invisible furniture. Type 2 still uses SET_SPRITE_INFO. */
+    if (seqs == NULL || !hard_stamp_without_pixels(type)) {
+        return;
+    }
+    ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
+    hard_stamp_editor(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
+                      type, hid, 0, hl, ht, hr, hb);
+}
+
 static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 {
     int si;
@@ -153,34 +181,12 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
         return;
     }
     for (si = 1; si <= 100; si++) {
-        struct SpriteFrame *ef;
-        int hl, ht, hr, hb, cx, cy, hid, seq, fr;
-
         if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                      script_play_vision()) ||
             g_scr.sprite[si].hard != 0 || brains_slot_hard(si) != 0) {
             continue;
         }
-        seq = (int)g_scr.sprite[si].seq;
-        fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
-        if (seq < 1 || seq >= DINK_MAX_SEQ) {
-            continue;
-        }
-        hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
-        ef = edraw_find(g_edg, g_ned, seq, fr);
-        if (ef != NULL) {
-            hard_stamp_box(mask, (int)g_scr.sprite[si].x,
-                           (int)g_scr.sprite[si].y, ef->hl, ef->ht, ef->hr,
-                           ef->hb, hid);
-            continue;
-        }
-        if (seqs == NULL) {
-            continue;
-        }
-        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
-                       &hb);
-        hard_stamp_box(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
-                       hl, ht, hr, hb, hid);
+        stamp_one_editor(mask, seqs, si);
     }
 }
 
@@ -372,36 +378,12 @@ static int play_draw_screen(int sprite)
     printf("edraw unique %d\n", g_ned);
     if (g_play_mask != NULL) {
         for (nstamp = 1; nstamp <= 100; nstamp++) {
-            struct SpriteFrame *ef;
-            int hl, ht, hr, hb, cx, cy, hid, seq, fr;
-
             if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
                                          script_play_vision()) ||
                 g_scr.sprite[nstamp].hard != 0) {
                 continue;
             }
-            seq = (int)g_scr.sprite[nstamp].seq;
-            fr = (int)g_scr.sprite[nstamp].frame < 1
-                     ? 1
-                     : (int)g_scr.sprite[nstamp].frame;
-            if (seq < 1 || seq >= DINK_MAX_SEQ) {
-                continue;
-            }
-            hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp : 1;
-            ef = edraw_find(g_edg, g_ned, seq, fr);
-            if (ef != NULL) {
-                hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
-                               (int)g_scr.sprite[nstamp].y, ef->hl, ef->ht,
-                               ef->hr, ef->hb, hid);
-                continue;
-            }
-            if (seqs == NULL) {
-                continue;
-            }
-            ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht,
-                           &hr, &hb);
-            hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
-                           (int)g_scr.sprite[nstamp].y, hl, ht, hr, hb, hid);
+            stamp_one_editor(g_play_mask, seqs, nstamp);
         }
     }
     dink_cd_settle();
@@ -873,39 +855,12 @@ int main(int argc, char **argv)
                                 status_cpu_bytes(),
                             g_ned, tiles_cache_bytes(), tiles_cache_sheets());
                     for (si = 1; si <= 100; si++) {
-                        struct SpriteFrame *ef;
-                        int hl, ht, hr, hb, cx, cy;
-
                         if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                                      script_play_vision()) ||
                             g_scr.sprite[si].hard != 0) {
                             continue;
                         }
-                        ef = edraw_find(g_edg, g_ned, (int)g_scr.sprite[si].seq,
-                                        (int)g_scr.sprite[si].frame < 1
-                                            ? 1
-                                            : (int)g_scr.sprite[si].frame);
-                        if (ef != NULL) {
-                            hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
-                                           (int)g_scr.sprite[si].y, ef->hl,
-                                           ef->ht, ef->hr, ef->hb,
-                                           g_scr.sprite[si].is_warp
-                                               ? 100 + si
-                                               : 1);
-                            continue;
-                        }
-                        if (seqs == NULL) {
-                            continue;
-                        }
-                        ini_frame_geom(&seqs[g_scr.sprite[si].seq],
-                                       (int)g_scr.sprite[si].seq,
-                                       (int)g_scr.sprite[si].frame < 1
-                                           ? 1
-                                           : (int)g_scr.sprite[si].frame,
-                                       50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
-                        hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
-                                       (int)g_scr.sprite[si].y, hl, ht, hr, hb,
-                                       g_scr.sprite[si].is_warp ? 100 + si : 1);
+                        stamp_one_editor(&mask, seqs, si);
                     }
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);

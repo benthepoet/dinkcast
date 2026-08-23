@@ -175,9 +175,11 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Tilesheet slurp drops Prev `dir.ff` (376 path after 408) | #114 |
 | 2026-08-23 | Playtest: 376 pathway after Load confirmed | this PR |
 | 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
-| 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | this PR |
-| 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | this PR |
-| 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | this PR |
+| 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | #116 |
+| 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | #116 |
+| 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | #116 |
+| 2026-08-23 | Playtest: burning-house exit + 439 crowd confirmed | #116 |
+| 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | this PR |
 
 ## Bites
 
@@ -212,7 +214,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39. Live sprite cmds leftover → **11.10** |
 | 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40. Script field 30240 this PR |
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
-| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` = sprite 1000 + `draw_screen_game` (this PR) |
+| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` = sprite 1000 + `draw_screen_game` (#116) |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
 | 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |

@@ -76,6 +76,14 @@ int main(void)
         fprintf(stderr, "FAIL vision/type filter\n");
         return 1;
     }
+    /* Official pie table stays vis 0 / hard 0. Do not invent a vis-2 hide. */
+    if (!scr.sprite[22].active || (int)scr.sprite[22].seq != 87 ||
+        (int)scr.sprite[22].frame != 9 || (int)scr.sprite[22].type != 1 ||
+        (int)scr.sprite[22].vision != 0 || (int)scr.sprite[22].hard != 0 ||
+        (int)scr.sprite[22].x != 319 || (int)scr.sprite[22].y != 243) {
+        fprintf(stderr, "FAIL pie table editor 22\n");
+        return 1;
+    }
     if (editor_sprite_rank_y(&scr.sprite[51]) != 248 ||
         editor_sprite_rank_y(&scr.sprite[1]) != (int)scr.sprite[1].y) {
         fprintf(stderr, "FAIL que rank %d %d\n",

@@ -213,6 +213,20 @@ int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
     return 0;
 }
 
+int hard_stamp_without_pixels(int type)
+{
+    return type == DINK_SPR_TYPE_INVISIBLE;
+}
+
+void hard_stamp_editor(struct HardMask *m, int x, int y, int type, int hid,
+                       int have_pixels, int hl, int ht, int hr, int hb)
+{
+    if (!have_pixels && !hard_stamp_without_pixels(type)) {
+        return;
+    }
+    hard_stamp_box(m, x, y, hl, ht, hr, hb, hid);
+}
+
 void hard_stamp_box(struct HardMask *m, int x, int y, int hl, int ht, int hr,
                     int hb, int hid)
 {

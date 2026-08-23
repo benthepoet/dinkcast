@@ -2,9 +2,11 @@
 /* Confirmed playtest pictures — see docs/PLAYTEST.md. */
 #include "brains.h"
 #include "dinkc_cmd.h"
+#include "hard.h"
 #include "hit.h"
 #include "mapscr.h"
 #include "player.h"
+#include "tiles.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,6 +136,29 @@ int main(void)
     expect(scr.sprite[8].seq == 173, "barrel debris seq 173");
     expect(scr.sprite[8].hard == 1, "baked smash not hard");
     expect(brains_slot_hard(8) == 1, "brain hard survives bake");
+
+    /* After fire: vis-0 pie table (seq 87/9) must not leave hardness when
+     * 14.4c refused the pixels. Draw already skips edraw_find == NULL.
+     * Type 2 hardness-only still stamps SET_SPRITE_INFO geom. */
+    {
+        struct HardMask table;
+        int hl = -39, ht = -33, hr = 43, hb = 7;
+
+        memset(&table, 0, sizeof(table));
+        table.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(table.pix != NULL, "table mask");
+        expect(!hard_stamp_without_pixels(0), "type 0 needs pixels");
+        expect(!hard_stamp_without_pixels(1), "type 1 needs pixels");
+        expect(hard_stamp_without_pixels(2), "type 2 geom ok");
+        hard_stamp_editor(&table, 319, 243, 1, 1, 0, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) == 0, "missing table pixels no hard");
+        hard_stamp_editor(&table, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) != 0, "loaded table stamps");
+        memset(table.pix, 0, (size_t)DINK_PLAY_W * DINK_PLAY_H);
+        hard_stamp_editor(&table, 319, 243, 2, 1, 0, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) != 0, "type 2 stamps without pixels");
+        hard_mask_free(&table);
+    }
 
     printf("OK test_playtest\n");
     return 0;
