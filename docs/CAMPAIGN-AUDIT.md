@@ -144,7 +144,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | screenlock | Host #106 | Arenas; no lock-bar gfx |
 | indoor / last_map | Parsed, unused | Map marker |
 | fade | Stub | Cosmetic + some `load_screen` sequences |
-| force_vision | OK | |
+| force_vision | Graft | `dc_force_vision` → sprite 1000 + `fill_whole_hard` + `draw_screen_game` (not a `&vision` write) |
 | editor_type 1 / 3 | OK | Types 6/7/8: no `last_time` |
 | play.spmap save | RAM only | Bite 17 |
 | warp parm_seq | OK | |

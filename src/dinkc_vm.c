@@ -772,6 +772,9 @@ static void run_fiber(struct Fiber *f, int now_ms)
                 if (cname[0] == 's' && strstr(cname, "script_attach") != NULL) {
                     f->sprite = nargs > 0 ? args[0] : f->sprite;
                 }
+                if (cname[0] == 'f' && strstr(cname, "force_vision") != NULL) {
+                    f->sprite = 1000;
+                }
                 if (yld == 3) {
                     fiber_kill(f);
                     return;

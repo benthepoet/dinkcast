@@ -787,6 +787,56 @@ int main(void)
         }
         n = n2;
     }
+    /* 14.4c created crowd: remake Screen live then load_frame so unused
+     * fire frames can evict for create_sprite (not a seq-id pin). */
+    if (seqs[157].prefix[0] != '\0' && seqs[221].prefix[0] != '\0') {
+        struct MapScreen yard;
+        int yrec = (int)w.loc[439];
+        int f, unused_fire = 0, have_fire;
+
+        if (yrec < 1 || map_load_record(yrec, &yard) != 0) {
+            fprintf(stderr, "FAIL 439 fire-crowd map\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(yard.sprite, seqs, g, &n, 1) != 0) {
+            fprintf(stderr, "FAIL 439 vis 1 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        for (f = 1; f <= 12; f++) {
+            edraw_load_frame(g, &n, seqs, 157, f);
+        }
+        have_fire = edraw_find(g, n, 157, 2) != NULL;
+        edraw_live_begin(g, n, seqs);
+        edraw_live_touch(g, n, 157, 1);
+        for (i = 0; i < n; i++) {
+            if (g[i].seq == 157 && g[i].frame != 1 && !g[i].live) {
+                unused_fire++;
+            }
+        }
+        if (have_fire && unused_fire < 1) {
+            fprintf(stderr, "FAIL fire 157 still live after begin\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        edraw_load_frame(g, &n, seqs, 221, 1);
+        if (edraw_find(g, n, 221, 1) == NULL) {
+            fprintf(stderr, "FAIL crowd 221/1 after Screen live remake\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (have_fire && edraw_find(g, n, 157, 1) == NULL) {
+            fprintf(stderr, "FAIL evicted live fire 157/1\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);

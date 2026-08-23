@@ -184,6 +184,38 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
     }
 }
 
+/* 14.4c: Screen live is this tick's editor + created draw frames. Unused
+ * fire/explo frames become evictable before create_sprite frame-1. */
+static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
+{
+    int ei, sq, fr;
+
+    if (seqs == NULL || g_edg == NULL) {
+        return;
+    }
+    edraw_live_begin(g_edg, ned, seqs);
+    for (ei = 1; ei <= 100; ei++) {
+        sq = (int)g_scr.sprite[ei].seq;
+        fr = (int)g_scr.sprite[ei].frame;
+        if (!editor_sprite_draw(&g_scr.sprite[ei], script_play_vision())) {
+            continue;
+        }
+        if (fr < 1) {
+            fr = 1;
+        }
+        edraw_live_touch(g_edg, ned, sq, fr);
+    }
+    for (ei = 1; ei <= 99; ei++) {
+        if (!brains_seq_frame(ei, &sq, &fr)) {
+            continue;
+        }
+        if (fr < 1) {
+            fr = 1;
+        }
+        edraw_live_touch(g_edg, ned, sq, fr);
+    }
+}
+
 static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
 {
     int i, seq, bw, d, br, k;
@@ -193,6 +225,7 @@ static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
     if (seqs == NULL || ned == NULL || g_edg == NULL) {
         return;
     }
+    edraw_live_this_draw(seqs, *ned);
     /* Combat death pixels first (same class order as edraw_load_screen). */
     for (i = 2; i <= 99; i++) {
         if (!brains_slot_created(i) || brains_slot_brain(i) != 3) {
@@ -291,6 +324,17 @@ static int play_load_screen(int map)
         printf("load_screen stamp fail\n");
     }
     return 0;
+}
+
+/* FreeDink fill_whole_hard: tiles only, drops live sprite hardness. */
+static void play_fill_hard(void)
+{
+    if (g_play_mask == NULL) {
+        return;
+    }
+    if (hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
+        printf("force_vision fill_hard fail\n");
+    }
 }
 
 /* FreeDink draw_screen_game: kill_all except 1000, tiles, MAIN, place. */
@@ -914,6 +958,7 @@ int main(int argc, char **argv)
                 g_play_last_frame = &last_frame;
                 dinkc_cmd_bind_load_screen(play_load_screen);
                 dinkc_cmd_bind_draw_screen(play_draw_screen);
+                dinkc_cmd_bind_fill_hard(play_fill_hard);
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
@@ -1156,29 +1201,7 @@ int main(int argc, char **argv)
                         {
                             int ei, sq, fr;
 
-                            edraw_live_begin(g_edg, g_ned, seqs);
-                            for (ei = 1; ei <= 100; ei++) {
-                                sq = (int)g_scr.sprite[ei].seq;
-                                fr = (int)g_scr.sprite[ei].frame;
-
-                                if (!editor_sprite_draw(&g_scr.sprite[ei],
-                                                        script_play_vision())) {
-                                    continue;
-                                }
-                                if (fr < 1) {
-                                    fr = 1;
-                                }
-                                edraw_live_touch(g_edg, g_ned, sq, fr);
-                            }
-                            for (ei = 1; ei <= 99; ei++) {
-                                if (!brains_seq_frame(ei, &sq, &fr)) {
-                                    continue;
-                                }
-                                if (fr < 1) {
-                                    fr = 1;
-                                }
-                                edraw_live_touch(g_edg, g_ned, sq, fr);
-                            }
+                            edraw_live_this_draw(seqs, g_ned);
                             for (ei = 1; ei <= 100; ei++) {
                                 sq = (int)g_scr.sprite[ei].seq;
                                 fr = (int)g_scr.sprite[ei].frame;
@@ -1237,10 +1260,12 @@ int main(int argc, char **argv)
                             }
                         } else if (!inv_showing() && !status_map_active() &&
                                    !paused) {
-                            player_step(&pl, pdir, &mask, seqs, now_ms);
+                            player_step(&pl, pdir, &mask, seqs, now_ms, &g_scr);
                             hit_touch_list(pl.x, pl.y, now_ms, g_edg, g_ned,
                                            seqs);
-                            if (pl.freeze == 0 && pl.warp_hit > 0) {
+                            /* FreeDink special_block: no freeze check.
+                             * s1-h1-s move_stop onto the door while frozen. */
+                            if (pl.warp_hit > 0) {
                                 int wr = screen_special_block(
                                     &g_world, &g_scr, pl.warp_hit, &player_map,
                                     &pl);

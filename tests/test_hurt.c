@@ -390,10 +390,10 @@ int main(void)
             mask.pix[i * DINK_PLAY_W + 90] = 1;
         }
         for (i = 0; i < 40; i++) {
-            player_step(&pl, 6, &mask, seqs, 0);
+            player_step(&pl, 6, &mask, seqs, 0, NULL);
         }
         expect(pl.push_active, "push armed");
-        player_step(&pl, 6, &mask, seqs, 601);
+        player_step(&pl, 6, &mask, seqs, 601, NULL);
         expect(pl.just_push && pl.nocontrol && pl.seq == DINK_BASE_PUSH + 6,
                "push seq");
     }
