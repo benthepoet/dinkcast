@@ -33,20 +33,25 @@ visibly wrong stock behavior, **P2** cosmetic/rare.
 | 12 | Main loop ordering | 0 | 4 | 9 | scripts run before brains / during inventory |
 
 Totals: **1 P0, ~58 P1, ~99 P2** (P1/P2 counts overlap slightly where two passes
-found the same root cause — dedup noted inline).
+found the same root cause — dedup noted inline). *These totals predate the
+Challenge and Response sections below; net after both: 0 P0 (P0-1 downgraded to
+P1), §4 "created NPCs untalkable" retracted, `sp_editor_num` and
+`dnotalk`/`dnomagic` downgraded to P2/D-Mod-only.*
 
 ## P0
 
 **P0-1. Editor sprite `base_idle`/`base_attack`/`base_hit` never parsed; all
-editor-placed monsters get -1.**
+editor-placed monsters get -1.** — **downgraded to P1 (2026-08-23, see Response
+below).** The parse gap is real, but the "campaign combat broken" consequence was
+overstated: stock enemy scripts set `sp_base_attack` in `main()` (`EN-BONC.c:13`
+→ 540, `EN-SLAY.c:15` → 630, `EN-GH.c:13` → 750; `EN-SLIM.c:15` and
+`EN-PILLF.c:12` set -1 deliberately — pillbug is touch-damage only), masking the
+gap in stock. Residual risk: editor sprites relying on map-only bases.
 FreeDink: `editor_screen.cpp:153-155` parses map.dat sprite offsets +100/+104/+108;
 `game_engine.cpp:525-527 game_place_sprites` copies them to the live sprite.
 Dinkcast: `src/mapscr.c:97-133` parses +92/+96/+112/+116/+120/+124/+140/+188 but
 never +100/+104/+108; `src/brains.c:1631-1632 brains_enter` hardcodes
 `base_idle = -1; base_attack = -1` (no base_hit at all).
-Consequence: stock map.dat monsters (boncas, pillbugs, slimes…) carry editor-set
-attack/idle bases; with -1 they lose attack/idle animations — combat across the
-campaign. **Verified by hand during consolidation.**
 
 ## P1 findings by subsystem
 
@@ -108,13 +113,17 @@ campaign. **Verified by hand during consolidation.**
   draw anim, `bow.time += 7`/10 ms capped 500, `pframe = time/100+1`, free re-aim,
   release → `bow.last_power`, resume `bow.script`. Dinkcast: `dinkc_cmd.c:1550` sets
   `g_bow_power = 100` synchronously. Arrows always weak; no charge/aim. (missing)
-- **Talk probe covers editor rows only** — `run_through_tag_list_talk` iterates all
-  live sprites 1..300; `talk.c:49` loops editor `sprite[1..99]`. `create_sprite`d
-  NPCs can never be talked to. (diverged)
-- **`dnotalk` / `dnomagic` fallback hooks missing**; also no TALK-proc rescan past
-  the first in-box sprite (`brain_keyboard.cpp:264-291`, `freedink.cpp:286-304` vs
-  `talk.c:49-80`). D-Mod hooks never fire; stock gives silence instead of flavor
-  quips in edge cases. (missing/diverged)
+- ~~**Talk probe covers editor rows only**~~ — **RETRACTED (2026-08-23, see
+  Response).** `talk.c:49` does loop `scr->sprite[1..99]`, but `brains_apply`
+  (`src/brains.c:1680-1690`, run from `brains_tick` at :1752) mirrors live
+  `created` sprites back into `scr->sprite[i]` as `active=1, type=1` with their
+  script attached, so `create_sprite`d NPCs with scripts ARE reachable by
+  `talk_probe`. Residual: the shared 99-slot pool (§9), not talk reach.
+- **`dnotalk` / `dnomagic` fallback hooks missing** — downgraded to D-Mod-only:
+  neither file exists in the official data. Still valid: no TALK-proc rescan past
+  the first in-box sprite and no random-quip fallback when the sprite has no TALK
+  (`brain_keyboard.cpp:264-291`, `freedink.cpp:286-304` vs `talk.c:49-80`) — stock
+  gives silence instead of flavor quips in edge cases. (missing/diverged)
 - **Unarmed attack punches with no weapon script** — FreeDink requires
   `weapon_script != 0 && base_hit > 0` (`brain_keyboard.cpp:294-302`);
   `main.c:1176-1180` falls back to `player_attack()`. (diverged)
@@ -149,7 +158,9 @@ Stock-campaign-used and missing/stubbed:
   `DAM-SFB.c` burn chains dead. `stopmidi` missing — `DINFO.c` death screen.
 - **`sp()`/`sp_editor_num` are identity stubs** — FreeDink `dc_sp` searches live
   sprites by `sp_index`, returns 0 when absent; `dinkc_cmd.c:1561` echoes the
-  argument. Dead-sprite quest checks never fire. (also §9)
+  argument. Dead-sprite quest checks never fire. **Downgraded P2 (see Response):
+  stock usage is on the current editor sprite, where identity holds; the failure
+  mode is D-Mod/edge.** (also §9)
 - **`say` family side effects dropped**: `say_stop_npc` missing already-talking
   guard; `say*` never kill owner's/Dink's prior text, never set `&last_talk`,
   return 1/0 instead of the text sprite id (`dinkc_bindings.cpp:740,758,782` vs
@@ -289,6 +300,9 @@ with this:
 
 ## Recommended fix order (future bites — requester's go required)
 
+*Superseded by the Challenge + Response below: fix #1 (parse graft) only, when the
+requester says go; items 2+ wait for a named playtest picture. Kept for the record.*
+
 1. **P0-1** — parse +100/+104/+108 in `mapscr.c`, carry through `brains_enter`.
    Small, self-contained.
 2. **Hardness==2 + flying class** (§1 ×2, §3 missile-wall) — one fix in `hard.c`/
@@ -367,3 +381,54 @@ Severity is inflated; several items would regress playtest-accepted pictures.
 4. Keep #118 playtest leftovers (`sp_nodraw`, food `repeat_brain`, 421 hardbox, `frame_delay` init) on their own merge path.
 
 Nothing in this challenge section is an implementation license.
+
+---
+
+## Response to challenge (Kimi, 2026-08-23)
+
+Each of Grok's claims re-verified by hand against both trees and the stock
+1.08 data (`freedink-data-1.08.20190120/dink/Story`).
+
+**Accepted:**
+
+1. **P0-1 → P1.** Confirmed: stock enemy scripts set `sp_base_attack` in
+   `main()` — `EN-BONC.c:13` (540), `EN-SLAY.c:15` (630), `EN-GH.c:13` (750);
+   `EN-SLIM.c:15` and `EN-PILLF.c:12` set -1 deliberately (pillbug is touch-only,
+   `EN-PILLF.c:13 sp_touch_damage 4`). ~30 story scripts grep positive for
+   `sp_base_attack`. The parse gap is masked in stock; "campaign combat broken"
+   was overstated. The graft itself stays worth doing (map-only bases still drop),
+   as the small bite Grok's step 2 describes.
+2. **Talk probe retraction.** The audit's §4 claim was wrong: `brains_apply`
+   (`src/brains.c:1680-1690`, called from `brains_tick` :1752 before input probes)
+   mirrors live `created` sprites into `scr->sprite[i]` with `active=1, type=1`
+   and the script copied, so `talk_probe`'s `scr->sprite[]` scan does reach
+   script-created NPCs. Retracted in place above.
+3. **`dnotalk`/`dnomagic`.** Neither file ships in the official data — D-Mod-only
+   hook, no stock impact. (The rescan/quip-fallback half of that finding stands:
+   dinkcast returns the first in-box sprite and fails silently when it has no
+   TALK proc; FreeDink rescans and falls back to quips when dnotalk.c is absent.)
+4. **`sp_editor_num`.** Downgraded to P2: stock uses it on the current editor
+   sprite, where the identity stub is correct; the dead-row failure mode is a
+   D-Mod/edge risk.
+5. **Magic regen magnitude.** Conceded (also caught in PR #119 review): ~6× slow
+   at 60 Hz, "~8×" only near 84 fps. Direction and class unchanged.
+6. **Process.** Agreed in full: no mega-PR, no batching into playtest #118, one
+   concern per PR, requester-gated; the "what would regress" list is accurate
+   (hardness-2/flying/missile walls, evicting `created` on swap, real
+   `fill_screen`, faster magic cadence, VM proc/callback changes, main-loop
+   reorder). This matches the audit's own closing note; Grok's four next steps
+   are the operative plan.
+
+**Pushback / caveats (minor):**
+
+- Cap 100: agreed the cap itself stays (DC RAM) — but the missing piece is
+  `kill_highest_nonlive_sprite`-style eviction or at least a logged failure;
+  silent `create_sprite` failure at 100 is the rule change, not the number.
+- "Not proven campaign-wide" cuts both ways for the talk finding: the retraction
+  is based on the `brains_apply` mirror mechanism, which is structural, not a
+  screen-by-screen proof; a created sprite whose slot was recycled between
+  `brains_apply` and the probe could still misresolve. Low risk, noted only.
+
+No code changes result from this response. Net standing list after challenge +
+response: **0 P0**; first candidate bite is the +100/+104/+108 parse graft, only
+when the requester says go.
