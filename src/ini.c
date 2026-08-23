@@ -266,10 +266,15 @@ void ini_frame_geom(const struct SeqInfo *seq, int seqn, int frame, int fw,
         if (seq->cy > 0) {
             *cy = seq->cy;
         }
+        /* load_sprite_pak: right>0 and bottom>0 independently.
+         * Seq 421 food omits bottom (0); using ht=21 hb=0 inverted the
+         * touch box so BAR-F1 loot could not be picked up. */
         if (seq->hr > 0) {
             *hl = seq->hl;
-            *ht = seq->ht;
             *hr = seq->hr;
+        }
+        if (seq->hb > 0) {
+            *ht = seq->ht;
             *hb = seq->hb;
         }
     }
