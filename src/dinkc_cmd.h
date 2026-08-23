@@ -49,6 +49,8 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_TARGET 36
 #define DINKC_SP_ATTACK_WAIT 37
 #define DINKC_SP_DISABLED 38
+#define DINKC_SP_FRAME_DELAY 39
+#define DINKC_SP_NODRAW 40
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
@@ -115,5 +117,8 @@ int dinkc_cmd_spmap_count(void);
 int dinkc_cmd_spmap_at(int idx0, int *map, int *ed, int *type, int *seq,
                        int *frame);
 void dinkc_cmd_spmap_put(int map, int ed, int type, int seq, int frame);
+/* FreeDink play.last_map: outdoor screens only. */
+void dinkc_cmd_note_map(int map, int indoor);
+int dinkc_cmd_last_map(void);
 
 #endif

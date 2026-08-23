@@ -97,6 +97,19 @@ int main(void)
     expect(dinkc_cmd("free_items", NULL, 0, NULL, NULL, &yld, &rv) == 1 &&
                rv == 14,
            "free after 2");
+    expect(dinkc_cmd("count_item", NULL, 0, "item-fst", NULL, &yld, &rv) == 1 &&
+               rv == 1,
+           "count fists");
+    expect(dinkc_cmd("kill_this_item", NULL, 0, "item-pig", NULL, &yld, &rv) ==
+               1,
+           "kill pig");
+    expect(dinkc_cmd("count_item", NULL, 0, "item-pig", NULL, &yld, &rv) == 1 &&
+               rv == 0,
+           "pig gone");
+    args[1] = 438;
+    args[2] = 2;
+    expect(dinkc_cmd("add_item", args, 3, "item-pig", NULL, &yld, &rv) == 1,
+           "readd pig");
     {
         const char *nut =
             "void touch(void)\n{\nint &junk = free_items();\n"

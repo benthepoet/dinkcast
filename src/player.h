@@ -30,6 +30,7 @@ struct Player {
     int push_active, push_dir, push_timer;
     int notouch; /* run_through_touch_damage_list: skip +damage while set */
     int notouch_timer;
+    int frame_delay; /* FreeDink spr[1].frame_delay; 0 = seq delay */
 };
 
 void player_init(struct Player *p);

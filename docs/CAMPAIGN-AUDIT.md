@@ -1,9 +1,8 @@
-# Campaign graft audit (v0.1.0)
+# Campaign graft audit
 
-**When:** 2026-08-22. **Tree:** `master` at `#100` (say TTL) after tag **v0.1.0**.  
-**Kind:** analysis only. No code in this document.  
+**When:** refreshed 2026-08-23 after **v0.3.0**. Original pass 2026-08-22 on `#100`.  
 **Canon:** GNU FreeDink graft. Official 1.08 `Story/` only (381 files). Not D-Mods, not DinkEdit.  
-**Canvas:** [docs/canvases/campaign-graft-audit.canvas.tsx](canvases/campaign-graft-audit.canvas.tsx). **v0.2.0** slice: [docs/V0.2.md](V0.2.md).
+**Canvas:** [docs/canvases/campaign-graft-audit.canvas.tsx](canvases/campaign-graft-audit.canvas.tsx). Slices: [docs/V0.2.md](V0.2.md), [docs/V0.3.md](V0.3.md).
 
 Four parallel passes: DinkC bindings vs `k_fn[]` vs stock scripts; brains 0–17 vs `update_frame`; engine systems vs the plan table; quest scripts vs dispatch.
 
@@ -19,8 +18,8 @@ Spot-checks after those reports (do not take every “block leaving the village�
 
 ## Verdict
 
-**Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **105 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
+**Village combat, talk, inventory, HUD, START, and VMU are grafted enough to play.**  
+**The full 1.08 campaign is not.** v0.2 host items 1–6 and v0.3 START/VMU **17** are on `master`. Remaining named holes (this PR): `sp_frame_delay`, inventory `count_*` / `kill_*_item`, `say_stop_xy`, `indoor[]`/`last_map`, editor_type 6/7/8 timers. Then audio **12** and **14.6**. Flycast stamps for holes/`goto`/Quackers/`screenlock` are still PLAYTEST Open except letter fade_up.
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -42,26 +41,25 @@ Plan feasibility already called full campaign **~55–65%**. This audit agrees: 
 | Touch / inventory / HUD / L map | `process_item`, `draw_status_all`, `process_show_bmp` | 16.1–16.3 |
 | `play.spmap` types 1 and 3 | `update_play_changes` | `dinkc_cmd_apply_spmap` |
 | Item keep fiber 1000 | ARM on sprite 1000 | `dinkc_vm` keep |
+| START + VMU **17** | `save_game` / `load_game` / `START.c` | v0.3.0 #111 |
 
 ---
 
 ## Recommended order (still analysis)
 
-Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [docs/V0.2.md](V0.2.md) (items 1–6). Plan bite ids stay; this is not a license to skip gates.
+Work that unblocks **stock scripts**, in campaign order. Plan bite ids stay.
 
-1. **VM `goto`** — host [#102](https://github.com/benthepoet/dinkcast/pull/102) (`locate_goto`). Flycast gossip/shop loop still a picture. ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
-2. **`spawn`** — host [#104](https://github.com/benthepoet/dinkcast/pull/104) (`dc_spawn`, sprite 1000, parent continues). ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`).
-3. **`load_screen` + `draw_screen` + fades** — host [#105](https://github.com/benthepoet/dinkcast/pull/105) (`dc_load_screen` / `dc_draw_screen`). `fade_*` truecolor clock (this PR). ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
-4. **`screenlock`** — host [#106](https://github.com/benthepoet/dinkcast/pull/106). ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas. No lock-bar gfx.
-5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Host [#107](https://github.com/benthepoet/dinkcast/pull/107). Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
-6. **`get_sprite_with_this_brain`** (and rand / next) — host this PR. ~25 files. `EN-DRAG.c`, castle, cult, `EN-PILL1.c` unlock.
-7. **`sp_frame_delay`** — missing. ~21–37 files. Boss/enemy timing.
-8. Inventory DinkC: `count_item`, `free_items`, `kill_this_item` / `kill_cur_item` — boot/bomb/elixir.
-9. **`say_stop_xy`** — missing. King / letter placement. **`say_xy`** is bound (start-2 empty slot).
-10. **`indoor[]` / `last_map`** — parsed, unused. Map HUD dot after indoor warps.
-11. **editor_type 6/7/8 `last_time`** + VMU `save_game` / `load_game` / `game_exist` — bite **17**.
-12. Audio **12** (`playsound` ~339, `playmidi` ~44, `load_sound` in `START.c` only).
-13. **14.6** per-frame `dir.ff` — requester full-campaign go; not the first script hole.
+**Landed (v0.2 / v0.3):** `goto` #102, `spawn` #104, `load_screen`/`draw_screen` #105, `screenlock` #106, target/follow #107, brain lookup #108, `free_items` #109, START/VMU #111.
+
+**This PR (audit remainder):**
+
+7. **`sp_frame_delay`** — `spr.frame_delay` overrides seq delay (`live_sprite_animate`).
+8. Inventory: **`count_item` / `count_magic`**, **`kill_this_item` / `kill_cur_item`**.
+9. **`say_stop_xy`** — `dc_say_stop_xy` yield; king / letter. `say_xy` already bound.
+10. **`indoor[]` / `last_map`** — outdoor screens update `play.last_map`; map HUD dot uses it.
+11. **editor_type 6/7/8 `last_time`** — `fix_dead_sprites` 5/3/1 min (`thisTickCount`).
+
+**Still later:** audio **12**, **14.6**. Flycast pictures: holes swap, gossip/shop `goto`, Quackers follow, screenlock arena.
 
 **Verify before treating as P0:** `kill_this_task` vs FreeDink `proc_return` (village ARM/USE already works; parent resume may still be wrong for nested procs). `while` loops (rare). In-file `void proc()` calls besides `external`.
 
@@ -72,10 +70,9 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 | Metric | Count |
 |---|---|
 | FreeDink `DCBD_ADD` names (+ `sp_base_death` alias) | 186 |
-| Dinkcast `k_fn[]` | 105 |
-| Real handlers (approx.) | ~77 |
-| In table but stub / silent success | ~14 (`playsound`, `playmidi`, `fill_screen`, `activate_bow` instant-100, …) |
-| Missing from table → `dinkc unimplemented` | ~90 |
+| Dinkcast `k_fn[]` | 112+ (this PR adds frame_delay / count / kill / say_stop_xy) |
+| Real handlers (approx.) | most of the table; stubs: `playsound`, `playmidi`, `fill_screen`, bow charge |
+| Missing from table → `dinkc unimplemented` | leftover names unused or title-only (`set_mode`, `load_sound`, `math_*`, …) |
 | Used in official `Story/` | ~125 of 186 |
 | Missing/stub **and** used in campaign | ~39–54 distinct names |
 
@@ -97,8 +94,10 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 
 ### Commands used in campaign and missing or stubbed
 
-**Missing (not in `k_fn[]`), used in 1.08:**  
-`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+**Landed since the v0.1 pass:** `save_game` / `load_game` / `game_exist`, `say_xy`, `free_items`, (this PR) `say_stop_xy`, `sp_frame_delay`, `count_item` / `count_magic`, `kill_this_item` / `kill_cur_item`.
+
+**Still missing (used in 1.08, not this PR):**  
+`set_mode`, `reset_timer`, `set_dink_speed`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `dink_can_walk_off_screen`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
 `playsound`, `playmidi`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
@@ -120,7 +119,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | 3 | duck | DIE aligned | Follow grafted; no idle SFX; no dead-duck blood drip |
 | 4 | pig | Aligned | SFX nit |
 | 5 | one_time bake | Aligned | `bg_baked` → type 0 (smash under Dink confirmed 2026-08-22) |
-| 6 | repeat | Gap | `seq_orig` may follow live `pseq` after `brains_apply` |
+| 6 | repeat | Aligned | editor `sp_index` only; create_sprite food stays `pseq`/`pframe` |
 | 7 | one_time stay | Aligned | `hidden=1` so snapshot does not respawn |
 | 8 | text | Mixed | Say is `saybox_*`. Hit numbers OK. Kill exp is `&exp` only (no +N floater) |
 | 9 | pill | Mixed | `process_target` + ATTACK locate; brain lookup this PR |
@@ -142,19 +141,19 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | Plan row | Status | Campaign note |
 |---|---|---|
 | screenlock | Host #106 | Arenas; no lock-bar gfx |
-| indoor / last_map | Parsed, unused | Map marker |
+| indoor / last_map | This PR | Outdoor screens set `last_map`; map HUD seq 165 |
 | fade | Graft | Truecolor `CyclePalette` / `up_cycle` (400 ms); `fade_down` yields 1000 ms |
-| force_vision | Graft | `dc_force_vision` → sprite 1000 + `fill_whole_hard` + `draw_screen_game` (not a `&vision` write) |
-| editor_type 1 / 3 | OK | Types 6/7/8: no `last_time` |
-| play.spmap save | RAM only | Bite 17 |
+| force_vision | Graft | `dc_force_vision` → sprite 1000 + `fill_whole_hard` + `draw_screen_game` |
+| editor_type 1 / 3 | OK | Types 6/7/8 `last_time` this PR (`fix_dead_sprites`) |
+| play.spmap save | VMU | Bite 17 v0.3.0 |
 | warp parm_seq | OK | |
-| dinfo life 0 | OK | `load_game` in that menu missing |
+| dinfo life 0 | OK | `load_game` on START Continue |
 | push | OK | |
-| show_bmp / button6 | Partial | Dot uses `&player_map` |
-| inventory DinkC extras | Missing | `count_item` / `free_items` |
+| show_bmp / button6 | This PR | Dot uses `last_map` |
+| inventory DinkC extras | This PR | `count_item` / `kill_*`; `free_items` #109 |
 | HUD / magic meter | OK | |
 | playsound / playmidi | Stub | Bite 12 |
-| VMU | Missing | Bite 17 |
+| VMU | v0.3.0 | Flycast stamp; hardware/ODE pending |
 | 14.6 dir.ff | Pending | RAM, not first script hole |
 | hardness 2 flying | Partial | Dink passes `h==2`; screenlock #106 |
 | get_box full clip | Partial | Skip fully off-screen only |
@@ -166,12 +165,12 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 | Arc | Scripts | First holes |
 |---|---|---|
 | Ethel / Quackers | `S1-H2-O.c`, `S1-DUCK.c`, `FINDDUCK.c`, `S1-LG.c` | Host `sp_follow`; Flycast `goto` gossip still a picture |
-| Holes / letter | `S1-HOLE.c`, `S1-HOLE3.c`, `S1-LTR.c` | `load_screen` / `draw_screen` |
-| Milder / bar | `S2-MAN2.c`, `S2-OUT.c` | `goto` loops |
-| Castle | `SC-*.c`, `KING.c` | `screenlock`, brain lookup, `say_stop_xy` |
-| Dragons / end | `EN-DRAG.c`, `S5-END.c`, `s7-boss.c` | `spawn`, `screenlock`, targeting |
-| Islands | `S6-WARP.c`, `S8-DA.c`, `S6-VEND.c` | `load_screen`, `goto`, `count_magic` |
-| Save / death | `ESCAPE.c`, `SAVEBOT.c`, `DINFO.c`, `START-2.c` | `save_game` / `load_game` / `game_exist` |
+| Holes / letter | `S1-HOLE.c`, `S1-HOLE3.c`, `S1-LTR.c` | Host load/draw; letter fade_up confirmed; holes still a picture |
+| Milder / bar | `S2-MAN2.c`, `S2-OUT.c` | Host `goto`; Flycast shop loop still a picture |
+| Castle | `SC-*.c`, `KING.c` | Host screenlock/brain lookup; `say_stop_xy` this PR |
+| Dragons / end | `EN-DRAG.c`, `S5-END.c`, `s7-boss.c` | Host spawn/target; `sp_frame_delay` this PR |
+| Islands | `S6-WARP.c`, `S8-DA.c`, `S6-VEND.c` | `count_magic` this PR |
+| Save / death | `ESCAPE.c`, `SAVEBOT.c`, `DINFO.c`, `START-2.c` | VMU v0.3.0 |
 
 Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this port does not run the PC title brain the same way. Treat `set_mode` / `load_sound` / `sp_noclip` as title leftovers unless a script is actually attached.
 
@@ -181,7 +180,7 @@ Engine boot files still in data (`MAIN.c`, `START*.c`, `BUTTON6.c`) — this por
 
 Village Open is **empty** (requester 2026-08-22): 409 house, smash y-sort, and pig-pen fence are confirmed. Those were occupancy/paint, not DinkC holes.
 
-Campaign-hard failures continue at **audio 12 / VMU 17 / 14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
+Campaign-hard leftovers after this remainder: **audio 12** and **14.6**. Flycast still Open: holes, gossip/shop `goto`, Quackers follow, screenlock arena.
 
 ---
 

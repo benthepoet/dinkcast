@@ -94,6 +94,8 @@ static struct {
 static unsigned char g_spmap_type[DINK_WORLD_SLOTS][101];
 static int16_t g_spmap_seq[DINK_WORLD_SLOTS][101];
 static unsigned char g_spmap_frame[DINK_WORLD_SLOTS][101];
+static int g_spmap_time[DINK_WORLD_SLOTS];
+static int g_last_map;
 
 static int name_eq(const char *a, const char *b)
 {
@@ -159,6 +161,7 @@ static const struct {
     {"say_stop", 0},
     {"say_stop_npc", 0},
     {"say_xy", 0},
+    {"say_stop_xy", 0},
     {"debug", 0},
     {"playsound", 0},
     {"playmidi", 0},
@@ -231,6 +234,10 @@ static const struct {
     {"kill_game", 0},
     {"add_item", 0},
     {"free_items", 0},
+    {"count_item", 0},
+    {"count_magic", 0},
+    {"kill_this_item", 0},
+    {"kill_cur_item", 0},
     {"add_magic", 0},
     {"init", 0},
     {"initfont", 0},
@@ -258,6 +265,8 @@ static const struct {
     {"sp_size", 0},
     {"sp_hard", 0},
     {"sp_disabled", 0},
+    {"sp_frame_delay", 0},
+    {"sp_nodraw", 0},
     {"sp_notouch", 0},
     {"draw_hard_sprite", 0},
     {"draw_hard_map", 0},
@@ -531,6 +540,21 @@ void dinkc_cmd_reset_inv(void)
     memset(g_spmap_type, 0, sizeof(g_spmap_type));
     memset(g_spmap_seq, 0, sizeof(g_spmap_seq));
     memset(g_spmap_frame, 0, sizeof(g_spmap_frame));
+    memset(g_spmap_time, 0, sizeof(g_spmap_time));
+    g_last_map = 1;
+}
+
+void dinkc_cmd_note_map(int map, int indoor)
+{
+    /* FreeDink: indoor==0 updates play.last_map. */
+    if (indoor == 0 && map >= 1 && map < DINK_WORLD_SLOTS) {
+        g_last_map = map;
+    }
+}
+
+int dinkc_cmd_last_map(void)
+{
+    return g_last_map > 0 ? g_last_map : 1;
 }
 
 void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
@@ -539,6 +563,24 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
 
     if (scr == NULL || player_map < 1 || player_map >= DINK_WORLD_SLOTS) {
         return;
+    }
+    /* FreeDink fix_dead_sprites: types 6/7/8 expire then type=0. */
+    {
+        int now = g_cmd_now, last = g_spmap_time[player_map];
+
+        for (i = 1; i <= 99; i++) {
+            unsigned char t = g_spmap_type[player_map][i];
+
+            if (t == 6 && (now > last + 300000 || now + 400000 < last + 300000)) {
+                g_spmap_type[player_map][i] = 0;
+            }
+            if (t == 7 && now > last + 180000) {
+                g_spmap_type[player_map][i] = 0;
+            }
+            if (t == 8 && now > last + 60000) {
+                g_spmap_type[player_map][i] = 0;
+            }
+        }
     }
     for (i = 1; i <= 99; i++) {
         unsigned char t = g_spmap_type[player_map][i];
@@ -788,6 +830,8 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->nocontrol;
         } else if (prop == DINKC_SP_DISTANCE) {
             p = &g_pl->distance;
+        } else if (prop == DINKC_SP_FRAME_DELAY) {
+            p = &g_pl->frame_delay;
         }
         if (p != NULL) {
             if (val != -1) {
@@ -845,8 +889,13 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         is_cmd(name, "say_stop_npc")) {
         int spr = nargs >= 2 ? a1 : a0;
 
-        printf("say %s\n", str != NULL ? str : "");
-        saybox_set(str, spr);
+        {
+            char line[200];
+
+            dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
+            printf("say %s\n", line);
+            saybox_set(line, spr);
+        }
         if (yield != NULL && !is_cmd(name, "say")) {
             *yield = 1;
         }
@@ -858,8 +907,26 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         int y = nargs >= 3 ? a2 : a1;
 
         /* FreeDink dc_say_xy: no yield. start-2.c empty slot. */
-        printf("say_xy %s %d %d\n", str != NULL ? str : "", x, y);
-        saybox_set_xy(str, x, y);
+        {
+            char line[200];
+
+            dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
+            printf("say_xy %s %d %d\n", line, x, y);
+            saybox_set_xy(line, x, y);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "say_stop_xy")) {
+        int x = nargs >= 3 ? a1 : a0;
+        int y = nargs >= 3 ? a2 : a1;
+        char line[200];
+
+        dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
+        printf("say_stop_xy %s %d %d\n", line, x, y);
+        saybox_set_xy(line, x, y);
+        if (yield != NULL) {
+            *yield = 1;
+        }
         return 1;
     }
     if (is_cmd(name, "debug")) {
@@ -1158,6 +1225,66 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
                slot, a1, a2);
         return 1;
     }
+    if (is_cmd(name, "count_item") || is_cmd(name, "count_magic")) {
+        int magic = is_cmd(name, "count_magic");
+        int cap = magic ? 8 : 16, i, n = 0;
+
+        for (i = 0; i < cap; i++) {
+            InvSlot *it = magic ? &g_mitem[i] : &g_item[i];
+
+            if (it->active && name_eq(it->name, str)) {
+                n++;
+            }
+        }
+        if (ret != NULL) {
+            *ret = n;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "kill_this_item")) {
+        int i;
+
+        for (i = 0; i < 16; i++) {
+            if (!g_item[i].active || !name_eq(g_item[i].name, str)) {
+                continue;
+            }
+            if (g_weapon_slot == i + 1) {
+                if (g_item_locate != NULL) {
+                    (void)g_item_locate(g_weapon_slot, "disarm");
+                    (void)g_item_locate(g_weapon_slot, "HOLDINGDROP");
+                }
+                g_weapon_slot = 0;
+                dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
+            }
+            if (g_item_locate != NULL) {
+                (void)g_item_locate(i + 1, "DROP");
+            }
+            g_item[i].active = 0;
+            break;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "kill_cur_item")) {
+        int cur = dinkc_var_get("&cur_weapon", DINKC_GLOBAL_SCOPE, 1);
+
+        if (cur >= 1 && cur <= 16 && g_item[cur - 1].active) {
+            if (g_item_locate != NULL) {
+                (void)g_item_locate(cur, "disarm");
+                (void)g_item_locate(cur, "HOLDINGDROP");
+                (void)g_item_locate(cur, "DROP");
+            }
+            g_item[cur - 1].active = 0;
+            g_weapon_slot = 0;
+            dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
+        }
+        if (ret != NULL) {
+            *ret = 0;
+        }
+        if (yield != NULL) {
+            *yield = 1;
+        }
+        return 1;
+    }
     if (is_cmd(name, "free_items")) {
         int i, n = 0;
 
@@ -1407,6 +1534,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "sp_disabled")) {
         return change_sp(a0, DINKC_SP_DISABLED, nargs, a1, ret);
     }
+    if (is_cmd(name, "sp_frame_delay")) {
+        return change_sp(a0, DINKC_SP_FRAME_DELAY, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_nodraw")) {
+        return change_sp(a0, DINKC_SP_NODRAW, nargs, a1, ret);
+    }
     if (is_cmd(name, "sp_notouch")) {
         return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);
     }
@@ -1469,6 +1602,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         if (nargs >= 2 && type != -1) {
             g_spmap_type[map][ed] = (unsigned char)type;
+            if (type == 6 || type == 7 || type == 8) {
+                g_spmap_time[map] = g_cmd_now;
+            }
             /* update_play_changes is screen-load only. Do not kill live. */
         }
         if (ret != NULL) {

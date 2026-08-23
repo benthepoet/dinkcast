@@ -179,6 +179,8 @@ int main(void)
         expect(c >= 2 && c <= 100, "create_sprite slot");
         expect(brains_slot_hard(c) == 1, "add_sprite hard=1");
         expect(brains_change_prop(c, 2, 3) == 3, "created speed");
+        expect(brains_change_prop(c, DINKC_SP_FRAME_DELAY, 200) == 200,
+               "frame_delay");
         expect(brains_change_prop(c, DINKC_SP_DISABLED, 1) == 1,
                "sp_disabled set");
         expect(brains_slot_disabled(c), "disabled flag");
@@ -206,6 +208,24 @@ int main(void)
         brains_enter(&scr, DINK_VISION_DEFAULT);
         expect(brains_change_prop(c, 5, -1) == kept, "enter keeps create");
         expect(brains_slot_created(c), "still created");
+    }
+    {
+        int food, sq = 0, fr = 0, t;
+        struct MapScreen empty;
+
+        memset(&empty, 0, sizeof(empty));
+        seqs[421].nframes = 31;
+        seqs[421].delay = 1;
+        brains_reset();
+        brains_bind_screen(&empty);
+        brains_enter(&empty, 0);
+        food = brains_create(349, 359, 6, 421, 1);
+        expect(food >= 2, "MAKE food1 slot");
+        for (t = 0; t < 40; t++) {
+            brains_tick(&empty, seqs, &mask, t * 16, 0);
+        }
+        expect(brains_seq_frame(food, &sq, &fr) && sq == 421 && fr == 1,
+               "food stays pframe 1");
     }
 
     {

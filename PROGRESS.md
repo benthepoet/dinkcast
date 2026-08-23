@@ -199,6 +199,11 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
 | 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | this PR |
 | 2026-08-23 | **v0.3.0** tagged | this PR |
+| 2026-08-23 | Campaign audit remainder: frame_delay, count/kill item, say_stop_xy, last_map, editor 6/7/8 timers | this PR |
+| 2026-08-23 | `player_init` zeros `frame_delay` (seq delay until MAIN.c) | this PR |
+| 2026-08-23 | `sp_nodraw` skip draw (`s1-nopas` lean-to dummy) | this PR |
+| 2026-08-23 | repeat_brain: create_sprite food not seq-animated (BAR-F1) | this PR |
+| 2026-08-23 | ini hardbox: right and bottom independent (421 food touch) | this PR |
 
 ## Bites
 

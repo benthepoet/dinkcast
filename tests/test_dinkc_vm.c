@@ -4,6 +4,7 @@
 #include "dinkc_vm.h"
 #include "fade.h"
 #include "hard.h"
+#include "mapscr.h"
 #include "player.h"
 #include "saybox.h"
 #include "save.h"
@@ -16,6 +17,7 @@ static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_stub_seq[100];
 static int g_stub_disabled[100];
+static int g_stub_nodraw[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
@@ -97,6 +99,8 @@ static int stub_sp_change(int slot, int prop, int val)
         p = &g_stub_seq[slot];
     } else if (prop == DINKC_SP_DISABLED) {
         p = &g_stub_disabled[slot];
+    } else if (prop == DINKC_SP_NODRAW) {
+        p = &g_stub_nodraw[slot];
     } else {
         return -1;
     }
@@ -512,6 +516,28 @@ int main(void)
                    "inside_box miss");
         }
         dinkc_cmd_dump();
+        expect(dinkc_cmd_last_map() == 1, "last_map default");
+        dinkc_cmd_note_map(40, 1);
+        expect(dinkc_cmd_last_map() == 1, "indoor skips last_map");
+        dinkc_cmd_note_map(40, 0);
+        expect(dinkc_cmd_last_map() == 40, "outdoor last_map");
+        {
+            struct MapScreen scr;
+            int ed[2] = {5, 8};
+
+            memset(&scr, 0, sizeof(scr));
+            scr.sprite[5].active = 1;
+            dinkc_var_set("&player_map", 1, DINKC_GLOBAL_SCOPE, 1);
+            dinkc_cmd_set_now(0);
+            expect(dinkc_cmd("editor_type", ed, 2, "", "", &yld, &rv) == 1,
+                   "type 8");
+            dinkc_cmd_apply_spmap(&scr, 1);
+            expect(!scr.sprite[5].active, "type 8 hidden");
+            dinkc_cmd_set_now(70000);
+            scr.sprite[5].active = 1;
+            dinkc_cmd_apply_spmap(&scr, 1);
+            expect(scr.sprite[5].active, "type 8 expired");
+        }
     }
     {
         const char *mv =
@@ -554,6 +580,19 @@ int main(void)
             "void main(void) { sp_disabled(5, 1); }",
             strlen("void main(void) { sp_disabled(5, 1); }"), 1);
         expect(g_stub_disabled[5] == 1, "sp_disabled write");
+        memset(g_stub_nodraw, 0, sizeof(g_stub_nodraw));
+        slot = dinkc_vm_start(
+            "void main(void) { sp_nodraw(8, 1); }",
+            strlen("void main(void) { sp_nodraw(8, 1); }"), 1);
+        expect(g_stub_nodraw[8] == 1, "sp_nodraw write");
+        {
+            int yld2 = 0, rv2 = 0;
+
+            expect(dinkc_cmd("say_stop_xy", (int[3]){0, 10, 20}, 3,
+                             "king", "", &yld2, &rv2) == 1 &&
+                       yld2 == 1,
+                   "say_stop_xy yield");
+        }
         {
             int yld = 0, rv = 0, args[2] = {5, -1};
 

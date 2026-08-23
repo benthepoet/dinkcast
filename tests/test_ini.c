@@ -20,7 +20,8 @@ int main(void)
         "set_frame_delay 14 5 250\n"
         "set_frame_delay 14 6 250\n"
         "set_frame_frame 111 5 -1\n"
-        "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n";
+        "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n"
+        "load_sequence graphics\\items\\food\\food- 421 12 20 -13 -19 21 7\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL parse\n");
@@ -55,6 +56,16 @@ int main(void)
             hb != 19) {
             fprintf(stderr, "FAIL SET_SPRITE_INFO last-wins %d %d %d %d %d %d\n",
                     cx, cy, hl, ht, hr, hb);
+            return 1;
+        }
+    }
+    {
+        int cx, cy, hl, ht, hr, hb;
+
+        ini_frame_geom(&seqs[421], 421, 1, 40, 40, &cx, &cy, &hl, &ht, &hr,
+                       &hb);
+        if (hl != -19 || hr != 7 || ht != -(40 / 10) || hb != 40 / 10) {
+            fprintf(stderr, "FAIL food 421 box %d %d %d %d\n", hl, ht, hr, hb);
             return 1;
         }
     }

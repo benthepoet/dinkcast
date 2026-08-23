@@ -59,6 +59,7 @@ void player_init(struct Player *p)
     p->push_timer = 0;
     p->notouch = 0;
     p->notouch_timer = 0;
+    p->frame_delay = 0; /* FreeDink default; MAIN.c sp_frame_delay(1,0) */
 }
 
 int player_hurt(struct Player *p, int damage)
@@ -177,7 +178,9 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         pad_dir = 0;
     }
     if (p->nocontrol) {
-        delay = ini_frame_delay(p->seq, p->frame, seqs[p->seq].delay);
+        delay = p->frame_delay != 0
+                    ? p->frame_delay
+                    : ini_frame_delay(p->seq, p->frame, seqs[p->seq].delay);
         if (delay < 1) {
             delay = 50;
         }
@@ -301,7 +304,9 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
             p->push_active = 0;
         }
     }
-    delay = ini_frame_delay(seq, p->frame, seqs[seq].delay);
+    delay = p->frame_delay != 0
+                ? p->frame_delay
+                : ini_frame_delay(seq, p->frame, seqs[seq].delay);
     if (delay < 1) {
         delay = 50;
     }

@@ -105,7 +105,7 @@ export default function V02Plan() {
       <Table
         headers={["Picture", "Script / system"]}
         rows={[
-          ["Holes or letter actually swap", "S1-HOLE* / S1-LTR.c"],
+          ["Holes actually swap (letter fade_up confirmed)", "S1-HOLE* / S1-LTR.c"],
           ["A goto loop does not fall through", "S1-LG.c and/or S2-OUT.c"],
           ["Quackers tracks Dink", "S1-DUCK.c sp_follow"],
           ["Cannot walk off a locked arena", "screenlock once reachable"],

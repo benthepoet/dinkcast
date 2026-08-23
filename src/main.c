@@ -382,6 +382,7 @@ static int play_load_screen(int map)
     dinkc_cmd_apply_spmap(&g_scr, map);
     spr_snap("load_screen");
     dinkc_var_set("&player_map", map, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_cmd_note_map(map, (int)g_world.indoor[map]);
     if (!g_hard.ready) {
         printf("load_screen hard load\n");
         if (hard_load(&g_hard) != 0) {
@@ -1267,6 +1268,8 @@ int main(int argc, char **argv)
                                 brains_slot_seq(wed) == 0) {
                                 if (screen_try_warp(&g_world, &g_scr, wed,
                                                     &player_map, &pl) == 0) {
+                                    dinkc_cmd_note_map(player_map,
+                                                       (int)g_world.indoor[player_map]);
                                     swap = 1;
                                     continue;
                                 }
@@ -1285,6 +1288,8 @@ int main(int argc, char **argv)
                                     &pl);
 
                                 if (wr == 0) {
+                                    dinkc_cmd_note_map(player_map,
+                                                       (int)g_world.indoor[player_map]);
                                     swap = 1;
                                     continue;
                                 }
@@ -1299,6 +1304,8 @@ int main(int argc, char **argv)
                             }
                             if (pl.freeze == 0 &&
                                 screen_try_cross(&g_world, &player_map, &pl)) {
+                                dinkc_cmd_note_map(player_map,
+                                                   (int)g_world.indoor[player_map]);
                                 swap = 1;
                                 continue;
                             }
@@ -1384,7 +1391,8 @@ int main(int argc, char **argv)
 
                             if (!editor_sprite_draw(&g_scr.sprite[si],
                                                     script_play_vision()) ||
-                                brains_slot_disabled(si)) {
+                                brains_slot_disabled(si) ||
+                                brains_slot_nodraw(si)) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;
