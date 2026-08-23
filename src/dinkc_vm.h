@@ -50,6 +50,8 @@ void dinkc_vm_choice_move(int delta);
 /* start-2.c load() lines without a fiber (title Continue). */
 void dinkc_vm_choice_open_saves(void);
 void dinkc_vm_choice_close_saves(void);
+/* V0.3 Start pause: Continue / Title on the seq 30 overlay. cur1 is 1 or 2. */
+void dinkc_vm_choice_open_pause(int cur1);
 void dinkc_vm_kill(int slot);
 /* FreeDink: one instance per sprite; locate talk() on it. */
 void dinkc_vm_kill_sprite(int sprite);

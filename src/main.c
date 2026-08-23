@@ -997,6 +997,7 @@ int main(int argc, char **argv)
 #endif
                         g_need_title = 0;
                         startpause_reset();
+                        dinkc_vm_choice_close_saves();
                         swap = 1;
                         need_menu = 0;
                     }
@@ -1004,6 +1005,7 @@ int main(int argc, char **argv)
                         g_need_title = 0;
                         g_show_splash = 1;
                         startpause_reset();
+                        dinkc_vm_choice_close_saves();
                         saybox_clear();
                         need_menu = 1;
                         continue;
@@ -1120,15 +1122,14 @@ int main(int argc, char **argv)
                         int pr = startpause_tick(prev_buttons, buttons);
 
                         if (pr == STARTPAUSE_TITLE) {
+                            dinkc_vm_choice_close_saves();
                             g_need_title = 1;
                             g_show_splash = 1;
                         } else if (pr == STARTPAUSE_CONTINUE || pr == -2) {
+                            dinkc_vm_choice_close_saves();
                             saybox_clear();
                         } else if (startpause_open()) {
-                            saybox_set(startpause_focus() == STARTPAUSE_TITLE
-                                           ? "Title"
-                                           : "Continue",
-                                       0);
+                            dinkc_vm_choice_open_pause(startpause_focus() + 1);
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         !dinkc_vm_waiting_say() &&
@@ -1244,7 +1245,7 @@ int main(int argc, char **argv)
                         }
                     }
                     now_ms += DINKC_TICK_MS;
-                    if (dinkc_vm_waiting_choice()) {
+                    if (dinkc_vm_choice_n() > 0) {
                         choice_tick(now_ms);
                     }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;

@@ -331,6 +331,20 @@ int main(void)
         (void)dir;
     }
     {
+        /* V0.3 Start pause: same seq 30 overlay as talk, not a saybox. */
+        dinkc_vm_reset();
+        dinkc_vm_choice_open_pause(1);
+        expect(dinkc_vm_choice_n() == 2, "pause two lines");
+        expect(strcmp(dinkc_vm_choice_line(1), "Continue") == 0, "pause continue");
+        expect(strcmp(dinkc_vm_choice_line(2), "Title") == 0, "pause title");
+        expect(dinkc_vm_choice_cur() == 1, "pause cur continue");
+        dinkc_vm_choice_open_pause(2);
+        expect(dinkc_vm_choice_cur() == 2, "pause cur title");
+        expect(!dinkc_vm_waiting_choice(), "pause overlay is not a fiber");
+        dinkc_vm_choice_close_saves();
+        expect(dinkc_vm_choice_n() == 0, "pause closed");
+    }
+    {
         /* Official SAVEBOT.c talk: unfreeze(1) before the 10-slot menu. */
         const char *savebot =
             "void talk(void) {\n"

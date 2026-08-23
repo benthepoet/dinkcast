@@ -192,6 +192,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Playtest: burned-house hardness + Libby confirmed | this PR |
 | 2026-08-23 | Choice Down does not walk (`player_walk_pad`; SAVEBOT slots) | this PR |
 | 2026-08-23 | `edraw upload fail` after CPU drop is a second pass, not a miss | this PR |
+| 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | this PR |
 
 ## Bites
 

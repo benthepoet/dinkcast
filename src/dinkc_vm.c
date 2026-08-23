@@ -1323,6 +1323,17 @@ void dinkc_vm_choice_close_saves(void)
     g_sa_cur = 0;
 }
 
+void dinkc_vm_choice_open_pause(int cur1)
+{
+    /* ESCAPE.c is a choice overlay. DC pause is Continue / Title only. */
+    choice_meta_clear();
+    snprintf(g_sa_line[0], sizeof(g_sa_line[0]), "Continue");
+    snprintf(g_sa_line[1], sizeof(g_sa_line[1]), "Title");
+    g_sa_n = 2;
+    g_sa_cur = (cur1 == 2) ? 2 : 1;
+    g_sa_on = 1;
+}
+
 int dinkc_vm_choice_n(void)
 {
     struct Fiber *f = choice_fiber();

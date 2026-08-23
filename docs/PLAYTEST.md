@@ -44,7 +44,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 | Picture | Host lock |
 |---|---|
-| (none) | |
+| In-play Start pause: Continue / Title on the choice overlay | `test_dinkc_vm` `open_pause` Continue/Title. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
