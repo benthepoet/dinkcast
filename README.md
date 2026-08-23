@@ -6,7 +6,7 @@ This repository is the engine and porting plan. It does **not** ship proprietary
 
 - Port spec: [DREAMCAST-PORT-PLAN.md](DREAMCAST-PORT-PLAN.md)
 - **Progress + feasibility:** [PROGRESS.md](PROGRESS.md)
-- Releases: [CHANGELOG.md](CHANGELOG.md) (`VERSION` / git tag `v0.2.0`)
+- Releases: [CHANGELOG.md](CHANGELOG.md) (`VERSION` / git tag `v0.3.0`)
 - Workflow: [AGENTS.md](AGENTS.md)
 - Gotchas: [docs/GOTCHAS.md](docs/GOTCHAS.md)
 - Toolchain: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
@@ -26,7 +26,7 @@ KallistiOS and `dc-chain` are third-party toolchain pieces with their own licens
 
 ## Status
 
-**v0.2.0** (2026-08-22). Campaign DinkC host grafts plus village playtest leftovers. Visual gates **V1–V6** and **8.6 house** stay accepted. Next tag: **[v0.3.0 plan](docs/V0.3.md)** (official START menu + VMU **17**, before audio **12**). **14.6** stays gated. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
+**v0.3.0** (2026-08-23). Official START menu + VMU **17**, plus playtest leftovers through #117. Visual gates **V1–V6** and **8.6 house** stay accepted. Audio **12** and **14.6** stay gated. Pictures: [docs/PLAYTEST.md](docs/PLAYTEST.md).
 
 ## Dreamcast toolchain
 

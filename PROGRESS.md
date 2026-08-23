@@ -12,6 +12,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 |---|---|---|
 | [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
 | [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
+| [v0.3.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0) | 2026-08-23 | START + VMU **17** + playtest #117. |
 
 ## On master
 
@@ -197,6 +198,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
 | 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
 | 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | this PR |
+| 2026-08-23 | **v0.3.0** tagged | this PR |
 
 ## Bites
 
@@ -262,7 +264,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
 | Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts + 376 pathway after Load confirmed; burning-house exit Open |
-| v0.3.0 | [docs/V0.3.md](docs/V0.3.md) — START menu + VMU; **17** before **12** |
+| v0.3.0 | tagged 2026-08-23. START + VMU **17**. Next: requester go. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -272,13 +274,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-22)
+### Current (2026-08-23)
 
 | | | |
 |---|---|---|
-| **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **START menu + VMU load** | v0.3.0. Burning-house exit stays Open. **14.6** gated |
-| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **17** this slice; **12** after |
+| **Overall** | **~90%** | v0.3.0: START + VMU in Flycast; hardware/ODE still pending |
+| **Next picture** | requester go | Audio **12** and **14.6** gated |
+| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **12** after |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -353,3 +355,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
 | 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
 | 2026-08-22 (v0.3 plan) | **~90%** | Requester: title + VMU before remaining campaign issues. **17** before **12**. **14.6** still gated. |
+| 2026-08-23 (v0.3.0) | **~90%** | Requester stamped START + VMU + playtest #117. Audio **12** / **14.6** still gated. |

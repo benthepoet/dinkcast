@@ -12,7 +12,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** Tagged **v0.2.0** (2026-08-22). Next slice **[v0.3.0](docs/V0.3.md)** — START menu + VMU **17** (before audio **12**). V1–**V6** + **8.6 house** accepted. Campaign DinkC host #102–#108. Playtest HUD / wizard / AlkNuts (#109). Open: burning-house exit (`s1-h1-s`); V0.2 Flycast Done-when pictures. Reopen-hang never confirmed (#1492; pad retired in Flycast; hardware/ODE pending). **14.6** per-frame `dir.ff` reads is later (after 16, full-campaign test — requester go). Do not start 14.6 until the requester says go. Do not `@`-mention anyone.
+**Now:** Tagged **v0.3.0** (2026-08-23). START + VMU **17**. V1–**V6** + **8.6 house** accepted. Next engine bite only when the requester says go. Audio **12** and **14.6** stay gated. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 

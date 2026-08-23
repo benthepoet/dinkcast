@@ -4,9 +4,26 @@ Product versions are git tags of the form `vMAJOR.MINOR.PATCH`. They are **not**
 
 The engine still needs original Dink data (`DINK_DATA`). That tree is not in git.
 
-## [Unreleased] — v0.3.0 (planned)
+## [Unreleased]
 
-Title menu + VMU save/load. Spec: [docs/V0.3.md](docs/V0.3.md). Canvas: [docs/canvases/v0-3-plan.canvas.tsx](docs/canvases/v0-3-plan.canvas.tsx). Opens **17** before audio **12**. **14.6** stays gated.
+## [0.3.0] — 2026-08-23
+
+START menu + VMU (**17**) plus playtest leftovers through #117. Spec: [docs/V0.3.md](docs/V0.3.md). Requester stamped this tag.
+
+### In this tag
+
+- Compact VMU blob, `save_game` / `load_game` / START Load, Start-pause Continue/Title — #111
+- Official START wordmark (seq 196) + Start/Continue hover; empty-slot `Say_xy` — #111
+- Burning-house exit + 439 `force_vision` crowd — #116
+- 376 pathway after Load (Prev `dir.ff` drop on tilesheet slurp) — #114 / #115
+- Playtest #117: type 0/1 hardness needs pixels; `draw_hard_map` live-only; `fade_down`/`fade_up`; `sp_disabled`; say after HUD chrome; Start-pause seq 30 overlay; choice Down does not walk
+
+See [PROGRESS.md](PROGRESS.md) and [docs/PLAYTEST.md](docs/PLAYTEST.md).
+
+### Not in this tag
+
+- Audio (plan **12**), per-frame `dir.ff` reads (plan **14.6**)
+- Full-campaign test; real hardware / ODE still unproven
 
 ## [0.2.0] — 2026-08-22
 
@@ -50,5 +67,6 @@ See [PROGRESS.md](PROGRESS.md) for the bite log and [docs/PLAYTEST.md](docs/PLAY
 - Full-campaign test; real hardware / ODE still unproven
 - Open pictures: Ethel outdoor house on first visit (map 409), Dink over smashed barrels, pig-pen south fence joint
 
+[0.3.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0
 [0.2.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0
 [0.1.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0
