@@ -266,6 +266,7 @@ static const struct {
     {"sp_hard", 0},
     {"sp_disabled", 0},
     {"sp_frame_delay", 0},
+    {"sp_nodraw", 0},
     {"sp_notouch", 0},
     {"draw_hard_sprite", 0},
     {"draw_hard_map", 0},
@@ -1535,6 +1536,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "sp_frame_delay")) {
         return change_sp(a0, DINKC_SP_FRAME_DELAY, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_nodraw")) {
+        return change_sp(a0, DINKC_SP_NODRAW, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_notouch")) {
         return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);

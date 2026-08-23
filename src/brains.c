@@ -77,6 +77,7 @@ struct BrainSpr {
     int hard, notouch, bloodseq, bloodnum;
     int disabled;
     int frame_delay;
+    int nodraw;
     char script[16];
 };
 
@@ -1858,6 +1859,8 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->disabled;
     } else if (prop == DINKC_SP_FRAME_DELAY) {
         p = &s->frame_delay;
+    } else if (prop == DINKC_SP_NODRAW) {
+        p = &s->nodraw;
     } else if (prop == DINKC_SP_NOTOUCH) {
         p = &s->notouch;
     } else if (prop == DINKC_SP_FOLLOW) {
@@ -2145,6 +2148,14 @@ int brains_slot_disabled(int slot)
         return 0;
     }
     return g_b[slot].disabled != 0;
+}
+
+int brains_slot_nodraw(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].nodraw != 0;
 }
 
 int brains_floater_num(int slot, int *x, int *y, int *num)

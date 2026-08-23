@@ -17,6 +17,7 @@ static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_stub_seq[100];
 static int g_stub_disabled[100];
+static int g_stub_nodraw[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
@@ -98,6 +99,8 @@ static int stub_sp_change(int slot, int prop, int val)
         p = &g_stub_seq[slot];
     } else if (prop == DINKC_SP_DISABLED) {
         p = &g_stub_disabled[slot];
+    } else if (prop == DINKC_SP_NODRAW) {
+        p = &g_stub_nodraw[slot];
     } else {
         return -1;
     }
@@ -577,6 +580,11 @@ int main(void)
             "void main(void) { sp_disabled(5, 1); }",
             strlen("void main(void) { sp_disabled(5, 1); }"), 1);
         expect(g_stub_disabled[5] == 1, "sp_disabled write");
+        memset(g_stub_nodraw, 0, sizeof(g_stub_nodraw));
+        slot = dinkc_vm_start(
+            "void main(void) { sp_nodraw(8, 1); }",
+            strlen("void main(void) { sp_nodraw(8, 1); }"), 1);
+        expect(g_stub_nodraw[8] == 1, "sp_nodraw write");
         {
             int yld2 = 0, rv2 = 0;
 

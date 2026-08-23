@@ -1391,7 +1391,8 @@ int main(int argc, char **argv)
 
                             if (!editor_sprite_draw(&g_scr.sprite[si],
                                                     script_play_vision()) ||
-                                brains_slot_disabled(si)) {
+                                brains_slot_disabled(si) ||
+                                brains_slot_nodraw(si)) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;

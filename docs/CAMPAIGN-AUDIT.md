@@ -97,7 +97,7 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 **Landed since the v0.1 pass:** `save_game` / `load_game` / `game_exist`, `say_xy`, `free_items`, (this PR) `say_stop_xy`, `sp_frame_delay`, `count_item` / `count_magic`, `kill_this_item` / `kill_cur_item`.
 
 **Still missing (used in 1.08, not this PR):**  
-`set_mode`, `reset_timer`, `set_dink_speed`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_nodraw`, `dink_can_walk_off_screen`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`set_mode`, `reset_timer`, `set_dink_speed`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `dink_can_walk_off_screen`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
 `playsound`, `playmidi`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).

@@ -153,6 +153,19 @@ int main(void)
                "dummy seq still 64");
         expect(brains_slot_live(dumb), "dummy stays for hardness");
     }
+    /* S1-NOPAS: seq 64 lean-to is touch only; spr.nodraw skips draw. */
+    {
+        int wall, sq = 0, fr = 0;
+
+        brains_reset();
+        brains_bind_screen(&scr);
+        wall = brains_create(310, 122, 0, 64, 2);
+        expect(wall >= 2, "nopas slot");
+        expect(brains_change_prop(wall, DINKC_SP_NODRAW, 1) == 1, "nodraw set");
+        expect(brains_slot_nodraw(wall), "nopas not drawn");
+        expect(brains_seq_frame(wall, &sq, &fr) && sq == 64, "nopas seq 64");
+        expect(brains_slot_live(wall), "nopas still live for touch");
+    }
 
     /* After fire: vis-0 pie table (seq 87/9) must not leave hardness when
      * 14.4c refused the pixels. Draw already skips edraw_find == NULL.
