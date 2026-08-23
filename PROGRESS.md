@@ -182,6 +182,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | this PR |
 | 2026-08-23 | Pie-table hardness still in Flycast; come back later | this PR |
 | 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
+| 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
+| 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
 
 ## Bites
 
@@ -216,7 +218,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39. Live sprite cmds leftover → **11.10** |
 | 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40. Script field 30240 this PR |
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
-| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` = sprite 1000 + `draw_screen_game` (#116) |
+| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` #116. `fade_*` truecolor clock (this PR). `fill_screen` still instant |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
 | 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |

@@ -5,7 +5,7 @@ OBJS = src/main.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/tit
 	src/world.o src/mapscr.o src/tiles.o src/ff.o src/ini.o src/hard.o src/sprite.o \
 	src/player.o src/edraw.o src/talk.o src/hit.o src/hurt.o src/script.o src/dinkc_file.o \
 	src/dinkc_lex.o src/dinkc_parse.o src/dinkc_vm.o src/dinkc_var.o src/dinkc_cmd.o src/save.o src/startmenu.o \
-	src/font.o src/saybox.o src/choice.o src/inv.o src/status.o src/screen.o src/brains.o src/mem.o src/residency.o
+	src/font.o src/saybox.o src/choice.o src/inv.o src/status.o src/screen.o src/brains.o src/mem.o src/residency.o src/fade.o
 
 KOS_CFLAGS += -Isrc
 # Do not -DDINK_DATA_DEFAULT from local.mk: that path is a host tree
@@ -18,7 +18,7 @@ include $(KOS_BASE)/Makefile.rules
 
 # EditorSprite lives in mapscr.h. Incremental `kos-cc` without this leaves
 # script.o/talk.o on the 60-byte layout after warp fields (preload unique=0).
-$(OBJS): Makefile.dc src/mapscr.h src/sprite.h src/brains.h src/dinkc_cmd.h src/choice.h src/inv.h src/status.h src/mem.h src/residency.h src/edraw.h src/save.h src/startmenu.h src/tiles.h src/title.h src/hard.h
+$(OBJS): Makefile.dc src/mapscr.h src/sprite.h src/brains.h src/dinkc_cmd.h src/choice.h src/inv.h src/status.h src/mem.h src/residency.h src/edraw.h src/save.h src/startmenu.h src/tiles.h src/title.h src/hard.h src/fade.h
 
 $(TARGET): $(OBJS) | build
 	kos-cc -o $@ $(OBJS)

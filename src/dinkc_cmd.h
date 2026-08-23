@@ -74,7 +74,8 @@ void dinkc_cmd_set_dink_base_push(int seq);
 int dinkc_cmd_dink_base_push(void);
 /* 1 if move()/move_stop still running. */
 int dinkc_cmd_move_busy(int slot);
-/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 3 kill, 5 external. */
+/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 3 kill, 5 external,
+ * 6 bmp, 7 fade. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
               const char *str2, int *yield, int *ret);
 /* 11.9: one table. DINKC_DUMP_FNS=1 prints implemented + missing. */

@@ -13,6 +13,7 @@
 #include "dinkdat.h"
 #include "fs.h"
 #include "edraw.h"
+#include "fade.h"
 #include "font.h"
 #include "hard.h"
 #include "hit.h"
@@ -1401,6 +1402,11 @@ int main(int argc, char **argv)
                         status_draw_map_pvr(5.0f);
                     }
                     pvr_list_finish();
+                    if (fade_brightness() < FADE_FULL) {
+                        pvr_list_begin(PVR_LIST_TR_POLY);
+                        fade_draw_pvr();
+                        pvr_list_finish();
+                    }
                     pvr_scene_finish();
                     have_scene = 1;
                     }

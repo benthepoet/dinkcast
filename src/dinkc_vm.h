@@ -18,6 +18,7 @@ enum DinkcState {
     DINKC_WAIT_CHOICE,
     DINKC_WAIT_EXT,
     DINKC_WAIT_BMP,
+    DINKC_WAIT_FADE,
     DINKC_IDLE /* armed item script: ARM finished, USE/DISARM still locate */
 };
 

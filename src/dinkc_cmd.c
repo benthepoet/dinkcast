@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 
 #include "dinkc_var.h"
+#include "fade.h"
 #include "save.h"
 #include "dinkc_vm.h"
 #include "ff.h"
@@ -1304,8 +1305,23 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "kill_shadow") || is_cmd(name, "fade_up") ||
-        is_cmd(name, "fade_down") || is_cmd(name, "fill_screen")) {
+    if (is_cmd(name, "kill_shadow") || is_cmd(name, "fill_screen")) {
+        return 1;
+    }
+    /* FreeDink dc_fade_down / dc_fade_up: yield until CyclePalette /
+     * up_cycle. Do not map that yield to WAIT_SAY. */
+    if (is_cmd(name, "fade_down")) {
+        fade_down_start(g_cmd_now);
+        if (yield != NULL) {
+            *yield = 7;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "fade_up")) {
+        fade_up_start(g_cmd_now);
+        if (yield != NULL) {
+            *yield = 7;
+        }
         return 1;
     }
     /* FreeDink dc_load_screen: game_load_screen(loc[&player_map]).

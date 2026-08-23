@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "fade.h"
 #include "hard.h"
 #include "player.h"
 #include "saybox.h"
@@ -804,6 +805,91 @@ int main(void)
         args[0] = 0;
         (void)dinkc_cmd("screenlock", args, 1, "", "", &yld, &rv);
         expect(!dinkc_vm_used(slot), "lock script done");
+    }
+
+    {
+        /* FreeDink truecolor fade: 400 ms visual, fade_down yields 1000 ms.
+         * S1-H1-O: fade_down; wait(250); force_vision; fade_up. */
+        const char *fade =
+            "void main(void) {\n"
+            "  fade_down();\n"
+            "  &gold = 1;\n"
+            "  fade_up();\n"
+            "  &gold = 2;\n"
+            "}\n";
+        const char *s1 =
+            "void main(void) {\n"
+            "  fade_down();\n"
+            "  wait(250);\n"
+            "  &story = 5;\n"
+            "  force_vision(2);\n"
+            "  fade_up();\n"
+            "  &gold = 3;\n"
+            "}\n";
+        int fadeslot, s1slot;
+
+        g_ndraw = 0;
+        g_nfill = 0;
+        dinkc_cmd_bind_fill_hard(stub_fill_hard);
+        dinkc_cmd_bind_draw_screen(stub_draw_screen);
+        dinkc_vm_reset();
+        dinkc_var_set("&gold", 0, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_vm_tick(1);
+        fadeslot = dinkc_vm_start(fade, strlen(fade), 1);
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "fade_down yield");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "fade_down holds script");
+        expect(fade_brightness() == FADE_FULL, "first frame still full");
+        dinkc_vm_tick(17);
+        expect(fade_brightness() == FADE_FULL, "lasttick only");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "still fading");
+        dinkc_vm_tick(417);
+        expect(fade_brightness() == 0, "400ms to black");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE,
+               "fade_down waits cycle_clock");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "not past fade_down yet");
+        dinkc_vm_tick(1002);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "fade_down done then fade_up");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "fade_up yield");
+        expect(fade_brightness() == 0, "fade_up starts at black");
+        dinkc_vm_tick(1018);
+        expect(fade_brightness() == 0, "fade_up lasttick");
+        dinkc_vm_tick(1418);
+        expect(fade_brightness() == FADE_FULL, "400ms fade_up");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 2, "fade_up done");
+        expect(!dinkc_vm_used(fadeslot), "fade script done");
+
+        g_ndraw = 0;
+        g_nfill = 0;
+        dinkc_vm_reset();
+        dinkc_var_set("&story", 4, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&gold", 0, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&vision", 1, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_vm_tick(1);
+        s1slot = dinkc_vm_start(s1, strlen(s1), 7);
+        expect(dinkc_vm_state(s1slot) == DINKC_WAIT_FADE, "S1-H1-O fade_down");
+        dinkc_vm_tick(17);
+        dinkc_vm_tick(417);
+        expect(fade_brightness() == 0, "S1-H1-O black before swap");
+        dinkc_vm_tick(1002);
+        expect(dinkc_var_get("&story", DINKC_GLOBAL_SCOPE, 1) == 4,
+               "wait(250) after fade_down");
+        expect(g_ndraw == 0, "force_vision not yet");
+        expect(fade_brightness() == 0, "stay black through wait");
+        dinkc_vm_tick(1252);
+        expect(dinkc_var_get("&story", DINKC_GLOBAL_SCOPE, 1) == 5,
+               "story 5 after wait");
+        expect(g_nfill == 1 && g_ndraw == 1, "force_vision during black");
+        expect(fade_brightness() == 0, "force_vision while black");
+        expect(dinkc_vm_state(s1slot) == DINKC_WAIT_FADE, "S1-H1-O fade_up");
+        dinkc_vm_tick(1268);
+        dinkc_vm_tick(1668);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "S1-H1-O fade_up done");
+        dinkc_cmd_bind_draw_screen(NULL);
+        dinkc_cmd_bind_fill_hard(NULL);
     }
 
     printf("OK test_dinkc_vm\n");

@@ -40,7 +40,8 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
-| Abrupt snap when outdoor fire ends / crowd leaves (`S1-H1-O` `fade_down` / `fade_up`) | (later; `fade_*` are instant stubs) |
+| Indoor fire scene hitch (SCIF off still slow) | later |
+| Abrupt snap when outdoor fire ends / crowd leaves (`S1-H1-O` `fade_down` / `fade_up`) | `test_dinkc_vm` fade_down 1000 ms yield + 400 ms to black; fade_up 400 ms; S1-H1-O wait/force_vision in between |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
@@ -51,7 +52,11 @@ Do not mark new pictures confirmed until the requester says so. Name them here w
 
 Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows.
 
-Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87. Next Open: fade snap; SAVEBOT Down walks Dink.
+Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87.
+
+Indoor fire hitch: still noticeable with `make emu-fast` (SCIF off). Come back later.
+
+Next Open: fade snap (this PR grafts `fade_*`); SAVEBOT Down walks Dink.
 
 ## Log notes (2026-08-22, not confirmed)
 
