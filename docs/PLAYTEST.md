@@ -38,7 +38,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | `test_player` get_hard_play + frozen move onto warp |
-| Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | `test_dinkc_vm` `force_vision` → sprite 1000 + `draw_screen`; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
+| Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
 
 Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed until the requester stamps the exit and the crowd. Village leftovers above were confirmed 2026-08-22.
 

@@ -194,6 +194,32 @@ int main(void)
             return 1;
         }
     }
+    {
+        /* fill_whole_hard: tiles-only restamp drops live sprite hardness
+         * (S1-BRG2 pay-toll barrier after force_vision). */
+        struct HardMap hm;
+        struct MapScreen tilescr;
+
+        memset(&hm, 0, sizeof(hm));
+        memset(&tilescr, 0, sizeof(tilescr));
+        hard_stamp_box(&mask, DINK_PLAY_LEFT + 360, 300, -20, -20, 20, 20, 1);
+        if (hard_get(&mask, DINK_PLAY_LEFT + 360, 300) == 0) {
+            fprintf(stderr, "FAIL stamp barrier hard\n");
+            hard_mask_free(&mask);
+            return 1;
+        }
+        if (hard_stamp_tiles(&hm, &tilescr, &mask) != 0) {
+            fprintf(stderr, "FAIL fill_whole_hard stamp_tiles\n");
+            hard_mask_free(&mask);
+            return 1;
+        }
+        if (hard_get(&mask, DINK_PLAY_LEFT + 360, 300) != 0) {
+            fprintf(stderr, "FAIL fill_whole_hard left sprite hard %d\n",
+                    hard_get(&mask, DINK_PLAY_LEFT + 360, 300));
+            hard_mask_free(&mask);
+            return 1;
+        }
+    }
     hard_mask_free(&mask);
     printf("OK test_player\n");
     return 0;

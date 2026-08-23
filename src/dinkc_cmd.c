@@ -46,6 +46,7 @@ static int (*g_external)(int sprite, const char *file, const char *proc,
 static int (*g_spawn)(const char *file);
 static int (*g_load_screen)(int player_map);
 static int (*g_draw_screen)(int sprite);
+static void (*g_fill_hard)(void);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
@@ -625,6 +626,11 @@ void dinkc_cmd_bind_draw_screen(int (*fn)(int sprite))
     g_draw_screen = fn;
 }
 
+void dinkc_cmd_bind_fill_hard(void (*fn)(void))
+{
+    g_fill_hard = fn;
+}
+
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
                                        int fiber, int sprite))
 {
@@ -1019,11 +1025,14 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    /* FreeDink dc_force_vision: *pvision, sprite=1000, draw_screen_game.
-     * play_draw_screen restamps hard. Caller survives (keep this task). */
+    /* FreeDink dc_force_vision: *pvision, sprite=1000, fill_whole_hard,
+     * draw_screen_game. Caller survives (keep this task). */
     if (is_cmd(name, "force_vision")) {
         dinkc_var_set("&vision", a0, DINKC_GLOBAL_SCOPE, 1);
         g_cmd_sprite = 1000;
+        if (g_fill_hard != NULL) {
+            g_fill_hard();
+        }
         if (g_draw_screen != NULL) {
             (void)g_draw_screen(1000);
         }

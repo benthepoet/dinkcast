@@ -176,7 +176,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Playtest: 376 pathway after Load confirmed | this PR |
 | 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
 | 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | this PR |
-| 2026-08-23 | `force_vision` is sprite 1000 + `draw_screen_game` (11.8) | this PR |
+| 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | this PR |
 | 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | this PR |
 
 ## Bites

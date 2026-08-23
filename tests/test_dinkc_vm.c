@@ -21,6 +21,8 @@ static int g_load_map;
 static int g_draw_spr;
 static int g_nload;
 static int g_ndraw;
+static int g_nfill;
+static int g_fill_before_draw;
 
 static int stub_load_screen(int map)
 {
@@ -29,10 +31,18 @@ static int stub_load_screen(int map)
     return 0;
 }
 
+static void stub_fill_hard(void)
+{
+    g_nfill++;
+}
+
 static int stub_draw_screen(int sprite)
 {
+    g_fill_before_draw = g_nfill;
     g_draw_spr = sprite;
     g_ndraw++;
+    /* draw_screen_game: *pvision = 0 then kill_all except 1000. */
+    dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
     dinkc_vm_kill_all();
     return 0;
 }
@@ -718,7 +728,7 @@ int main(void)
     }
 
     {
-        /* FreeDink dc_force_vision: sprite 1000 then draw_screen_game. */
+        /* FreeDink dc_force_vision: fill_whole_hard then draw_screen_game. */
         const char *force =
             "void main(void) { force_vision(2); wait(1); }\n";
         const char *waiter =
@@ -732,7 +742,10 @@ int main(void)
         int forceslot, waitslot, mains;
 
         g_ndraw = 0;
+        g_nfill = 0;
+        g_fill_before_draw = 0;
         g_draw_spr = 0;
+        dinkc_cmd_bind_fill_hard(stub_fill_hard);
         dinkc_cmd_bind_draw_screen(stub_draw_screen);
         dinkc_vm_reset();
         dinkc_var_set("&story", 5, DINKC_GLOBAL_SCOPE, 1);
@@ -740,20 +753,23 @@ int main(void)
         waitslot = dinkc_vm_start(waiter, strlen(waiter), 4);
         expect(dinkc_vm_state(waitslot) == DINKC_WAIT_MS, "force waiter");
         forceslot = dinkc_vm_start(force, strlen(force), 7);
+        expect(g_nfill == 1 && g_fill_before_draw == 1,
+               "fill_whole_hard before draw");
         expect(g_ndraw == 1 && g_draw_spr == 1000, "force_vision draws 1000");
+        expect(dinkc_var_get("&vision", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "draw_screen_game resets vision");
         expect(dinkc_vm_used(forceslot), "force fiber survives draw");
         expect(dinkc_vm_sprite_fiber(1000) == forceslot,
                "force_vision rebinds 1000");
         expect(!dinkc_vm_used(waitslot), "force_vision kill_all others");
         dinkc_vm_kill_all();
         expect(dinkc_vm_used(forceslot), "1000 survives later kill_all");
-        /* draw_screen_game resets *pvision then screen MAIN. */
-        dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
         mains = dinkc_vm_start(main_vis, strlen(main_vis), 0);
         expect(dinkc_var_get("&vision", DINKC_GLOBAL_SCOPE, 1) == 2,
                "story>4 MAIN sets vision 2");
         expect(!dinkc_vm_used(mains), "vision MAIN done");
         dinkc_cmd_bind_draw_screen(NULL);
+        dinkc_cmd_bind_fill_hard(NULL);
     }
 
     {

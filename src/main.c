@@ -326,6 +326,17 @@ static int play_load_screen(int map)
     return 0;
 }
 
+/* FreeDink fill_whole_hard: tiles only, drops live sprite hardness. */
+static void play_fill_hard(void)
+{
+    if (g_play_mask == NULL) {
+        return;
+    }
+    if (hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
+        printf("force_vision fill_hard fail\n");
+    }
+}
+
 /* FreeDink draw_screen_game: kill_all except 1000, tiles, MAIN, place. */
 static int play_draw_screen(int sprite)
 {
@@ -947,6 +958,7 @@ int main(int argc, char **argv)
                 g_play_last_frame = &last_frame;
                 dinkc_cmd_bind_load_screen(play_load_screen);
                 dinkc_cmd_bind_draw_screen(play_draw_screen);
+                dinkc_cmd_bind_fill_hard(play_fill_hard);
                 {
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
