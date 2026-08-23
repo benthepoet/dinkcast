@@ -35,14 +35,15 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | 2026-08-23 | `test_player` get_hard_play + frozen move onto warp |
 | Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | 2026-08-23 | `test_dinkc_vm` `force_vision` fill_whole_hard then sprite 1000 + `draw_screen`; `test_player` tiles wipe drops stamped box; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
 | Outdoor fire ends / crowd leaves with `fade_down` / `fade_up` (`S1-H1-O`) | 2026-08-23 | `test_dinkc_vm` fade_down 1000 ms yield + 400 ms to black; fade_up 400 ms; S1-H1-O wait/force_vision in between |
+| Indoor fire scene no longer hitchy (`make emu-fast` / after leave) | 2026-08-23 | `test_edraw` house vis 1 current+next; Screen CPU drop after PVR |
 
 ## Open
 
 | Picture | Host lock |
 |---|---|
 | Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
-| Indoor fire scene hitch (SCIF off still slow) | `test_edraw` house vis 1 current+next. DC: drop Screen CPU after PVR so unused loop frames do not refuse after leave (439). Flycast stamp Open. |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
+| 439 fire-crowd: Libby (blue maiden seq 257) missing | `test_edraw` mark 257/2 before 439 vis 1. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
@@ -54,7 +55,9 @@ Burning-house exit + 439 crowd: requester “The crowd showed up this time.” H
 
 Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87.
 
-Indoor fire hitch: current+next at enter was not enough — unused 161/427 frames filled `cpu_pixels` then ping-ponged through the warp to 439. Screen frames now drop CPU after PVR. Flycast stamp still Open.
+Indoor fire hitch: requester “That fixed it.” Screen frames drop CPU after PVR.
+
+439 crowd: Chealse (seq 331 / `s1-lg`) is **not** in `S1-H1-O.c`. Official is Ethel 231, red maiden **221** (`Dink!!!`), Quackers 24, peasant 411, blue maiden **257** (“Girl2” / Libby). 257 `maiden/blue` refused `file_blob` after peasant2.
 
 Fade: requester “Fade works as expected.” Host lock already on that row.
 

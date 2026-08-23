@@ -291,8 +291,19 @@ static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
         }
         seq = brains_slot_pseq(i);
         br = brains_slot_brain(i);
-        if (seq > 0 && br != 3) {
-            edraw_load_frame(g_edg, ned, seqs, seq, 1);
+        {
+            int fr = 1;
+
+            if (brains_seq_frame(i, &seq, &fr)) {
+                if (fr < 1) {
+                    fr = 1;
+                }
+            } else {
+                seq = brains_slot_pseq(i);
+            }
+            if (seq > 0 && br != 3) {
+                edraw_load_frame(g_edg, ned, seqs, seq, fr);
+            }
         }
         bw = brains_slot_base_walk(i);
         if (bw <= 0) {
@@ -317,14 +328,18 @@ static void edraw_mark_created(void)
     static const int walkd[4] = {1, 3, 7, 9};
 
     for (i = 2; i <= 99; i++) {
-        int sq, bw;
+        int sq, fr, bw;
 
         if (!brains_slot_created(i)) {
             continue;
         }
-        sq = brains_slot_pseq(i);
-        if (sq >= 1) {
-            edraw_mark_need(sq, 1);
+        if (brains_seq_frame(i, &sq, &fr)) {
+            edraw_mark_need(sq, fr < 1 ? 1 : fr);
+        } else {
+            sq = brains_slot_pseq(i);
+            if (sq >= 1) {
+                edraw_mark_need(sq, 1);
+            }
         }
         bw = brains_slot_base_walk(i);
         if (bw >= 1) {

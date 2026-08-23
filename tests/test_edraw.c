@@ -888,8 +888,28 @@ int main(void)
             free(seqs);
             return 1;
         }
+        /* S1-H1-O create_sprite 221/5 and 257/2 — mark before load so
+         * maiden/blue fopen happens while Prev still has slack. */
+        edraw_mark_need(221, 5);
+        if (seqs[257].prefix[0] != '\0') {
+            edraw_mark_need(257, 2);
+        }
         if (edraw_load_screen(yard.sprite, seqs, g, &n, 1) != 0) {
             fprintf(stderr, "FAIL 439 vis 1 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_find(g, n, 221, 5) == NULL &&
+            edraw_find(g, n, 221, 1) == NULL) {
+            fprintf(stderr, "FAIL crowd 221 after mark-first\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[257].prefix[0] != '\0' && edraw_find(g, n, 257, 2) == NULL &&
+            edraw_find(g, n, 257, 1) == NULL) {
+            fprintf(stderr, "FAIL crowd 257 blue maiden after mark-first\n");
             edraw_free(g, n);
             free(seqs);
             return 1;

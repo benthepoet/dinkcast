@@ -593,6 +593,13 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
         }
+        /* create_sprite MAIN (439 crowd / Chealse) is not an editor row.
+         * Fopen those packs while Prev still has slack. Last on the list
+         * lost maiden/blue after peasant2 (file_blob cap; do not pin 257). */
+        for (k = 0; k < g_nmark; k++) {
+            need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
+        }
+        g_nmark = 0;
         for (i = 1; i <= 100; i++) {
             int seq, fr, br;
 
@@ -619,12 +626,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
-        /* create_sprite during screen MAIN (Chealse) is not an editor row.
-         * swap_begin already demoted her pack to Prev; keep it Screen. */
-        for (k = 0; k < g_nmark; k++) {
-            need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
-        }
-        g_nmark = 0;
         /* Re-mark this Screen's packs before drop. Aged Prev (two screens
          * old) still occupies file_blob until swap_end — fopen Screen then
          * misses pigs on the first 407 visit. */

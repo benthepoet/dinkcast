@@ -185,6 +185,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
 | 2026-08-23 | 14.4c: brain-6 current+next (not nfr / not seq 161 pin) | this PR |
 | 2026-08-23 | 14.4c: drop Screen CPU after PVR (fire loop cache) | this PR |
+| 2026-08-23 | Playtest: indoor fire hitch confirmed | this PR |
+| 2026-08-23 | 14.4b: create_sprite marks before editor unique (257) | this PR |
 | 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
 | 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
 
