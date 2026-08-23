@@ -196,6 +196,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | this PR |
 | 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
 | 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
+| 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | this PR |
 
 ## Bites
 

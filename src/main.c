@@ -1445,18 +1445,21 @@ int main(int argc, char **argv)
                                 (float)draw[a].y, 1.6f, draw[a].al, draw[a].at,
                                 draw[a].ar, draw[a].ab, draw[a].size);
                         }
+                        /* FreeDink: status chrome is on the background blit;
+                         * text_draw / choice run after sprites. PT GEQUAL
+                         * later-wins: HUD at 3.5 was covering say at 3.0. */
+                        status_draw_pvr(3.5f);
                         {
                             int fi, fx, fy, fnum;
 
                             for (fi = 1; fi <= 99; fi++) {
                                 if (brains_floater_num(fi, &fx, &fy, &fnum)) {
-                                    saybox_draw_num_pvr(fx, fy, fnum, 2.8f);
+                                    saybox_draw_num_pvr(fx, fy, fnum, 3.6f);
                                 }
                             }
                         }
-                        saybox_draw_pvr(3.0f);
-                        saybox_draw_choices_pvr(3.1f);
-                        status_draw_pvr(3.5f);
+                        saybox_draw_pvr(3.7f);
+                        saybox_draw_choices_pvr(3.8f);
                         inv_draw_pvr(4.0f);
                         status_draw_map_pvr(5.0f);
                     }
