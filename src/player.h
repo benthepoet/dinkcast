@@ -40,6 +40,8 @@ void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                  const struct SeqInfo *seqs, int now_ms,
                  const struct MapScreen *scr);
+/* FreeDink human_brain: freeze or game_choice.active → no walk pad. */
+int player_walk_pad(int pad_dir, int freeze, int choice_active);
 /* FreeDink hurt_thing on spr[1]. Adds to .damage. */
 int player_hurt(struct Player *p, int damage);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */

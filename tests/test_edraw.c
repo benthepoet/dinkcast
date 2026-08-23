@@ -4,6 +4,7 @@
 #include "fs.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "mem.h"
 #include "residency.h"
 #include "start_map.h"
 #include "tiles.h"
@@ -76,6 +77,14 @@ int main(void)
         fprintf(stderr, "FAIL vision/type filter\n");
         return 1;
     }
+    /* Official pie table stays vis 0 / hard 0. Do not invent a vis-2 hide. */
+    if (!scr.sprite[22].active || (int)scr.sprite[22].seq != 87 ||
+        (int)scr.sprite[22].frame != 9 || (int)scr.sprite[22].type != 1 ||
+        (int)scr.sprite[22].vision != 0 || (int)scr.sprite[22].hard != 0 ||
+        (int)scr.sprite[22].x != 319 || (int)scr.sprite[22].y != 243) {
+        fprintf(stderr, "FAIL pie table editor 22\n");
+        return 1;
+    }
     if (editor_sprite_rank_y(&scr.sprite[51]) != 248 ||
         editor_sprite_rank_y(&scr.sprite[1]) != (int)scr.sprite[1].y) {
         fprintf(stderr, "FAIL que rank %d %d\n",
@@ -136,6 +145,85 @@ int main(void)
         edraw_free(g, n);
         free(seqs);
         return 1;
+    }
+    /* Brain 6 current+next: do not slurp all 26 of 161 (1.7 MB). */
+    if (!scr.sprite[33].active || (int)scr.sprite[33].seq != 161 ||
+        (int)scr.sprite[33].frame != 4 || (int)scr.sprite[33].brain != 6 ||
+        (int)scr.sprite[33].vision != 1 || !scr.sprite[41].active ||
+        (int)scr.sprite[41].seq != 161 || (int)scr.sprite[41].frame != 14 ||
+        (int)scr.sprite[41].brain != 6 || (int)scr.sprite[41].vision != 1) {
+        fprintf(stderr, "FAIL house fire atomics not 161/4 and 161/14\n");
+        edraw_free(g, n);
+        free(seqs);
+        return 1;
+    }
+    {
+        int n161 = 0, nfr161, nxt4, nxt14;
+        size_t pix;
+
+        if (edraw_load_screen(scr.sprite, seqs, g, &n, 1) != 0) {
+            fprintf(stderr, "FAIL house vis 1 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_find(g, n, 161, 4) == NULL ||
+            edraw_find(g, n, 161, 14) == NULL) {
+            fprintf(stderr, "FAIL house vis 1 missing 161/4 or 161/14\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        nxt4 = edraw_loop_next_frame(seqs, 161, 4);
+        nxt14 = edraw_loop_next_frame(seqs, 161, 14);
+        if (edraw_find(g, n, 161, nxt4) == NULL ||
+            edraw_find(g, n, 161, nxt14) == NULL) {
+            fprintf(stderr, "FAIL house vis 1 missing 161 next %d/%d\n", nxt4,
+                    nxt14);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        for (i = 0; i < n; i++) {
+            if (g[i].seq == 161) {
+                n161++;
+            }
+        }
+        nfr161 = ini_seq_len(161, seqs[161].nframes);
+        if (nfr161 >= 10 && n161 >= nfr161) {
+            fprintf(stderr, "FAIL house vis 1 loaded all %d of 161\n", n161);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        pix = edraw_cpu_bytes(g, n);
+        if (pix >= DINK_MEM_CPU_PIXELS) {
+            fprintf(stderr, "FAIL house vis 1 cpu_pixels %zu\n", pix);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL house vis 0 after fire current+next\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        {
+            int has31 = 0;
+
+            for (i = 0; i < n; i++) {
+                if (g[i].seq == 31) {
+                    has31 = 1;
+                }
+            }
+            if (!has31) {
+                fprintf(stderr, "FAIL house lost seq 31 after vis 1\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+        }
     }
     {
         char dir[160];
@@ -800,8 +888,28 @@ int main(void)
             free(seqs);
             return 1;
         }
+        /* S1-H1-O create_sprite 221/5 and 257/2 — mark before load so
+         * maiden/blue fopen happens while Prev still has slack. */
+        edraw_mark_need(221, 5);
+        if (seqs[257].prefix[0] != '\0') {
+            edraw_mark_need(257, 2);
+        }
         if (edraw_load_screen(yard.sprite, seqs, g, &n, 1) != 0) {
             fprintf(stderr, "FAIL 439 vis 1 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_find(g, n, 221, 5) == NULL &&
+            edraw_find(g, n, 221, 1) == NULL) {
+            fprintf(stderr, "FAIL crowd 221 after mark-first\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[257].prefix[0] != '\0' && edraw_find(g, n, 257, 2) == NULL &&
+            edraw_find(g, n, 257, 1) == NULL) {
+            fprintf(stderr, "FAIL crowd 257 blue maiden after mark-first\n");
             edraw_free(g, n);
             free(seqs);
             return 1;

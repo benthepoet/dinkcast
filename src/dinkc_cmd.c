@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 
 #include "dinkc_var.h"
+#include "fade.h"
 #include "save.h"
 #include "dinkc_vm.h"
 #include "ff.h"
@@ -256,8 +257,10 @@ static const struct {
     {"inside_box", 0},
     {"sp_size", 0},
     {"sp_hard", 0},
+    {"sp_disabled", 0},
     {"sp_notouch", 0},
     {"draw_hard_sprite", 0},
+    {"draw_hard_map", 0},
     {"show_inventory", 0},
     {"show_bmp", 0},
     {"save_game", 0},
@@ -1304,8 +1307,23 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "kill_shadow") || is_cmd(name, "fade_up") ||
-        is_cmd(name, "fade_down") || is_cmd(name, "fill_screen")) {
+    if (is_cmd(name, "kill_shadow") || is_cmd(name, "fill_screen")) {
+        return 1;
+    }
+    /* FreeDink dc_fade_down / dc_fade_up: yield until CyclePalette /
+     * up_cycle. Do not map that yield to WAIT_SAY. */
+    if (is_cmd(name, "fade_down")) {
+        fade_down_start(g_cmd_now);
+        if (yield != NULL) {
+            *yield = 7;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "fade_up")) {
+        fade_up_start(g_cmd_now);
+        if (yield != NULL) {
+            *yield = 7;
+        }
         return 1;
     }
     /* FreeDink dc_load_screen: game_load_screen(loc[&player_map]).
@@ -1318,13 +1336,16 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    /* FreeDink dc_draw_screen: yield if sprite != 1000, then
-     * draw_screen_game (kill_all except 1000). yld=1 is WAIT_SAY here. */
+    /* FreeDink dc_draw_screen: yield if the *calling* script's sprite
+     * != 1000, then draw_screen_game. Nested MAIN / attach_live rebind
+     * g_cmd_sprite (bar-e 22); S1-LTR.c is already 1000. */
     if (is_cmd(name, "draw_screen")) {
+        int caller = g_cmd_sprite;
+
         if (g_draw_screen != NULL) {
-            (void)g_draw_screen(g_cmd_sprite);
+            (void)g_draw_screen(caller);
         }
-        if (g_cmd_sprite != 1000 && yield != NULL) {
+        if (caller != 1000 && yield != NULL) {
             *yield = 3;
         }
         return 1;
@@ -1382,6 +1403,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "sp_hard")) {
         return change_sp(a0, DINKC_SP_HARD, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_disabled")) {
+        return change_sp(a0, DINKC_SP_DISABLED, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_notouch")) {
         return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);
@@ -1500,7 +1524,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
-    if (is_cmd(name, "draw_hard_sprite")) {
+    if (is_cmd(name, "draw_hard_sprite") || is_cmd(name, "draw_hard_map")) {
+        /* FreeDink dc_draw_hard_map: tiles + live + type 0/2. Same restamp. */
         g_hard_redraw_pending = 1;
         if (g_hard_redraw != NULL) {
             g_hard_redraw();

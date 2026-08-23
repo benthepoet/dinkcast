@@ -260,6 +260,41 @@ void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame)
     }
 }
 
+int edraw_loop_next_frame(const struct SeqInfo *seqs, int seq, int fr)
+{
+    int nfr, dseq, dfr;
+
+    if (seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ) {
+        return 1;
+    }
+    if (fr < 1) {
+        fr = 1;
+    }
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
+    if (nfr < 1) {
+        return fr;
+    }
+    if (fr >= nfr || ini_resolve_frame(seq, fr + 1, &dseq, &dfr) != 0) {
+        return 1;
+    }
+    return fr + 1;
+}
+
+static void need_push_loop(int *ns, int *nf, int *n, const struct SeqInfo *seqs,
+                           int seq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    need_push(ns, nf, n, seq, fr);
+    nxt = edraw_loop_next_frame(seqs, seq, fr);
+    if (nxt != fr) {
+        need_push(ns, nf, n, seq, nxt);
+    }
+}
+
 static int miss_has(int seq, int frame)
 {
     int i;
@@ -298,6 +333,8 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
     return ff_cached(dir, &ff);
 }
 
+static void upload_and_drop_cpu(struct SpriteFrame *f);
+
 static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
                     int frame, int may_evict)
 {
@@ -328,6 +365,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].seq = seq;
     g[*got].frame = frame;
     g[*got].live = 1;
+    upload_and_drop_cpu(&g[*got].fr);
     (*got)++;
     {
         size_t need = edraw_cpu_bytes(g, *got);
@@ -363,6 +401,21 @@ static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (load_one(g, got, seqs, seq, f2, 0) != 0) {
             break;
         }
+    }
+}
+
+static void load_loop_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                             int seq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    (void)load_one(g, got, seqs, seq, fr, 1);
+    nxt = edraw_loop_next_frame(seqs, seq, fr);
+    if (nxt != fr) {
+        (void)load_one(g, got, seqs, seq, nxt, 1);
     }
 }
 
@@ -540,6 +593,13 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
             }
         }
+        /* create_sprite MAIN (439 crowd / Chealse) is not an editor row.
+         * Fopen those packs while Prev still has slack. Last on the list
+         * lost maiden/blue after peasant2 (file_blob cap; do not pin 257). */
+        for (k = 0; k < g_nmark; k++) {
+            need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
+        }
+        g_nmark = 0;
         for (i = 1; i <= 100; i++) {
             int seq, fr, br;
 
@@ -553,13 +613,9 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
             need_push(need_s, need_f, &nneed, seq, fr);
             br = (int)sp[i].brain;
+            /* Repeat loops: current+next only. All 26 of 161 is 1.7 MB. */
             if ((int)sp[i].type == 1 && br == 6) {
-                int nfr, f2;
-
-                nfr = ini_seq_len(seq, seqs[seq].nframes);
-                for (f2 = 1; f2 <= nfr; f2++) {
-                    need_push(need_s, need_f, &nneed, seq, f2);
-                }
+                need_push_loop(need_s, need_f, &nneed, seqs, seq, fr);
             }
             if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
                 push_walk_frames(need_s, need_f, &nneed, seqs, br,
@@ -570,12 +626,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                                  (int)sp[i].base_walk, 0);
             }
         }
-        /* create_sprite during screen MAIN (Chealse) is not an editor row.
-         * swap_begin already demoted her pack to Prev; keep it Screen. */
-        for (k = 0; k < g_nmark; k++) {
-            need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
-        }
-        g_nmark = 0;
         /* Re-mark this Screen's packs before drop. Aged Prev (two screens
          * old) still occupies file_blob until swap_end — fopen Screen then
          * misses pigs on the first 407 visit. */
@@ -660,7 +710,9 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
             br = (int)sp[i].brain;
             if (br == 6) {
-                load_seq_frames(g, &got, seqs, (int)sp[i].seq);
+                int fr = (int)sp[i].frame < 1 ? 1 : (int)sp[i].frame;
+
+                load_loop_frames(g, &got, seqs, (int)sp[i].seq, fr);
             }
             if ((int)sp[i].is_warp && (int)sp[i].parm_seq > 0) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
@@ -702,14 +754,24 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 }
 
 #ifdef _arch_dreamcast
-static void upload_if_cpu(struct SpriteFrame *f)
+/* Inv/HUD already drop CPU after PVR. Screen loops (161/427/70) must too
+ * or unused frames fill cpu_pixels and play-path evicts+redecodes forever. */
+static void upload_and_drop_cpu(struct SpriteFrame *f)
 {
-    if (f != NULL && f->tex == NULL && f->argb1555 != NULL) {
-        (void)sprite_upload_pvr(f);
+    if (f == NULL) {
+        return;
+    }
+    if (f->tex == NULL && f->argb1555 != NULL) {
+        if (sprite_upload_pvr(f) != 0) {
+            return;
+        }
+    }
+    if (f->tex != NULL) {
+        sprite_drop_cpu(f);
     }
 }
 #else
-static void upload_if_cpu(struct SpriteFrame *f)
+static void upload_and_drop_cpu(struct SpriteFrame *f)
 {
     (void)f;
 }
@@ -733,7 +795,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     hit = edraw_find(g, got, seq, frame);
     if (hit != NULL) {
         /* preload_seq may decode CPU during play; draw skips tex==NULL. */
-        upload_if_cpu(hit);
+        upload_and_drop_cpu(hit);
         return 0;
     }
     if (miss_has(seq, frame)) {
@@ -788,9 +850,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             }
         }
     }
-#ifdef _arch_dreamcast
-    (void)sprite_upload_pvr(&g[got - 1].fr);
-#endif
+    upload_and_drop_cpu(&g[got - 1].fr);
     *n = got;
     return 0;
 }
@@ -809,7 +869,7 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
     load_seq_frames(g, &got, seqs, seq);
     for (i = 0; i < got; i++) {
         if (g[i].seq == seq) {
-            upload_if_cpu(&g[i].fr);
+            upload_and_drop_cpu(&g[i].fr);
         }
     }
     *n = got;
@@ -848,7 +908,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         }
     }
     hit = edraw_find(g, got, seq, frame);
-    upload_if_cpu(hit);
+    upload_and_drop_cpu(hit);
     *n = got;
 }
 
@@ -864,10 +924,19 @@ int edraw_upload_pvr(struct EdGfx *g, int n)
         if (!g[i].live) {
             continue;
         }
-        if (sprite_upload_pvr(&g[i].fr) != 0) {
-            printf("edraw upload fail seq=%d\n", g[i].seq);
-            continue;
+        {
+            int need = sprite_upload_needed(&g[i].fr);
+
+            if (need == 0) {
+                ok++;
+                continue;
+            }
+            if (need < 0 || sprite_upload_pvr(&g[i].fr) != 0) {
+                printf("edraw upload fail seq=%d\n", g[i].seq);
+                continue;
+            }
         }
+        sprite_drop_cpu(&g[i].fr);
         ok++;
     }
     return ok > 0 || n == 0 ? 0 : -1;

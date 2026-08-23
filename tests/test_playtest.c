@@ -2,9 +2,11 @@
 /* Confirmed playtest pictures — see docs/PLAYTEST.md. */
 #include "brains.h"
 #include "dinkc_cmd.h"
+#include "hard.h"
 #include "hit.h"
 #include "mapscr.h"
 #include "player.h"
+#include "tiles.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,6 +136,79 @@ int main(void)
     expect(scr.sprite[8].seq == 173, "barrel debris seq 173");
     expect(scr.sprite[8].hard == 1, "baked smash not hard");
     expect(brains_slot_hard(8) == 1, "brain hard survives bake");
+
+    /* S1-BRG2: dummy seq 64 is hardness only; spr.disabled skips draw. */
+    {
+        int dumb, sq = 0, fr = 0;
+
+        brains_reset();
+        brains_bind_screen(&scr);
+        dumb = brains_create(360, 300, 0, 64, 1);
+        expect(dumb >= 2, "bridge dummy slot");
+        expect(brains_change_prop(dumb, DINKC_SP_HARD, 0) == 0, "dummy hard=0");
+        expect(brains_change_prop(dumb, DINKC_SP_DISABLED, 1) == 1,
+               "dummy disabled");
+        expect(brains_slot_disabled(dumb), "dummy not drawn");
+        expect(brains_seq_frame(dumb, &sq, &fr) && sq == 64,
+               "dummy seq still 64");
+        expect(brains_slot_live(dumb), "dummy stays for hardness");
+    }
+
+    /* After fire: vis-0 pie table (seq 87/9) must not leave hardness when
+     * 14.4c refused the pixels. Draw already skips edraw_find == NULL.
+     * Type 2 hardness-only still stamps SET_SPRITE_INFO geom. */
+    {
+        struct HardMask table;
+        int hl = -39, ht = -33, hr = 43, hb = 7;
+
+        memset(&table, 0, sizeof(table));
+        table.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(table.pix != NULL, "table mask");
+        expect(!hard_stamp_without_pixels(0), "type 0 needs pixels");
+        expect(!hard_stamp_without_pixels(1), "type 1 needs pixels");
+        expect(hard_stamp_without_pixels(2), "type 2 geom ok");
+        hard_stamp_editor(&table, 319, 243, 1, 1, 0, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) == 0, "missing table pixels no hard");
+        hard_stamp_editor(&table, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) != 0, "loaded table stamps");
+        memset(table.pix, 0, (size_t)DINK_PLAY_W * DINK_PLAY_H);
+        hard_stamp_editor(&table, 319, 243, 2, 1, 0, hl, ht, hr, hb);
+        expect(hard_get(&table, 319, 243) != 0, "type 2 stamps without pixels");
+        hard_mask_free(&table);
+    }
+
+    /* Official S1-H1-4.c &story > 3: sp_active table (22) + beds (23/24)
+     * then draw_hard_map. Type 1 hardness is live sprites only. */
+    {
+        struct HardMask house;
+        int hl = -39, ht = -33, hr = 43, hb = 7;
+
+        expect(!hard_stamp_editor_slot(1, 0), "dead type 1 no stamp");
+        expect(hard_stamp_editor_slot(1, 1), "live type 1 stamps");
+        expect(hard_stamp_editor_slot(0, 0), "type 0 still stamps");
+        expect(hard_stamp_editor_slot(2, 0), "type 2 still stamps");
+        memset(&house, 0, sizeof(house));
+        house.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(house.pix != NULL, "house mask");
+        hard_stamp_editor(&house, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+        hard_stamp_editor(&house, 235, 298, 1, 1, 1, hl, ht, hr, hb);
+        hard_stamp_editor(&house, 448, 297, 1, 1, 1, hl, ht, hr, hb);
+        expect(hard_get(&house, 319, 243) != 0, "table hard while live");
+        expect(hard_get(&house, 235, 298) != 0, "dink bed hard while live");
+        expect(hard_get(&house, 448, 297) != 0, "mom bed hard while live");
+        memset(house.pix, 0, (size_t)DINK_PLAY_W * DINK_PLAY_H);
+        if (hard_stamp_editor_slot(1, 0)) {
+            hard_stamp_editor(&house, 319, 243, 1, 1, 1, hl, ht, hr, hb);
+            hard_stamp_editor(&house, 235, 298, 1, 1, 1, hl, ht, hr, hb);
+            hard_stamp_editor(&house, 448, 297, 1, 1, 1, hl, ht, hr, hb);
+        }
+        hard_stamp_editor(&house, 199, 88, 0, 1, 1, -20, -20, 20, 20);
+        expect(hard_get(&house, 319, 243) == 0, "table hard gone after sp_active");
+        expect(hard_get(&house, 235, 298) == 0, "dink bed hard gone");
+        expect(hard_get(&house, 448, 297) == 0, "mom bed hard gone");
+        expect(hard_get(&house, 199, 88) != 0, "type 0 wall stays");
+        hard_mask_free(&house);
+    }
 
     printf("OK test_playtest\n");
     return 0;

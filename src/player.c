@@ -126,6 +126,16 @@ void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
     }
 }
 
+int player_walk_pad(int pad_dir, int freeze, int choice_active)
+{
+    /* FreeDink human_brain: game_choice.active goto freeze. SAVEBOT
+     * unfreeze(1) before the 10-slot menu; Down must not walk. */
+    if (freeze > 0 || choice_active) {
+        return 0;
+    }
+    return pad_dir;
+}
+
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                  const struct SeqInfo *seqs, int now_ms,
                  const struct MapScreen *scr)

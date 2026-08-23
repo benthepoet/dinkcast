@@ -26,6 +26,8 @@ void edraw_mark_need(int seq, int frame);
 /* Play-path: Screen live = this tick's draw set (not "loaded this screen"). */
 void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs);
 void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame);
+/* Brain 6 wrap: fr+1, or 1 at end / terminator. */
+int edraw_loop_next_frame(const struct SeqInfo *seqs, int seq, int fr);
 /* Unique (seq,frame) for active editor sprites. */
 int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                       struct EdGfx *g, int *n, int vision);

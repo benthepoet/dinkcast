@@ -33,6 +33,8 @@ int sprite_load_seq_frame_nocolorkey(struct SeqInfo *seq, int seqn, int frame,
 int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
                    int *st, int *sr, int *sb);
 
+/* 1 = need pvr_mem from CPU; 0 = tex already; -1 = no pixels. */
+int sprite_upload_needed(const struct SpriteFrame *f);
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f);
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z);

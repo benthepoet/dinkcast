@@ -20,7 +20,7 @@ Spot-checks after those reports (do not take every “block leaving the village�
 ## Verdict
 
 **Village combat, talk, inventory, and HUD are grafted enough to play.**  
-**The full 1.08 campaign is not.** Coverage is about **104 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
+**The full 1.08 campaign is not.** Coverage is about **105 / 186** FreeDink DinkC names in `k_fn[]` (~56%). Stock scripts use **~125** of those 186. The rest of the pole is audio **12**, VMU **17**, and **14.6**. (`goto` #102; `spawn` #104; `load_screen`/`draw_screen` #105; `screenlock` #106; target/follow #107; brain lookup this PR.)
 
 Plan feasibility already called full campaign **~55–65%**. This audit agrees: the missing pieces are named FreeDink functions, not “the DC is too weak.”
 
@@ -51,7 +51,7 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 
 1. **VM `goto`** — host [#102](https://github.com/benthepoet/dinkcast/pull/102) (`locate_goto`). Flycast gossip/shop loop still a picture. ~88 uses / 22 files (`S2-OUT.c`, `ESCAPE.c`, `S1-LG.c`, `S8-DA.c`, …).
 2. **`spawn`** — host [#104](https://github.com/benthepoet/dinkcast/pull/104) (`dc_spawn`, sprite 1000, parent continues). ~7–21 uses (`ITEM-BOM.c`, `EN-DRAG.c`, `S4-DUCK.c`, `s7-boss.c`).
-3. **`load_screen` + `draw_screen` + fades** — host [#105](https://github.com/benthepoet/dinkcast/pull/105) (`dc_load_screen` / `dc_draw_screen`). Fades stay instant. ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
+3. **`load_screen` + `draw_screen` + fades** — host [#105](https://github.com/benthepoet/dinkcast/pull/105) (`dc_load_screen` / `dc_draw_screen`). `fade_*` truecolor clock (this PR). ~18 files (holes, caves, island warps). **Not** the same as walking a map edge.
 4. **`screenlock`** — host [#106](https://github.com/benthepoet/dinkcast/pull/106). ~21–33 files. FreeDink `dc_screenlock` + `get_hard` clamp. Boss/cult/castle arenas. No lock-bar gfx.
 5. **Wire `sp_target` / `sp_attack_wait` / `sp_distance` / `sp_follow` onto `BrainSpr`** and graft `process_target` / `process_follow`. Host [#107](https://github.com/benthepoet/dinkcast/pull/107). Pill/dragon ATTACK. `sp_follow` used by Quackers (`S1-DUCK.c`).
 6. **`get_sprite_with_this_brain`** (and rand / next) — host this PR. ~25 files. `EN-DRAG.c`, castle, cult, `EN-PILL1.c` unlock.
@@ -72,9 +72,9 @@ Work that unblocks **stock scripts**, in campaign order. **v0.2.0** scope is [do
 | Metric | Count |
 |---|---|
 | FreeDink `DCBD_ADD` names (+ `sp_base_death` alias) | 186 |
-| Dinkcast `k_fn[]` | 104 |
+| Dinkcast `k_fn[]` | 105 |
 | Real handlers (approx.) | ~77 |
-| In table but stub / silent success | ~15 (`playsound`, `playmidi`, fades, `fill_screen`, `activate_bow` instant-100, …) |
+| In table but stub / silent success | ~14 (`playsound`, `playmidi`, `fill_screen`, `activate_bow` instant-100, …) |
 | Missing from table → `dinkc unimplemented` | ~90 |
 | Used in official `Story/` | ~125 of 186 |
 | Missing/stub **and** used in campaign | ~39–54 distinct names |
@@ -98,10 +98,10 @@ Dinkcast-only table names (not FreeDink bindings): `stop`, `choice_start`, `choi
 ### Commands used in campaign and missing or stubbed
 
 **Missing (not in `k_fn[]`), used in 1.08:**  
-`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `draw_hard_map`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
+`save_game`, `load_game`, `game_exist`, `set_mode`, `reset_timer`, `set_dink_speed`, `say_xy`, `say_stop_xy`, `load_sound`, `get_version`, `sp_noclip`, `sp_reverse`, `sp_sound`, `sp_frame_delay`, `sp_nodraw`, `dink_can_walk_off_screen`, `count_magic`, `count_item`, `free_items`, `kill_this_item`, `stopmidi`, `compare_sprite_script`, `run_script_by_number`, …
 
 **In table, not FreeDink-complete:**  
-`playsound`, `playmidi`, `fade_up`/`fade_down`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
+`playsound`, `playmidi`, `fill_screen`, `activate_bow` (no charge loop), `kill_shadow`, `sp_kill_wait`, `sp_attack_hit_sound*`, `initfont`, `wait_for_button` (yield, no pad).
 
 **0 stock hits (defer):**  
 `copy_bmp_to_screen`, `wait_for_button`, `callback_kill`, `math_*`, `get_date_*`, `sp_clip_*`, `sp_gold`, `make_global_function`, `set_keep_mouse`, most editor/truecolor helpers.
@@ -143,7 +143,7 @@ Dispatch: FreeDink `update_frame.cpp`; Dinkcast `brain_switch()` + player in `pl
 |---|---|---|
 | screenlock | Host #106 | Arenas; no lock-bar gfx |
 | indoor / last_map | Parsed, unused | Map marker |
-| fade | Stub | Cosmetic + some `load_screen` sequences |
+| fade | Graft | Truecolor `CyclePalette` / `up_cycle` (400 ms); `fade_down` yields 1000 ms |
 | force_vision | Graft | `dc_force_vision` → sprite 1000 + `fill_whole_hard` + `draw_screen_game` (not a `&vision` write) |
 | editor_type 1 / 3 | OK | Types 6/7/8: no `last_time` |
 | play.spmap save | RAM only | Bite 17 |
@@ -193,7 +193,7 @@ D-Mod loader, DinkEdit, keyboard/mouse brains, `wait_for_button` (0 story hits),
 
 ## Sources
 
-- `/home/benh/Source/dinkcast/src/dinkc_cmd.c` (`k_fn[]`, fade/`fill_screen` stubs)
+- `/home/benh/Source/dinkcast/src/dinkc_cmd.c` (`k_fn[]`, `fill_screen` stub)
 - `/home/benh/Source/dinkcast/src/dinkc_vm.c` (`run_fiber`, `locate_goto` #102)
 - `/home/benh/Source/dinkcast/src/brains.c`
 - `/home/benh/Source/gnu_freedink/src/dinkc_bindings.cpp` (`dinkc_bindings_init`)

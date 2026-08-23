@@ -10,9 +10,11 @@ EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 # Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
+# EMU_SERIAL=0 / make emu-fast: no SerialConsole, no tee (less Flycast hitch).
 EMU_LOG ?= build/emu.log
+EMU_SERIAL ?= 1
 
-.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run emu-fast clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -57,8 +59,8 @@ tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c s
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
 	./$@
 
-tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c
+tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_dinkc_file: tests/test_dinkc_file.c src/dinkc_file.c src/fs.c src/residency.c src/ff.c src/le.c
@@ -73,12 +75,12 @@ tests/test_dinkc_parse: tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_parse.c src/dinkc_parse.c src/dinkc_lex.c src/dinkc_file.c src/fs.c src/residency.c src/ff.c src/le.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_dinkc_vm: tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
+tests/test_dinkc_vm: tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_vm.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
 	./$@
 
-tests/test_dinkc_var: tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
+tests/test_dinkc_var: tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_dinkc_var.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c
 	./$@
 
 tests/test_font: tests/test_font.c src/font.c src/font.h src/font_glyphs.inc
@@ -101,28 +103,28 @@ tests/test_brains: tests/test_brains.c src/brains.c src/hurt.c src/player.c src/
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_brains.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/world.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
+tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
 	./$@
 
 tests/test_playtest: tests/test_playtest.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/mem.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_playtest.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/mem.c
 	./$@
 
-tests/test_weapon: tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c
+tests/test_weapon: tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_weapon.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_touch: tests/test_touch.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/hit.c src/edraw.c src/sprite.c src/bmp.c src/mem.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_touch.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/hit.c src/edraw.c src/sprite.c src/bmp.c src/mem.c
+tests/test_touch: tests/test_touch.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/hit.c src/edraw.c src/sprite.c src/bmp.c src/mem.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_touch.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/hit.c src/edraw.c src/sprite.c src/bmp.c src/mem.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_inv: tests/test_inv.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_inv.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
+tests/test_inv: tests/test_inv.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_inv.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_status: tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
+tests/test_status: tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c src/mem.h src/fs.h
@@ -133,8 +135,8 @@ tests/test_leak: tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c s
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_save: tests/test_save.c src/save.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_save.c src/save.c src/dinkc_cmd.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
+tests/test_save: tests/test_save.c src/save.c src/dinkc_cmd.c src/fade.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_save.c src/save.c src/dinkc_cmd.c src/fade.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
 	./$@
 
 tests/test_startmenu: tests/test_startmenu.c src/startmenu.c src/pad.c src/startmenu.h src/pad.h
@@ -240,8 +242,12 @@ docker-cdi:
 	$(MAKE) chd
 
 # Launch Flycast (or EMU=...) on the built CHD (preferred) / CDI / ELF.
+# emu: SCIF + build/emu.log. emu-fast / EMU_SERIAL=0: no serial (playtest).
 emu run:
-	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)"
+	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)" $(if $(filter 0,$(EMU_SERIAL)),--no-serial)
+
+emu-fast:
+	@$(MAKE) emu EMU_SERIAL=0
 
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \

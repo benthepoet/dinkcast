@@ -48,6 +48,7 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_FOLLOW 35
 #define DINKC_SP_TARGET 36
 #define DINKC_SP_ATTACK_WAIT 37
+#define DINKC_SP_DISABLED 38
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));
@@ -74,7 +75,8 @@ void dinkc_cmd_set_dink_base_push(int seq);
 int dinkc_cmd_dink_base_push(void);
 /* 1 if move()/move_stop still running. */
 int dinkc_cmd_move_busy(int slot);
-/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 3 kill, 5 external. */
+/* 0 = unknown, 1 = ran. *yield: 0 continue, 1 say_stop, 3 kill, 5 external,
+ * 6 bmp, 7 fade. */
 int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
               const char *str2, int *yield, int *ret);
 /* 11.9: one table. DINKC_DUMP_FNS=1 prints implemented + missing. */

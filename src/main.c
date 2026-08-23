@@ -13,6 +13,7 @@
 #include "dinkdat.h"
 #include "fs.h"
 #include "edraw.h"
+#include "fade.h"
 #include "font.h"
 #include "hard.h"
 #include "hit.h"
@@ -142,50 +143,95 @@ static void on_blood(int slot)
     }
 }
 
+static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si)
+{
+    struct SpriteFrame *ef;
+    int hl, ht, hr, hb, cx, cy, hid, seq, fr, type;
+
+    seq = (int)g_scr.sprite[si].seq;
+    fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
+    if (seq < 1 || seq >= DINK_MAX_SEQ) {
+        return;
+    }
+    type = (int)g_scr.sprite[si].type;
+    hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
+    ef = edraw_find(g_edg, g_ned, seq, fr);
+    if (ef != NULL) {
+        hard_stamp_editor(mask, (int)g_scr.sprite[si].x,
+                          (int)g_scr.sprite[si].y, type, hid, 1, ef->hl, ef->ht,
+                          ef->hr, ef->hb);
+        return;
+    }
+    /* Type 0/1: no invisible furniture. Type 2 still uses SET_SPRITE_INFO. */
+    if (seqs == NULL || !hard_stamp_without_pixels(type)) {
+        return;
+    }
+    ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
+    hard_stamp_editor(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
+                      type, hid, 0, hl, ht, hr, hb);
+}
+
 static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 {
     int si;
 
-    /* FreeDink dc_draw_hard_sprite: update_play_changes then fill. */
+    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes,
+     * fill_whole_hard, fill_hard_sprites, fill_back_sprites. */
     dinkc_cmd_apply_spmap(&g_scr, dinkc_var_get("&player_map",
                                                 DINKC_GLOBAL_SCOPE, 1));
     if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
         return;
     }
     for (si = 1; si <= 100; si++) {
-        struct SpriteFrame *ef;
-        int hl, ht, hr, hb, cx, cy, hid, seq, fr;
-
         if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                      script_play_vision()) ||
             g_scr.sprite[si].hard != 0 || brains_slot_hard(si) != 0) {
             continue;
         }
-        seq = (int)g_scr.sprite[si].seq;
-        fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
-        if (seq < 1 || seq >= DINK_MAX_SEQ) {
+        if (!hard_stamp_editor_slot((int)g_scr.sprite[si].type,
+                                    brains_slot_live(si))) {
             continue;
         }
-        hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
-        ef = edraw_find(g_edg, g_ned, seq, fr);
-        if (ef != NULL) {
-            hard_stamp_box(mask, (int)g_scr.sprite[si].x,
-                           (int)g_scr.sprite[si].y, ef->hl, ef->ht, ef->hr,
-                           ef->hb, hid);
-            continue;
-        }
-        if (seqs == NULL) {
-            continue;
-        }
-        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
-                       &hb);
-        hard_stamp_box(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
-                       hl, ht, hr, hb, hid);
+        stamp_one_editor(mask, seqs, si);
     }
 }
 
 /* 14.4c: Screen live is this tick's editor + created draw frames. Unused
  * fire/explo frames become evictable before create_sprite frame-1. */
+static void edraw_live_touch_loop(struct SeqInfo *seqs, int ned, int sq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    edraw_live_touch(g_edg, ned, sq, fr);
+    nxt = edraw_loop_next_frame(seqs, sq, fr);
+    if (nxt != fr) {
+        edraw_live_touch(g_edg, ned, sq, nxt);
+    }
+}
+
+static void edraw_ensure_draw_frame(struct SeqInfo *seqs, int sq, int fr,
+                                    int looping)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
+        (void)edraw_ensure_frame(g_edg, &g_ned, seqs, sq, fr);
+    }
+    if (!looping) {
+        return;
+    }
+    nxt = edraw_loop_next_frame(seqs, sq, fr);
+    if (nxt != fr && edraw_find(g_edg, g_ned, sq, nxt) == NULL) {
+        (void)edraw_ensure_frame(g_edg, &g_ned, seqs, sq, nxt);
+    }
+}
+
 static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
 {
     int ei, sq, fr;
@@ -200,6 +246,10 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
         if (!editor_sprite_draw(&g_scr.sprite[ei], script_play_vision())) {
             continue;
         }
+        /* Brain 6 draw uses brains_apply pframe, not the editor snapshot. */
+        if ((int)g_scr.sprite[ei].brain == 6 && brains_slot_live(ei)) {
+            continue;
+        }
         if (fr < 1) {
             fr = 1;
         }
@@ -212,7 +262,11 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
         if (fr < 1) {
             fr = 1;
         }
-        edraw_live_touch(g_edg, ned, sq, fr);
+        if (brains_slot_brain(ei) == 6) {
+            edraw_live_touch_loop(seqs, ned, sq, fr);
+        } else {
+            edraw_live_touch(g_edg, ned, sq, fr);
+        }
     }
 }
 
@@ -242,8 +296,19 @@ static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
         }
         seq = brains_slot_pseq(i);
         br = brains_slot_brain(i);
-        if (seq > 0 && br != 3) {
-            edraw_load_frame(g_edg, ned, seqs, seq, 1);
+        {
+            int fr = 1;
+
+            if (brains_seq_frame(i, &seq, &fr)) {
+                if (fr < 1) {
+                    fr = 1;
+                }
+            } else {
+                seq = brains_slot_pseq(i);
+            }
+            if (seq > 0 && br != 3) {
+                edraw_load_frame(g_edg, ned, seqs, seq, fr);
+            }
         }
         bw = brains_slot_base_walk(i);
         if (bw <= 0) {
@@ -268,14 +333,18 @@ static void edraw_mark_created(void)
     static const int walkd[4] = {1, 3, 7, 9};
 
     for (i = 2; i <= 99; i++) {
-        int sq, bw;
+        int sq, fr, bw;
 
         if (!brains_slot_created(i)) {
             continue;
         }
-        sq = brains_slot_pseq(i);
-        if (sq >= 1) {
-            edraw_mark_need(sq, 1);
+        if (brains_seq_frame(i, &sq, &fr)) {
+            edraw_mark_need(sq, fr < 1 ? 1 : fr);
+        } else {
+            sq = brains_slot_pseq(i);
+            if (sq >= 1) {
+                edraw_mark_need(sq, 1);
+            }
         }
         bw = brains_slot_base_walk(i);
         if (bw >= 1) {
@@ -372,36 +441,12 @@ static int play_draw_screen(int sprite)
     printf("edraw unique %d\n", g_ned);
     if (g_play_mask != NULL) {
         for (nstamp = 1; nstamp <= 100; nstamp++) {
-            struct SpriteFrame *ef;
-            int hl, ht, hr, hb, cx, cy, hid, seq, fr;
-
             if (!editor_sprite_on_vision(&g_scr.sprite[nstamp],
                                          script_play_vision()) ||
                 g_scr.sprite[nstamp].hard != 0) {
                 continue;
             }
-            seq = (int)g_scr.sprite[nstamp].seq;
-            fr = (int)g_scr.sprite[nstamp].frame < 1
-                     ? 1
-                     : (int)g_scr.sprite[nstamp].frame;
-            if (seq < 1 || seq >= DINK_MAX_SEQ) {
-                continue;
-            }
-            hid = g_scr.sprite[nstamp].is_warp ? 100 + nstamp : 1;
-            ef = edraw_find(g_edg, g_ned, seq, fr);
-            if (ef != NULL) {
-                hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
-                               (int)g_scr.sprite[nstamp].y, ef->hl, ef->ht,
-                               ef->hr, ef->hb, hid);
-                continue;
-            }
-            if (seqs == NULL) {
-                continue;
-            }
-            ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht,
-                           &hr, &hb);
-            hard_stamp_box(g_play_mask, (int)g_scr.sprite[nstamp].x,
-                           (int)g_scr.sprite[nstamp].y, hl, ht, hr, hb, hid);
+            stamp_one_editor(g_play_mask, seqs, nstamp);
         }
     }
     dink_cd_settle();
@@ -873,39 +918,12 @@ int main(int argc, char **argv)
                                 status_cpu_bytes(),
                             g_ned, tiles_cache_bytes(), tiles_cache_sheets());
                     for (si = 1; si <= 100; si++) {
-                        struct SpriteFrame *ef;
-                        int hl, ht, hr, hb, cx, cy;
-
                         if (!editor_sprite_on_vision(&g_scr.sprite[si],
                                                      script_play_vision()) ||
                             g_scr.sprite[si].hard != 0) {
                             continue;
                         }
-                        ef = edraw_find(g_edg, g_ned, (int)g_scr.sprite[si].seq,
-                                        (int)g_scr.sprite[si].frame < 1
-                                            ? 1
-                                            : (int)g_scr.sprite[si].frame);
-                        if (ef != NULL) {
-                            hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
-                                           (int)g_scr.sprite[si].y, ef->hl,
-                                           ef->ht, ef->hr, ef->hb,
-                                           g_scr.sprite[si].is_warp
-                                               ? 100 + si
-                                               : 1);
-                            continue;
-                        }
-                        if (seqs == NULL) {
-                            continue;
-                        }
-                        ini_frame_geom(&seqs[g_scr.sprite[si].seq],
-                                       (int)g_scr.sprite[si].seq,
-                                       (int)g_scr.sprite[si].frame < 1
-                                           ? 1
-                                           : (int)g_scr.sprite[si].frame,
-                                       50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
-                        hard_stamp_box(&mask, (int)g_scr.sprite[si].x,
-                                       (int)g_scr.sprite[si].y, hl, ht, hr, hb,
-                                       g_scr.sprite[si].is_warp ? 100 + si : 1);
+                        stamp_one_editor(&mask, seqs, si);
                     }
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
@@ -979,6 +997,7 @@ int main(int argc, char **argv)
 #endif
                         g_need_title = 0;
                         startpause_reset();
+                        dinkc_vm_choice_close_saves();
                         swap = 1;
                         need_menu = 0;
                     }
@@ -986,6 +1005,7 @@ int main(int argc, char **argv)
                         g_need_title = 0;
                         g_show_splash = 1;
                         startpause_reset();
+                        dinkc_vm_choice_close_saves();
                         saybox_clear();
                         need_menu = 1;
                         continue;
@@ -1102,15 +1122,14 @@ int main(int argc, char **argv)
                         int pr = startpause_tick(prev_buttons, buttons);
 
                         if (pr == STARTPAUSE_TITLE) {
+                            dinkc_vm_choice_close_saves();
                             g_need_title = 1;
                             g_show_splash = 1;
                         } else if (pr == STARTPAUSE_CONTINUE || pr == -2) {
+                            dinkc_vm_choice_close_saves();
                             saybox_clear();
                         } else if (startpause_open()) {
-                            saybox_set(startpause_focus() == STARTPAUSE_TITLE
-                                           ? "Title"
-                                           : "Continue",
-                                       0);
+                            dinkc_vm_choice_open_pause(startpause_focus() + 1);
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         !dinkc_vm_waiting_say() &&
@@ -1210,33 +1229,28 @@ int main(int argc, char **argv)
                                                         script_play_vision())) {
                                     continue;
                                 }
-                                if (fr < 1) {
-                                    fr = 1;
+                                if ((int)g_scr.sprite[ei].brain == 6 &&
+                                    brains_slot_live(ei)) {
+                                    continue;
                                 }
-                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
-                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
-                                                             sq, fr);
-                                }
+                                edraw_ensure_draw_frame(seqs, sq, fr, 0);
                             }
                             for (ei = 1; ei <= 99; ei++) {
                                 if (!brains_seq_frame(ei, &sq, &fr)) {
                                     continue;
                                 }
-                                if (fr < 1) {
-                                    fr = 1;
-                                }
-                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
-                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
-                                                             sq, fr);
-                                }
+                                edraw_ensure_draw_frame(
+                                    seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
                         }
                     }
                     now_ms += DINKC_TICK_MS;
-                    if (dinkc_vm_waiting_choice()) {
+                    if (dinkc_vm_choice_n() > 0) {
                         choice_tick(now_ms);
                     }
                     pdir = have ? pad_dir_from_buttons(buttons) : 0;
+                    pdir = player_walk_pad(pdir, pl.freeze,
+                                           dinkc_vm_waiting_choice());
                     if (seqs != NULL) {
                         int wed = (inv_showing() || status_map_active() ||
                                    paused)
@@ -1369,7 +1383,8 @@ int main(int argc, char **argv)
                             struct SpriteFrame *ef;
 
                             if (!editor_sprite_draw(&g_scr.sprite[si],
-                                                    script_play_vision())) {
+                                                    script_play_vision()) ||
+                                brains_slot_disabled(si)) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;
@@ -1430,22 +1445,30 @@ int main(int argc, char **argv)
                                 (float)draw[a].y, 1.6f, draw[a].al, draw[a].at,
                                 draw[a].ar, draw[a].ab, draw[a].size);
                         }
+                        /* FreeDink: status chrome is on the background blit;
+                         * text_draw / choice run after sprites. PT GEQUAL
+                         * later-wins: HUD at 3.5 was covering say at 3.0. */
+                        status_draw_pvr(3.5f);
                         {
                             int fi, fx, fy, fnum;
 
                             for (fi = 1; fi <= 99; fi++) {
                                 if (brains_floater_num(fi, &fx, &fy, &fnum)) {
-                                    saybox_draw_num_pvr(fx, fy, fnum, 2.8f);
+                                    saybox_draw_num_pvr(fx, fy, fnum, 3.6f);
                                 }
                             }
                         }
-                        saybox_draw_pvr(3.0f);
-                        saybox_draw_choices_pvr(3.1f);
-                        status_draw_pvr(3.5f);
+                        saybox_draw_pvr(3.7f);
+                        saybox_draw_choices_pvr(3.8f);
                         inv_draw_pvr(4.0f);
                         status_draw_map_pvr(5.0f);
                     }
                     pvr_list_finish();
+                    if (fade_brightness() < FADE_FULL) {
+                        pvr_list_begin(PVR_LIST_TR_POLY);
+                        fade_draw_pvr();
+                        pvr_list_finish();
+                    }
                     pvr_scene_finish();
                     have_scene = 1;
                     }

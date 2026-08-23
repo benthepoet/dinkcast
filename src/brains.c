@@ -75,6 +75,7 @@ struct BrainSpr {
     int touch_damage, damage, last_hit, target, follow, distance, attack_wait,
         just_hit;
     int hard, notouch, bloodseq, bloodnum;
+    int disabled;
     char script[16];
 };
 
@@ -1705,6 +1706,10 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
         if (!s->live) {
             continue;
         }
+        /* update_frame: skip brains while spr[].disabled. */
+        if (s->disabled) {
+            continue;
+        }
         if (s->kill_ttl > 0) {
             if (s->kill_start == 0) {
                 s->kill_start = now_ms;
@@ -1839,6 +1844,8 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->size;
     } else if (prop == DINKC_SP_HARD) {
         p = &s->hard;
+    } else if (prop == DINKC_SP_DISABLED) {
+        p = &s->disabled;
     } else if (prop == DINKC_SP_NOTOUCH) {
         p = &s->notouch;
     } else if (prop == DINKC_SP_FOLLOW) {
@@ -2118,6 +2125,14 @@ int brains_slot_hard(int slot)
     }
     /* Survives brain-5 bake (live=0). 0 = stamp hardness. */
     return g_b[slot].hard;
+}
+
+int brains_slot_disabled(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].disabled != 0;
 }
 
 int brains_floater_num(int slot, int *x, int *y, int *num)

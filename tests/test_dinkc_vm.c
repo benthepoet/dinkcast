@@ -2,6 +2,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
+#include "fade.h"
 #include "hard.h"
 #include "player.h"
 #include "saybox.h"
@@ -14,6 +15,7 @@
 static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_stub_seq[100];
+static int g_stub_disabled[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
@@ -43,6 +45,18 @@ static int stub_draw_screen(int sprite)
     g_ndraw++;
     /* draw_screen_game: *pvision = 0 then kill_all except 1000. */
     dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_vm_kill_all();
+    return 0;
+}
+
+/* play_draw_screen nests screen MAIN / attach_live; those rebind. */
+static int stub_draw_screen_nested(int sprite)
+{
+    g_fill_before_draw = g_nfill;
+    g_draw_spr = sprite;
+    g_ndraw++;
+    dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_cmd_bind_fiber(2, 22);
     dinkc_vm_kill_all();
     return 0;
 }
@@ -81,6 +95,8 @@ static int stub_sp_change(int slot, int prop, int val)
         p = &g_stub_x[slot];
     } else if (prop == DINKC_SP_SEQ) {
         p = &g_stub_seq[slot];
+    } else if (prop == DINKC_SP_DISABLED) {
+        p = &g_stub_disabled[slot];
     } else {
         return -1;
     }
@@ -330,6 +346,70 @@ int main(void)
         (void)dir;
     }
     {
+        /* V0.3 Start pause: same seq 30 overlay as talk, not a saybox. */
+        dinkc_vm_reset();
+        dinkc_vm_choice_open_pause(1);
+        expect(dinkc_vm_choice_n() == 2, "pause two lines");
+        expect(strcmp(dinkc_vm_choice_line(1), "Continue") == 0, "pause continue");
+        expect(strcmp(dinkc_vm_choice_line(2), "Title") == 0, "pause title");
+        expect(dinkc_vm_choice_cur() == 1, "pause cur continue");
+        dinkc_vm_choice_open_pause(2);
+        expect(dinkc_vm_choice_cur() == 2, "pause cur title");
+        expect(!dinkc_vm_waiting_choice(), "pause overlay is not a fiber");
+        dinkc_vm_choice_close_saves();
+        expect(dinkc_vm_choice_n() == 0, "pause closed");
+    }
+    {
+        /* Official SAVEBOT.c talk: unfreeze(1) before the 10-slot menu. */
+        const char *savebot =
+            "void talk(void) {\n"
+            "  freeze(1);\n"
+            "  choice_start();\n"
+            "  \"Save your game\"\n"
+            "  \"Leave the strange machine\"\n"
+            "  choice_end();\n"
+            "  unfreeze(1);\n"
+            "  choice_start();\n"
+            "  \"&savegameinfo\"\n"
+            "  \"Nevermind\"\n"
+            "  choice_end();\n"
+            "}\n";
+        struct HardMask mask;
+        struct SeqInfo seqs[DINK_MAX_SEQ];
+        int ox, oy, i;
+
+        memset(&pl, 0, sizeof(pl));
+        player_init(&pl);
+        pl.x = 200;
+        pl.y = 200;
+        dinkc_cmd_bind_player(&pl);
+        dinkc_vm_reset();
+        slot = dinkc_vm_start_proc(savebot, strlen(savebot), 26, "talk");
+        expect(slot > 0 && dinkc_vm_waiting_choice() && pl.freeze == 1,
+               "savebot first frozen");
+        dinkc_vm_choice_pick(1);
+        expect(dinkc_vm_waiting_choice() && pl.freeze == 0,
+               "savebot slots unfrozen");
+        expect(player_walk_pad(2, pl.freeze, dinkc_vm_waiting_choice()) == 0,
+               "savebot Down no walk pad");
+        memset(&seqs, 0, sizeof(seqs));
+        for (i = 1; i < DINK_MAX_SEQ; i++) {
+            seqs[i].delay = 50;
+            seqs[i].nframes = 2;
+        }
+        memset(&mask, 0, sizeof(mask));
+        mask.pix = calloc((size_t)DINK_PLAY_W * DINK_PLAY_H, 1);
+        expect(mask.pix != NULL, "savebot mask");
+        ox = pl.x;
+        oy = pl.y;
+        player_step(&pl,
+                    player_walk_pad(2, pl.freeze, dinkc_vm_waiting_choice()),
+                    &mask, seqs, 0, NULL);
+        expect(pl.x == ox && pl.y == oy, "savebot Down stays");
+        hard_mask_free(&mask);
+        dinkc_vm_choice_pick(2);
+    }
+    {
         const char *titled =
             "void main(void) { choice_start(); set_y 240; set_title_color 5; "
             "title_start(); Hello title_end(); \"A\"; choice_end(); }";
@@ -411,6 +491,10 @@ int main(void)
                "unknown");
         expect(dinkc_cmd_missing_count() == miss0 + 1, "miss logged");
         expect(dinkc_cmd("draw_status", args, 0, "", "", &yld, &rv) == 1, "known");
+        expect(dinkc_cmd("draw_hard_map", args, 0, "", "", &yld, &rv) == 1,
+               "draw_hard_map");
+        expect(dinkc_cmd_hard_redraw_take() == 1, "draw_hard_map restamp");
+        expect(dinkc_cmd_hard_redraw_take() == 0, "draw_hard_map take once");
         dinkc_cmd_bind_sprite_change(stub_sp_change);
         args[0] = 7;
         args[1] = 9;
@@ -464,6 +548,19 @@ int main(void)
             "void main(void) { sp_x(5, 77); }",
             strlen("void main(void) { sp_x(5, 77); }"), 1);
         expect(g_stub_x[5] == 77, "sp_x npc write");
+        dinkc_vm_reset();
+        memset(g_stub_disabled, 0, sizeof(g_stub_disabled));
+        slot = dinkc_vm_start(
+            "void main(void) { sp_disabled(5, 1); }",
+            strlen("void main(void) { sp_disabled(5, 1); }"), 1);
+        expect(g_stub_disabled[5] == 1, "sp_disabled write");
+        {
+            int yld = 0, rv = 0, args[2] = {5, -1};
+
+            expect(dinkc_cmd("sp_disabled", args, 2, "", "", &yld, &rv) == 1 &&
+                       rv == 1,
+                   "sp_disabled read");
+        }
     }
     {
         /* BAR-SH hit: external("make","sheart") then sp_hard/draw_hard.
@@ -722,6 +819,21 @@ int main(void)
         dinkc_vm_kill_all();
         expect(dinkc_vm_used(keepslot), "attach 1000 survives kill_all");
 
+        /* Nested bind must not steal the caller's sprite for yield=3. */
+        dinkc_cmd_bind_draw_screen(stub_draw_screen_nested);
+        dinkc_vm_reset();
+        letterslot = dinkc_vm_start(letter, strlen(letter), 7);
+        expect(g_draw_spr == 1000, "nested draw still caller 1000");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "letter continues after nested bind");
+        expect(!dinkc_vm_used(letterslot), "letter MAIN finished after nested");
+
+        dinkc_vm_reset();
+        holeslot = dinkc_vm_start(hole, strlen(hole), 4);
+        expect(!dinkc_vm_used(holeslot), "hole still dies after nested bind");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 2,
+               "nothing after hole draw with nested bind");
+
         dinkc_cmd_bind_load_screen(NULL);
         dinkc_cmd_bind_draw_screen(NULL);
         (void)waitslot;
@@ -804,6 +916,112 @@ int main(void)
         args[0] = 0;
         (void)dinkc_cmd("screenlock", args, 1, "", "", &yld, &rv);
         expect(!dinkc_vm_used(slot), "lock script done");
+    }
+
+    {
+        /* FreeDink truecolor fade: 400 ms visual, fade_down yields 1000 ms.
+         * S1-H1-O: fade_down; wait(250); force_vision; fade_up. */
+        const char *fade =
+            "void main(void) {\n"
+            "  fade_down();\n"
+            "  &gold = 1;\n"
+            "  fade_up();\n"
+            "  &gold = 2;\n"
+            "}\n";
+        const char *s1 =
+            "void main(void) {\n"
+            "  fade_down();\n"
+            "  wait(250);\n"
+            "  &story = 5;\n"
+            "  force_vision(2);\n"
+            "  fade_up();\n"
+            "  &gold = 3;\n"
+            "}\n";
+        int fadeslot, s1slot;
+
+        g_ndraw = 0;
+        g_nfill = 0;
+        dinkc_cmd_bind_fill_hard(stub_fill_hard);
+        dinkc_cmd_bind_draw_screen(stub_draw_screen);
+        dinkc_vm_reset();
+        dinkc_var_set("&gold", 0, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_vm_tick(1);
+        fadeslot = dinkc_vm_start(fade, strlen(fade), 1);
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "fade_down yield");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "fade_down holds script");
+        expect(fade_brightness() == FADE_FULL, "first frame still full");
+        dinkc_vm_tick(17);
+        expect(fade_brightness() == FADE_FULL, "lasttick only");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "still fading");
+        dinkc_vm_tick(417);
+        expect(fade_brightness() == 0, "400ms to black");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE,
+               "fade_down waits cycle_clock");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 0,
+               "not past fade_down yet");
+        dinkc_vm_tick(1002);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "fade_down done then fade_up");
+        expect(dinkc_vm_state(fadeslot) == DINKC_WAIT_FADE, "fade_up yield");
+        expect(fade_brightness() == 0, "fade_up starts at black");
+        dinkc_vm_tick(1018);
+        expect(fade_brightness() == 0, "fade_up lasttick");
+        dinkc_vm_tick(1418);
+        expect(fade_brightness() == FADE_FULL, "400ms fade_up");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 2, "fade_up done");
+        expect(!dinkc_vm_used(fadeslot), "fade script done");
+
+        g_ndraw = 0;
+        g_nfill = 0;
+        dinkc_vm_reset();
+        dinkc_var_set("&story", 4, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&gold", 0, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&vision", 1, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_vm_tick(1);
+        s1slot = dinkc_vm_start(s1, strlen(s1), 7);
+        expect(dinkc_vm_state(s1slot) == DINKC_WAIT_FADE, "S1-H1-O fade_down");
+        dinkc_vm_tick(17);
+        dinkc_vm_tick(417);
+        expect(fade_brightness() == 0, "S1-H1-O black before swap");
+        dinkc_vm_tick(1002);
+        expect(dinkc_var_get("&story", DINKC_GLOBAL_SCOPE, 1) == 4,
+               "wait(250) after fade_down");
+        expect(g_ndraw == 0, "force_vision not yet");
+        expect(fade_brightness() == 0, "stay black through wait");
+        dinkc_vm_tick(1252);
+        expect(dinkc_var_get("&story", DINKC_GLOBAL_SCOPE, 1) == 5,
+               "story 5 after wait");
+        expect(g_nfill == 1 && g_ndraw == 1, "force_vision during black");
+        expect(fade_brightness() == 0, "force_vision while black");
+        expect(dinkc_vm_state(s1slot) == DINKC_WAIT_FADE, "S1-H1-O fade_up");
+        dinkc_vm_tick(1268);
+        dinkc_vm_tick(1668);
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "S1-H1-O fade_up done");
+        dinkc_cmd_bind_draw_screen(NULL);
+        dinkc_cmd_bind_fill_hard(NULL);
+    }
+
+    {
+        /* Official S1-H1-4.c &story > 3: hide table+beds then draw_hard_map. */
+        const char *s1 =
+            "void main(void) {\n"
+            "  int &who = sp(22);\n"
+            "  int &who2 = sp(23);\n"
+            "  int &who3 = sp(24);\n"
+            "  sp_active(&who,0);\n"
+            "  sp_active(&who2,0);\n"
+            "  sp_active(&who3,0);\n"
+            "  draw_hard_map();\n"
+            "}\n";
+
+        dinkc_vm_reset();
+        (void)dinkc_cmd_hard_redraw_take();
+        slot = dinkc_vm_start(s1, strlen(s1), 22);
+        expect(slot > 0, "s1-h1-4 start");
+        expect(dinkc_vm_live() == 0, "s1-h1-4 done");
+        expect(dinkc_cmd_hard_redraw_take() == 1, "s1-h1-4 draw_hard_map");
     }
 
     printf("OK test_dinkc_vm\n");

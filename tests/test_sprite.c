@@ -4,6 +4,7 @@
 #include "sprite.h"
 #include "start_map.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,6 +82,26 @@ int main(void)
         if (sprite_alt_src(185, 62, 0, 0, 65, 62, &sl, &st, &sr, &sb) != 1 ||
             sl != 0 || sr != 65) {
             fprintf(stderr, "FAIL alt right rail %d %d\n", sl, sr);
+            return 1;
+        }
+    }
+    {
+        struct SpriteFrame up;
+
+        memset(&up, 0, sizeof(up));
+        if (sprite_upload_needed(&up) != -1) {
+            fprintf(stderr, "FAIL upload needed empty\n");
+            return 1;
+        }
+        up.argb1555 = (uint16_t *)(uintptr_t)1;
+        if (sprite_upload_needed(&up) != 1) {
+            fprintf(stderr, "FAIL upload needed cpu\n");
+            return 1;
+        }
+        up.tex = (void *)(uintptr_t)1;
+        up.argb1555 = NULL;
+        if (sprite_upload_needed(&up) != 0) {
+            fprintf(stderr, "FAIL upload needed tex after cpu drop\n");
             return 1;
         }
     }

@@ -5,6 +5,7 @@
 #include "dinkc_cmd.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
+#include "fade.h"
 #include "save.h"
 
 #include <ctype.h>
@@ -789,6 +790,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     printf("dinkc yield bmp\n");
                     return;
                 }
+                if (yld == 7) {
+                    f->state = DINKC_WAIT_FADE;
+                    printf("dinkc yield fade\n");
+                    return;
+                }
                 if (yld == 5) {
                     /* FreeDink run_script(child) then proc_return: sheart()
                      * is already done, so HIT must reach sp_hard this tick. */
@@ -1204,6 +1210,7 @@ void dinkc_vm_reset(void)
     dinkc_cmd_bind_callback(vm_add_cb);
     choice_meta_clear();
     dinkc_vm_choice_close_saves();
+    fade_reset();
 }
 
 void dinkc_vm_tick(int now_ms)
@@ -1213,6 +1220,7 @@ void dinkc_vm_tick(int now_ms)
     g_now_ms = now_ms;
     dinkc_cmd_set_now(now_ms);
     dinkc_vm_tick_callbacks(now_ms);
+    fade_tick(now_ms);
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         struct Fiber *f = &g_f[i];
 
@@ -1225,6 +1233,8 @@ void dinkc_vm_tick(int now_ms)
             run_fiber(f, now_ms);
         } else if (f->state == DINKC_WAIT_EXT &&
                    !dinkc_vm_used(f->wait_child)) {
+            run_fiber(f, now_ms);
+        } else if (f->state == DINKC_WAIT_FADE && !fade_busy()) {
             run_fiber(f, now_ms);
         }
     }
@@ -1311,6 +1321,17 @@ void dinkc_vm_choice_close_saves(void)
     g_sa_on = 0;
     g_sa_n = 0;
     g_sa_cur = 0;
+}
+
+void dinkc_vm_choice_open_pause(int cur1)
+{
+    /* ESCAPE.c is a choice overlay. DC pause is Continue / Title only. */
+    choice_meta_clear();
+    snprintf(g_sa_line[0], sizeof(g_sa_line[0]), "Continue");
+    snprintf(g_sa_line[1], sizeof(g_sa_line[1]), "Title");
+    g_sa_n = 2;
+    g_sa_cur = (cur1 == 2) ? 2 : 1;
+    g_sa_on = 1;
 }
 
 int dinkc_vm_choice_n(void)

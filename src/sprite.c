@@ -257,16 +257,30 @@ void sprite_drop_cpu(struct SpriteFrame *f)
     f->argb1555 = NULL;
 }
 
+int sprite_upload_needed(const struct SpriteFrame *f)
+{
+    if (f == NULL) {
+        return -1;
+    }
+    /* Screen CPU drop after PVR: tex lives, argb1555 is NULL. */
+    if (f->tex != NULL) {
+        return 0;
+    }
+    if (f->argb1555 == NULL) {
+        return -1;
+    }
+    return 1;
+}
+
 #ifdef _arch_dreamcast
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
     pvr_ptr_t tex;
+    int need;
 
-    if (f == NULL || f->argb1555 == NULL) {
-        return -1;
-    }
-    if (f->tex != NULL) {
-        return 0;
+    need = sprite_upload_needed(f);
+    if (need <= 0) {
+        return need;
     }
     sprite_evict_pvr(f);
     tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);

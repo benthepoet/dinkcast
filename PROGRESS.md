@@ -12,6 +12,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 |---|---|---|
 | [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
 | [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
+| [v0.3.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0) | 2026-08-23 | START + VMU **17** + playtest #117. |
 
 ## On master
 
@@ -175,9 +176,29 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Tilesheet slurp drops Prev `dir.ff` (376 path after 408) | #114 |
 | 2026-08-23 | Playtest: 376 pathway after Load confirmed | this PR |
 | 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
-| 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | this PR |
-| 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | this PR |
-| 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | this PR |
+| 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | #116 |
+| 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | #116 |
+| 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | #116 |
+| 2026-08-23 | Playtest: burning-house exit + 439 crowd confirmed | #116 |
+| 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | this PR |
+| 2026-08-23 | `draw_hard_map` + type 1 hardness is live-only (S1-H1-4 table/beds) | this PR |
+| 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
+| 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
+| 2026-08-23 | 14.4c: brain-6 current+next (not nfr / not seq 161 pin) | this PR |
+| 2026-08-23 | 14.4c: drop Screen CPU after PVR (fire loop cache) | this PR |
+| 2026-08-23 | Playtest: indoor fire hitch confirmed | this PR |
+| 2026-08-23 | 14.4b: create_sprite marks before editor unique (257) | this PR |
+| 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
+| 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
+| 2026-08-23 | Playtest: burned-house hardness + Libby confirmed | this PR |
+| 2026-08-23 | Choice Down does not walk (`player_walk_pad`; SAVEBOT slots) | this PR |
+| 2026-08-23 | `edraw upload fail` after CPU drop is a second pass, not a miss | this PR |
+| 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | this PR |
+| 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | this PR |
+| 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
+| 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
+| 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | this PR |
+| 2026-08-23 | **v0.3.0** tagged | this PR |
 
 ## Bites
 
@@ -212,9 +233,9 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.5 | Wave 1 commands | source | serial `say`; A = talk(); #39. Live sprite cmds leftover → **11.10** |
 | 11.6 | Attach on enter | source | screen MAIN then type-1 `main()` rank; #40. Script field 30240 this PR |
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
-| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` = sprite 1000 + `draw_screen_game` (this PR) |
+| 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` #116. `fade_*` truecolor clock (this PR). `fill_screen` still instant |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
-| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
+| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. `sp_disabled` skip draw (this PR) |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
@@ -222,7 +243,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | source | host ping-pong 439↔441; `file_blob`/`always`/`ts_rgb` ≤ 4 KB after warm; `swap_ms` (Flycast may be ~0). Hardware delay is ODE/burn |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** packs #82. **14.4c** pixels #90. Tilesheet slurp uses the same Prev `dir.ff` drop as packs (376 `ts41` after 408) |
-| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Flycast punch still the human check |
+| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). DC Screen drops CPU after PVR so unused loop frames do not refuse. Flycast punch still the human check |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
@@ -243,7 +264,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | KallistiOS / `.cdi` | `make docker-cdi` works; Flycast needs real `dc_boot.bin` |
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
 | Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts + 376 pathway after Load confirmed; burning-house exit Open |
-| v0.3.0 | [docs/V0.3.md](docs/V0.3.md) — START menu + VMU; **17** before **12** |
+| v0.3.0 | tagged 2026-08-23. START + VMU **17**. Next: requester go. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -253,13 +274,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-22)
+### Current (2026-08-23)
 
 | | | |
 |---|---|---|
-| **Overall** | **~90%** | CD first-read hang class retired in Flycast (KOS #1492 + sector padding); hardware/ODE still pending |
-| **Next picture** | **START menu + VMU load** | v0.3.0. Burning-house exit stays Open. **14.6** gated |
-| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **17** this slice; **12** after |
+| **Overall** | **~90%** | v0.3.0: START + VMU in Flycast; hardware/ODE still pending |
+| **Next picture** | requester go | Audio **12** and **14.6** gated |
+| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **12** after |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -334,3 +355,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (fire house log) | **~90%** | Burning start-house fire/explo drew; log spam is 14.4c seq **161** ping-pong. Exit failed: `s1-h1-s` never `unfreeze`s; FreeDink warps while frozen (`get_hard_play` + `special_block`). Logged in PLAYTEST, no patch. |
 | 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
 | 2026-08-22 (v0.3 plan) | **~90%** | Requester: title + VMU before remaining campaign issues. **17** before **12**. **14.6** still gated. |
+| 2026-08-23 (v0.3.0) | **~90%** | Requester stamped START + VMU + playtest #117. Audio **12** / **14.6** still gated. |
