@@ -257,6 +257,7 @@ static const struct {
     {"inside_box", 0},
     {"sp_size", 0},
     {"sp_hard", 0},
+    {"sp_disabled", 0},
     {"sp_notouch", 0},
     {"draw_hard_sprite", 0},
     {"draw_hard_map", 0},
@@ -1402,6 +1403,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "sp_hard")) {
         return change_sp(a0, DINKC_SP_HARD, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_disabled")) {
+        return change_sp(a0, DINKC_SP_DISABLED, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_notouch")) {
         return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);

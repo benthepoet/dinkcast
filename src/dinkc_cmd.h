@@ -48,6 +48,7 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_FOLLOW 35
 #define DINKC_SP_TARGET 36
 #define DINKC_SP_ATTACK_WAIT 37
+#define DINKC_SP_DISABLED 38
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));

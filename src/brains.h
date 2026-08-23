@@ -61,6 +61,8 @@ int brains_take_just_hit(int slot);
 int brains_seq_frame(int slot, int *seq, int *frame);
 int brains_slot_size(int slot);
 int brains_slot_hard(int slot);
+/* FreeDink spr[].disabled: skip draw, keep active/hard. */
+int brains_slot_disabled(int slot);
 /* brain 8 hit/exp floater. 1 if this slot should draw a number. */
 int brains_floater_num(int slot, int *x, int *y, int *num);
 /* FreeDink draw_damage / random_blood. */

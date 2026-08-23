@@ -137,6 +137,23 @@ int main(void)
     expect(scr.sprite[8].hard == 1, "baked smash not hard");
     expect(brains_slot_hard(8) == 1, "brain hard survives bake");
 
+    /* S1-BRG2: dummy seq 64 is hardness only; spr.disabled skips draw. */
+    {
+        int dumb, sq = 0, fr = 0;
+
+        brains_reset();
+        brains_bind_screen(&scr);
+        dumb = brains_create(360, 300, 0, 64, 1);
+        expect(dumb >= 2, "bridge dummy slot");
+        expect(brains_change_prop(dumb, DINKC_SP_HARD, 0) == 0, "dummy hard=0");
+        expect(brains_change_prop(dumb, DINKC_SP_DISABLED, 1) == 1,
+               "dummy disabled");
+        expect(brains_slot_disabled(dumb), "dummy not drawn");
+        expect(brains_seq_frame(dumb, &sq, &fr) && sq == 64,
+               "dummy seq still 64");
+        expect(brains_slot_live(dumb), "dummy stays for hardness");
+    }
+
     /* After fire: vis-0 pie table (seq 87/9) must not leave hardness when
      * 14.4c refused the pixels. Draw already skips edraw_find == NULL.
      * Type 2 hardness-only still stamps SET_SPRITE_INFO geom. */

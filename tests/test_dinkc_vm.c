@@ -15,6 +15,7 @@
 static int g_stub_brain[100];
 static int g_stub_x[100];
 static int g_stub_seq[100];
+static int g_stub_disabled[100];
 static int g_move_on;
 static const char *g_ext_src;
 static const char *g_spawn_src;
@@ -94,6 +95,8 @@ static int stub_sp_change(int slot, int prop, int val)
         p = &g_stub_x[slot];
     } else if (prop == DINKC_SP_SEQ) {
         p = &g_stub_seq[slot];
+    } else if (prop == DINKC_SP_DISABLED) {
+        p = &g_stub_disabled[slot];
     } else {
         return -1;
     }
@@ -545,6 +548,19 @@ int main(void)
             "void main(void) { sp_x(5, 77); }",
             strlen("void main(void) { sp_x(5, 77); }"), 1);
         expect(g_stub_x[5] == 77, "sp_x npc write");
+        dinkc_vm_reset();
+        memset(g_stub_disabled, 0, sizeof(g_stub_disabled));
+        slot = dinkc_vm_start(
+            "void main(void) { sp_disabled(5, 1); }",
+            strlen("void main(void) { sp_disabled(5, 1); }"), 1);
+        expect(g_stub_disabled[5] == 1, "sp_disabled write");
+        {
+            int yld = 0, rv = 0, args[2] = {5, -1};
+
+            expect(dinkc_cmd("sp_disabled", args, 2, "", "", &yld, &rv) == 1 &&
+                       rv == 1,
+                   "sp_disabled read");
+        }
     }
     {
         /* BAR-SH hit: external("make","sheart") then sp_hard/draw_hard.

@@ -1383,7 +1383,8 @@ int main(int argc, char **argv)
                             struct SpriteFrame *ef;
 
                             if (!editor_sprite_draw(&g_scr.sprite[si],
-                                                    script_play_vision())) {
+                                                    script_play_vision()) ||
+                                brains_slot_disabled(si)) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;

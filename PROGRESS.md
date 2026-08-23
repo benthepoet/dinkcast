@@ -195,6 +195,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | this PR |
 | 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | this PR |
 | 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
+| 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
 
 ## Bites
 
@@ -231,7 +232,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.7 | Wave 2 choices + items | source | numbered lines; `&result`; cmd stubs; #41 |
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` #116. `fade_*` truecolor clock (this PR). `fill_screen` still instant |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
-| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. Skip active editor; keep created this PR |
+| 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. `sp_disabled` skip draw (this PR) |
 | 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
