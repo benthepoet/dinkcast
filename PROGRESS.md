@@ -180,6 +180,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | #116 |
 | 2026-08-23 | Playtest: burning-house exit + 439 crowd confirmed | #116 |
 | 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | this PR |
+| 2026-08-23 | Pie-table hardness still in Flycast; come back later | this PR |
+| 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
 
 ## Bites
 

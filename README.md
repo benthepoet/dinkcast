@@ -34,7 +34,8 @@ Full steps: [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md).
 
 ```bash
 make docker-cdi   # ELF + CDI + CHD via KOS Docker image (needs dockerd + chdman)
-make emu          # Flycast on the CHD; serial also in build/emu.log
+make emu          # Flycast on the CHD; SCIF also in build/emu.log
+make emu-fast     # same CHD, SCIF off (no emu.log; less hitch)
 ```
 
 Without Docker, `source $KOS_BASE/environ.sh && make dc && make cdi`.
@@ -52,4 +53,4 @@ Host still: `make title-preview` → `build/title_preview.ppm`.
 make host
 ```
 
-**Emulator:** Flycast + **`dc_boot.bin`** in `~/.local/share/flycast/`. `make emu` opens `build/dinkcast.chd`. REIOS often will not boot. Real hardware + `dcload` / burned CDI is still the ship check. Needs **chdman** (`pacman -S mame-tools`).
+**Emulator:** Flycast + **`dc_boot.bin`** in `~/.local/share/flycast/`. `make emu` opens `build/dinkcast.chd` (SCIF + `build/emu.log`). `make emu-fast` is the same CHD with SCIF off. REIOS often will not boot. Real hardware + `dcload` / burned CDI is still the ship check. Needs **chdman** (`pacman -S mame-tools`).

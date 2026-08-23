@@ -24,13 +24,13 @@ Canon for this repo: [DREAMCAST-PORT-PLAN.md](../../../DREAMCAST-PORT-PLAN.md), 
 - Screen swap: cache tilesets. Same-set **0.2–0.6 s** on CD; new set **0.5–2 s**. Every-screen “Loading…” is a pack/evict bug (plan + GOTCHAS). Flycast will look instant.
 - Data: `DINK_DATA` is the inner `dink/` tree (has `Dink.dat`). Never commit game blobs.
 - SH-4 ELF must not contain host paths. Runtime roots: `/pc/dink`, `/cd/dink`, `/cd/DINK`, `/cd`.
-- `printf` is SCIF serial. `make emu` enables Flycast `Debug.SerialConsoleEnabled` so those lines appear in the **same terminal**. HUD still required if you launch Flycast from the GUI without that flag.
+- `printf` is SCIF serial. `make emu` enables Flycast `Debug.SerialConsoleEnabled` so those lines appear in the **same terminal**. `make emu-fast` / `EMU_SERIAL=0` sets it **no** and skips the tee (SerialConsole bogs Flycast). HUD still required if you launch Flycast from the GUI without that flag.
 
 ## Build
 
 - Host: `make host`.
 - ELF+CDI: `make docker-cdi` (daemon must run; user in `docker` group). Image: `KOS_DOCKER_IMAGE` or default in `tools/docker_kos.sh`.
-- Flycast: `make emu` on **`build/dinkcast.chd`**. Prefer **real `dc_boot.bin`** in `~/.local/share/flycast/`. REIOS often never reaches `1ST_READ.BIN`. Do not playtest DiscJuggler `.cdi` in Flycast.
+- Flycast: `make emu` on **`build/dinkcast.chd`**. Prefer **real `dc_boot.bin`** in `~/.local/share/flycast/`. REIOS often never reaches `1ST_READ.BIN`. Do not playtest DiscJuggler `.cdi` in Flycast. Playtest pictures: `make emu-fast`.
 - After a red/stripe/boot fail or a playtest “wrong picture” report: read **`build/emu.log` first**, then the framebuffer HUD, then GOTCHAS. If the log cannot diagnose it, **add logging and reproduce**. Spawn **debug orchestrator + one Adversarial** (AGENTS.md). Do not solo-guess. Do not spawn Disc/FS + PVR + Boot as extra agents.
 - **Visual gates:** do not proceed past 3.4 / 6.3 / 8.4 / 9.3 / 13.2 / 16.x until the human accepts that picture.
 

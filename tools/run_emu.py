@@ -36,15 +36,18 @@ def find_flycast() -> list[str] | None:
 
 
 # Flycast: -config section:key=value (virtual; not written to emu.cfg).
-# Debug.SerialConsoleEnabled prints SH-4 SCIF (KOS printf) to the terminal.
-FLYCAST_SERIAL = ["-config", "config:Debug.SerialConsoleEnabled=yes"]
+# Always set the key so emu.cfg / Settings cannot leave SCIF on for emu-fast.
+# SerialConsole + the Python tee bog Flycast; playtest pictures use --no-serial.
+FLYCAST_SERIAL_ON = ["-config", "config:Debug.SerialConsoleEnabled=yes"]
+FLYCAST_SERIAL_OFF = ["-config", "config:Debug.SerialConsoleEnabled=no"]
 
 
-def flycast_cmd(base: list[str], image: Path) -> list[str]:
-    """Argv for Flycast with SCIF serial on stdout (KOS printf)."""
+def flycast_cmd(base: list[str], image: Path, serial: bool = True) -> list[str]:
+    """Argv for Flycast. serial=True prints SH-4 SCIF (KOS printf) to stdout."""
     name = Path(base[0]).name.lower()
     if "flycast" in name or (len(base) >= 3 and "flycast" in base[2].lower()):
-        return base + FLYCAST_SERIAL + [str(image)]
+        extra = FLYCAST_SERIAL_ON if serial else FLYCAST_SERIAL_OFF
+        return base + extra + [str(image)]
     return base + [str(image)]
 
 
@@ -102,6 +105,11 @@ def main() -> int:
         default=os.environ.get("EMU_LOG", DEFAULT_LOG),
         help="tee SCIF/stdout here (default build/emu.log)",
     )
+    ap.add_argument(
+        "--no-serial",
+        action="store_true",
+        help="disable Flycast SCIF and skip the tee (make emu-fast)",
+    )
     args = ap.parse_args()
 
     image = (args.image or "").strip()
@@ -129,8 +137,11 @@ def main() -> int:
         )
         return 2
 
-    full = flycast_cmd(cmd, ip.resolve())
+    full = flycast_cmd(cmd, ip.resolve(), serial=not args.no_serial)
     print("make emu:", " ".join(full), flush=True)
+    if args.no_serial:
+        print("make emu: SCIF off (no emu.log)", flush=True)
+        return subprocess.call(full)
     return tee_run(full, Path(args.log))
 
 

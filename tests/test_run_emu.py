@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Drive tools/run_emu.py: no image fails; Flycast argv enables SCIF serial."""
+"""Drive tools/run_emu.py: no image fails; Flycast argv toggles SCIF serial."""
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,9 +11,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "run_emu.py"
 
 
+def python_bin() -> str:
+    exe = sys.executable
+    if "python" in Path(exe).name.lower() and "appimage" not in exe.lower():
+        return exe
+    for name in ("python3.14", "python3"):
+        w = shutil.which(name)
+        if w and "appimage" not in w.lower():
+            return w
+    return exe
+
+
 def run(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [python_bin(), str(SCRIPT), *args],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -37,13 +49,21 @@ def main() -> int:
     if "Debug.SerialConsoleEnabled=yes" not in joined:
         print("FAIL serial flag missing:", argv)
         return 1
+    quiet = mod.flycast_cmd(["/usr/bin/flycast"], Path("/tmp/x.cdi"), serial=False)
+    qj = " ".join(quiet)
+    if "Debug.SerialConsoleEnabled=no" not in qj:
+        print("FAIL serial off missing:", quiet)
+        return 1
+    if "Debug.SerialConsoleEnabled=yes" in qj:
+        print("FAIL serial still on:", quiet)
+        return 1
     if str(Path("/tmp/x.cdi")) not in argv:
         print("FAIL image missing:", argv)
         return 1
     logp = ROOT / "build" / "test-emu-tee.log"
     if logp.exists():
         logp.unlink()
-    rc = mod.tee_run([sys.executable, "-c", "print('emu-tee-ok', flush=True)"], logp)
+    rc = mod.tee_run([python_bin(), "-c", "print('emu-tee-ok', flush=True)"], logp)
     if rc != 0:
         print("FAIL tee rc", rc)
         return 1

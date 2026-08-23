@@ -10,9 +10,11 @@ EMU ?= flycast
 # First existing path wins once Bite 0.2+ produces artifacts.
 EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkcast.cdi dinkcast.cdi build/dinkcast.elf dinkcast.elf))
 # Latest playtest SCIF/stdout (also printed). Override with EMU_LOG=.
+# EMU_SERIAL=0 / make emu-fast: no SerialConsole, no tee (less Flycast hitch).
 EMU_LOG ?= build/emu.log
+EMU_SERIAL ?= 1
 
-.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run clean
+.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run emu-fast clean
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -240,8 +242,12 @@ docker-cdi:
 	$(MAKE) chd
 
 # Launch Flycast (or EMU=...) on the built CHD (preferred) / CDI / ELF.
+# emu: SCIF + build/emu.log. emu-fast / EMU_SERIAL=0: no serial (playtest).
 emu run:
-	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)"
+	@$(PYTHON) tools/run_emu.py --emu "$(EMU)" --image "$(EMU_IMAGE)" --log "$(EMU_LOG)" $(if $(filter 0,$(EMU_SERIAL)),--no-serial)
+
+emu-fast:
+	@$(MAKE) emu EMU_SERIAL=0
 
 clean:
 	rm -rf build tests/test_boot_const tools/test_fs_join tests/test_bmp \

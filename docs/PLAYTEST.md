@@ -39,7 +39,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 | Picture | Host lock |
 |---|---|
-| Burned start-house: leftover pie-table hardness (seq 87/9) after the fire | `test_playtest` type 1 missing-pixels skip; `test_edraw` editor 22 is official vis 0 |
+| Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
 | Abrupt snap when outdoor fire ends / crowd leaves (`S1-H1-O` `fade_down` / `fade_up`) | (later; `fade_*` are instant stubs) |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 
@@ -49,7 +49,9 @@ Do not mark new pictures confirmed until the requester says so. Name them here w
 
 408→376 after Load: `tiles slurp ok tiles/ts41.bmp` then `swap atlas ok`. `edraw load seq=32` frames 1/9/10. No `tiles slurp fail` / `atlas fail keep`. Requester stamped the path.
 
-Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows. Next Open: leftover pie-table hardness inside after the fire; fade snap; SAVEBOT Down walks Dink.
+Burning-house exit + 439 crowd: requester “The crowd showed up this time.” Host locks already on those rows.
+
+Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87. Next Open: fade snap; SAVEBOT Down walks Dink.
 
 ## Log notes (2026-08-22, not confirmed)
 
