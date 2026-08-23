@@ -193,6 +193,40 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 
 /* 14.4c: Screen live is this tick's editor + created draw frames. Unused
  * fire/explo frames become evictable before create_sprite frame-1. */
+static void edraw_live_touch_loop(struct SeqInfo *seqs, int ned, int sq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    edraw_live_touch(g_edg, ned, sq, fr);
+    nxt = edraw_loop_next_frame(seqs, sq, fr);
+    if (nxt != fr) {
+        edraw_live_touch(g_edg, ned, sq, nxt);
+    }
+}
+
+static void edraw_ensure_draw_frame(struct SeqInfo *seqs, int sq, int fr,
+                                    int looping)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
+        (void)edraw_ensure_frame(g_edg, &g_ned, seqs, sq, fr);
+    }
+    if (!looping) {
+        return;
+    }
+    nxt = edraw_loop_next_frame(seqs, sq, fr);
+    if (nxt != fr && edraw_find(g_edg, g_ned, sq, nxt) == NULL) {
+        (void)edraw_ensure_frame(g_edg, &g_ned, seqs, sq, nxt);
+    }
+}
+
 static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
 {
     int ei, sq, fr;
@@ -210,7 +244,11 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
         if (fr < 1) {
             fr = 1;
         }
-        edraw_live_touch(g_edg, ned, sq, fr);
+        if ((int)g_scr.sprite[ei].brain == 6) {
+            edraw_live_touch_loop(seqs, ned, sq, fr);
+        } else {
+            edraw_live_touch(g_edg, ned, sq, fr);
+        }
     }
     for (ei = 1; ei <= 99; ei++) {
         if (!brains_seq_frame(ei, &sq, &fr)) {
@@ -219,7 +257,11 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
         if (fr < 1) {
             fr = 1;
         }
-        edraw_live_touch(g_edg, ned, sq, fr);
+        if (brains_slot_brain(ei) == 6) {
+            edraw_live_touch_loop(seqs, ned, sq, fr);
+        } else {
+            edraw_live_touch(g_edg, ned, sq, fr);
+        }
     }
 }
 
@@ -1166,25 +1208,16 @@ int main(int argc, char **argv)
                                                         script_play_vision())) {
                                     continue;
                                 }
-                                if (fr < 1) {
-                                    fr = 1;
-                                }
-                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
-                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
-                                                             sq, fr);
-                                }
+                                edraw_ensure_draw_frame(
+                                    seqs, sq, fr,
+                                    (int)g_scr.sprite[ei].brain == 6);
                             }
                             for (ei = 1; ei <= 99; ei++) {
                                 if (!brains_seq_frame(ei, &sq, &fr)) {
                                     continue;
                                 }
-                                if (fr < 1) {
-                                    fr = 1;
-                                }
-                                if (edraw_find(g_edg, g_ned, sq, fr) == NULL) {
-                                    (void)edraw_ensure_frame(g_edg, &g_ned, seqs,
-                                                             sq, fr);
-                                }
+                                edraw_ensure_draw_frame(
+                                    seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
                         }
                     }

@@ -260,6 +260,41 @@ void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame)
     }
 }
 
+int edraw_loop_next_frame(const struct SeqInfo *seqs, int seq, int fr)
+{
+    int nfr, dseq, dfr;
+
+    if (seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ) {
+        return 1;
+    }
+    if (fr < 1) {
+        fr = 1;
+    }
+    nfr = ini_seq_len(seq, seqs[seq].nframes);
+    if (nfr < 1) {
+        return fr;
+    }
+    if (fr >= nfr || ini_resolve_frame(seq, fr + 1, &dseq, &dfr) != 0) {
+        return 1;
+    }
+    return fr + 1;
+}
+
+static void need_push_loop(int *ns, int *nf, int *n, const struct SeqInfo *seqs,
+                           int seq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    need_push(ns, nf, n, seq, fr);
+    nxt = edraw_loop_next_frame(seqs, seq, fr);
+    if (nxt != fr) {
+        need_push(ns, nf, n, seq, nxt);
+    }
+}
+
 static int miss_has(int seq, int frame)
 {
     int i;
@@ -363,6 +398,21 @@ static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (load_one(g, got, seqs, seq, f2, 0) != 0) {
             break;
         }
+    }
+}
+
+static void load_loop_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                             int seq, int fr)
+{
+    int nxt;
+
+    if (fr < 1) {
+        fr = 1;
+    }
+    (void)load_one(g, got, seqs, seq, fr, 1);
+    nxt = edraw_loop_next_frame(seqs, seq, fr);
+    if (nxt != fr) {
+        (void)load_one(g, got, seqs, seq, nxt, 1);
     }
 }
 
@@ -553,13 +603,9 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
             need_push(need_s, need_f, &nneed, seq, fr);
             br = (int)sp[i].brain;
+            /* Repeat loops: current+next only. All 26 of 161 is 1.7 MB. */
             if ((int)sp[i].type == 1 && br == 6) {
-                int nfr, f2;
-
-                nfr = ini_seq_len(seq, seqs[seq].nframes);
-                for (f2 = 1; f2 <= nfr; f2++) {
-                    need_push(need_s, need_f, &nneed, seq, f2);
-                }
+                need_push_loop(need_s, need_f, &nneed, seqs, seq, fr);
             }
             if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
                 push_walk_frames(need_s, need_f, &nneed, seqs, br,
@@ -660,7 +706,9 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             }
             br = (int)sp[i].brain;
             if (br == 6) {
-                load_seq_frames(g, &got, seqs, (int)sp[i].seq);
+                int fr = (int)sp[i].frame < 1 ? 1 : (int)sp[i].frame;
+
+                load_loop_frames(g, &got, seqs, (int)sp[i].seq, fr);
             }
             if ((int)sp[i].is_warp && (int)sp[i].parm_seq > 0) {
                 load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
