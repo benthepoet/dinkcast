@@ -718,6 +718,45 @@ int main(void)
     }
 
     {
+        /* FreeDink dc_force_vision: sprite 1000 then draw_screen_game. */
+        const char *force =
+            "void main(void) { force_vision(2); wait(1); }\n";
+        const char *waiter =
+            "void main(void) { wait(500); &gold = 9; }\n";
+        const char *main_vis =
+            "void main(void) {\n"
+            "  if (&story > 4) {\n"
+            "    &vision = 2;\n"
+            "  }\n"
+            "}\n";
+        int forceslot, waitslot, mains;
+
+        g_ndraw = 0;
+        g_draw_spr = 0;
+        dinkc_cmd_bind_draw_screen(stub_draw_screen);
+        dinkc_vm_reset();
+        dinkc_var_set("&story", 5, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&vision", 1, DINKC_GLOBAL_SCOPE, 1);
+        waitslot = dinkc_vm_start(waiter, strlen(waiter), 4);
+        expect(dinkc_vm_state(waitslot) == DINKC_WAIT_MS, "force waiter");
+        forceslot = dinkc_vm_start(force, strlen(force), 7);
+        expect(g_ndraw == 1 && g_draw_spr == 1000, "force_vision draws 1000");
+        expect(dinkc_vm_used(forceslot), "force fiber survives draw");
+        expect(dinkc_vm_sprite_fiber(1000) == forceslot,
+               "force_vision rebinds 1000");
+        expect(!dinkc_vm_used(waitslot), "force_vision kill_all others");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_used(forceslot), "1000 survives later kill_all");
+        /* draw_screen_game resets *pvision then screen MAIN. */
+        dinkc_var_set("&vision", 0, DINKC_GLOBAL_SCOPE, 1);
+        mains = dinkc_vm_start(main_vis, strlen(main_vis), 0);
+        expect(dinkc_var_get("&vision", DINKC_GLOBAL_SCOPE, 1) == 2,
+               "story>4 MAIN sets vision 2");
+        expect(!dinkc_vm_used(mains), "vision MAIN done");
+        dinkc_cmd_bind_draw_screen(NULL);
+    }
+
+    {
         const char *lock =
             "void main(void) {\n"
             "  screenlock(1);\n"

@@ -274,6 +274,28 @@ int hard_get(const struct HardMask *m, int sx, int sy)
     return (int)m->pix[py * DINK_PLAY_W + px];
 }
 
+int hard_get_play(const struct HardMask *m, const struct MapScreen *scr,
+                  int sx, int sy, int *warp_ed)
+{
+    int v = hard_get(m, sx, sy);
+    int ed;
+
+    if (warp_ed != NULL) {
+        *warp_ed = 0;
+    }
+    if (scr == NULL || v <= 100) {
+        return v;
+    }
+    ed = v - 100;
+    if (ed < 1 || ed > 100 || scr->sprite[ed].is_warp == 0) {
+        return v;
+    }
+    if (warp_ed != NULL) {
+        *warp_ed = ed;
+    }
+    return 0;
+}
+
 int hard_box_blocked(const struct HardMask *m, int x, int y, int hl, int ht,
                      int hr, int hb)
 {

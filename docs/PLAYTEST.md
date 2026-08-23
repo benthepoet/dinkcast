@@ -37,9 +37,10 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 | Picture | Host lock |
 |---|---|
-| Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | (none yet; log + named FreeDink only) |
+| Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | `test_player` get_hard_play + frozen move onto warp |
+| Map 439 fire-crowd (Ethel, girl, duck, peasant, girl2) then burned house, crowd gone | `test_dinkc_vm` `force_vision` → sprite 1000 + `draw_screen`; `test_edraw` 439 vis 1 unused fire then `load_frame` 221 |
 
-Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed — Dink could not leave. Village leftovers above were confirmed 2026-08-22.
+Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed until the requester stamps the exit and the crowd. Village leftovers above were confirmed 2026-08-22.
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 
@@ -89,11 +90,8 @@ This log (after the fire enter): `say Mother noooooo!` … `say Ahh, too much sm
 
 **Spam (named, not a missing BMP).** Play-path `ensure` of **seq 161** (`graphics/effects/atomic/atomc-`, 26 frames) plus fire **157** / explo **70** at the 2 MB `cpu_pixels` cap: `mem refuse` then `edraw evict class=screen` then load, **every tick**, many looping sprites. After that enter: **747** refuse / **745** Screen evict (almost all seq 161) / **1540** loads (**1421** of 161). Pictures worked because evict+retry succeeded. Same class as the wizard walk ping-pong, much louder. Do **not** pin 161 or grow a seq-id victim list.
 
-**Cannot exit — named theories, no patch.** `S1-H1-S.c` never thaws Dink. FreeDink `dc_freeze` stores **that script id** on `spr[1]`. Exit is `move_stop` onto the type-2 door warp while still frozen. FreeDink `update_frame` calls `special_block` after `check_if_move_is_legal` with **no freeze check**. `get_hard_play` treats `is_warp` hardness as **0** (walkable) and records `warp_editor_sprite`.
+**Exit + crowd — grafted, Flycast still Open.** `S1-H1-S.c` never thaws Dink. FreeDink `dc_freeze` stores **that script id** on `spr[1]`. Exit is `move_stop` onto the type-2 door warp while still frozen. `get_hard_play` treats `is_warp` hardness as **0** and records `warp_editor_sprite`. `special_block` has **no freeze check**. Host: `test_player`.
 
-Dinkcast diverges in two named places:
+Outdoor `&story == 4` creates the crowd then `force_vision(2)`. That is `dc_force_vision` (sprite **1000** + `draw_screen_game`), not a `&vision` write. Enter-path remakes Screen live before `create_sprite` `load_frame` so unused fire frames evict (14.4c; no seq-id pin). Host: `test_dinkc_vm`, `test_edraw`.
 
-1. `main.c` only runs `screen_special_block` when `pl.freeze == 0`. Scripted walk onto the door therefore cannot warp.
-2. `player_step` treats `h >= 100` as a warp hit but **does not advance** x/y (`get_hard_play` would have returned 0). `move_stop(1, 2, 398, 0)` then never reaches dest, so the fiber stays `WAIT_MOVE`.
-
-`dinkc_cmd_thaw_if_idle` only clears freeze when `dinkc_vm_live() == 0`. Screen + furniture scripts are **keep** fibers (`script.c` `start_keep`); `return` leaves them `used`. House keep slots (`s1-h1-1` …) stay live, so thaw never runs even after `s1-h1-s` returns. That is why there is no `freeze orphan` in this log. Do **not** invent a door, `unfreeze` on `return`, or a fire seq-id victim list. Name FreeDink `get_hard_play`, `special_block`, `process_move`, and `dc_freeze` when this is implemented.
+`dinkc_cmd_thaw_if_idle` only clears freeze when `dinkc_vm_live() == 0`. Screen + furniture keep fibers stay live after `return`. Do **not** invent a door, `unfreeze` on `return`, or a fire seq-id victim list.

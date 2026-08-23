@@ -1019,8 +1019,14 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         return 1;
     }
+    /* FreeDink dc_force_vision: *pvision, sprite=1000, draw_screen_game.
+     * play_draw_screen restamps hard. Caller survives (keep this task). */
     if (is_cmd(name, "force_vision")) {
         dinkc_var_set("&vision", a0, DINKC_GLOBAL_SCOPE, 1);
+        g_cmd_sprite = 1000;
+        if (g_draw_screen != NULL) {
+            (void)g_draw_screen(1000);
+        }
         return 1;
     }
     if (is_cmd(name, "stop")) {

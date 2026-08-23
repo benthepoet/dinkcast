@@ -828,7 +828,25 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     if (got < 0) {
         got = 0;
     }
-    (void)load_one(g, &got, seqs, seq, frame, 1);
+    {
+        int rc, tries = 0, waited = 0;
+
+        for (;;) {
+            rc = load_one(g, &got, seqs, seq, frame, 1);
+            if (rc == 0) {
+                break;
+            }
+            /* Enter-path create_sprite uses load_frame, not ensure.
+             * Unused Screen only — same 14.4c retry as play-path. */
+            if (rc == -2 && tries++ < DINK_EDGFX_MAX &&
+                evict_slot(g, &got, seqs, seq, frame, waited ? 0 : 1,
+                           1) == 0) {
+                waited = 1;
+                continue;
+            }
+            break;
+        }
+    }
     hit = edraw_find(g, got, seq, frame);
     upload_if_cpu(hit);
     *n = got;

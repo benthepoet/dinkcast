@@ -100,7 +100,7 @@ int main(void)
     p.x = 100;
     p.y = 100;
     p.freeze = 1;
-    player_step(&p, 6, &mask, seqs, 0);
+    player_step(&p, 6, &mask, seqs, 0, NULL);
     expect(p.x == 100, "freeze skips move");
 
     printf("OK test_talk\n");

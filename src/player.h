@@ -5,6 +5,8 @@
 #include "hard.h"
 #include "ini.h"
 
+struct MapScreen;
+
 #define DINK_BASE_WALK 70
 #define DINK_BASE_IDLE 10
 #define DINK_BASE_ATTACK 100 /* fists; START-1.c / item-fst */
@@ -36,7 +38,8 @@ void player_attack(struct Player *p, const struct SeqInfo *seqs);
 void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
                           int *nframes_hint);
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
-                 const struct SeqInfo *seqs, int now_ms);
+                 const struct SeqInfo *seqs, int now_ms,
+                 const struct MapScreen *scr);
 /* FreeDink hurt_thing on spr[1]. Adds to .damage. */
 int player_hurt(struct Player *p, int damage);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */

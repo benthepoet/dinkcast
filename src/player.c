@@ -127,7 +127,8 @@ void player_seq_for_input(const struct Player *p, int pad_dir, int *seq,
 }
 
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
-                 const struct SeqInfo *seqs, int now_ms)
+                 const struct SeqInfo *seqs, int now_ms,
+                 const struct MapScreen *scr)
 {
     int seq, delay, nfr, nx, ny, dx, dy;
     int blocked = 0;
@@ -245,28 +246,30 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                 nx = p->x + dx;
                 ny = p->y + dy;
                 if (dx != 0) {
-                    int h = 0;
+                    int h = 0, wed = 0;
 
                     if (!p->move_nohard) {
-                        h = hard_get(mask, nx, p->y);
+                        h = hard_get_play(mask, scr, nx, p->y, &wed);
                     }
-                    if (h >= 100) {
-                        p->warp_hit = h - 100;
-                    } else if (h == 0) {
+                    if (wed > 0) {
+                        p->warp_hit = wed;
+                    }
+                    if (h == 0) {
                         p->x = nx;
                     } else if (h != 2) {
                         blocked = 1;
                     }
                 }
                 if (dy != 0) {
-                    int h = 0;
+                    int h = 0, wed = 0;
 
                     if (!p->move_nohard) {
-                        h = hard_get(mask, p->x, ny);
+                        h = hard_get_play(mask, scr, p->x, ny, &wed);
                     }
-                    if (h >= 100) {
-                        p->warp_hit = h - 100;
-                    } else if (h == 0) {
+                    if (wed > 0) {
+                        p->warp_hit = wed;
+                    }
+                    if (h == 0) {
                         p->y = ny;
                     } else if (h != 2) {
                         blocked = 1;

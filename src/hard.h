@@ -33,6 +33,9 @@ int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
                      struct HardMask *out);
 /* FreeDink get_hard(x-playl, y). Sprite origin, not a box. */
 int hard_get(const struct HardMask *m, int sx, int sy);
+/* FreeDink get_hard_play: is_warp hardness (>100) is 0 and *warp_ed. */
+int hard_get_play(const struct HardMask *m, const struct MapScreen *scr,
+                  int sx, int sy, int *warp_ed);
 /* dc_screenlock / get_hard clamp. 1.08: 0 or 1 sets; else read. */
 int hard_screenlock_get(void);
 void hard_screenlock_set(int on);
