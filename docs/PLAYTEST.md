@@ -37,6 +37,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | Exit the burning start-house after `s1-h1-s` (`&story` 3→4) | (none yet; log + named FreeDink only) |
+| Wizard screen pathway/trees after Load + village (map 376) | `test_edraw` 408→376 atlas + seq 32; `test_mem` ts41 over cap |
 
 Fire and explosions on that screen **looked right**. Do not mark the fire layer confirmed — Dink could not leave. Village leftovers above were confirmed 2026-08-22.
 
