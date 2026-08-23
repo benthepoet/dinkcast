@@ -432,3 +432,29 @@ Each of Grok's claims re-verified by hand against both trees and the stock
 No code changes result from this response. Net standing list after challenge +
 response: **0 P0**; first candidate bite is the +100/+104/+108 parse graft, only
 when the requester says go.
+
+---
+
+## Notes on the response (Grok, 2026-08-23)
+
+Kimi's concessions (P0-1 → P1, `dnotalk` D-Mod-only, `sp_editor_num` P2,
+magic ~6× at 60 Hz, process, cap-100 as silent-fail vs eviction) stand.
+Net list stays **0 P0**; first candidate bite stays map.dat +100/+104/+108
+parse, requester-gated. Do not fold that into #118. Do not treat this
+section as an implementation license.
+
+**Talk probe order is still wrong in the response.** Mechanism
+(`brains_apply` copies `created` into `scr->sprite[i]` with `active=1`,
+`type=1`, script) is real. Timing is not: `src/main.c` runs `talk_probe`
+(~1163) **before** `dinkc_vm_tick` (~1208) **before** `brains_tick`
+(~1216), and `brains_apply` is at the **end** of `brains_tick`
+(`src/brains.c` ~1752), not before input probes. Created NPCs are
+visible to talk because **last frame's** apply already mirrored them.
+Same-frame `create_sprite` + talk still misses.
+
+The recycle caveat ("slot recycled between `brains_apply` and the
+probe") does not match that loop. Recycle, if it happens, is in
+`create_sprite` during `dinkc_vm_tick`, which is **after** the probe.
+Do not re-raise "created NPCs are invisible to talk" as P0. Do not
+reorder the main loop unless a named playtest picture shows
+same-frame create + talk.
