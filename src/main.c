@@ -241,14 +241,14 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
         if (!editor_sprite_draw(&g_scr.sprite[ei], script_play_vision())) {
             continue;
         }
+        /* Brain 6 draw uses brains_apply pframe, not the editor snapshot. */
+        if ((int)g_scr.sprite[ei].brain == 6 && brains_slot_live(ei)) {
+            continue;
+        }
         if (fr < 1) {
             fr = 1;
         }
-        if ((int)g_scr.sprite[ei].brain == 6) {
-            edraw_live_touch_loop(seqs, ned, sq, fr);
-        } else {
-            edraw_live_touch(g_edg, ned, sq, fr);
-        }
+        edraw_live_touch(g_edg, ned, sq, fr);
     }
     for (ei = 1; ei <= 99; ei++) {
         if (!brains_seq_frame(ei, &sq, &fr)) {
@@ -1208,9 +1208,11 @@ int main(int argc, char **argv)
                                                         script_play_vision())) {
                                     continue;
                                 }
-                                edraw_ensure_draw_frame(
-                                    seqs, sq, fr,
-                                    (int)g_scr.sprite[ei].brain == 6);
+                                if ((int)g_scr.sprite[ei].brain == 6 &&
+                                    brains_slot_live(ei)) {
+                                    continue;
+                                }
+                                edraw_ensure_draw_frame(seqs, sq, fr, 0);
                             }
                             for (ei = 1; ei <= 99; ei++) {
                                 if (!brains_seq_frame(ei, &sq, &fr)) {

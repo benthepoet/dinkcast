@@ -41,7 +41,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | Burned start-house: leftover pie-table hardness after the fire | later — #117 skip-without-pixels did not clear Flycast. Official vis-0 table (editor 22, seq 87/9). Do not pin 87. |
-| Indoor fire scene hitch (SCIF off still slow) | `test_edraw` house vis 1: 161/4 + 161/14 + next, not all 26; `cpu_pixels` under cap. Flycast stamp Open. |
+| Indoor fire scene hitch (SCIF off still slow) | `test_edraw` house vis 1 current+next. DC: drop Screen CPU after PVR so unused loop frames do not refuse after leave (439). Flycast stamp Open. |
 | START Continue / SAVEBOT slot choice: Down walks Dink | (later; `player_step` runs during `dinkc_vm_waiting_choice`) |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
@@ -54,7 +54,7 @@ Burning-house exit + 439 crowd: requester “The crowd showed up this time.” H
 
 Pie-table hardness: still there in Flycast after #117 type 0/1 skip-without-pixels. Come back later. Official vis-0 table; do not pin seq 87.
 
-Indoor fire hitch: enter-path now loads brain-6 **current+next** only (not `nfr`). Host lock on that row. Flycast stamp still Open.
+Indoor fire hitch: current+next at enter was not enough — unused 161/427 frames filled `cpu_pixels` then ping-ponged through the warp to 439. Screen frames now drop CPU after PVR. Flycast stamp still Open.
 
 Fade: requester “Fade works as expected.” Host lock already on that row.
 
@@ -68,7 +68,7 @@ Enter-path used to queue **every** brain-6 frame (`need_push` 1..nfr **and** `lo
 
 `repeat_brain` + `brain_animate`: 161 delay **50 ms** (two sprites, phases 4 and 14), 70 delay **40 ms**, 427 delay **75 ms**. Each advance `ensure_frame` missed, evicted an unused Screen frame, **re-decoded the BMP from the cached pack**, `sprite_upload_pvr`. A prior Flycast log: **747** `mem refuse` / **745** Screen evict (almost all 161) / **1540** loads (**1421** of 161) on that enter. Pictures worked; the hitch was decode+PVR every tick.
 
-**This PR:** 14.4c treats a playing brain-6 seq as **current+next**, not `nfr` at enter. Play-path live-touch and `ensure` prefetch the wrap (`edraw_loop_next_frame`). Do **not** pin seq 161 / 70 / 427. Host: `test_edraw` house vis 1.
+**This PR:** 14.4c treats a playing brain-6 seq as **current+next**, not `nfr` at enter. Play-path live-touch / `ensure` the **animated** pair (not the editor snapshot). Unused loop frames still filled `cpu_pixels` (Flycast: 840 refuse / 832 evict after leave; last lines are 439 `427`/`154`). After PVR upload, drop the CPU copy so the loop cache lives in VRAM. Do **not** pin seq 161 / 70 / 427. Host: `test_edraw` house vis 1.
 
 ## Log notes (2026-08-22, not confirmed)
 

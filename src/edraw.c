@@ -333,6 +333,8 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
     return ff_cached(dir, &ff);
 }
 
+static void upload_and_drop_cpu(struct SpriteFrame *f);
+
 static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
                     int frame, int may_evict)
 {
@@ -363,6 +365,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].seq = seq;
     g[*got].frame = frame;
     g[*got].live = 1;
+    upload_and_drop_cpu(&g[*got].fr);
     (*got)++;
     {
         size_t need = edraw_cpu_bytes(g, *got);
@@ -750,14 +753,24 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 }
 
 #ifdef _arch_dreamcast
-static void upload_if_cpu(struct SpriteFrame *f)
+/* Inv/HUD already drop CPU after PVR. Screen loops (161/427/70) must too
+ * or unused frames fill cpu_pixels and play-path evicts+redecodes forever. */
+static void upload_and_drop_cpu(struct SpriteFrame *f)
 {
-    if (f != NULL && f->tex == NULL && f->argb1555 != NULL) {
-        (void)sprite_upload_pvr(f);
+    if (f == NULL) {
+        return;
+    }
+    if (f->tex == NULL && f->argb1555 != NULL) {
+        if (sprite_upload_pvr(f) != 0) {
+            return;
+        }
+    }
+    if (f->tex != NULL) {
+        sprite_drop_cpu(f);
     }
 }
 #else
-static void upload_if_cpu(struct SpriteFrame *f)
+static void upload_and_drop_cpu(struct SpriteFrame *f)
 {
     (void)f;
 }
@@ -781,7 +794,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     hit = edraw_find(g, got, seq, frame);
     if (hit != NULL) {
         /* preload_seq may decode CPU during play; draw skips tex==NULL. */
-        upload_if_cpu(hit);
+        upload_and_drop_cpu(hit);
         return 0;
     }
     if (miss_has(seq, frame)) {
@@ -836,9 +849,7 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             }
         }
     }
-#ifdef _arch_dreamcast
-    (void)sprite_upload_pvr(&g[got - 1].fr);
-#endif
+    upload_and_drop_cpu(&g[got - 1].fr);
     *n = got;
     return 0;
 }
@@ -857,7 +868,7 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
     load_seq_frames(g, &got, seqs, seq);
     for (i = 0; i < got; i++) {
         if (g[i].seq == seq) {
-            upload_if_cpu(&g[i].fr);
+            upload_and_drop_cpu(&g[i].fr);
         }
     }
     *n = got;
@@ -896,7 +907,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
         }
     }
     hit = edraw_find(g, got, seq, frame);
-    upload_if_cpu(hit);
+    upload_and_drop_cpu(hit);
     *n = got;
 }
 
@@ -916,6 +927,7 @@ int edraw_upload_pvr(struct EdGfx *g, int n)
             printf("edraw upload fail seq=%d\n", g[i].seq);
             continue;
         }
+        sprite_drop_cpu(&g[i].fr);
         ok++;
     }
     return ok > 0 || n == 0 ? 0 : -1;

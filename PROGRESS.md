@@ -184,6 +184,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
 | 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
 | 2026-08-23 | 14.4c: brain-6 current+next (not nfr / not seq 161 pin) | this PR |
+| 2026-08-23 | 14.4c: drop Screen CPU after PVR (fire loop cache) | this PR |
 | 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
 | 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
 
@@ -230,7 +231,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | source | host ping-pong 439↔441; `file_blob`/`always`/`ts_rgb` ≤ 4 KB after warm; `swap_ms` (Flycast may be ~0). Hardware delay is ODE/burn |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** packs #82. **14.4c** pixels #90. Tilesheet slurp uses the same Prev `dir.ff` drop as packs (376 `ts41` after 408) |
-| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). Flycast punch still the human check |
+| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). DC Screen drops CPU after PVR so unused loop frames do not refuse. Flycast punch still the human check |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
