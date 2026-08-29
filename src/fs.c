@@ -775,7 +775,7 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
 
         if (residency_swap_open() && !residency_is_always(key) &&
             blob_needs_room(key) && file_size(fp, &need) == 0 &&
-            residency_make_room(need) != 0) {
+            residency_make_room_keep(need, key) != 0) {
             printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)dink_blob_bytes(),
                    (unsigned)DINK_MEM_BLOB_PEAK);
@@ -792,7 +792,7 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
     if (residency_swap_open() && !residency_is_always(key) &&
         dink_blob_bytes() + got > (size_t)DINK_MEM_BLOB_PEAK) {
         if (blob_needs_room(key)) {
-            (void)residency_make_room(got);
+            (void)residency_make_room_keep(got, key);
         }
         if (dink_blob_bytes() + got > (size_t)DINK_MEM_BLOB_PEAK) {
             printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",

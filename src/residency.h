@@ -19,8 +19,11 @@ void residency_swap_end(void);
  * Screen sprite-pack or tilesheet fopen uses this when Always+Screen+Prev
  * would exceed file_blob. */
 int residency_drop_one_prev(void);
+/* Largest Screen dir.ff except tiles/hard.dat and keep. */
+int residency_drop_one_screen(const char *keep);
 /* Drop Prev dir.ff until file_blob + need fits the cap. 0 if room. */
 int residency_make_room(size_t need);
+int residency_make_room_keep(size_t need, const char *keep);
 
 /* Force Always until unpin. Named Always prefixes ignore unpin. */
 void residency_pin_always(const char *rel);
