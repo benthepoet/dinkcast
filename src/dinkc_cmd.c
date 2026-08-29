@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_cmd.h"
 
+#include "audio.h"
 #include "dinkc_var.h"
 #include "fade.h"
 #include "save.h"
@@ -941,7 +942,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "playsound")) {
-        printf("playsound stub %d\n", a0);
+        int bank = audio_playsound(a0, a1, a2, a3, a4);
+
+        if (ret != NULL) {
+            *ret = bank;
+        }
+        printf("playsound %d bank %d\n", a0, bank);
         return 1;
     }
     if (is_cmd(name, "freeze")) {

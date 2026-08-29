@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "brains.h"
 
+#include "audio.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "hurt.h"
@@ -1310,6 +1311,8 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             g_b[j].last_hit = 1;
             g_b[j].damage += hit;
         }
+        /* FreeDink missile_brain: SoundPlayEffect(9) unless attack_hit_sound. */
+        (void)audio_playsound(9, 22050, 0, 0, 0);
         /* locate DAMAGE on the missile; HIT on the target. */
         dinkc_var_set("&missile_target", j, DINKC_GLOBAL_SCOPE, 1);
         dinkc_var_set("&missle_source", h, DINKC_GLOBAL_SCOPE, 1);

@@ -55,6 +55,9 @@ tests/test_inv
 tests/test_status
 tests/test_save
 tests/test_startmenu
+tests/test_wav_to_adpcm
+tests/test_audio
+tools/wav_to_adpcm
 
 # Toolchain / local
 .kosenv

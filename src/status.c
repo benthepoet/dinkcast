@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "status.h"
 
+#include "audio.h"
+
 #include "bmp.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
@@ -545,6 +547,7 @@ void status_update(int now_ms)
             g_fraise = next;
         }
         drawexp = 1;
+        (void)audio_playsound(13, 15050, 0, 0, 0);
     }
     if (dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) != g_fexp) {
         g_fexp += 10;
@@ -552,6 +555,7 @@ void status_update(int now_ms)
             g_fexp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
         }
         drawexp = 1;
+        (void)audio_playsound(13, 29050, 0, 0, 0);
         if (g_fexp >= g_fraise) {
             int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) - next;
 
@@ -589,6 +593,7 @@ void status_update(int now_ms)
         } else {
             g_fstrength--;
         }
+        (void)audio_playsound(22, 22050, 0, 0, 0);
     }
     if (g_fdefense != dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1)) {
         if (g_fdefense < dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1)) {
@@ -596,6 +601,7 @@ void status_update(int now_ms)
         } else {
             g_fdefense--;
         }
+        (void)audio_playsound(22, 22050, 0, 0, 0);
     }
     if (g_fmagic != dinkc_var_get("&magic", DINKC_GLOBAL_SCOPE, 1)) {
         if (g_fmagic < dinkc_var_get("&magic", DINKC_GLOBAL_SCOPE, 1)) {
@@ -603,6 +609,7 @@ void status_update(int now_ms)
         } else {
             g_fmagic--;
         }
+        (void)audio_playsound(22, 22050, 0, 0, 0);
     }
     if (g_fgold != dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1)) {
         if (g_fgold < dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1)) {
@@ -616,6 +623,7 @@ void status_update(int now_ms)
                 g_fgold = dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1);
             }
         }
+        (void)audio_playsound(14, 22050, 0, 0, 0);
     }
     cost = dinkc_var_get("&magic_cost", DINKC_GLOBAL_SCOPE, 1);
     lv = dinkc_var_get("&magic_level", DINKC_GLOBAL_SCOPE, 1);
