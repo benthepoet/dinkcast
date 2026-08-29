@@ -161,3 +161,5 @@ Append **one bullet per class of mistake** (rule + wrong vs right). Not a change
 ## AICA / SFX
 
 - **KOS `snd_sfx_load` is one-shot WAV, not a stream.** PCM 8/16 or Yamaha ADPCM **fmt 0x14**, **≤ 65534 samples**. Official `fire.wav` / `high2.wav` exceed that; convert full in 12.1, **truncate at load (12.2)**. Do not GD-ROM-stream SFX. Do not rewrite `DINK_DATA`; ADPCM lives in `build/sfx` / staged `Sound/`. MIDI is 12.4 (`snd_stream`), not sfxmgr.
+- **This KOS `snd_sfx_play_ex` takes `sfx_play_data_t *`, not `(hnd, vol, pan, loop)`.** The 4-arg form fails `kos-cc` (`too many arguments`). One-shots can use `snd_sfx_play`; loops/freq use the struct (`chn=-1`, `loop`, `freq`).
+- **Convert SFX on the host (`make sfx-bank`), overlay `build/sfx` in `stage_dink`.** A CachyOS `wav_to_adpcm` is `not found` in the KOS image (glibc/ld-linux). Converting `high2.wav` inside the container has segfaulted. Do not pack raw 1.3 MB PCM. MIDI is still 12.4.

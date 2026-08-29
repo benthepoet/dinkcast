@@ -163,7 +163,7 @@ static sfxhnd_t load_dc_fp(FILE *fp, size_t *out_bytes)
         buf[doff - 2] = (uint8_t)(keep >> 16);
         buf[doff - 1] = (uint8_t)(keep >> 24);
         n = doff + keep;
-        printf("audio trunc nfr=%d keep=%u\n", nfr, keep);
+        printf("audio trunc nfr=%d keep=%lu\n", nfr, (unsigned long)keep);
         nfr = AICA_SFX_MAX_SAMPLES;
     }
     h = snd_sfx_load_buf((char *)buf);
@@ -325,7 +325,9 @@ static int steal_voice(void)
 int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
 {
     int v, ch = 0;
-    (void)min;
+#ifdef _arch_dreamcast
+    sfx_play_data_t play;
+#endif
     (void)plus;
     (void)sound3d;
     if (!g_on || sound < 1 || sound >= DINK_SFX_SLOTS || !g_s[sound].loaded) {
@@ -333,16 +335,23 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
     }
     v = steal_voice();
 #ifdef _arch_dreamcast
-    if (repeat) {
-        ch = snd_sfx_play_ex(g_s[sound].hnd, 255, 128, 1);
-    } else {
-        ch = snd_sfx_play(g_s[sound].hnd, 255, 128);
+    /* This KOS snd_sfx_play_ex takes sfx_play_data_t, not (hnd,vol,pan,loop). */
+    memset(&play, 0, sizeof(play));
+    play.chn = -1;
+    play.idx = g_s[sound].hnd;
+    play.vol = 255;
+    play.pan = 128;
+    play.loop = repeat ? 1 : 0;
+    if (min > 0) {
+        play.freq = min;
     }
+    ch = snd_sfx_play_ex(&play);
     if (ch < 0) {
         return 0;
     }
 #else
     ch = v;
+    (void)min;
     (void)repeat;
 #endif
     g_v[v].used = 1;

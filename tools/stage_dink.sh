@@ -47,15 +47,36 @@ if [ "$HAS_DATA" = 1 ] && command -v python3 >/dev/null 2>&1; then
     python3 "$ROOT/tools/distill_frames.py" --src "$DST" --in-place
 fi
 
-# 12.1: replace staged Sound/*.wav with AICA ADPCM (or tiny PCM). Never
-# rewrite DINK_DATA. Tool is host-built (make cdi depends on it).
-SFX_TOOL="$ROOT/tools/wav_to_adpcm"
-if [ "$HAS_DATA" = 1 ] && [ -x "$SFX_TOOL" ]; then
-    if [ -d "$DST/Sound" ]; then
-        "$SFX_TOOL" --dir "$DST/Sound" --inplace || true
-    elif [ -d "$DST/sound" ]; then
-        "$SFX_TOOL" --dir "$DST/sound" --inplace || true
-    fi
+# 12.1: overlay host-converted AICA WAVs from build/sfx (never rewrite
+# DINK_DATA). Do not run wav_to_adpcm in the KOS image — host glibc
+# binaries can fail there, and converting huge stereo clips in-container
+# has segfaulted. `make docker-cdi` runs `make sfx-bank` on the host first.
+SND_DIR=""
+if [ -d "$DST/Sound" ]; then
+    SND_DIR="$DST/Sound"
+elif [ -d "$DST/sound" ]; then
+    SND_DIR="$DST/sound"
+fi
+SFX_OVER="$ROOT/build/sfx"
+if [ "$HAS_DATA" = 1 ] && [ -n "$SND_DIR" ] && [ -d "$SFX_OVER" ]; then
+    n=0
+    for src in "$SFX_OVER"/*; do
+        [ -f "$src" ] || continue
+        base=$(basename "$src")
+        dest=""
+        for cand in "$SND_DIR/$base" "$SND_DIR/$(echo "$base" | tr 'A-Z' 'a-z')" \
+                    "$SND_DIR/$(echo "$base" | tr 'a-z' 'A-Z')"; do
+            if [ -f "$cand" ]; then
+                dest=$cand
+                break
+            fi
+        done
+        if [ -n "$dest" ]; then
+            cp -f "$src" "$dest"
+            n=$((n + 1))
+        fi
+    done
+    echo "stage_dink: overlay $n sfx from $SFX_OVER"
 fi
 
 # Data names are 8.3-safe; a plain find loop is enough.

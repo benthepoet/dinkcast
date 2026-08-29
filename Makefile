@@ -20,7 +20,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_leak tests/test_save tests/test_startmenu tests/test_wav_to_adpcm tests/test_audio tools/wav_to_adpcm tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_leak tests/test_save tests/test_startmenu tests/test_wav_to_adpcm tests/test_audio build/wav_to_adpcm tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -184,7 +184,8 @@ tests/test_sprite: tests/test_sprite.c src/sprite.c src/ini.c src/ff.c src/bmp.c
 tools/bmp_info: tools/bmp_info.c src/bmp.c src/le.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/bmp_info.c src/bmp.c src/le.c
 
-tools/wav_to_adpcm: tools/wav_to_adpcm.c src/le.c src/le.h
+build/wav_to_adpcm: tools/wav_to_adpcm.c src/le.c src/le.h
+	mkdir -p build
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tools/wav_to_adpcm.c src/le.c
 
 tests/test_wav_to_adpcm: tests/test_wav_to_adpcm.c tools/wav_to_adpcm.c src/le.c src/le.h
@@ -196,12 +197,12 @@ tests/test_audio: tests/test_audio.c src/audio.c src/dinkc_cmd.c src/fade.c src/
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 # Optional: convert DINK_DATA/Sound into build/sfx (not committed).
-sfx-bank: tools/wav_to_adpcm
+sfx-bank: build/wav_to_adpcm
 	mkdir -p build/sfx
 	@if [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/Sound" ]; then \
-		./tools/wav_to_adpcm --dir "$(DINK_DATA)/Sound" --out build/sfx; \
+		./build/wav_to_adpcm --dir "$(DINK_DATA)/Sound" --out build/sfx; \
 	elif [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/sound" ]; then \
-		./tools/wav_to_adpcm --dir "$(DINK_DATA)/sound" --out build/sfx; \
+		./build/wav_to_adpcm --dir "$(DINK_DATA)/sound" --out build/sfx; \
 	else \
 		echo "sfx-bank: no $(DINK_DATA)/Sound"; \
 	fi
@@ -247,7 +248,7 @@ dc:
 	$(MAKE) -f Makefile.dc
 
 # Selfboot CDI + data-track ISO: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
-cdi: tools/wav_to_adpcm
+cdi:
 	DINK_DATA="$(DINK_DATA)" sh tools/make_cdi.sh build/dinkcast.elf build/dinkcast.cdi
 
 # Flycast image: CUE (mkdcdisc ISO + dummy audio) compressed to a MIL-CD CHD. Needs chdman (mame-tools).
@@ -258,7 +259,7 @@ chd:
 docker-dc:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh make dc
 
-docker-cdi:
+docker-cdi: sfx-bank
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tools/distill_frames.py --out build/distill
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
 	$(MAKE) chd
