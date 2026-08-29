@@ -108,9 +108,13 @@ int map_parse_mem(const uint8_t *p, size_t n, struct MapScreen *out)
         if (le_i32(p, n, off + 36, &out->sprite[i].brain) != 0) {
             return -1;
         }
-        /* FreeDink load_screen_to: speed +92, base_walk +96, timing +112. */
+        /* FreeDink load_screen_to: speed +92, base_walk +96,
+         * base_idle +100, base_attack +104, base_hit +108, timing +112. */
         if (le_i32(p, n, off + 92, &out->sprite[i].speed) != 0 ||
             le_i32(p, n, off + 96, &out->sprite[i].base_walk) != 0 ||
+            le_i32(p, n, off + 100, &out->sprite[i].base_idle) != 0 ||
+            le_i32(p, n, off + 104, &out->sprite[i].base_attack) != 0 ||
+            le_i32(p, n, off + 108, &out->sprite[i].base_hit) != 0 ||
             le_i32(p, n, off + 112, &out->sprite[i].timing) != 0) {
             return -1;
         }

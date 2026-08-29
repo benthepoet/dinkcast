@@ -204,6 +204,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | `sp_nodraw` skip draw (`s1-nopas` lean-to dummy) | this PR |
 | 2026-08-23 | repeat_brain: create_sprite food not seq-animated (BAR-F1) | this PR |
 | 2026-08-23 | ini hardbox: right and bottom independent (421 food touch) | this PR |
+| 2026-08-23 | map.dat +100/+104/+108 `base_idle`/`base_attack`/`base_hit`; `brains_enter` copies (`game_place_sprites`) | this PR |
 
 ## Bites
 

@@ -130,6 +130,31 @@ int main(void)
         expect(parsed.sprite[3].exp == 9, "parse exp");
         expect(parsed.sprite[3].nohit == 1, "parse nohit");
     }
+    /* load_screen_to +100/+104/+108 (editor_screen.cpp). */
+    le_i32_put(raw, 8020 + 220 * 4 + 24, 1);
+    le_i32_put(raw, 8020 + 220 * 4 + 16, 1);
+    le_i32_put(raw, 8020 + 220 * 4 + 100, 10);
+    le_i32_put(raw, 8020 + 220 * 4 + 104, 540);
+    le_i32_put(raw, 8020 + 220 * 4 + 108, 100);
+    {
+        struct MapScreen parsed;
+
+        memset(&parsed, 0, sizeof(parsed));
+        expect(map_parse_mem(raw, DINK_MAP_RECSIZE, &parsed) == 0,
+               "parse bases");
+        expect(parsed.sprite[4].base_idle == 10, "parse base_idle");
+        expect(parsed.sprite[4].base_attack == 540, "parse base_attack");
+        expect(parsed.sprite[4].base_hit == 100, "parse base_hit");
+        parsed.sprite[4].active = 1;
+        parsed.sprite[4].type = 1;
+        brains_reset();
+        brains_bind_screen(&parsed);
+        brains_enter(&parsed, 0);
+        expect(brains_base_idle(4) == 10, "enter base_idle");
+        expect(brains_base_attack(4) == 540, "enter base_attack");
+        expect(brains_base_hit(4) == 100, "enter base_hit");
+        brains_reset();
+    }
     free(raw);
 
     brains_reset();
