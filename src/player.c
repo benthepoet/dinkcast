@@ -1,8 +1,11 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "player.h"
 
+#include "audio.h"
 #include "hurt.h"
 #include "start_map.h"
+
+#include <stdlib.h>
 
 static void dir_delta(int dir, int *dx, int *dy)
 {
@@ -60,6 +63,8 @@ void player_init(struct Player *p)
     p->notouch = 0;
     p->notouch_timer = 0;
     p->frame_delay = 0; /* FreeDink default; MAIN.c sp_frame_delay(1,0) */
+    p->attack_hit_sound = 0;
+    p->attack_hit_sound_speed = 0;
 }
 
 int player_hurt(struct Player *p, int damage)
@@ -80,6 +85,12 @@ int player_apply_life(struct Player *p, int *life)
         return 0;
     }
     if (p->damage > 0) {
+        /* FreeDink human_brain: grunt 15 or 16 after *plife -= damage. */
+        if ((rand() % 2) + 1 == 1) {
+            (void)audio_playsound(15, 25050, 2000, 0, 0);
+        } else {
+            (void)audio_playsound(16, 25050, 2000, 0, 0);
+        }
         *life -= p->damage;
         p->damage = 0;
         if (*life < 0) {

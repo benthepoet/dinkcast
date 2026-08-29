@@ -42,8 +42,8 @@ tests/test_pad: tests/test_pad.c src/pad.c src/pad.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_pad.c src/pad.c
 	./$@
 
-tests/test_player: tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/mapscr.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/mapscr.c
+tests/test_player: tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/mapscr.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/mapscr.c src/audio.c
 	./$@
 
 tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
@@ -51,12 +51,12 @@ tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
 
-tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
+tests/test_talk: tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_talk.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
 	./$@
 
-tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
+tests/test_hit: tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_hit.c src/hit.c src/talk.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/player.c src/hurt.c src/brains.c src/hard.c src/pad.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
 	./$@
 
 tests/test_script: tests/test_script.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/audio.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c

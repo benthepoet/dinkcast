@@ -51,6 +51,8 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_DISABLED 38
 #define DINKC_SP_FRAME_DELAY 39
 #define DINKC_SP_NODRAW 40
+#define DINKC_SP_ATTACK_HIT_SOUND 41
+#define DINKC_SP_ATTACK_HIT_SOUND_SPEED 42
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
 void dinkc_cmd_bind_create(int (*fn)(int x, int y, int brain, int seq, int fr));
 void dinkc_cmd_bind_move(int (*fn)(int slot, int dir, int dest, int nohard));

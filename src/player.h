@@ -31,6 +31,7 @@ struct Player {
     int notouch; /* run_through_touch_damage_list: skip +damage while set */
     int notouch_timer;
     int frame_delay; /* FreeDink spr[1].frame_delay; 0 = seq delay */
+    int attack_hit_sound, attack_hit_sound_speed;
 };
 
 void player_init(struct Player *p);
