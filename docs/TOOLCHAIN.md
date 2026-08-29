@@ -13,6 +13,18 @@ A working disc needs four pieces:
 
 Do **not** commit the toolchain or game data.
 
+## Audio (bite 12.1)
+
+SFX is **not** streamed. Convert official `Sound/*.wav` on the host:
+
+```bash
+make sfx-bank                  # → build/sfx/ (gitignored)
+./build/wav_to_adpcm IN.wav OUT.wav
+./build/wav_to_adpcm --dir "$DINK_DATA/Sound" --out build/sfx
+```
+
+Yamaha ADPCM WAV **fmt 0x14** unless PCM payload **&lt; 8 KiB** (stays 16-bit PCM). `make cdi` runs the same convert **in-place on the staged copy** (`stage_dink.sh`). Never rewrite `DINK_DATA`. MIDI / `playmidi` is **12.4**.
+
 ## Docker vs native (CachyOS)
 
 **Docker is easier for the first `.cdi`/`.chd`.** Native dc-chain is a multi-hour SH-4 GCC build. A current KOS image skips that: pull, mount this repo + `DINK_DATA`, `make dc` / pack a CDI inside the container, compress to CHD on the host, run **Flycast on the CHD**.

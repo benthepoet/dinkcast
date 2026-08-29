@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio.h"
 #include "boot.h"
 #include "brains.h"
 #include "choice.h"
@@ -690,6 +691,7 @@ int main(int argc, char **argv)
     }
     snprintf(msg, sizeof(msg), "root %s", dink_fs_root());
     printf("dink_fs_root %s\n", dink_fs_root());
+    (void)audio_init();
 
     if (dink_dat_size(&dat_sz) != 0) {
         vid_clear(0xC0, 0x00, 0x80);
@@ -1107,14 +1109,17 @@ int main(int argc, char **argv)
                             pad_just_pressed(prev_buttons, buttons,
                                              DINK_PAD_LEFT)) {
                             dinkc_vm_choice_move(-1);
+                            (void)audio_playsound(11, 22050, 0, 0, 0);
                         } else if (pad_just_pressed(prev_buttons, buttons,
                                                     DINK_PAD_DOWN) ||
                                    pad_just_pressed(prev_buttons, buttons,
                                                     DINK_PAD_RIGHT)) {
                             dinkc_vm_choice_move(1);
+                            (void)audio_playsound(11, 22050, 0, 0, 0);
                         } else if (pad_just_pressed(prev_buttons, buttons,
                                                     DINK_PAD_A)) {
                             dinkc_vm_choice_pick(dinkc_vm_choice_cur());
+                            (void)audio_playsound(17, 22050, 0, 0, 0);
                         }
                     } else if (have && !inv_showing() && !status_map_active() &&
                                !dinkc_vm_waiting_say() &&

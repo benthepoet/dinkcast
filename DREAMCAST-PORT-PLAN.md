@@ -781,17 +781,23 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 
 #### Bite 12.1 — Host WAV → AICA
 
-- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB).
+- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB). Yamaha ADPCM WAVE fmt **0x14** for KOS `snd_sfx_load`.
+- `wav_to_adpcm IN.wav OUT.wav` or `--dir Sound --out build/sfx` or `--inplace` on the **staged** tree. Output is `build/sfx` / disc stage, **not committed**. `make sfx-bank` / `make cdi` runs it. Never rewrite `DINK_DATA`.
+- Warn (do not refuse) if `nframes > 65534` (KOS sfxmgr cap). Truncate at **12.2** load.
 - Document command line. Output not committed.
+
+**Done when (12.1):** host test converts a >8 KiB PCM WAV to fmt 0x14; `stage_dink` ADPCM-replaces `Sound/` when the tool exists. No AICA play yet.
 
 #### Bite 12.2 — SFX bank
 
 - Map FreeDink sound numbers used by hit/talk/combat (from `sound/` + `playsound` ids).
-- Load ≤ 512 KB at boot. Log AICA free.
+- Engine copies **`START.c` `load_sound` table** at boot (does not run START `main()`). Skip missing freeware files. Share one AICA handle when two slots name the same WAV.
+- Load ≤ 512 KB at boot. Log AICA used. Truncate samples &gt; 65534 (KOS sfxmgr).
 
 #### Bite 12.3 — `playsound` bind
 
-- Wave 1 stub becomes real. Voice steal oldest if > 16.
+- Wave 1 stub becomes real: `playsound` → `audio_playsound` / `SoundPlayEffect`; return **channel+1**. Voice steal oldest if &gt; 16. `min`/`plus`/`sound3d` may wait; volume/pan full/center.
+- Engine grafts named FreeDink sites: `update_status_all` (13/22/14), `game_choice` (11/17), `missile_brain` (9).
 
 #### Bite 12.4 — One streamed loop
 
@@ -799,7 +805,7 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 - 32–64 KB disc chunks. One ring 256–512 KB.
 - Title **may** start this; Bite 3.4 must still work with audio compiled out.
 
-**Done when:** Hit plays an SFX; title or town loops one track; AICA total ≤ 2 MB.
+**Done when (12.3, SFX):** Hit plays an SFX; AICA SFX ≤ 512 KB. **12.4** (title/town loop stream) is a later requester go — SFX may land without music.
 
 ### Phase F″ — VMU save
 
