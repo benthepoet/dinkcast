@@ -329,6 +329,23 @@ int main(void)
     brains_tick(&scr, seqs, &mask, 16, 0);
     expect(pl.damage > 0, "missile dink hardbox");
 
+    /* ITEM-FB sp_brain_parm(junk, 1): missile must not eat itself on Dink. */
+    pl.damage = 0;
+    brains_reset();
+    memset(&scr, 0, sizeof(scr));
+    scr.sprite[3].active = 1;
+    scr.sprite[3].type = 1;
+    scr.sprite[3].brain = 11;
+    scr.sprite[3].x = 200;
+    scr.sprite[3].y = 200;
+    scr.sprite[3].strength = 10;
+    brains_bind_screen(&scr);
+    brains_enter(&scr, 0);
+    expect(brains_change_prop(3, DINKC_SP_BRAIN_PARM, 1) == 1, "parm 1");
+    brains_tick(&scr, seqs, &mask, 16, 0);
+    expect(brains_slot_live(3), "fireball skips Dink parm");
+    expect(pl.damage == 0, "fireball no self hit");
+
     brains_reset();
     memset(&scr, 0, sizeof(scr));
     scr.sprite[5].active = 1;

@@ -1261,7 +1261,9 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         return;
     }
     h = spr_i(s);
-    if (g_pl != NULL && g_pl->nohit != 1) {
+    /* FreeDink loop skips spr[1] when brain_parm is 1 (ITEM-FB). Player
+     * is not g_b[1]; this is that same skip. */
+    if (g_pl != NULL && g_pl->nohit != 1 && s->brain_parm != 1) {
         int l, t, r, b;
 
         geom_hardbox(seqs, g_pl->seq, g_pl->frame, g_pl->x, g_pl->y, s->range,
@@ -1280,7 +1282,7 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         if (j == h || !g_b[j].live || g_b[j].nohit == 1) {
             continue;
         }
-        if (s->brain_parm == j) {
+        if (s->brain_parm == j || s->brain_parm2 == j) {
             continue;
         }
         geom_hardbox(seqs, spr_draw_seq(&g_b[j]), spr_draw_frame(&g_b[j]),
