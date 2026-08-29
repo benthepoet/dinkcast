@@ -87,6 +87,18 @@ int main(void)
     expect(dinkc_cmd("compare_weapon", args, 0, "item-sw1", NULL, &yld, &rv) == 1 &&
                rv == 1,
            "compare sword");
+    memset(args, 0, sizeof(args));
+    args[0] = 531;
+    expect(dinkc_cmd("preload_seq", args, 1, NULL, NULL, &yld, &rv) == 1,
+           "npc preload 531");
+    expect(ff_is_cached("graphics/foes/bonca/walk/dir.ff"), "bonca walk open");
+    residency_swap_begin();
+    residency_swap_end();
+    residency_swap_begin();
+    residency_swap_end();
+    expect(!ff_is_cached("graphics/foes/bonca/walk/dir.ff"),
+           "npc preload_seq not Always");
+    expect(ff_is_cached("graphics/dink/sword/walk/dir.ff"), "sword still Always");
 
     args[1] = 438;
     args[2] = 8;

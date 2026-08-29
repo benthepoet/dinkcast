@@ -67,7 +67,7 @@ static int (*g_show_bmp)(const char *rel, int showdot, int fiber);
 static void (*g_preload)(int seq);
 static void (*g_load_frame)(int seq, int frame);
 static struct SeqInfo *g_seqs;
-static int g_pin_kind;
+static int g_pin_kind = -1;
 static int g_npin[2];
 static char g_pin[2][24][160];
 static int g_fiber;
@@ -447,7 +447,13 @@ static void pin_seq(int seq)
     if (ff_cached(dir, &ff) != 0) {
         return;
     }
-    pin_pack(dir);
+    /* Item ARM only. NPC MAIN preload_seq (S1-CAVEM Bonca) must not
+     * Always-pin: that filled file_blob so s1-rob vis 1 skipped knights. */
+    if (g_pin_kind == 0 || g_pin_kind == 1) {
+        pin_pack(dir);
+    } else {
+        residency_touch(dir);
+    }
 }
 
 void dinkc_cmd_bind_item(int (*arm)(const char *name),
@@ -1417,6 +1423,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("arm_weapon %s slot=%d\n", g_item[cur - 1].name,
                    g_weapon_slot);
         }
+        g_pin_kind = -1;
         return 1;
     }
     if (is_cmd(name, "arm_magic")) {
@@ -1438,6 +1445,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("arm_magic %s slot=%d\n", g_mitem[cur - 1].name,
                    g_magic_slot);
         }
+        g_pin_kind = -1;
         return 1;
     }
     if (is_cmd(name, "kill_shadow") || is_cmd(name, "fill_screen")) {

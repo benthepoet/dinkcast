@@ -51,7 +51,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Quackers tracks Dink (`S1-DUCK.c` `sp_follow`) | Host #107. Flycast stamp Open. |
 | `screenlock` arena cannot be walked off | Host #106. Flycast stamp Open. |
 | Bonca cave death: corpse (`base_die` 550 / seq 551–559) after kill | `test_edraw` map 100 seq 551/559. Flycast stamp Open. |
-| Robbery scene sprites visible (not only say boxes) | Flycast stamp Open. |
+| Robbery scene sprites visible (not only say boxes) | `test_weapon` NPC preload_seq not Always. Flycast stamp Open. |
 | Fireball USE shows a missile, not only Dink’s hand glow | Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
