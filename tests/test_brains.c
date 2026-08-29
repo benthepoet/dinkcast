@@ -354,7 +354,15 @@ int main(void)
                 expect(pill.sprite[7].brain == 0 && pill.sprite[7].speed == 0 &&
                            pill.sprite[7].base_walk == 130,
                        "editor pill is brain 0");
+                /* map.dat +100/+104/+108; FreeDink editor default is -1. */
+                expect(pill.sprite[7].base_idle == -1 &&
+                           pill.sprite[7].base_attack == -1 &&
+                           pill.sprite[7].base_hit == 0,
+                       "pill map bases");
                 brains_enter(&pill, DINK_VISION_DEFAULT);
+                expect(brains_base_idle(7) == -1 && brains_base_attack(7) == -1 &&
+                           brains_base_hit(7) == 0,
+                       "enter pill bases from map");
                 expect(brains_change_prop(7, 1, 9) == 9, "sp_brain 9");
                 expect(brains_change_prop(7, 2, 1) == 1, "sp_speed 1");
                 expect(brains_change_prop(7, 3, 130) == 130, "sp_base_walk");
@@ -365,6 +373,35 @@ int main(void)
                 }
                 expect((int)pill.sprite[7].x != ox || (int)pill.sprite[7].y != oy,
                        "en-pill main then pill_brain walks");
+            }
+            {
+                struct MapScreen bonc;
+
+                expect(map_load_record(18, &bonc) == 0, "bonca rec 18");
+                expect(bonc.sprite[3].type == 1 &&
+                           strcmp(bonc.sprite[3].script, "en-bonc") == 0,
+                       "bonca sprite 3");
+                expect(bonc.sprite[3].base_idle == -1 &&
+                           bonc.sprite[3].base_attack == -1 &&
+                           bonc.sprite[3].base_hit == 0,
+                       "bonca map bases");
+                brains_enter(&bonc, DINK_VISION_DEFAULT);
+                expect(brains_base_idle(3) == -1 && brains_base_attack(3) == -1 &&
+                           brains_base_hit(3) == 0,
+                       "enter bonca bases from map");
+            }
+            {
+                struct MapScreen pillb;
+
+                expect(map_load_record(201, &pillb) == 0, "pill rec 201");
+                expect(strcmp(pillb.sprite[4].script, "en-pill") == 0 &&
+                           pillb.sprite[4].base_idle == 130 &&
+                           pillb.sprite[4].base_attack == -1,
+                       "pill map-only base_idle 130");
+                brains_enter(&pillb, DINK_VISION_DEFAULT);
+                expect(brains_base_idle(4) == 130 &&
+                           brains_base_attack(4) == -1,
+                       "enter pill idle from map");
             }
         }
     }

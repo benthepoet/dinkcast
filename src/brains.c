@@ -65,6 +65,7 @@ struct BrainSpr {
     int bg_baked;
     int base_idle;
     int base_attack;
+    int base_hit;
     int move_active;
     int move_dir;
     int move_num;
@@ -1628,8 +1629,10 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].seq = 0;
         g_b[i].frame = 0;
         g_b[i].seq_orig = 0;
-        g_b[i].base_idle = -1;
-        g_b[i].base_attack = -1;
+        /* game_place_sprites copies editor bases after add_sprite_dumb -1. */
+        g_b[i].base_idle = (int)es->base_idle;
+        g_b[i].base_attack = (int)es->base_attack;
+        g_b[i].base_hit = (int)es->base_hit;
         g_b[i].base_die = (int)es->base_die;
         if (g_b[i].base_die == 0) {
             g_b[i].base_die = -1;
@@ -1931,6 +1934,7 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         g_b[i].base_walk = -1;
         g_b[i].base_idle = -1;
         g_b[i].base_attack = -1;
+        g_b[i].base_hit = -1;
         g_b[i].base_die = -1;
         return i;
     }
@@ -2064,6 +2068,22 @@ int brains_base_attack(int slot)
         return -1;
     }
     return g_b[slot].base_attack;
+}
+
+int brains_base_idle(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return -1;
+    }
+    return g_b[slot].base_idle;
+}
+
+int brains_base_hit(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return -1;
+    }
+    return g_b[slot].base_hit;
 }
 
 int brains_touch_damage(int slot)

@@ -90,7 +90,7 @@ int main(void)
             expect(world_load(&w) == 0, "world");
             rec = (int)w.loc[DINK_START_PLAYER_MAP];
             expect(map_load_record(rec, &house) == 0, "house map");
-            expect((int)sizeof(struct EditorSprite) == 144, "esz 144");
+            expect((int)sizeof(struct EditorSprite) == 156, "esz 156");
             expect(strcmp(house.script, "s1-h1-s") == 0, "house screen script");
             expect(strcmp(house.sprite[26].script, "s1-h1-m") == 0, "mom name");
             expect(house.sprite[26].type == 1 && house.sprite[26].active,

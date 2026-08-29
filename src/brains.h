@@ -51,6 +51,8 @@ int brains_range(int slot);
 int brains_nohit(int slot);
 int brains_exp(int slot);
 int brains_base_attack(int slot);
+int brains_base_idle(int slot);
+int brains_base_hit(int slot);
 int brains_touch_damage(int slot);
 void brains_set_last_hit(int slot, int who);
 void brains_set_target(int slot, int who);
