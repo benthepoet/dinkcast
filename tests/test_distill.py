@@ -45,6 +45,10 @@ def main() -> int:
     if 430 not in sack or 431 not in sack:
         print("FAIL s1-sack add_item missed grain seq", sorted(sack)[:20])
         return 1
+    chest = cat.script_seqs(src, "ch3-h")
+    if 52 not in chest:
+        print("FAIL ch3-h external make missed heart seq 52", sorted(chest)[:20])
+        return 1
     out = ROOT / "build" / "distill"
     out.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
@@ -130,6 +134,14 @@ def main() -> int:
             if want not in names:
                 print("FAIL distilled seed missing", want, "have", sorted(names))
                 return 1
+    heartp = out.joinpath("graphics", "bonuses", "heart", "dir.ff")
+    if heartp.is_file():
+        names = {n.lower() for n, _off in cat.ff_entries(heartp.read_bytes())}
+        prefix = seqs.get(52, "")
+        want = cat.frame_bmp_name(prefix, 2).lower()
+        if want not in names:
+            print("FAIL distilled heart missing", want, "have", sorted(names))
+            return 1
     env["DINK_DISTILL"] = str(out)
     env["DINK_DATA"] = data
     r = subprocess.run(

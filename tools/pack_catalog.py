@@ -172,6 +172,7 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
         typ = le_i32(raw, off + 16)
         brain = le_i32(raw, off + 36)
         base_walk = le_i32(raw, off + 96)
+        base_attack = le_i32(raw, off + 104)
         vision = le_i32(raw, off + 188)
         parm_seq = le_i32(raw, off + 156)
         base_die = le_i32(raw, off + 160)
@@ -189,6 +190,7 @@ def parse_screen(raw: bytes) -> tuple[list[dict], str, set[int]]:
                 "type": typ,
                 "brain": brain,
                 "base_walk": base_walk,
+                "base_attack": base_attack,
                 "vision": vision,
                 "parm_seq": parm_seq,
                 "base_die": base_die,
@@ -259,6 +261,12 @@ def script_direct(root: Path, name: str) -> tuple[set[int], list[str]]:
     for m in re.finditer(r"add_item\s*\(\s*\"([^\"]+)\"", stripped, re.I):
         callees.append(m.group(1).strip())
     for m in re.finditer(r"add_magic\s*\(\s*\"([^\"]+)\"", stripped, re.I):
+        callees.append(m.group(1).strip())
+    for m in re.finditer(
+        r"external\s*\(\s*\"([^\"]+)\"",
+        stripped,
+        re.I,
+    ):
         callees.append(m.group(1).strip())
     _script_direct_cache[key] = (frozenset(out), tuple(callees))
     return out, callees
@@ -415,6 +423,8 @@ def screen_need(
         if sp["parm_seq"] > 0:
             add(sp["parm_seq"], None)
         for s in walk_seqs(seqs, sp["base_walk"]):
+            add(s, None)
+        for s in walk_seqs(seqs, sp.get("base_attack", 0)):
             add(s, None)
         if sp["base_die"] > 0:
             add(sp["base_die"], None)

@@ -960,6 +960,41 @@ int main(void)
             return 1;
         }
     }
+    {
+        struct MapScreen cave;
+        int crec = (int)w.loc[100];
+
+        if (crec < 1 || map_load_record(crec, &cave) != 0) {
+            fprintf(stderr, "FAIL cave map 100\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (edraw_load_screen(cave.sprite, seqs, g, &n, 0) != 0) {
+            fprintf(stderr, "FAIL cave 100 edraw\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[539].prefix[0] != '\0' && edraw_find(g, n, 539, 1) == NULL) {
+            fprintf(stderr, "FAIL cave bonca walk 539\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[542].prefix[0] != '\0' && edraw_find(g, n, 542, 1) == NULL) {
+            fprintf(stderr, "FAIL cave bonca attack 542\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (seqs[111].prefix[0] != '\0' && edraw_find(g, n, 111, 1) == NULL) {
+            fprintf(stderr, "FAIL cave duck death 111\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     printf("edraw unique %d actives %d\n", n, act);
     edraw_free(g, n);
     free(seqs);

@@ -419,11 +419,12 @@ static void load_loop_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     }
 }
 
-/* people/pig/pill: +1,3,7,9. duck: those plus 4,6. dragon: 2,4,6,8. */
+/* people/pig: +1,3,7,9. duck: those plus 4,6. pill/dragon: all 8 dirs
+ * (Bonca walk 531+cardinal is 533/537/539; attack 540+cardinal 542..). */
 static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
 {
     static const int diag[4] = {1, 3, 7, 9};
-    static const int card[4] = {2, 4, 6, 8};
+    static const int all8[8] = {1, 2, 3, 4, 6, 7, 8, 9};
     static const int duck[6] = {1, 3, 4, 6, 7, 9};
     const int *d = diag;
     int nd = 4, i;
@@ -432,9 +433,9 @@ static void walk_seqs_for_brain(int brain, int base, int *out, int *n)
     if (base < 0) {
         return;
     }
-    if (brain == 10) {
-        d = card;
-        nd = 4;
+    if (brain == 9 || brain == 10) {
+        d = all8;
+        nd = 8;
     } else if (brain == 3) {
         d = duck;
         nd = 6;
@@ -454,7 +455,7 @@ static int brain_needs_death_walk(int br)
 static void push_walk_frames(int *ns, int *nf, int *n, struct SeqInfo *seqs,
                              int br, int base, int all_frames)
 {
-    int ws[6], nw, w, f2, nfr;
+    int ws[8], nw, w, f2, nfr;
 
     walk_seqs_for_brain(br, base, ws, &nw);
     for (w = 0; w < nw; w++) {
@@ -600,30 +601,50 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
             need_push(need_s, need_f, &nneed, g_mark_s[k], g_mark_f[k]);
         }
         g_nmark = 0;
-        for (i = 1; i <= 100; i++) {
-            int seq, fr, br;
+        /* Combat type-1 first so Bonca walk/attack and duck death open
+         * before type-0 decor (cave dragon 212 ~842 KB). */
+        for (k = 0; k < 3; k++) {
+            for (i = 1; i <= 100; i++) {
+                int seq, fr, br, pass;
 
-            if (!editor_sprite_draw(&sp[i], vision)) {
-                continue;
-            }
-            seq = (int)sp[i].seq;
-            fr = (int)sp[i].frame < 1 ? 1 : (int)sp[i].frame;
-            if (seq < 1 || seq >= DINK_MAX_SEQ || seqs[seq].prefix[0] == '\0') {
-                continue;
-            }
-            need_push(need_s, need_f, &nneed, seq, fr);
-            br = (int)sp[i].brain;
-            /* Repeat loops: current+next only. All 26 of 161 is 1.7 MB. */
-            if ((int)sp[i].type == 1 && br == 6) {
-                need_push_loop(need_s, need_f, &nneed, seqs, seq, fr);
-            }
-            if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
-                push_walk_frames(need_s, need_f, &nneed, seqs, br,
-                                 (int)sp[i].base_walk, 0);
-            }
-            if ((int)sp[i].type == 1 && br == 16) {
-                push_walk_frames(need_s, need_f, &nneed, seqs, 16,
-                                 (int)sp[i].base_walk, 0);
+                if (!editor_sprite_draw(&sp[i], vision)) {
+                    continue;
+                }
+                br = (int)sp[i].brain;
+                if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
+                    pass = 0;
+                } else if ((int)sp[i].type == 1 && br == 16) {
+                    pass = 0;
+                } else if ((int)sp[i].type == 1) {
+                    pass = 1;
+                } else {
+                    pass = 2;
+                }
+                if (pass != k) {
+                    continue;
+                }
+                seq = (int)sp[i].seq;
+                fr = (int)sp[i].frame < 1 ? 1 : (int)sp[i].frame;
+                if (seq < 1 || seq >= DINK_MAX_SEQ ||
+                    seqs[seq].prefix[0] == '\0') {
+                    continue;
+                }
+                need_push(need_s, need_f, &nneed, seq, fr);
+                if ((int)sp[i].type == 1 && br == 6) {
+                    need_push_loop(need_s, need_f, &nneed, seqs, seq, fr);
+                }
+                if ((int)sp[i].type == 1 && brain_needs_death_walk(br)) {
+                    push_walk_frames(need_s, need_f, &nneed, seqs, br,
+                                     (int)sp[i].base_walk, 0);
+                    if ((int)sp[i].base_attack > 0) {
+                        push_walk_frames(need_s, need_f, &nneed, seqs, br,
+                                         (int)sp[i].base_attack, 0);
+                    }
+                }
+                if ((int)sp[i].type == 1 && br == 16) {
+                    push_walk_frames(need_s, need_f, &nneed, seqs, 16,
+                                     (int)sp[i].base_walk, 0);
+                }
             }
         }
         /* Re-mark this Screen's packs before drop. Aged Prev (two screens
@@ -682,7 +703,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
         /* After frame 1 decode, seq.nframes is known. Duck death before
          * people/fireplace leftover fills. */
         for (i = 1; i <= 100; i++) {
-            int br, ws[6], nw, w;
+            int br, ws[8], nw, w;
 
             if ((int)sp[i].type != 1 ||
                 !editor_sprite_on_vision(&sp[i], vision)) {
@@ -718,16 +739,22 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 load_seq_frames(g, &got, seqs, (int)sp[i].parm_seq);
             }
             if (brain_needs_death_walk(br)) {
-                int ws[6], nw, w;
+                int ws[8], nw, w;
 
                 /* Same as people: frame 1 opens the pack. Play-path ensure. */
                 walk_seqs_for_brain(br, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
                     (void)load_one(g, &got, seqs, ws[w], 1, 0);
                 }
+                if ((int)sp[i].base_attack > 0) {
+                    walk_seqs_for_brain(br, (int)sp[i].base_attack, ws, &nw);
+                    for (w = 0; w < nw; w++) {
+                        (void)load_one(g, &got, seqs, ws[w], 1, 0);
+                    }
+                }
             }
             if (br == 16) {
-                int ws[6], nw, w;
+                int ws[8], nw, w;
 
                 walk_seqs_for_brain(16, (int)sp[i].base_walk, ws, &nw);
                 for (w = 0; w < nw; w++) {
