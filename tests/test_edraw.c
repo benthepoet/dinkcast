@@ -266,6 +266,21 @@ int main(void)
             free(seqs);
             return 1;
         }
+        /* S1-MH-M create_sprite seq 56: play-path skip, load_frame opens. */
+        n2 = n;
+        if (edraw_ensure_frame(g, &n2, seqs, 56, 1) == 0) {
+            fprintf(stderr, "FAIL ensure opened uncached bottle pack\n");
+            edraw_free(g, n2);
+            free(seqs);
+            return 1;
+        }
+        edraw_load_frame(g, &n, seqs, 56, 1);
+        if (edraw_find(g, n, 56, 1) == NULL) {
+            fprintf(stderr, "FAIL load_frame seq 56 bottle\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
     }
     {
         struct SpriteFrame *plank = edraw_find(g, n, 31, 22);
