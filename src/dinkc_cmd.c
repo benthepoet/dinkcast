@@ -1037,6 +1037,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (g_create != NULL) {
             slot = g_create(a0, a1, a2, a3, a4);
         }
+        /* Play-path ensure will not fopen a pack not opened at enter. */
+        if (slot > 0 && a3 > 0 && g_load_frame != NULL) {
+            int fr = a4 < 1 ? 1 : a4;
+
+            g_load_frame(a3, fr);
+        }
         printf("create_sprite slot=%d xy=%d,%d brain=%d seq=%d\n", slot, a0, a1,
                a2, a3);
         if (ret != NULL) {
