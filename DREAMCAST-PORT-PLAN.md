@@ -791,11 +791,13 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 #### Bite 12.2 — SFX bank
 
 - Map FreeDink sound numbers used by hit/talk/combat (from `sound/` + `playsound` ids).
-- Load ≤ 512 KB at boot. Log AICA free.
+- Engine copies **`START.c` `load_sound` table** at boot (does not run START `main()`). Skip missing freeware files. Share one AICA handle when two slots name the same WAV.
+- Load ≤ 512 KB at boot. Log AICA used. Truncate samples &gt; 65534 (KOS sfxmgr).
 
 #### Bite 12.3 — `playsound` bind
 
-- Wave 1 stub becomes real. Voice steal oldest if > 16.
+- Wave 1 stub becomes real: `playsound` → `audio_playsound` / `SoundPlayEffect`; return **channel+1**. Voice steal oldest if &gt; 16. `min`/`plus`/`sound3d` may wait; volume/pan full/center.
+- Engine grafts named FreeDink sites: `update_status_all` (13/22/14), `game_choice` (11/17), `missile_brain` (9).
 
 #### Bite 12.4 — One streamed loop
 

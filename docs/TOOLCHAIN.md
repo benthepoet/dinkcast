@@ -19,8 +19,8 @@ SFX is **not** streamed. Convert official `Sound/*.wav` on the host:
 
 ```bash
 make sfx-bank                  # → build/sfx/ (gitignored)
-./tools/wav_to_adpcm IN.wav OUT.wav
-./tools/wav_to_adpcm --dir "$DINK_DATA/Sound" --out build/sfx
+./build/wav_to_adpcm IN.wav OUT.wav
+./build/wav_to_adpcm --dir "$DINK_DATA/Sound" --out build/sfx
 ```
 
 Yamaha ADPCM WAV **fmt 0x14** unless PCM payload **&lt; 8 KiB** (stays 16-bit PCM). `make cdi` runs the same convert **in-place on the staged copy** (`stage_dink.sh`). Never rewrite `DINK_DATA`. MIDI / `playmidi` is **12.4**.
