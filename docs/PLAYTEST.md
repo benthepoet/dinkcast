@@ -55,6 +55,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Fireball USE shows a missile, not only Dink’s hand glow | `test_hurt` missile `brain_parm` 1 skips Dink. Flycast stamp Open. |
 | Fireball impact explosion seq 70 (`DAM-FIRE` `DAMAGE`) | `test_hurt` DAMAGE keeps missile brain 7 seq 70. Flycast stamp Open. |
 | Dink death pose seq 436 then Load/Restart/Quit (`DINFO.c`) | `test_weapon` `dink/die` Always. Flycast stamp Open. |
+| West of AlkNut (`s1-ntree` → 473) tiles + nuts on return | `test_weapon` fb ARM comet not Always. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 

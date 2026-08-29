@@ -127,8 +127,8 @@ int main(void)
     residency_swap_end();
     residency_swap_begin();
     residency_swap_end();
-    expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
-           "comet pin survives two swaps");
+    expect(!ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
+           "fb ARM preload not Always");
     dinkc_var_set("&magic_level", 100, DINKC_GLOBAL_SCOPE, 1);
     dinkc_vm_set_now(1);
     expect(dinkc_cmd_magic_use() == 1, "use fb");

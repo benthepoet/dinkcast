@@ -447,9 +447,10 @@ static void pin_seq(int seq)
     if (ff_cached(dir, &ff) != 0) {
         return;
     }
-    /* Item ARM only. NPC MAIN preload_seq (S1-CAVEM Bonca) must not
-     * Always-pin: that filled file_blob so s1-rob vis 1 skipped knights. */
-    if (g_pin_kind == 0 || g_pin_kind == 1) {
+    /* Named Always prefixes only (dink idle/walk/hit…). ITEM-FB ARM
+     * preload_seq(20/70) is tree-burn/splode; pinning those Always left
+     * ~3.6 MB and AlkNut west ts35 / seq 421 refused. */
+    if ((g_pin_kind == 0 || g_pin_kind == 1) && residency_is_always(dir)) {
         pin_pack(dir);
     } else {
         residency_touch(dir);
