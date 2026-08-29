@@ -428,6 +428,8 @@ def screen_need(
             add(s, None)
         if sp["base_die"] > 0:
             add(sp["base_die"], None)
+            for s in walk_seqs(seqs, sp["base_die"]):
+                add(s, None)
         if br in (3, 4, 9, 10):
             add(164, None)
         if br == 3:

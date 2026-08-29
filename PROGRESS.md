@@ -207,6 +207,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | map.dat +100/+104/+108 `base_idle`/`base_attack`/`base_hit`; `brains_enter` copies (`game_place_sprites`) | this PR |
 | 2026-08-23 | `create_sprite` `load_frame` (S1-MH-M seq 56 bottle; play-path ensure skips) | this PR |
 | 2026-08-23 | Cave unique: combat type-1 before type-0; pill/dragon all 8 dirs + `base_attack`; distill `external` | this PR |
+| 2026-08-23 | Unique `base_die` dirs (Bonca corpse 551/559; `add_kill_sprite` is not DinkC create) | this PR |
 
 ## Bites
 
