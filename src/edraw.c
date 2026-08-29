@@ -367,6 +367,27 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].live = 1;
     upload_and_drop_cpu(&g[*got].fr);
     (*got)++;
+    /* Play-path only. Enter-path load_seq_frames still fills unique for
+     * house details. Loop working set is current+next (14.4c). */
+    if (!residency_swap_open() && pixel_class(seqs, seq) != PIX_STICKY) {
+        int nxt = edraw_loop_next_frame(seqs, seq, frame);
+        int i = 0;
+
+        while (i < *got) {
+            if (g[i].seq == seq && g[i].frame != frame && g[i].frame != nxt) {
+                sprite_frame_free(&g[i].fr);
+                (*got)--;
+                if (i < *got) {
+                    g[i] = g[*got];
+                    memset(&g[*got], 0, sizeof(g[0]));
+                } else {
+                    memset(&g[i], 0, sizeof(g[0]));
+                }
+            } else {
+                i++;
+            }
+        }
+    }
     {
         size_t need = edraw_cpu_bytes(g, *got);
 

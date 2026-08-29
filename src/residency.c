@@ -15,6 +15,12 @@ enum {
     RES_PREV = 3
 };
 
+#define HOLD_BANKS 2
+#define HOLD_MAX 24
+
+static char g_hold[HOLD_BANKS][HOLD_MAX][DINK_FS_PATH_MAX];
+static int g_nhold[HOLD_BANKS];
+
 int residency_is_always(const char *rel)
 {
     static const char *k[] = {
@@ -190,6 +196,51 @@ static int rel_is_tile_or_hard(const char *rel)
     return 0;
 }
 
+void residency_hold(int bank, const char *rel)
+{
+    int i;
+
+    if (bank < 0 || bank >= HOLD_BANKS || rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < g_nhold[bank]; i++) {
+        if (strcmp(g_hold[bank][i], rel) == 0) {
+            return;
+        }
+    }
+    if (g_nhold[bank] >= HOLD_MAX) {
+        return;
+    }
+    snprintf(g_hold[bank][g_nhold[bank]], sizeof(g_hold[bank][0]), "%s", rel);
+    g_nhold[bank]++;
+}
+
+void residency_hold_clear(int bank)
+{
+    if (bank < 0 || bank >= HOLD_BANKS) {
+        return;
+    }
+    memset(g_hold[bank], 0, sizeof(g_hold[bank]));
+    g_nhold[bank] = 0;
+}
+
+int residency_is_held(const char *rel)
+{
+    int b, i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return 0;
+    }
+    for (b = 0; b < HOLD_BANKS; b++) {
+        for (i = 0; i < g_nhold[b]; i++) {
+            if (strcmp(g_hold[b][i], rel) == 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int residency_drop_one_screen(const char *keep)
 {
     char key[DINK_FS_PATH_MAX];
@@ -207,6 +258,9 @@ int residency_drop_one_screen(const char *keep)
             continue;
         }
         if (keep != NULL && keep[0] != '\0' && strcmp(rel, keep) == 0) {
+            continue;
+        }
+        if (residency_is_held(rel)) {
             continue;
         }
         if (n > best_n) {

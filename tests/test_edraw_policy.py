@@ -22,6 +22,8 @@ def main() -> int:
         bad.append("missing Always/Sticky pixel classes")
     if "edraw evict class=" not in text:
         bad.append("evict log missing class=")
+    if "current+next" not in text and "edraw_loop_next_frame" not in text:
+        bad.append("loop current+next trim")
     if bad:
         print("FAIL", EDRAW, ":", "; ".join(bad))
         return 1
