@@ -81,6 +81,7 @@ struct BrainSpr {
     int disabled;
     int frame_delay;
     int nodraw;
+    int attack_hit_sound, attack_hit_sound_speed, last_sound;
     char script[16];
 };
 
@@ -141,6 +142,20 @@ static int spr_i(const struct BrainSpr *s)
 static int in_this_base(int seq, int base)
 {
     return (seq / 10) * 10 == base;
+}
+
+/* FreeDink pig_brain / duck_brain idle pitch from spr.size. */
+static int size_hz(int size)
+{
+    int junk = size;
+
+    if (junk >= 100) {
+        junk = 18000 - (junk * 50);
+    }
+    if (junk < 100) {
+        junk = 16000 + (junk * 100);
+    }
+    return junk;
 }
 
 static void change_dir_to_diag(int *dir)
@@ -876,7 +891,7 @@ static void bounce_brain(struct BrainSpr *s)
     s->y += s->my;
 }
 
-/* FreeDink duck_brain (damage 15.2; no sfx). */
+/* FreeDink duck_brain (damage 15.2). */
 static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                        const struct HardMask *mask, int now_ms)
 {
@@ -942,6 +957,8 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             if (hold != 2 && hold != 8 && hold != 5) {
                 changedir(hold, s, s->base_walk, seqs);
             } else {
+                /* FreeDink duck_brain: SoundPlayEffect(1, junk, 800, h, 0). */
+                (void)audio_playsound(1, size_hz(s->size), 800, spr_i(s), 0);
                 s->mx = 0;
                 s->my = 0;
                 s->wait = now_ms + (rand() % 300) + 200;
@@ -969,7 +986,7 @@ static void duck_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
     }
 }
 
-/* FreeDink pig_brain (damage 15.2; no sfx). */
+/* FreeDink pig_brain (damage 15.2). */
 static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                       const struct HardMask *mask, int now_ms)
 {
@@ -1001,6 +1018,10 @@ static void pig_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                 hold != 5) {
                 changedir(hold, s, s->base_walk, seqs);
             } else {
+                /* FreeDink: oink 2–5 (playing() skip omitted; no mixer query). */
+                hold = (rand() % 4) + 1;
+                s->last_sound = audio_playsound(1 + hold, size_hz(s->size), 800,
+                                                spr_i(s), 0);
                 s->mx = 0;
                 s->my = 0;
                 s->wait = now_ms + (rand() % 300) + 200;
@@ -1311,8 +1332,16 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             g_b[j].last_hit = 1;
             g_b[j].damage += hit;
         }
-        /* FreeDink missile_brain: SoundPlayEffect(9) unless attack_hit_sound. */
-        (void)audio_playsound(9, 22050, 0, 0, 0);
+        /* FreeDink missile_brain: punch 9 unless attack_hit_sound. */
+        if (s->attack_hit_sound == 0) {
+            (void)audio_playsound(9, 22050, 0, 0, 0);
+        } else {
+            (void)audio_playsound(s->attack_hit_sound,
+                                  s->attack_hit_sound_speed != 0
+                                      ? s->attack_hit_sound_speed
+                                      : 22050,
+                                  0, 0, 0);
+        }
         /* locate DAMAGE on the missile; HIT on the target. */
         dinkc_var_set("&missile_target", j, DINKC_GLOBAL_SCOPE, 1);
         dinkc_var_set("&missle_source", h, DINKC_GLOBAL_SCOPE, 1);
@@ -1892,6 +1921,10 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->distance;
     } else if (prop == DINKC_SP_ATTACK_WAIT) {
         p = &s->attack_wait;
+    } else if (prop == DINKC_SP_ATTACK_HIT_SOUND) {
+        p = &s->attack_hit_sound;
+    } else if (prop == DINKC_SP_ATTACK_HIT_SOUND_SPEED) {
+        p = &s->attack_hit_sound_speed;
     }
     if (p == NULL) {
         return -1;
@@ -2069,6 +2102,22 @@ int brains_nohit(int slot)
         return 0;
     }
     return g_b[slot].nohit;
+}
+
+int brains_attack_hit_sound(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].attack_hit_sound;
+}
+
+int brains_attack_hit_sound_speed(int slot)
+{
+    if (slot < 1 || slot > 100 || !g_b[slot].live) {
+        return 0;
+    }
+    return g_b[slot].attack_hit_sound_speed;
 }
 
 int brains_exp(int slot)

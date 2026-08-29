@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "hit.h"
 
+#include "audio.h"
 #include "brains.h"
 #include "hurt.h"
 
@@ -235,6 +236,23 @@ void hit_tag_list(int attacker, int ax, int ay, int dir, int strength,
                 g_on_hit(i, attacker);
             }
             continue;
+        }
+        /* FreeDink run_through_tag_list: punch 9 unless attack_hit_sound. */
+        {
+            int snd = 0, spd = 22050;
+
+            if (attacker == 1 && g_pl != NULL) {
+                snd = g_pl->attack_hit_sound;
+                spd = g_pl->attack_hit_sound_speed;
+            } else {
+                snd = brains_attack_hit_sound(attacker);
+                spd = brains_attack_hit_sound_speed(attacker);
+            }
+            if (snd == 0) {
+                (void)audio_playsound(9, 22050, 0, 0, 0);
+            } else {
+                (void)audio_playsound(snd, spd != 0 ? spd : 22050, 0, 0, 0);
+            }
         }
         if (brains_base_attack(i) != -1 || brains_touch_damage(i) > 0) {
             brains_set_target(i, attacker);

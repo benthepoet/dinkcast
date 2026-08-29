@@ -49,6 +49,8 @@ int brains_defense(int slot);
 int brains_strength(int slot);
 int brains_range(int slot);
 int brains_nohit(int slot);
+int brains_attack_hit_sound(int slot);
+int brains_attack_hit_sound_speed(int slot);
 int brains_exp(int slot);
 int brains_base_attack(int slot);
 int brains_base_idle(int slot);

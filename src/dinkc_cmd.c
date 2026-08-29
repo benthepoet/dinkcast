@@ -840,6 +840,10 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->distance;
         } else if (prop == DINKC_SP_FRAME_DELAY) {
             p = &g_pl->frame_delay;
+        } else if (prop == DINKC_SP_ATTACK_HIT_SOUND) {
+            p = &g_pl->attack_hit_sound;
+        } else if (prop == DINKC_SP_ATTACK_HIT_SOUND_SPEED) {
+            p = &g_pl->attack_hit_sound_speed;
         }
         if (p != NULL) {
             if (val != -1) {
@@ -1569,9 +1573,14 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "sp_notouch")) {
         return change_sp(a0, DINKC_SP_NOTOUCH, nargs, a1, ret);
     }
-    if (is_cmd(name, "sp_kill_wait") || is_cmd(name, "sp_attack_hit_sound") ||
-        is_cmd(name, "sp_attack_hit_sound_speed")) {
+    if (is_cmd(name, "sp_kill_wait")) {
         return 1;
+    }
+    if (is_cmd(name, "sp_attack_hit_sound")) {
+        return change_sp(a0, DINKC_SP_ATTACK_HIT_SOUND, nargs, a1, ret);
+    }
+    if (is_cmd(name, "sp_attack_hit_sound_speed")) {
+        return change_sp(a0, DINKC_SP_ATTACK_HIT_SOUND_SPEED, nargs, a1, ret);
     }
     if (is_cmd(name, "activate_bow")) {
         g_bow_power = 100;
