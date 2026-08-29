@@ -291,6 +291,40 @@ int residency_drop_one_screen(const char *keep)
     return 0;
 }
 
+/* Largest held pack as a last resort. Holds are best-effort: keeping
+ * treefire/splode must never wedge the current screen (trees pack
+ * refused -> bare trunks). Dropping a held pack re-reads it from GD-ROM
+ * at impact, which beats missing screen graphics. */
+static int residency_drop_one_held(const char *keep)
+{
+    char key[DINK_FS_PATH_MAX];
+    const char *rel;
+    size_t n, best_n = 0;
+    int i, found = 0;
+
+    key[0] = '\0';
+    for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
+        if (!rel_is_dir_ff(rel) || !residency_is_held(rel)) {
+            continue;
+        }
+        if (keep != NULL && keep[0] != '\0' && strcmp(rel, keep) == 0) {
+            continue;
+        }
+        if (n > best_n) {
+            snprintf(key, sizeof(key), "%s", rel);
+            best_n = n;
+            found = 1;
+        }
+    }
+    if (!found) {
+        return -1;
+    }
+    printf("residency drop held %s\n", key);
+    ff_cache_release(key);
+    dink_blob_try_drop(key);
+    return 0;
+}
+
 int residency_make_room(size_t need)
 {
     return residency_make_room_keep(need, NULL);
@@ -303,6 +337,9 @@ int residency_make_room_keep(size_t need, const char *keep)
             continue;
         }
         if (residency_drop_one_screen(keep) == 0) {
+            continue;
+        }
+        if (residency_drop_one_held(keep) == 0) {
             continue;
         }
         return -1;
