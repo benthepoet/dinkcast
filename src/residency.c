@@ -221,6 +221,7 @@ void residency_hold(int bank, const char *rel)
         }
     }
     if (g_nhold[bank] >= HOLD_MAX) {
+        printf("residency hold full bank=%d rel=%s\n", bank, rel);
         return;
     }
     snprintf(g_hold[bank][g_nhold[bank]], sizeof(g_hold[bank][0]), "%s", rel);

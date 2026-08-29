@@ -372,7 +372,10 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
      * gating there disabled the trim for the whole game and a 29-frame
      * seq (treefire) OOMed PVR. Enter-path load_seq_frames still fills
      * unique: its frames are live=1 from load, and live frames are kept
-     * so two sprites on the same seq at different frames do not thrash. */
+     * so two sprites on the same seq at different frames do not thrash.
+     * sprite_frame_free below does a bare pvr_mem_free: safe only because
+     * every load_one caller runs pre-scene (after pvr_wait_ready, before
+     * pvr_scene_begin in main.c). Do not call load_one mid-scene. */
     if (pixel_class(seqs, seq) != PIX_STICKY) {
         int nxt = edraw_loop_next_frame(seqs, seq, frame);
         int i = 0;

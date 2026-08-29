@@ -1298,6 +1298,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
                     (void)g_item_locate(g_weapon_slot, "HOLDINGDROP");
                 }
                 g_weapon_slot = 0;
+                pin_clear(0);
                 dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
             }
             if (g_item_locate != NULL) {
@@ -1319,6 +1320,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             }
             g_item[cur - 1].active = 0;
             g_weapon_slot = 0;
+            pin_clear(0);
             dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
         }
         if (ret != NULL) {
