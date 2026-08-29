@@ -251,7 +251,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 11.8 | Wave 3 combat/magic/map | source | `playmidi`/`draw_status` stub; #43. `force_vision` #116. `fade_*` truecolor clock (this PR). `fill_screen` still instant |
 | 11.9 | Coverage log | source | `k_fn[]`; `DINKC_DUMP_FNS=1` |
 | 11.10 | Wave 1 live sprite cmds | source | `move`/`create_sprite`/`sp_kill`/NPC `sp_*`; #66. `sp_disabled` skip draw (this PR) |
-| 12.1–12.4 | AICA audio | pending | **after 16**; `playsound` stub until then |
+| 12.1 | WAV → AICA ADPCM | source | `tools/wav_to_adpcm`; PCM &lt; 8 KiB stays PCM; stage overlay; not committed |
+| 12.2–12.4 | AICA bank / `playsound` / stream | pending | **12.2–12.3** SFX next; **12.4** music stream gated |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |

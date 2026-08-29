@@ -47,6 +47,17 @@ if [ "$HAS_DATA" = 1 ] && command -v python3 >/dev/null 2>&1; then
     python3 "$ROOT/tools/distill_frames.py" --src "$DST" --in-place
 fi
 
+# 12.1: replace staged Sound/*.wav with AICA ADPCM (or tiny PCM). Never
+# rewrite DINK_DATA. Tool is host-built (make cdi depends on it).
+SFX_TOOL="$ROOT/tools/wav_to_adpcm"
+if [ "$HAS_DATA" = 1 ] && [ -x "$SFX_TOOL" ]; then
+    if [ -d "$DST/Sound" ]; then
+        "$SFX_TOOL" --dir "$DST/Sound" --inplace || true
+    elif [ -d "$DST/sound" ]; then
+        "$SFX_TOOL" --dir "$DST/sound" --inplace || true
+    fi
+fi
+
 # Data names are 8.3-safe; a plain find loop is enough.
 find "$DST" -type f -exec sh "$ROOT/tools/pad2048.sh" {} +
 echo "stage_dink: $SRC -> $DST (sector-padded)"

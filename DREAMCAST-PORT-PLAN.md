@@ -781,8 +781,12 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 
 #### Bite 12.1 — Host WAV → AICA
 
-- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB).
+- `tools/wav_to_adpcm` (or 16-bit PCM if sample < 8 KB). Yamaha ADPCM WAVE fmt **0x14** for KOS `snd_sfx_load`.
+- `wav_to_adpcm IN.wav OUT.wav` or `--dir Sound --out build/sfx` or `--inplace` on the **staged** tree. Output is `build/sfx` / disc stage, **not committed**. `make sfx-bank` / `make cdi` runs it. Never rewrite `DINK_DATA`.
+- Warn (do not refuse) if `nframes > 65534` (KOS sfxmgr cap). Truncate at **12.2** load.
 - Document command line. Output not committed.
+
+**Done when (12.1):** host test converts a >8 KiB PCM WAV to fmt 0x14; `stage_dink` ADPCM-replaces `Sound/` when the tool exists. No AICA play yet.
 
 #### Bite 12.2 — SFX bank
 
@@ -799,7 +803,7 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 - 32–64 KB disc chunks. One ring 256–512 KB.
 - Title **may** start this; Bite 3.4 must still work with audio compiled out.
 
-**Done when:** Hit plays an SFX; title or town loops one track; AICA total ≤ 2 MB.
+**Done when (12.3, SFX):** Hit plays an SFX; AICA SFX ≤ 512 KB. **12.4** (title/town loop stream) is a later requester go — SFX may land without music.
 
 ### Phase F″ — VMU save
 
