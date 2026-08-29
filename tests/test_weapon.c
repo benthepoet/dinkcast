@@ -38,6 +38,7 @@ int main(void)
     expect(dink_fs_init() == 0, "fs");
     expect(residency_is_always("graphics/dink/sword/walk/dir.ff"), "sword always");
     expect(residency_is_always("graphics/dink/bow/walk/dir.ff"), "bow always");
+    expect(residency_is_always("graphics/dink/die/dir.ff"), "die always");
     expect(!residency_is_always("graphics/people/mom/dir.ff"), "mom not always");
 
     seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));

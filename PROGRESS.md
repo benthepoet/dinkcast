@@ -210,6 +210,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | Unique `base_die` dirs (Bonca corpse 551/559; `add_kill_sprite` is not DinkC create) | this PR |
 | 2026-08-23 | NPC `preload_seq` is Screen, not Always (s1-rob vis 1 knights) | this PR |
 | 2026-08-23 | missile skips Dink when `brain_parm==1` (ITEM-FB fireball) | this PR |
+| 2026-08-23 | Always `graphics/dink/die/` seq 436 (`DINFO.c` death pose) | this PR |
 
 ## Bites
 

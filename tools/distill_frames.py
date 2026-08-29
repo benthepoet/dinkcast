@@ -25,6 +25,7 @@ ALWAYS_PREFIX = (
     "graphics/dink/walk/",
     "graphics/dink/push/",
     "graphics/dink/hit/",
+    "graphics/dink/die/",
     "graphics/inter/text-box/",
     "graphics/inter/arrow/",
     "graphics/inter/menu/",
@@ -122,7 +123,14 @@ def distill_root(src: Path, dst: Path, in_place: bool) -> int:
     for sid, frs in need.items():
         prefix = seqs[sid]
         rel, nbytes = cat.seq_pack_bytes(src, prefix, {})
-        if nbytes <= 0 or is_always(rel) or not rel.lower().endswith("dir.ff"):
+        if is_always(rel):
+            if not in_place:
+                stale = dst.joinpath(*Path(rel.replace("\\", "/")).parts)
+                if stale.is_file():
+                    stale.unlink()
+                    print(f"distill unlink always {rel}")
+            continue
+        if nbytes <= 0 or not rel.lower().endswith("dir.ff"):
             continue
         path = cat.find_ci(src, rel)
         if path is None:
