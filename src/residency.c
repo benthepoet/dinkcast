@@ -103,6 +103,13 @@ void residency_swap_begin(void)
             dink_blob_set_cls(rel, RES_ALWAYS, 0);
             continue;
         }
+        /* ARM-held packs (treefire/splode) stay Screen across swaps;
+         * demoting them to Prev let drop_one_prev release the pack the
+         * preload was meant to keep (GD-ROM re-read at impact). */
+        if (residency_is_held(rel)) {
+            dink_blob_set_cls(rel, RES_SCREEN, 0);
+            continue;
+        }
         if (cls == RES_PREV) {
             dink_blob_set_cls(rel, RES_PREV, 1);
         } else if (cls == RES_SCREEN) {
@@ -165,6 +172,11 @@ int residency_drop_one_prev(void)
     for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
         dink_blob_get_cls(rel, &cls, NULL);
         if (!rel_is_dir_ff(rel) || cls != RES_PREV) {
+            continue;
+        }
+        /* Defense in depth: swap_begin keeps held packs Screen, but never
+         * let a Prev drop release an ARM-held pack. */
+        if (residency_is_held(rel)) {
             continue;
         }
         if (n > best_n) {

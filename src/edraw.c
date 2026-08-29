@@ -367,14 +367,19 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].live = 1;
     upload_and_drop_cpu(&g[*got].fr);
     (*got)++;
-    /* Play-path only. Enter-path load_seq_frames still fills unique for
-     * house details. Loop working set is current+next (14.4c). */
-    if (!residency_swap_open() && pixel_class(seqs, seq) != PIX_STICKY) {
+    /* Loop working set is current+next (14.4c). Not gated on
+     * residency_swap_open: that flag is sticky after the first swap, so
+     * gating there disabled the trim for the whole game and a 29-frame
+     * seq (treefire) OOMed PVR. Enter-path load_seq_frames still fills
+     * unique: its frames are live=1 from load, and live frames are kept
+     * so two sprites on the same seq at different frames do not thrash. */
+    if (pixel_class(seqs, seq) != PIX_STICKY) {
         int nxt = edraw_loop_next_frame(seqs, seq, frame);
         int i = 0;
 
         while (i < *got) {
-            if (g[i].seq == seq && g[i].frame != frame && g[i].frame != nxt) {
+            if (g[i].seq == seq && !g[i].live && g[i].frame != frame &&
+                g[i].frame != nxt) {
                 sprite_frame_free(&g[i].fr);
                 (*got)--;
                 if (i < *got) {
