@@ -67,7 +67,7 @@ static int (*g_show_bmp)(const char *rel, int showdot, int fiber);
 static void (*g_preload)(int seq);
 static void (*g_load_frame)(int seq, int frame);
 static struct SeqInfo *g_seqs;
-static int g_pin_kind;
+static int g_pin_kind = -1;
 static int g_npin[2];
 static char g_pin[2][24][160];
 static int g_fiber;
@@ -447,7 +447,14 @@ static void pin_seq(int seq)
     if (ff_cached(dir, &ff) != 0) {
         return;
     }
-    pin_pack(dir);
+    /* Named Always prefixes only (dink idle/walk/hit…). ITEM-FB ARM
+     * preload_seq(20/70) is tree-burn/splode; pinning those Always left
+     * ~3.6 MB and AlkNut west ts35 / seq 421 refused. */
+    if ((g_pin_kind == 0 || g_pin_kind == 1) && residency_is_always(dir)) {
+        pin_pack(dir);
+    } else {
+        residency_touch(dir);
+    }
 }
 
 void dinkc_cmd_bind_item(int (*arm)(const char *name),
@@ -974,7 +981,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return change_sp(a0, DINKC_SP_DIR, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_seq")) {
-        return change_sp(a0, DINKC_SP_SEQ, nargs, a1, ret);
+        int rc = change_sp(a0, DINKC_SP_SEQ, nargs, a1, ret);
+
+        if (nargs >= 2 && a1 > 0 && g_load_frame != NULL) {
+            g_load_frame(a1, 1);
+        }
+        return rc;
     }
     if (is_cmd(name, "sp_frame")) {
         return change_sp(a0, DINKC_SP_FRAME, nargs, a1, ret);
@@ -1417,6 +1429,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("arm_weapon %s slot=%d\n", g_item[cur - 1].name,
                    g_weapon_slot);
         }
+        g_pin_kind = -1;
         return 1;
     }
     if (is_cmd(name, "arm_magic")) {
@@ -1438,6 +1451,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("arm_magic %s slot=%d\n", g_mitem[cur - 1].name,
                    g_magic_slot);
         }
+        g_pin_kind = -1;
         return 1;
     }
     if (is_cmd(name, "kill_shadow") || is_cmd(name, "fill_screen")) {

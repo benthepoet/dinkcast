@@ -22,6 +22,7 @@ int residency_is_always(const char *rel)
         "graphics/dink/walk/",
         "graphics/dink/push/",
         "graphics/dink/hit/",
+        "graphics/dink/die/",
         "graphics/dink/sword/",
         "graphics/dink/bow/",
         "graphics/inter/text-box/",
@@ -175,12 +176,69 @@ int residency_drop_one_prev(void)
     return 0;
 }
 
+static int rel_is_tile_or_hard(const char *rel)
+{
+    if (rel == NULL) {
+        return 1;
+    }
+    if (strncmp(rel, "tiles/", 6) == 0) {
+        return 1;
+    }
+    if (strstr(rel, "hard.dat") != NULL) {
+        return 1;
+    }
+    return 0;
+}
+
+int residency_drop_one_screen(const char *keep)
+{
+    char key[DINK_FS_PATH_MAX];
+    const char *rel;
+    size_t n, best_n = 0;
+    int i, cls, found = 0;
+
+    key[0] = '\0';
+    for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
+        dink_blob_get_cls(rel, &cls, NULL);
+        if (!rel_is_dir_ff(rel) || cls != RES_SCREEN) {
+            continue;
+        }
+        if (rel_is_tile_or_hard(rel)) {
+            continue;
+        }
+        if (keep != NULL && keep[0] != '\0' && strcmp(rel, keep) == 0) {
+            continue;
+        }
+        if (n > best_n) {
+            snprintf(key, sizeof(key), "%s", rel);
+            best_n = n;
+            found = 1;
+        }
+    }
+    if (!found) {
+        return -1;
+    }
+    printf("residency drop screen %s\n", key);
+    ff_cache_release(key);
+    dink_blob_try_drop(key);
+    return 0;
+}
+
 int residency_make_room(size_t need)
 {
+    return residency_make_room_keep(need, NULL);
+}
+
+int residency_make_room_keep(size_t need, const char *keep)
+{
     while (dink_blob_bytes() + need > (size_t)DINK_MEM_BLOB_PEAK) {
-        if (residency_drop_one_prev() != 0) {
-            return -1;
+        if (residency_drop_one_prev() == 0) {
+            continue;
         }
+        if (residency_drop_one_screen(keep) == 0) {
+            continue;
+        }
+        return -1;
     }
     return 0;
 }

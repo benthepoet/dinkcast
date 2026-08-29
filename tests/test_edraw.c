@@ -988,6 +988,14 @@ int main(void)
             free(seqs);
             return 1;
         }
+        if (seqs[551].prefix[0] != '\0' && edraw_find(g, n, 551, 1) == NULL &&
+            (seqs[559].prefix[0] == '\0' ||
+             edraw_find(g, n, 559, 1) == NULL)) {
+            fprintf(stderr, "FAIL cave bonca death 551/559\n");
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
         if (seqs[111].prefix[0] != '\0' && edraw_find(g, n, 111, 1) == NULL) {
             fprintf(stderr, "FAIL cave duck death 111\n");
             edraw_free(g, n);

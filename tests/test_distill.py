@@ -49,6 +49,9 @@ def main() -> int:
     if 52 not in chest:
         print("FAIL ch3-h external make missed heart seq 52", sorted(chest)[:20])
         return 1
+    if 436 not in cat.ALWAYS_SEQ:
+        print("FAIL ALWAYS_SEQ missing dink die 436")
+        return 1
     out = ROOT / "build" / "distill"
     out.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
@@ -134,6 +137,10 @@ def main() -> int:
             if want not in names:
                 print("FAIL distilled seed missing", want, "have", sorted(names))
                 return 1
+    diep = out.joinpath("graphics", "dink", "die", "dir.ff")
+    if diep.is_file():
+        print("FAIL stale dink/die overlay", diep.stat().st_size)
+        return 1
     heartp = out.joinpath("graphics", "bonuses", "heart", "dir.ff")
     if heartp.is_file():
         names = {n.lower() for n, _off in cat.ff_entries(heartp.read_bytes())}

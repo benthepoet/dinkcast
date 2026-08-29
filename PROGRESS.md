@@ -207,6 +207,13 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | map.dat +100/+104/+108 `base_idle`/`base_attack`/`base_hit`; `brains_enter` copies (`game_place_sprites`) | this PR |
 | 2026-08-23 | `create_sprite` `load_frame` (S1-MH-M seq 56 bottle; play-path ensure skips) | this PR |
 | 2026-08-23 | Cave unique: combat type-1 before type-0; pill/dragon all 8 dirs + `base_attack`; distill `external` | this PR |
+| 2026-08-23 | Unique `base_die` dirs (Bonca corpse 551/559; `add_kill_sprite` is not DinkC create) | this PR |
+| 2026-08-23 | NPC `preload_seq` is Screen, not Always (s1-rob vis 1 knights) | this PR |
+| 2026-08-23 | missile skips Dink when `brain_parm==1` (ITEM-FB fireball) | this PR |
+| 2026-08-23 | Always `graphics/dink/die/` seq 436 (`DINFO.c` death pose) | this PR |
+| 2026-08-23 | missile `DAMAGE` (`DAM-FIRE` seq 70 brain 7); `sp_seq` `load_frame` | this PR |
+| 2026-08-23 | ARM `preload_seq` Always only for named prefixes (AlkNut west ts35 / seq 421) | this PR |
+| 2026-08-23 | `make_room` drops Screen `dir.ff` after Prev (live burned tree seq 20) | this PR |
 
 ## Bites
 

@@ -38,6 +38,7 @@ int main(void)
     expect(dink_fs_init() == 0, "fs");
     expect(residency_is_always("graphics/dink/sword/walk/dir.ff"), "sword always");
     expect(residency_is_always("graphics/dink/bow/walk/dir.ff"), "bow always");
+    expect(residency_is_always("graphics/dink/die/dir.ff"), "die always");
     expect(!residency_is_always("graphics/people/mom/dir.ff"), "mom not always");
 
     seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
@@ -87,6 +88,18 @@ int main(void)
     expect(dinkc_cmd("compare_weapon", args, 0, "item-sw1", NULL, &yld, &rv) == 1 &&
                rv == 1,
            "compare sword");
+    memset(args, 0, sizeof(args));
+    args[0] = 531;
+    expect(dinkc_cmd("preload_seq", args, 1, NULL, NULL, &yld, &rv) == 1,
+           "npc preload 531");
+    expect(ff_is_cached("graphics/foes/bonca/walk/dir.ff"), "bonca walk open");
+    residency_swap_begin();
+    residency_swap_end();
+    residency_swap_begin();
+    residency_swap_end();
+    expect(!ff_is_cached("graphics/foes/bonca/walk/dir.ff"),
+           "npc preload_seq not Always");
+    expect(ff_is_cached("graphics/dink/sword/walk/dir.ff"), "sword still Always");
 
     args[1] = 438;
     args[2] = 8;
@@ -114,8 +127,8 @@ int main(void)
     residency_swap_end();
     residency_swap_begin();
     residency_swap_end();
-    expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
-           "comet pin survives two swaps");
+    expect(!ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
+           "fb ARM preload not Always");
     dinkc_var_set("&magic_level", 100, DINKC_GLOBAL_SCOPE, 1);
     dinkc_vm_set_now(1);
     expect(dinkc_cmd_magic_use() == 1, "use fb");

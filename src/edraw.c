@@ -640,6 +640,10 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                         push_walk_frames(need_s, need_f, &nneed, seqs, br,
                                          (int)sp[i].base_attack, 0);
                     }
+                    if ((int)sp[i].base_die > 0) {
+                        push_walk_frames(need_s, need_f, &nneed, seqs, br,
+                                         (int)sp[i].base_die, 0);
+                    }
                 }
                 if ((int)sp[i].type == 1 && br == 16) {
                     push_walk_frames(need_s, need_f, &nneed, seqs, 16,
@@ -748,6 +752,12 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 }
                 if ((int)sp[i].base_attack > 0) {
                     walk_seqs_for_brain(br, (int)sp[i].base_attack, ws, &nw);
+                    for (w = 0; w < nw; w++) {
+                        (void)load_one(g, &got, seqs, ws[w], 1, 0);
+                    }
+                }
+                if ((int)sp[i].base_die > 0) {
+                    walk_seqs_for_brain(br, (int)sp[i].base_die, ws, &nw);
                     for (w = 0; w < nw; w++) {
                         (void)load_one(g, &got, seqs, ws[w], 1, 0);
                     }

@@ -25,6 +25,7 @@ ALWAYS_SEQ += [s for s in range(71, 80) if s != 75]
 ALWAYS_SEQ += [312, 314, 316, 318]
 ALWAYS_SEQ += [102, 104, 106, 108]
 ALWAYS_SEQ += [30, 456, 457]
+ALWAYS_SEQ += [436]
 
 
 def find_ci(root: Path, rel: str) -> Path | None:
@@ -428,6 +429,8 @@ def screen_need(
             add(s, None)
         if sp["base_die"] > 0:
             add(sp["base_die"], None)
+            for s in walk_seqs(seqs, sp["base_die"]):
+                add(s, None)
         if br in (3, 4, 9, 10):
             add(164, None)
         if br == 3:
