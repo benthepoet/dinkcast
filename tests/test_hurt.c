@@ -18,6 +18,20 @@ static char g_die_proc[16];
 static int g_exp_add;
 static int g_hit_slot;
 static int g_hit_from;
+static int *g_missile_dmg;
+
+static int on_missile_damage(int slot, const char *proc)
+{
+    if (proc == NULL || strcmp(proc, "DAMAGE") != 0) {
+        return -1;
+    }
+    if (g_missile_dmg != NULL) {
+        *g_missile_dmg = slot;
+    }
+    (void)brains_change_prop(slot, DINKC_SP_SEQ, 70);
+    (void)brains_change_prop(slot, DINKC_SP_BRAIN, 7);
+    return 0;
+}
 
 static void on_kill(int slot, const char *proc)
 {
@@ -345,6 +359,48 @@ int main(void)
     brains_tick(&scr, seqs, &mask, 16, 0);
     expect(brains_slot_live(3), "fireball skips Dink parm");
     expect(pl.damage == 0, "fireball no self hit");
+
+    {
+        static int dmg_slot;
+
+        int ms;
+
+        dmg_slot = 0;
+        dinkc_var_init();
+        seqs[20].hl = -5;
+        seqs[20].ht = -5;
+        seqs[20].hr = 40;
+        seqs[20].hb = 5;
+        brains_bind_proc(on_missile_damage);
+        g_missile_dmg = &dmg_slot;
+        brains_reset();
+        memset(&scr, 0, sizeof(scr));
+        scr.sprite[8].active = 1;
+        scr.sprite[8].type = 1;
+        scr.sprite[8].brain = 9;
+        scr.sprite[8].x = 200;
+        scr.sprite[8].y = 200;
+        scr.sprite[8].seq = 20;
+        scr.sprite[8].hitpoints = 8;
+        brains_bind_screen(&scr);
+        brains_enter(&scr, 0);
+        ms = brains_create(220, 200, 11, 20, 1);
+        expect(ms >= 2, "missile create");
+        expect(brains_slot_live(ms) && brains_slot_brain(ms) == 11, "ms live 11");
+        expect(brains_slot_live(8), "tgt live");
+        expect(brains_change_prop(ms, DINKC_SP_STRENGTH, 5) == 5, "str");
+        expect(brains_change_prop(ms, DINKC_SP_BRAIN_PARM, 1) == 1, "parm Dink");
+        brains_set_script(ms, "dam-fire");
+        brains_tick(&scr, seqs, &mask, 16, 0);
+        expect(dmg_slot == ms, "DAMAGE ran");
+        expect(dinkc_var_get("&missile_target", DINKC_GLOBAL_SCOPE, 1) == 8,
+               "missile_target");
+        expect(brains_slot_live(ms), "DAMAGE keeps missile");
+        expect(brains_slot_brain(ms) == 7, "seq 70 brain 7");
+        expect(brains_slot_seq(ms) == 70, "explo seq 70");
+        brains_bind_proc(NULL);
+        g_missile_dmg = NULL;
+    }
 
     brains_reset();
     memset(&scr, 0, sizeof(scr));

@@ -2,6 +2,7 @@
 #include "brains.h"
 
 #include "dinkc_cmd.h"
+#include "dinkc_var.h"
 #include "hurt.h"
 #include "player.h"
 #include "tiles.h"
@@ -1308,6 +1309,17 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
             }
             g_b[j].last_hit = 1;
             g_b[j].damage += hit;
+        }
+        /* locate DAMAGE on the missile; HIT on the target. */
+        dinkc_var_set("&missile_target", j, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&missle_source", h, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&enemy_sprite", 1, DINKC_GLOBAL_SCOPE, 1);
+        if (g_b[j].script[0] != '\0' && g_on_proc != NULL) {
+            (void)g_on_proc(j, "HIT");
+        }
+        if (s->script[0] != '\0' && g_on_proc != NULL &&
+            g_on_proc(h, "DAMAGE") == 0) {
+            break;
         }
         s->live = 0;
         break;

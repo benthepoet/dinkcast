@@ -980,7 +980,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return change_sp(a0, DINKC_SP_DIR, nargs, a1, ret);
     }
     if (is_cmd(name, "sp_seq")) {
-        return change_sp(a0, DINKC_SP_SEQ, nargs, a1, ret);
+        int rc = change_sp(a0, DINKC_SP_SEQ, nargs, a1, ret);
+
+        if (nargs >= 2 && a1 > 0 && g_load_frame != NULL) {
+            g_load_frame(a1, 1);
+        }
+        return rc;
     }
     if (is_cmd(name, "sp_frame")) {
         return change_sp(a0, DINKC_SP_FRAME, nargs, a1, ret);
