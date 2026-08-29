@@ -63,7 +63,10 @@ if [ "$HAS_DATA" = 1 ] && [ -n "$SND_DIR" ] && [ -d "$SFX_OVER" ]; then
     for src in "$SFX_OVER"/*; do
         [ -f "$src" ] || continue
         base=$(basename "$src")
-        dest=""
+        # Official 1.08 has slots GNU freedink-data omitted (hurt1, pigs, …).
+        # Always copy into the staged Sound/ dir, even if the source tree
+        # had no file of that name.
+        dest="$SND_DIR/$base"
         for cand in "$SND_DIR/$base" "$SND_DIR/$(echo "$base" | tr 'A-Z' 'a-z')" \
                     "$SND_DIR/$(echo "$base" | tr 'a-z' 'A-Z')"; do
             if [ -f "$cand" ]; then
@@ -71,10 +74,8 @@ if [ "$HAS_DATA" = 1 ] && [ -n "$SND_DIR" ] && [ -d "$SFX_OVER" ]; then
                 break
             fi
         done
-        if [ -n "$dest" ]; then
-            cp -f "$src" "$dest"
-            n=$((n + 1))
-        fi
+        cp -f "$src" "$dest"
+        n=$((n + 1))
     done
     echo "stage_dink: overlay $n sfx from $SFX_OVER"
 fi

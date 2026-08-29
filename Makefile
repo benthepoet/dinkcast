@@ -196,15 +196,18 @@ tests/test_audio: tests/test_audio.c src/audio.c src/dinkc_cmd.c src/fade.c src/
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_audio.c src/audio.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-# Optional: convert DINK_DATA/Sound into build/sfx (not committed).
+# Optional: convert WAVs into build/sfx (not committed).
+# DINK_SOUND = official 1.08 Sound/ (full SFX). Else DINK_DATA/Sound.
 sfx-bank: build/wav_to_adpcm
 	mkdir -p build/sfx
-	@if [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/Sound" ]; then \
-		./build/wav_to_adpcm --dir "$(DINK_DATA)/Sound" --out build/sfx; \
-	elif [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/sound" ]; then \
-		./build/wav_to_adpcm --dir "$(DINK_DATA)/sound" --out build/sfx; \
+	@SND="$(DINK_SOUND)"; \
+	if [ -z "$$SND" ] && [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/Sound" ]; then SND="$(DINK_DATA)/Sound"; fi; \
+	if [ -z "$$SND" ] && [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/sound" ]; then SND="$(DINK_DATA)/sound"; fi; \
+	if [ -n "$$SND" ] && [ -d "$$SND" ]; then \
+		echo "sfx-bank: $$SND -> build/sfx"; \
+		./build/wav_to_adpcm --dir "$$SND" --out build/sfx; \
 	else \
-		echo "sfx-bank: no $(DINK_DATA)/Sound"; \
+		echo "sfx-bank: set DINK_SOUND or DINK_DATA/.../Sound"; \
 	fi
 
 TITLE_SRCS := tools/title_preview.c src/title.c src/bmp.c src/le.c src/rgb565.c src/dinkdat.c src/fs.c src/residency.c src/ff.c
