@@ -21,7 +21,8 @@ int main(void)
         "set_frame_delay 14 6 250\n"
         "set_frame_frame 111 5 -1\n"
         "LOAD_SEQUENCE graphics\\dink\\walk\\ds-w8- 78 43 37 69 -13 -9 13 9\n"
-        "load_sequence graphics\\items\\food\\food- 421 12 20 -13 -19 21 7\n";
+        "load_sequence graphics\\items\\food\\food- 421 12 20 -13 -19 21 7\n"
+        "load_sequence graphics\\dink\\crawl\\ds-cr- 452 100\n";
 
     if (ini_parse_mem(txt, strlen(txt), seqs, DINK_MAX_SEQ) != 0) {
         fprintf(stderr, "FAIL parse\n");
@@ -155,6 +156,30 @@ int main(void)
         (void)ht2;
         (void)hr2;
         (void)hb2;
+    }
+    if (seqs[452].reuse_off != 1 || seqs[452].delay != 100 ||
+        seqs[452].cx != 0 || seqs[31].reuse_off != 0) {
+        fprintf(stderr, "FAIL crawl reuse_off %d delay %d cx %d notanim %d\n",
+                seqs[452].reuse_off, seqs[452].delay, seqs[452].cx,
+                seqs[31].reuse_off);
+        return 1;
+    }
+    {
+        int cx1, cy1, hl, ht, hr, hb;
+        int cx18, cy18;
+
+        /* load_seq_frame pins seq.cx/cy from frame 1 when reuse_off. */
+        ini_frame_geom(&seqs[452], 452, 1, 51, 98, &cx1, &cy1, &hl, &ht, &hr,
+                       &hb);
+        seqs[452].cx = cx1;
+        seqs[452].cy = cy1;
+        ini_frame_geom(&seqs[452], 452, 18, 47, 29, &cx18, &cy18, &hl, &ht, &hr,
+                       &hb);
+        if (cx18 != cx1 || cy18 != cy1) {
+            fprintf(stderr, "FAIL crawl f18 origin %d,%d vs f1 %d,%d\n", cx18,
+                    cy18, cx1, cy1);
+            return 1;
+        }
     }
     printf("OK test_ini\n");
     return 0;

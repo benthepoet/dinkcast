@@ -207,6 +207,66 @@ static int tok_int(const char **pp, int *out)
     return 0;
 }
 
+static int tok_kw(const char *p, const char *w)
+{
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    while (*w) {
+        if (tolower((unsigned char)*p) != tolower((unsigned char)*w)) {
+            return 0;
+        }
+        p++;
+        w++;
+    }
+    return *p == '\0' || *p == ' ' || *p == '\t';
+}
+
+static void skip_word(const char **pp)
+{
+    while (**pp == ' ' || **pp == '\t') {
+        (*pp)++;
+    }
+    while (**pp && **pp != ' ' && **pp != '\t') {
+        (*pp)++;
+    }
+}
+
+/* FreeDink figure_out: BLACK/LEFTALIGN/NOTANIM vs delay+offsets. */
+static void parse_load_tail(const char **pp, int *delay, int *cx, int *cy,
+                            int *hl, int *ht, int *hr, int *hb, int *reuse)
+{
+    *delay = 0;
+    *cx = *cy = 0;
+    *hl = *ht = *hr = *hb = 0;
+    *reuse = 0;
+    while (**pp == ' ' || **pp == '\t') {
+        (*pp)++;
+    }
+    if (tok_kw(*pp, "BLACK")) {
+        *reuse = 1;
+        skip_word(pp);
+        return;
+    }
+    if (tok_kw(*pp, "LEFTALIGN")) {
+        skip_word(pp);
+        return;
+    }
+    if (tok_kw(*pp, "NOTANIM")) {
+        skip_word(pp);
+        return;
+    }
+    /* Animation: flags = DINKINI_NOTANIM (reuse frame 1 offsets). */
+    *reuse = 1;
+    (void)tok_int(pp, delay);
+    (void)tok_int(pp, cx);
+    (void)tok_int(pp, cy);
+    (void)tok_int(pp, hl);
+    (void)tok_int(pp, ht);
+    (void)tok_int(pp, hr);
+    (void)tok_int(pp, hb);
+}
+
 static void ini_store_frame(int seq, int frame, int cx, int cy, int hl, int ht,
                             int hr, int hb)
 {
@@ -401,21 +461,20 @@ int ini_parse_mem(const char *text, size_t n, struct SeqInfo *seqs, int nseq)
         if (tok_int(&p, &seq) != 0 || seq < 1 || seq >= DINK_MAX_SEQ) {
             continue;
         }
-        (void)tok_int(&p, &delay);
-        (void)tok_int(&p, &cx);
-        (void)tok_int(&p, &cy);
-        (void)tok_int(&p, &hl);
-        (void)tok_int(&p, &ht);
-        (void)tok_int(&p, &hr);
-        (void)tok_int(&p, &hb);
-        strncpy(seqs[seq].prefix, prefix, sizeof(seqs[seq].prefix) - 1);
-        seqs[seq].delay = delay;
-        seqs[seq].cx = cx;
-        seqs[seq].cy = cy;
-        seqs[seq].hl = hl;
-        seqs[seq].ht = ht;
-        seqs[seq].hr = hr;
-        seqs[seq].hb = hb;
+        {
+            int reuse = 0;
+
+            parse_load_tail(&p, &delay, &cx, &cy, &hl, &ht, &hr, &hb, &reuse);
+            strncpy(seqs[seq].prefix, prefix, sizeof(seqs[seq].prefix) - 1);
+            seqs[seq].delay = delay;
+            seqs[seq].cx = cx;
+            seqs[seq].cy = cy;
+            seqs[seq].hl = hl;
+            seqs[seq].ht = ht;
+            seqs[seq].hr = hr;
+            seqs[seq].hb = hb;
+            seqs[seq].reuse_off = reuse;
+        }
     }
     return 0;
 }
@@ -460,23 +519,22 @@ int ini_apply_line(const char *line, struct SeqInfo *seqs, int nseq)
     if (tok_int(&p, &seq) != 0 || seq < 1 || seq >= nseq || seq >= DINK_MAX_SEQ) {
         return -1;
     }
-    (void)tok_int(&p, &delay);
-    (void)tok_int(&p, &cx);
-    (void)tok_int(&p, &cy);
-    (void)tok_int(&p, &hl);
-    (void)tok_int(&p, &ht);
-    (void)tok_int(&p, &hr);
-    (void)tok_int(&p, &hb);
-    strncpy(seqs[seq].prefix, prefix, sizeof(seqs[seq].prefix) - 1);
-    seqs[seq].prefix[sizeof(seqs[seq].prefix) - 1] = '\0';
-    seqs[seq].delay = delay;
-    seqs[seq].cx = cx;
-    seqs[seq].cy = cy;
-    seqs[seq].hl = hl;
-    seqs[seq].ht = ht;
-    seqs[seq].hr = hr;
-    seqs[seq].hb = hb;
-    seqs[seq].nframes = ini_seq_len(seq, ini_count_ff_frames(prefix));
+    {
+        int reuse = 0;
+
+        parse_load_tail(&p, &delay, &cx, &cy, &hl, &ht, &hr, &hb, &reuse);
+        strncpy(seqs[seq].prefix, prefix, sizeof(seqs[seq].prefix) - 1);
+        seqs[seq].prefix[sizeof(seqs[seq].prefix) - 1] = '\0';
+        seqs[seq].delay = delay;
+        seqs[seq].cx = cx;
+        seqs[seq].cy = cy;
+        seqs[seq].hl = hl;
+        seqs[seq].ht = ht;
+        seqs[seq].hr = hr;
+        seqs[seq].hb = hb;
+        seqs[seq].reuse_off = reuse;
+        seqs[seq].nframes = ini_seq_len(seq, ini_count_ff_frames(prefix));
+    }
     return seq;
 }
 

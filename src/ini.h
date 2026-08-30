@@ -17,6 +17,10 @@ struct SeqInfo {
     int cx, cy;
     int hl, ht, hr, hb;
     int nframes;
+    /* FreeDink figure_out: numeric delay sets DINKINI_NOTANIM — later
+     * frames copy frame 1 xoffset/yoffset when the line omits them.
+     * Keyword NOTANIM is the opposite (per-frame guess). */
+    int reuse_off;
 };
 
 /* Last SET_SPRITE_INFO for (seq,frame) wins — FreeDink program_idata. */

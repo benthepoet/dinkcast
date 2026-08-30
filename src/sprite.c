@@ -169,6 +169,16 @@ decode:
     out->th = th;
     ini_frame_geom(seq, seqn, frame, bm.w, bm.h, &out->cx, &out->cy, &out->hl,
                    &out->ht, &out->hr, &out->hb);
+    /* figure_out animation: pin omitted centers from frame 1 so later
+     * frames (S1-HOLE crawl 452) keep the hole registration. */
+    if (seq->reuse_off && frame == 1) {
+        if (seq->cx < 1) {
+            seq->cx = out->cx;
+        }
+        if (seq->cy < 1) {
+            seq->cy = out->cy;
+        }
+    }
     out->argb1555 = pad;
     out->tex = NULL;
     bitmap_free(&bm);
