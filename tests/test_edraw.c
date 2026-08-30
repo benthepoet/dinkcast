@@ -890,6 +890,38 @@ int main(void)
         }
         n = n2;
     }
+    /* 14.4c loop trim: play-path ensure keeps current+next only. Non-live
+     * frames of the same seq are freed, so a long loop (treefire seq 20,
+     * 29 frames) cannot accumulate in VRAM (pvr_mem out at fr 16). */
+    if (seqs[20].prefix[0] != '\0') {
+        int f, i, cnt, worst = 0;
+
+        edraw_load_frame(g, &n, seqs, 20, 1); /* opens the pack */
+        for (f = 1; f <= 12; f++) {
+            edraw_live_begin(g, n, seqs);
+            if (edraw_ensure_frame(g, &n, seqs, 20, f) != 0) {
+                fprintf(stderr, "FAIL trim ensure 20/%d\n", f);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            cnt = 0;
+            for (i = 0; i < n; i++) {
+                if (g[i].seq == 20) {
+                    cnt++;
+                }
+            }
+            if (cnt > worst) {
+                worst = cnt;
+            }
+        }
+        if (worst > 2) {
+            fprintf(stderr, "FAIL loop trim kept %d frames of 20\n", worst);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+    }
     /* 14.4c created crowd: remake Screen live then load_frame so unused
      * fire frames can evict for create_sprite (not a seq-id pin). */
     if (seqs[157].prefix[0] != '\0' && seqs[221].prefix[0] != '\0') {

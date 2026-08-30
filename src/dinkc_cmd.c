@@ -411,6 +411,7 @@ static void pin_clear(int kind)
         residency_unpin(g_pin[kind][i]);
     }
     g_npin[kind] = 0;
+    residency_hold_clear(kind);
 }
 
 static void pin_pack(const char *rel)
@@ -444,6 +445,11 @@ static void pin_seq(int seq)
     }
     if (prefix_dir_ff(g_seqs[seq].prefix, dir, sizeof(dir)) != 0) {
         return;
+    }
+    /* Hold Screen (not Always) so make_room cannot drop treefire to
+     * load splode, or the reverse on DAMAGE. DISARM hold_clear. */
+    if (g_pin_kind == 0 || g_pin_kind == 1) {
+        residency_hold(g_pin_kind, dir);
     }
     /* Open the pack even if EdGfx is full (play-path must not fopen). */
     if (ff_cached(dir, &ff) != 0) {
@@ -1292,6 +1298,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
                     (void)g_item_locate(g_weapon_slot, "HOLDINGDROP");
                 }
                 g_weapon_slot = 0;
+                pin_clear(0);
                 dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
             }
             if (g_item_locate != NULL) {
@@ -1313,6 +1320,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             }
             g_item[cur - 1].active = 0;
             g_weapon_slot = 0;
+            pin_clear(0);
             dinkc_var_set("&cur_weapon", 0, DINKC_GLOBAL_SCOPE, 1);
         }
         if (ret != NULL) {

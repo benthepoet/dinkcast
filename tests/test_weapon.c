@@ -122,13 +122,34 @@ int main(void)
     expect(!residency_is_always("graphics/effects/comets/sm-comt1/dir.ff"),
            "comet not named always");
     expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"), "comet cached");
+    /* Holds are best-effort: with sword+bow+fireball armed the blob is
+     * near cap, so splode's ARM load last-resort drops the largest held
+     * pack (treefire). Comets (small) must survive. */
+    expect(ff_is_cached("graphics/effects/splode/dir.ff"),
+           "splode fits via held last-resort drop");
     residency_touch("graphics/effects/comets/sm-comt1/dir.ff");
     residency_swap_begin();
     residency_swap_end();
     residency_swap_begin();
     residency_swap_end();
+    /* ARM holds are Screen-held until DISARM: swaps must not demote them
+     * to Prev and drop them (that was the impact-hitch GD-ROM re-read). */
+    expect(ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
+           "fb ARM preload held across swaps");
+    /* DISARM releases the hold; two swaps later the packs are droppable. */
+    dinkc_var_set("&cur_magic", 0, DINKC_GLOBAL_SCOPE, 1);
+    expect(dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, &yld, &rv) == 1,
+           "disarm fb");
+    residency_swap_begin();
+    residency_swap_end();
+    residency_swap_begin();
+    residency_swap_end();
     expect(!ff_is_cached("graphics/effects/comets/sm-comt1/dir.ff"),
-           "fb ARM preload not Always");
+           "fb preload droppable after DISARM");
+    /* Re-arm for the fireball-use check below. */
+    dinkc_var_set("&cur_magic", 1, DINKC_GLOBAL_SCOPE, 1);
+    expect(dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, &yld, &rv) == 1,
+           "re-arm fb");
     dinkc_var_set("&magic_level", 100, DINKC_GLOBAL_SCOPE, 1);
     dinkc_vm_set_now(1);
     expect(dinkc_cmd_magic_use() == 1, "use fb");

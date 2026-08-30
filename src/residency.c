@@ -15,6 +15,12 @@ enum {
     RES_PREV = 3
 };
 
+#define HOLD_BANKS 2
+#define HOLD_MAX 24
+
+static char g_hold[HOLD_BANKS][HOLD_MAX][DINK_FS_PATH_MAX];
+static int g_nhold[HOLD_BANKS];
+
 int residency_is_always(const char *rel)
 {
     static const char *k[] = {
@@ -97,6 +103,13 @@ void residency_swap_begin(void)
             dink_blob_set_cls(rel, RES_ALWAYS, 0);
             continue;
         }
+        /* ARM-held packs (treefire/splode) stay Screen across swaps;
+         * demoting them to Prev let drop_one_prev release the pack the
+         * preload was meant to keep (GD-ROM re-read at impact). */
+        if (residency_is_held(rel)) {
+            dink_blob_set_cls(rel, RES_SCREEN, 0);
+            continue;
+        }
         if (cls == RES_PREV) {
             dink_blob_set_cls(rel, RES_PREV, 1);
         } else if (cls == RES_SCREEN) {
@@ -161,6 +174,11 @@ int residency_drop_one_prev(void)
         if (!rel_is_dir_ff(rel) || cls != RES_PREV) {
             continue;
         }
+        /* Defense in depth: swap_begin keeps held packs Screen, but never
+         * let a Prev drop release an ARM-held pack. */
+        if (residency_is_held(rel)) {
+            continue;
+        }
         if (n > best_n) {
             snprintf(key, sizeof(key), "%s", rel);
             best_n = n;
@@ -190,6 +208,52 @@ static int rel_is_tile_or_hard(const char *rel)
     return 0;
 }
 
+void residency_hold(int bank, const char *rel)
+{
+    int i;
+
+    if (bank < 0 || bank >= HOLD_BANKS || rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < g_nhold[bank]; i++) {
+        if (strcmp(g_hold[bank][i], rel) == 0) {
+            return;
+        }
+    }
+    if (g_nhold[bank] >= HOLD_MAX) {
+        printf("residency hold full bank=%d rel=%s\n", bank, rel);
+        return;
+    }
+    snprintf(g_hold[bank][g_nhold[bank]], sizeof(g_hold[bank][0]), "%s", rel);
+    g_nhold[bank]++;
+}
+
+void residency_hold_clear(int bank)
+{
+    if (bank < 0 || bank >= HOLD_BANKS) {
+        return;
+    }
+    memset(g_hold[bank], 0, sizeof(g_hold[bank]));
+    g_nhold[bank] = 0;
+}
+
+int residency_is_held(const char *rel)
+{
+    int b, i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return 0;
+    }
+    for (b = 0; b < HOLD_BANKS; b++) {
+        for (i = 0; i < g_nhold[b]; i++) {
+            if (strcmp(g_hold[b][i], rel) == 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int residency_drop_one_screen(const char *keep)
 {
     char key[DINK_FS_PATH_MAX];
@@ -209,6 +273,9 @@ int residency_drop_one_screen(const char *keep)
         if (keep != NULL && keep[0] != '\0' && strcmp(rel, keep) == 0) {
             continue;
         }
+        if (residency_is_held(rel)) {
+            continue;
+        }
         if (n > best_n) {
             snprintf(key, sizeof(key), "%s", rel);
             best_n = n;
@@ -219,6 +286,40 @@ int residency_drop_one_screen(const char *keep)
         return -1;
     }
     printf("residency drop screen %s\n", key);
+    ff_cache_release(key);
+    dink_blob_try_drop(key);
+    return 0;
+}
+
+/* Largest held pack as a last resort. Holds are best-effort: keeping
+ * treefire/splode must never wedge the current screen (trees pack
+ * refused -> bare trunks). Dropping a held pack re-reads it from GD-ROM
+ * at impact, which beats missing screen graphics. */
+static int residency_drop_one_held(const char *keep)
+{
+    char key[DINK_FS_PATH_MAX];
+    const char *rel;
+    size_t n, best_n = 0;
+    int i, found = 0;
+
+    key[0] = '\0';
+    for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
+        if (!rel_is_dir_ff(rel) || !residency_is_held(rel)) {
+            continue;
+        }
+        if (keep != NULL && keep[0] != '\0' && strcmp(rel, keep) == 0) {
+            continue;
+        }
+        if (n > best_n) {
+            snprintf(key, sizeof(key), "%s", rel);
+            best_n = n;
+            found = 1;
+        }
+    }
+    if (!found) {
+        return -1;
+    }
+    printf("residency drop held %s\n", key);
     ff_cache_release(key);
     dink_blob_try_drop(key);
     return 0;
@@ -236,6 +337,9 @@ int residency_make_room_keep(size_t need, const char *keep)
             continue;
         }
         if (residency_drop_one_screen(keep) == 0) {
+            continue;
+        }
+        if (residency_drop_one_held(keep) == 0) {
             continue;
         }
         return -1;
