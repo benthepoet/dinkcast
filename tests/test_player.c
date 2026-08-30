@@ -238,6 +238,54 @@ int main(void)
             return 1;
         }
     }
+    {
+        /* S1-HOLE: freeze + nocontrol seq 452; live_sprite_animate holds
+         * last crawl frame (seq=0 pseq), not idle on the hole. */
+        seqs[452].delay = 50;
+        seqs[452].nframes = 3;
+        player_init(&p);
+        p.x = 274;
+        p.y = 195;
+        p.freeze = 1;
+        p.seq = 452;
+        p.frame = 1;
+        p.pseq = 452;
+        p.pframe = 1;
+        p.nocontrol = 1;
+        p.acc = 0;
+        while (p.nocontrol) {
+            player_step(&p, 6, &mask, seqs, 0, NULL);
+        }
+        if (p.seq != 0 || p.pseq != 452 || p.pframe != 3 ||
+            player_pic_seq(&p) != 452 || player_pic_frame(&p) != 3) {
+            fprintf(stderr, "FAIL crawl hold seq=%d pseq=%d pfr=%d pic=%d/%d\n",
+                    p.seq, p.pseq, p.pframe, player_pic_seq(&p),
+                    player_pic_frame(&p));
+            hard_mask_free(&mask);
+            return 1;
+        }
+        player_step(&p, 6, &mask, seqs, 0, NULL);
+        if (p.seq != 0 || p.x != 274 || player_pic_seq(&p) != 452) {
+            fprintf(stderr, "FAIL crawl freeze no idle seq=%d x=%d pic=%d\n",
+                    p.seq, p.x, player_pic_seq(&p));
+            hard_mask_free(&mask);
+            return 1;
+        }
+        /* Punch: same-tick idle after nocontrol (not frozen). */
+        player_init(&p);
+        p.dir = 8;
+        seqs[DINK_BASE_ATTACK + 8].nframes = 2;
+        seqs[DINK_BASE_ATTACK + 8].delay = 16;
+        player_attack(&p, seqs);
+        while (p.nocontrol) {
+            player_step(&p, 0, &mask, seqs, 0, NULL);
+        }
+        if (p.seq != DINK_BASE_IDLE + 8) {
+            fprintf(stderr, "FAIL punch idle seq=%d\n", p.seq);
+            hard_mask_free(&mask);
+            return 1;
+        }
+    }
     hard_mask_free(&mask);
     printf("OK test_player\n");
     return 0;

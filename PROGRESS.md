@@ -214,6 +214,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-23 | missile `DAMAGE` (`DAM-FIRE` seq 70 brain 7); `sp_seq` `load_frame` | this PR |
 | 2026-08-23 | ARM `preload_seq` Always only for named prefixes (AlkNut west ts35 / seq 421) | this PR |
 | 2026-08-23 | `make_room` drops Screen `dir.ff` after Prev (live burned tree seq 20) | this PR |
+| 2026-08-30 | `S1-HOLE` crawl: hold last `pseq` while frozen; `sp_seq(1)` is Dink on editor-1 hole | this PR |
 
 ## Bites
 

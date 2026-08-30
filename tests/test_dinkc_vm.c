@@ -217,6 +217,7 @@ int main(void)
             "void hit(void) { sp_seq(&current_sprite, 173); }";
         const char *fist = "void main(void) { sp_seq(1, 106); }";
         const char *mom = "void main(void) { sp_seq(1, 102); }";
+        const char *hole = "void touch(void) { sp_seq(1, 452); }";
 
         /* map 408 sprite 1 is bar-sh. */
         memset(g_stub_seq, 0, sizeof(g_stub_seq));
@@ -239,6 +240,14 @@ int main(void)
         pl.seq = 16;
         slot = dinkc_vm_start(mom, strlen(mom), 26);
         expect(slot > 0 && pl.seq == 102, "other map sp_seq(1) is Dink");
+
+        /* S1-HOLE on map 132 editor 1: literal 1 is Dink, not the crack. */
+        dinkc_vm_reset();
+        pl.seq = 16;
+        g_stub_seq[1] = 0;
+        slot = dinkc_vm_start_proc(hole, strlen(hole), 1, "touch");
+        expect(slot > 0 && pl.seq == 452, "hole sp_seq(1) is Dink");
+        expect(g_stub_seq[1] == 0, "hole does not smash editor 1");
         dinkc_cmd_bind_fiber(0, 0);
     }
     {

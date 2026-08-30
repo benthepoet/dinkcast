@@ -76,6 +76,7 @@ static int run_cmd(struct Fiber *f, const char *name, int *args, int nargs,
     g_running = f;
     dinkc_cmd_bind_fiber(fiber_slot(f), f->sprite);
     ok = dinkc_cmd(name, args, nargs, str, str2, yield, ret);
+    dinkc_cmd_bind_arg0_current(0);
     g_running = prev;
     return ok;
 }
@@ -362,10 +363,38 @@ static void eat_semi(struct Fiber *f)
     }
 }
 
+static int tok_is_var(const struct DinkcTok *t, const char *w)
+{
+    size_t i, n;
+    const char *p;
+    size_t pn;
+
+    if (t->kind != DINKC_VAR || w == NULL) {
+        return 0;
+    }
+    n = strlen(w);
+    p = t->p;
+    pn = t->n;
+    if (pn > 0 && p[0] == '&') {
+        p++;
+        pn--;
+    }
+    if (pn != n) {
+        return 0;
+    }
+    for (i = 0; i < n; i++) {
+        if (tolower((unsigned char)p[i]) != tolower((unsigned char)w[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
                        size_t strsz, char *str2, size_t str2sz)
 {
     int nstr = 0;
+    int arg0_current = 0;
 
     *nargs = 0;
     if (str != NULL && strsz > 0) {
@@ -414,6 +443,9 @@ static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
             f->ip++;
             continue;
         }
+        if (*nargs == 0 && tok_is_var(&f->tok[f->ip], "current_sprite")) {
+            arg0_current = 1;
+        }
         if (*nargs < 8) {
             args[(*nargs)++] = eval_expr(f);
         } else {
@@ -424,6 +456,7 @@ static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
         f->ip++;
     }
     eat_semi(f);
+    dinkc_cmd_bind_arg0_current(arg0_current);
 }
 
 static int tok_is(const struct DinkcTok *t, const char *w)

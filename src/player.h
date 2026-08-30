@@ -15,6 +15,7 @@ struct MapScreen;
 
 struct Player {
     int x, y, dir, seq, frame, acc;
+    int pseq, pframe; /* getpic: seq==0 holds last anim (S1-HOLE crawl) */
     int freeze; /* FreeDink spr[1].freeze nest */
     int nocontrol; /* attack lock (item-fst / spr.nocontrol) */
     int just_hit; /* 1 after landing on SET_FRAME_SPECIAL */
@@ -48,5 +49,8 @@ int player_walk_pad(int pad_dir, int freeze, int choice_active);
 int player_hurt(struct Player *p, int damage);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */
 int player_apply_life(struct Player *p, int *life);
+/* FreeDink getpic(1): seq if >0 else pseq / pframe. */
+int player_pic_seq(const struct Player *p);
+int player_pic_frame(const struct Player *p);
 
 #endif
