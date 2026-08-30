@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "edraw.h"
 
+#include "audio.h"
 #include "ff.h"
 #include "fs.h"
 #include "mem.h"
@@ -366,6 +367,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].frame = frame;
     g[*got].live = 1;
     upload_and_drop_cpu(&g[*got].fr);
+    audio_music_pump();
     (*got)++;
     /* Loop working set is current+next (14.4c). Not gated on
      * residency_swap_open: that flag is sticky after the first swap, so
@@ -975,6 +977,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     hit = edraw_find(g, got, seq, frame);
     upload_and_drop_cpu(hit);
+    audio_music_pump();
     *n = got;
 }
 

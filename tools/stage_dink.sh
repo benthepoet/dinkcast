@@ -80,6 +80,28 @@ if [ "$HAS_DATA" = 1 ] && [ -n "$SND_DIR" ] && [ -d "$SFX_OVER" ]; then
     echo "stage_dink: overlay $n sfx from $SFX_OVER"
 fi
 
+# 12.4: overlay host MIDI→ADPCM WAVs (1003.wav, dance.wav, …). Same
+# copy-all rule as SFX. Never convert in the KOS image.
+MUSIC_OVER="$ROOT/build/music"
+if [ "$HAS_DATA" = 1 ] && [ -n "$SND_DIR" ] && [ -d "$MUSIC_OVER" ]; then
+    n=0
+    for src in "$MUSIC_OVER"/*.wav "$MUSIC_OVER"/*.WAV; do
+        [ -f "$src" ] || continue
+        base=$(basename "$src")
+        dest="$SND_DIR/$base"
+        for cand in "$SND_DIR/$base" "$SND_DIR/$(echo "$base" | tr 'A-Z' 'a-z')" \
+                    "$SND_DIR/$(echo "$base" | tr 'a-z' 'A-Z')"; do
+            if [ -f "$cand" ]; then
+                dest=$cand
+                break
+            fi
+        done
+        cp -f "$src" "$dest"
+        n=$((n + 1))
+    done
+    echo "stage_dink: overlay $n music from $MUSIC_OVER"
+fi
+
 # Data names are 8.3-safe; a plain find loop is enough.
 find "$DST" -type f -exec sh "$ROOT/tools/pad2048.sh" {} +
 echo "stage_dink: $SRC -> $DST (sector-padded)"

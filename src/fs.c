@@ -360,20 +360,37 @@ FILE *dink_fopen(const char *rel, const char *mode)
     }
     fp = fopen_under(g_root, rel, mode);
     cd_unlock();
+    /* Seek/open can stall past the 16 KiB AICA loop. Pump after. */
+    dink_cd_yield();
     return fp;
 }
 
 #define DINK_CD_CHUNK 8192u
 #define DINK_SLURP_MAX (4u * 1024u * 1024u)
 
+static void (*g_cd_pump)(void);
+
+void dink_cd_set_pump(void (*fn)(void))
+{
+    g_cd_pump = fn;
+}
+
+static void cd_pump(void)
+{
+    if (g_cd_pump != NULL) {
+        g_cd_pump();
+    }
+}
+
 void dink_cd_yield(void)
 {
-    /* Do not yield mid-file. A 2 MiB fread with thd_pass every 8 KiB
-     * leaves the GD-ROM command sitting while other threads run. */
+    /* Do not thd_pass mid-file (KOS #1492). Pump AICA from the PCM ring. */
+    cd_pump();
 }
 
 void dink_cd_settle(void)
 {
+    dink_cd_yield();
 #ifdef _arch_dreamcast
     /* Do not vid_waitvbl here: vblank may not fire during load. */
     thd_sleep(20);
@@ -399,6 +416,7 @@ int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
             return -1;
         }
         got += nrd;
+        cd_pump();
     }
     cd_unlock();
     return 0;
@@ -416,6 +434,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
         cd_unlock();
         return -1;
     }
+    cd_pump();
     while (got < n) {
         chunk = n - got;
         if (chunk > DINK_CD_CHUNK) {
@@ -427,6 +446,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
             return -1;
         }
         got += nrd;
+        cd_pump();
     }
     cd_unlock();
     return 0;
@@ -479,6 +499,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
                 break;
             }
             got += nrd;
+            cd_pump();
         }
         cd_unlock();
         if (got == 0) {
@@ -520,6 +541,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
             break;
         }
         got += nrd;
+        cd_pump();
     }
     cd_unlock();
     *out = p;

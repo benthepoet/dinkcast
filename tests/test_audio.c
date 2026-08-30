@@ -47,6 +47,18 @@ int main(void)
     audio_halt_loops();
     expect(!audio_owner_looping(20), "halt all loops");
     expect(audio_sfx_bytes() > 0 && audio_sfx_bytes() < 2u * 1024u * 1024u, "bytes");
+    expect(audio_music_play("1003.mid") == 1, "title midi");
+    expect(audio_music_playing(), "playing title");
+    expect(audio_music_play("1003.mid") == 1, "same name skip");
+    expect(audio_music_map(0) == 1, "map 0 keep");
+    expect(audio_music_map(-1) == 1, "map -1 keep");
+    expect(audio_music_map(2003) == 1, "id>1000");
+    expect(dinkc_cmd("playmidi", NULL, 0, "1003.mid", NULL, &yld, &ret) == 1,
+           "playmidi cmd");
+    expect(audio_music_playing(), "still after playmidi same");
+    audio_music_stop();
+    expect(!audio_music_playing(), "stopcd");
+    expect(dinkc_cmd("stopcd", NULL, 0, NULL, NULL, &yld, &ret) == 1, "stopcd cmd");
     printf("OK test_audio slots=%d bytes=%zu\n", audio_slot_count(), audio_sfx_bytes());
     audio_shutdown();
     return 0;

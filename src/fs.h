@@ -36,6 +36,8 @@ void dink_blob_clear(void);
 int dink_fread_n(FILE *fp, uint8_t *dst, size_t n);
 void dink_cd_yield(void);
 void dink_cd_settle(void);
+/* RAM-only tick (music stream poll). Must not fopen. */
+void dink_cd_set_pump(void (*fn)(void));
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);

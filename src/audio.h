@@ -17,5 +17,15 @@ int audio_owner_looping(int sprite);
 int audio_slot_loaded(int sound);
 size_t audio_sfx_bytes(void);
 int audio_slot_count(void);
+/* 12.4: one ADPCM/PCM loop via snd_stream. Same name = no reopen. */
+int audio_music_play(const char *midi_name);
+int audio_music_map(int midi_id);
+void audio_music_stop(void);
+void audio_music_poll(void);
+/* AICA only: drain the PCM ring into snd_stream. No GD-ROM. */
+void audio_music_pump(void);
+/* During a screen swap, do not fopen/fread the MIDI; keep the current loop. */
+void audio_music_disc_hold(int on);
+int audio_music_playing(void);
 
 #endif

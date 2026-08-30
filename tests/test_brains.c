@@ -441,6 +441,27 @@ int main(void)
         expect(brains_rand_with_brain(9, a) == b, "rand ignore leaves one");
         expect(brains_rand_with_brain(3, 0) == 0, "rand miss");
     }
+    {
+        int c, x0, x1;
+        struct MapScreen hit;
+
+        memset(&hit, 0, sizeof(hit));
+        brains_bind_screen(&hit);
+        brains_reset();
+        c = brains_create(100, 100, 2, 20, 1);
+        expect(c >= 2, "hit bounce");
+        expect(brains_change_prop(c, DINKC_SP_DIR, 6) == 6, "dir east");
+        expect(brains_change_prop(c, DINKC_SP_SPEED, 1) == 1, "speed 1");
+        x0 = brains_change_prop(c, DINKC_SP_X, -1);
+        brains_tick(&hit, seqs, &mask, 0, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, DINKC_SP_X, -1) == x0 + 1, "mx from speed 1");
+        expect(brains_change_prop(c, DINKC_SP_SPEED, 4) == 4, "s1-lg hit speed");
+        x1 = brains_change_prop(c, DINKC_SP_X, -1);
+        brains_tick(&hit, seqs, &mask, 16, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, DINKC_SP_X, -1) == x1 + 4,
+               "dc_sp_speed changedir mx");
+        brains_reset();
+    }
     printf("OK test_brains\n");
     return 0;
 }
