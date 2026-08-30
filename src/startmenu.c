@@ -6,6 +6,7 @@
 #include <string.h>
 
 #ifdef _arch_dreamcast
+#include "audio.h"
 #include "choice.h"
 #include "dinkc_vm.h"
 #include "ini.h"
@@ -394,6 +395,8 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     printf("startmenu seq=%d buttons=%d,%d hover=%d,%d\n",
            STARTMENU_SEQ_LOGO, STARTMENU_SEQ_NEW, STARTMENU_SEQ_LOAD,
            STARTMENU_HOVER_NEW, STARTMENU_HOVER_LOAD);
+    /* START.c playmidi after the buttons exist, not during splash/load. */
+    (void)audio_music_play("1003.mid");
     while (pick < 0) {
         uint32_t buttons = 0;
         int have = (pad_poll_port0(&buttons) == 0);
@@ -411,6 +414,7 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         }
         startmenu_hover_tick((int)mem_now_ms());
         (void)saybox_tick((int)mem_now_ms());
+        audio_music_poll();
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);

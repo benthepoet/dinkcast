@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Tagged **v0.3.0** (2026-08-23). START menu + VMU **17**. **V6** + **8.6 house** accepted. Audio **12** and **14.6** wait for requester go. Next engine bite only when the requester says.
+**Where we are:** Tagged **v0.4.0** (2026-08-30). START + VMU **17**. Audio **12.1–12.4** in Flycast. **V6** + **8.6 house** accepted. **14.6** waits for requester go. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 
@@ -801,11 +801,11 @@ Silent game through V6 is OK. `playsound` stays a no-op until 12.3.
 
 #### Bite 12.4 — One streamed loop
 
-- Offline convert **one** title or town track (MIDI rendered on host → ADPCM).
-- 32–64 KB disc chunks. One ring 256–512 KB.
-- Title **may** start this; Bite 3.4 must still work with audio compiled out.
+- Offline convert official `Sound/*.mid` (host fluidsynth + ffmpeg + `wav_to_adpcm`) to 22050 Hz mono ADPCM WAV. Overlay `build/music` at stage; never rewrite `DINK_DATA`. Convert **all** stock names (`1003`, `dance`, …) so `playmidi` after house enter does not stop for a missing file.
+- 32 KB disc chunks into one 256 KB PCM ring. Main 60 Hz `audio_music_poll` fills; `snd_stream` callback **must not** GD-ROM `fread` (underrun = silence). Prefill 64 KB. Same MIDI name = no reopen. `dink.dat` music 0 keeps current (`check_midi`).
+- Title starts `1003.mid` (START.c; engine does not run START `main()`). Bite 3.4 still works with audio compiled out.
 
-**Done when (12.3, SFX):** Hit plays an SFX; AICA SFX ≤ 512 KB. **12.4** (title/town loop stream) is a later requester go — SFX may land without music.
+**Done when (12.3, SFX):** Hit plays an SFX; AICA SFX ≤ 512 KB. **Done when (12.4):** START menu `1003.mid` (not splash/load); mom `dance.mid` on new game; same-name skip; `music==0` keeps current; no 16 KiB AICA loop on edges.
 
 ### Phase F″ — VMU save
 
@@ -908,7 +908,7 @@ dinkcast/
 | Dink HD extras, huge D-Mods, DFArc, WinDinkEdit | Deferred |
 | Community D-Mod loader | Deferred |
 | Pixel-perfect 1.08 bugs | Deferred; FreeDink 1.08 *mode* is the target |
-| MIDI→ADPCM of **every** track | Deferred; 12.4 is one loop + SFX bank |
+| MIDI→ADPCM of **every** track | Stock 1.08 names in 12.4; extra D-Mod tracks later |
 | VGA vs TV overscan polish | Deferred |
 | Online multiplayer | Deferred |
 | New language instead of DinkC | **Not done** |

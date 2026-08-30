@@ -13,6 +13,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | [v0.1.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0) | 2026-08-22 | First tagged snapshot. V1–V6 + 8.6 house. Village playable in Flycast. #98. |
 | [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
 | [v0.3.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0) | 2026-08-23 | START + VMU **17** + playtest #117. |
+| [v0.4.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.4.0) | 2026-08-30 | AICA **12.1–12.4** SFX + streamed MIDI. |
 
 ## On master
 
@@ -219,6 +220,9 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | `Makefile.dc` `$(OBJS)` depends on `ini.h`/`player.h` (`SeqInfo` stride; splash→black) | this PR |
 | 2026-08-30 | Place loop editor `sound` (hearth 23); warp default OPEN bank 7 | this PR |
 | 2026-08-30 | Halt hearth loop on START; place again after title pick | this PR |
+| 2026-08-30 | **12.4** `snd_stream` MIDI; START `1003.mid`; mom `dance.mid`; pump on `fread_all` | this PR |
+| 2026-08-30 | `sp_speed`/`sp_dir` `changedir` (Chealse hit zip) | this PR |
+| 2026-08-30 | **v0.4.0** tagged | this PR |
 
 ## Bites
 
@@ -259,7 +263,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 12.1 | WAV → AICA ADPCM | source | `tools/wav_to_adpcm`; PCM &lt; 8 KiB stays PCM; stage overlay; not committed |
 | 12.2 | SFX bank | source | START.c `load_sound` table; ≤512 KB; skip missing freeware slots |
 | 12.3 | `playsound` | source | DinkC bank=channel+1; status gold/exp; choice 11/17; missile 9 |
-| 12.4 | music stream | pending | gated |
+| 12.4 | music stream | source | `snd_stream` 256 KiB PCM ring; poll from RAM on `fread_all`/`load_one`; callback silence on underrun (bytes, not samples); START menu `1003.mid`; mom `dance.mid`; `music==0` keep; `make music-bank` |
 | 13.1 | Font atlas | source | 128×64 ARGB1555 16 KB; #45 |
 | 13.2 | Say box | source | `say_text` x-75 y-100 wrap 150; `print_text_wrap` hcenter; A/B; `text_brain` follow; `font_colors` 1–15 |
 | 13.3 | Choice menu | source | D-pad + A; `&result` official #; seq 30 overlay + center + arrows this PR |
@@ -288,6 +292,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | Human / visual gates | V1–**V6 accepted**. **8.6 house accepted**. |
 | Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts + 376 pathway after Load confirmed; burning-house exit Open |
 | v0.3.0 | tagged 2026-08-23. START + VMU **17**. Next: requester go. |
+| v0.4.0 | tagged 2026-08-30. Audio **12** in Flycast. **14.6** gated. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -297,13 +302,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-23)
+### Current (2026-08-30)
 
 | | | |
 |---|---|---|
-| **Overall** | **~90%** | v0.3.0: START + VMU in Flycast; hardware/ODE still pending |
-| **Next picture** | requester go | Audio **12** and **14.6** gated |
-| **Hardest remaining** | DinkC long tail | then 14.6 RAM; **12** after |
+| **Overall** | **~92%** | v0.4.0: SFX + MIDI stream in Flycast; hardware/ODE still pending |
+| **Next picture** | requester go | **14.6** gated |
+| **Hardest remaining** | DinkC long tail | then 14.6 RAM |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -379,3 +384,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (v0.2.0) | **~90%** | Requester stamped campaign DinkC host slice. Flycast Done-when still Open. Next picture: burning-house exit. |
 | 2026-08-22 (v0.3 plan) | **~90%** | Requester: title + VMU before remaining campaign issues. **17** before **12**. **14.6** still gated. |
 | 2026-08-23 (v0.3.0) | **~90%** | Requester stamped START + VMU + playtest #117. Audio **12** / **14.6** still gated. |
+| 2026-08-30 (v0.4.0) | **~92%** | Requester stamped AICA **12**. Title `1003.mid`, house `dance.mid`, edge pump. **14.6** gated. |

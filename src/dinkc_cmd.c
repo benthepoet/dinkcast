@@ -1388,15 +1388,35 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     /* 11.8 wave 3: dispatch so stock scripts do not log unimplemented. */
     if (is_cmd(name, "playmidi")) {
+        const char *nm = str;
+
         if (str != NULL && str[0] != '\0') {
             g_midi = atoi(str);
         } else {
             g_midi = a0;
         }
-        printf("playmidi stub %s\n", str != NULL ? str : "");
+        /* FreeDink dc_playmidi: atoi>1000 is CD track N-1000, then the
+         * given name (START.c playmidi("1003.mid") tries 3.mid first). */
+        if (g_midi > 1000) {
+            char cd[20];
+
+            snprintf(cd, sizeof(cd), "%d.mid", g_midi - 1000);
+            (void)audio_music_play(cd);
+        }
+        if (nm == NULL || nm[0] == '\0') {
+            char buf[20];
+
+            snprintf(buf, sizeof(buf), "%d.mid",
+                     g_midi > 1000 ? g_midi - 1000 : g_midi);
+            (void)audio_music_play(buf);
+        } else {
+            (void)audio_music_play(nm);
+        }
+        printf("playmidi %s\n", str != NULL ? str : "");
         return 1;
     }
     if (is_cmd(name, "stopcd")) {
+        audio_music_stop();
         return 1;
     }
     if (is_cmd(name, "draw_status")) {

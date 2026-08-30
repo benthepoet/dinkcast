@@ -223,6 +223,7 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
         blit_cell(out->rgb565, pix, sw, sh, cell, ax, ay);
         out->slot_x[i] = ax;
         out->slot_y[i] = ay;
+        dink_cd_yield();
     }
     out->used = DINK_SCREEN_TILES;
     return 0;

@@ -359,12 +359,13 @@ static void edraw_mark_created(void)
 /* FreeDink game_load_screen: record + thaw + screenlock=0. No kill_all. */
 static int play_load_screen(int map)
 {
-    int rec;
+    int rec, rc = -1;
 
+    audio_music_disc_hold(1);
     rec = screen_map_rec(&g_world, map);
     if (rec < 1) {
         printf("load_screen skip map %d loc %d\n", map, rec);
-        return -1;
+        goto done;
     }
     if (g_play_map != NULL) {
         *g_play_map = map;
@@ -378,12 +379,14 @@ static int play_load_screen(int map)
     printf("load_screen map %d loc %d\n", map, rec);
     if (map_load_record(rec, &g_scr) != 0) {
         printf("load_screen fail %d\n", rec);
-        return -1;
+        goto done;
     }
     dinkc_cmd_apply_spmap(&g_scr, map);
     spr_snap("load_screen");
     dinkc_var_set("&player_map", map, DINKC_GLOBAL_SCOPE, 1);
     dinkc_cmd_note_map(map, (int)g_world.indoor[map]);
+    /* FreeDink game_load_screen → check_midi. Same name = no reopen. */
+    (void)audio_music_map((int)g_world.music[map]);
     if (!g_hard.ready) {
         printf("load_screen hard load\n");
         if (hard_load(&g_hard) != 0) {
@@ -394,7 +397,10 @@ static int play_load_screen(int map)
         hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
         printf("load_screen stamp fail\n");
     }
-    return 0;
+    rc = 0;
+done:
+    audio_music_disc_hold(0);
+    return rc;
 }
 
 /* FreeDink fill_whole_hard: tiles only, drops live sprite hardness. */
@@ -415,6 +421,8 @@ static int play_draw_screen(int sprite)
     int nstamp;
 
     (void)sprite;
+    audio_music_disc_hold(1);
+    audio_music_pump();
     if (g_play_have_scene != NULL && *g_play_have_scene) {
         pvr_wait_ready();
         *g_play_have_scene = 0;
@@ -460,6 +468,7 @@ static int play_draw_screen(int sprite)
             tiles_free(&g_atlas);
             g_atlas = nxt;
             printf("swap atlas ok\n");
+            audio_music_pump();
             if (tiles_upload_pvr(&g_atlas) != 0) {
                 printf("draw_screen tiles upload fail\n");
             }
@@ -467,6 +476,7 @@ static int play_draw_screen(int sprite)
             printf("draw_screen atlas fail keep\n");
         }
     }
+    audio_music_pump();
     if (edraw_upload_pvr(g_edg, g_ned) != 0) {
         printf("draw_screen edraw upload fail\n");
     }
@@ -494,7 +504,9 @@ static int play_draw_screen(int sprite)
             printf("draw_screen created upload fail\n");
         }
     }
+    audio_music_pump();
     script_attach_live();
+    audio_music_disc_hold(0);
     return 0;
 }
 
@@ -973,7 +985,8 @@ int main(int argc, char **argv)
                         printf("edraw created upload none\n");
                     }
                 }
-                script_attach_live();
+                /* Do not attach/run house MAIN (mom playmidi dance.mid)
+                 * before START. START.c playmidi is 1003.mid on the menu. */
                 g_play_pl = &pl;
                 g_play_mask = &mask;
                 g_play_spr = &spr;
@@ -1043,16 +1056,23 @@ int main(int argc, char **argv)
                     if (swap) {
                         unsigned swap_t0 = mem_now_ms();
 
+                        /* Keep the current loop on the AICA ring; do not
+                         * fopen a new MIDI until packs are done. Pump is
+                         * dink_fread_n → audio_music_pump (no GD-ROM). */
+                        audio_music_disc_hold(1);
                         /* Edge/warp is load then draw (FreeDink). DinkC
                          * calls them separately (S1-HOLE / S1-LTR). */
                         if (play_load_screen(player_map) != 0) {
+                            audio_music_disc_hold(0);
                             swap = 0;
                             continue;
                         }
                         if (play_draw_screen(0) != 0) {
+                            audio_music_disc_hold(0);
                             swap = 0;
                             continue;
                         }
+                        audio_music_disc_hold(0);
                         mem_log("swap",
                                 edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes() +
                                     status_cpu_bytes(),
@@ -1073,6 +1093,7 @@ int main(int argc, char **argv)
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }
                     brains_apply(&g_scr);
+                    audio_music_poll();
                     have = (pad_poll_port0(&buttons) == 0);
                     paused = startpause_open();
                     if (have && status_map_active()) {

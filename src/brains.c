@@ -92,6 +92,7 @@ static int g_unimpl;
 static void (*g_on_kill)(int slot, const char *proc);
 static int (*g_on_proc)(int slot, const char *proc);
 static void (*g_on_exp)(int num);
+static const struct SeqInfo *g_seqs;
 static struct Player *g_pl;
 
 static int seq_on(const struct SeqInfo *seqs, int seq)
@@ -1786,6 +1787,7 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
     int i;
 
     (void)vision;
+    g_seqs = seqs;
     if (scr == NULL) {
         return;
     }
@@ -1976,15 +1978,12 @@ int brains_change_prop(int slot, int prop, int val)
         if (prop == DINKC_SP_SEQ && val > 0) {
             s->frame = 0;
         }
-        if (prop == DINKC_SP_DIR && s->base_walk > 0) {
-            /* changedir needs seqs; seq = base_walk+dir is applied on tick. */
-            s->seq = s->base_walk + val;
-            s->frame = 0;
-        }
-        if ((prop == DINKC_SP_DIR || prop == DINKC_SP_SPEED) &&
-            s->brain == DINK_BRAIN_MISSILE && s->speed != 0 && s->mx == 0 &&
-            s->my == 0) {
-            changedir(s->dir < 1 ? 6 : s->dir, s, -1, NULL);
+        /* FreeDink dc_sp_dir / dc_sp_speed: change_sprite then changedir
+         * (mx/my from new speed). S1-LG hit() is timing 0 + speed 4. */
+        if (prop == DINKC_SP_DIR || prop == DINKC_SP_SPEED) {
+            int base = s->base_walk > 0 ? s->base_walk : -1;
+
+            changedir(s->dir, s, base, g_seqs);
         }
     }
     return *p;

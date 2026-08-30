@@ -6,6 +6,25 @@ The engine still needs original Dink data (`DINK_DATA`). That tree is not in git
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-30
+
+AICA SFX + streamed MIDI (**12.1–12.4**). Spec: [docs/V0.4.md](docs/V0.4.md). Requester stamped this tag.
+
+### In this tag
+
+- WAV→Yamaha ADPCM overlay (`make sfx-bank` / `music-bank`); never rewrite `DINK_DATA`
+- START.c `load_sound` bank; `playsound` returns channel+1
+- Editor loop FIRE + warp OPEN; halt hearth while START is up
+- `snd_stream` 256 KiB PCM ring; callback must not `fread`; KOS `get_data` is **bytes**
+- START menu `1003.mid` (not splash/load); mom `S1-H1-M.c` `dance.mid` on new game
+- Pump AICA from the ring during `dink_fread_all` / `load_one` so the 16 KiB SPU buffer does not loop on edges
+- `sp_speed`/`sp_dir` graft `changedir` (Chealse `hit()` zip)
+
+### Not in this tag
+
+- Per-frame `dir.ff` reads (plan **14.6**)
+- Full-campaign test; real hardware / ODE still unproven
+
 ## [0.3.0] — 2026-08-23
 
 START menu + VMU (**17**) plus playtest leftovers through #117. Spec: [docs/V0.3.md](docs/V0.3.md). Requester stamped this tag.
@@ -67,6 +86,7 @@ See [PROGRESS.md](PROGRESS.md) for the bite log and [docs/PLAYTEST.md](docs/PLAY
 - Full-campaign test; real hardware / ODE still unproven
 - Open pictures: Ethel outdoor house on first visit (map 409), Dink over smashed barrels, pig-pen south fence joint
 
+[0.4.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.4.0
 [0.3.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0
 [0.2.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0
 [0.1.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.1.0

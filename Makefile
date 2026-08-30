@@ -14,7 +14,7 @@ EMU_IMAGE ?= $(firstword $(wildcard build/dinkcast.chd dinkcast.chd build/dinkca
 EMU_LOG ?= build/emu.log
 EMU_SERIAL ?= 1
 
-.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run emu-fast clean sfx-bank
+.PHONY: all host check data-check title-preview dc cdi chd docker-dc docker-cdi emu run emu-fast clean sfx-bank music-bank
 
 HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
@@ -210,6 +210,19 @@ sfx-bank: build/wav_to_adpcm
 		echo "sfx-bank: set DINK_SOUND or DINK_DATA/.../Sound"; \
 	fi
 
+# 12.4: MIDI → 22050 mono ADPCM WAV in build/music (not committed).
+music-bank: build/wav_to_adpcm
+	mkdir -p build/music
+	@SND="$(DINK_SOUND)"; \
+	if [ -z "$$SND" ] && [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/Sound" ]; then SND="$(DINK_DATA)/Sound"; fi; \
+	if [ -z "$$SND" ] && [ -n "$(DINK_DATA)" ] && [ -d "$(DINK_DATA)/sound" ]; then SND="$(DINK_DATA)/sound"; fi; \
+	if [ -n "$$SND" ] && [ -d "$$SND" ]; then \
+		echo "music-bank: $$SND -> build/music"; \
+		sh tools/midi_bank.sh "$$SND" build/music; \
+	else \
+		echo "music-bank: set DINK_SOUND or DINK_DATA/.../Sound"; \
+	fi
+
 TITLE_SRCS := tools/title_preview.c src/title.c src/bmp.c src/le.c src/rgb565.c src/dinkdat.c src/fs.c src/residency.c src/ff.c
 
 title-preview: tools/title_preview
@@ -262,7 +275,7 @@ chd:
 docker-dc:
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh make dc
 
-docker-cdi: sfx-bank
+docker-cdi: sfx-bank music-bank
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tools/distill_frames.py --out build/distill
 	DINK_DATA="$(DINK_DATA)" sh tools/docker_kos.sh 'make dc && make -e cdi'
 	$(MAKE) chd

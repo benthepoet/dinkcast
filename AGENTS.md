@@ -12,7 +12,7 @@ Instructions for humans and agents working in this repo.
 
 **Product:** Port Dink Smallwood to the Sega Dreamcast (KallistiOS). Original game data is required and is **not** committed unless a file’s license allows it. Use `DINK_DATA`.
 
-**Now:** Tagged **v0.3.0** (2026-08-23). START + VMU **17**. V1–**V6** + **8.6 house** accepted. Next engine bite only when the requester says go. Audio **12** and **14.6** stay gated. Do not `@`-mention anyone.
+**Now:** Tagged **v0.4.0** (2026-08-30). START + VMU **17**. V1–**V6** + **8.6 house** accepted. Audio **12.1–12.4** (SFX + `snd_stream` MIDI). **14.6** stays gated. Do not `@`-mention anyone.
 
 **Human gate (every merge):** After a PR is **merged** to `master`, **stop**. Do not open the next bite or start more engine work until the human requester explicitly approves. Reviews and fixes on an *open* PR may continue.
 
