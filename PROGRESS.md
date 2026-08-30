@@ -223,6 +223,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | **12.4** `snd_stream` MIDI; START `1003.mid`; mom `dance.mid`; pump on `fread_all` | this PR |
 | 2026-08-30 | `sp_speed`/`sp_dir` `changedir` (Chealse hit zip) | this PR |
 | 2026-08-30 | **v0.4.0** tagged | this PR |
+| 2026-08-30 | `player_step` animates `seq>0` while frozen (`DINFO` die 436) | this PR |
 
 ## Bites
 

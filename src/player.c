@@ -218,7 +218,11 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     } else if (p->freeze > 0) {
         pad_dir = 0;
     }
-    if (p->nocontrol) {
+    /* live_sprite_animate runs seq even while freeze (DINFO die is
+     * freeze + sp_seq(1,436), no sp_nocontrol). human_brain freeze only
+     * skips walk/idle rewrite below. */
+    if (p->nocontrol ||
+        (p->seq > 0 && p->freeze > 0 && !p->move_active)) {
         int sq = p->seq > 0 ? p->seq : p->pseq;
 
         delay = p->frame_delay != 0
