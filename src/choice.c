@@ -235,11 +235,28 @@ int choice_curf(void)
 }
 
 #ifdef _arch_dreamcast
+void choice_evict_pvr(void)
+{
+    int f;
+
+    for (f = 0; f < 5; f++) {
+        sprite_evict_pvr(&g_box[f]);
+    }
+    for (f = 0; f <= DINK_CHOICE_ARROW_MAX; f++) {
+        sprite_evict_pvr(&g_arowl[f]);
+        sprite_evict_pvr(&g_arowr[f]);
+    }
+}
+
 int choice_upload_pvr(void)
 {
     int f, n = 0;
 
     for (f = 2; f <= 4; f++) {
+        if (g_box[f].tex != NULL) {
+            n++;
+            continue;
+        }
         if (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0) {
             n++;
         }

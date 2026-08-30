@@ -244,7 +244,9 @@ int tiles_pvr_ensure(void)
     params.opb_sizes[PVR_LIST_OP_POLY] = PVR_BINSIZE_16;
     params.opb_sizes[PVR_LIST_TR_POLY] = PVR_BINSIZE_16;
     params.opb_sizes[PVR_LIST_PT_POLY] = PVR_BINSIZE_16;
-    params.vertex_buf_size = 512 * 1024;
+    /* 96 tiles + a few dozen sprites; 512 KB was idle PVR we need for
+     * ITEM-FB treefire warmup. */
+    params.vertex_buf_size = 256 * 1024;
     if (pvr_init(&params) != 0) {
         return -1;
     }

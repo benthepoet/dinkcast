@@ -300,6 +300,18 @@ void inv_tick(uint32_t prev, uint32_t buttons, int now_ms)
 }
 
 #ifdef _arch_dreamcast
+void inv_evict_pvr(void)
+{
+    int i;
+
+    for (i = 1; i <= 5; i++) {
+        sprite_evict_pvr(&g_menu[i]);
+    }
+    for (i = 0; i < DINK_INV_ICON_N; i++) {
+        sprite_evict_pvr(&g_icon[i].fr);
+    }
+}
+
 int inv_upload_pvr(void)
 {
     int i, n = 0;
@@ -308,6 +320,9 @@ int inv_upload_pvr(void)
         if (g_menu[i].tex != NULL) {
             n++;
             continue;
+        }
+        if (g_menu[i].argb1555 == NULL && g_seqs != NULL) {
+            (void)load_fr(g_seqs, DINK_INV_SEQ, i, &g_menu[i]);
         }
         if (g_menu[i].argb1555 != NULL && sprite_upload_pvr(&g_menu[i]) == 0) {
             sprite_drop_cpu(&g_menu[i]);

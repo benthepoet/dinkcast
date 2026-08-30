@@ -41,6 +41,7 @@ int choice_curf(void);
 
 #ifdef _arch_dreamcast
 int choice_upload_pvr(void);
+void choice_evict_pvr(void);
 #endif
 
 #endif

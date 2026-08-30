@@ -962,12 +962,7 @@ int main(int argc, char **argv)
                 last_seq = player_pic_seq(&pl);
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
-                if (choice_upload_pvr() != 0) {
-                    printf("choice upload fail\n");
-                }
-                if (inv_upload_pvr() != 0) {
-                    printf("inv upload fail\n");
-                }
+                /* Inv/choice stay CPU until those UIs open (treefire VRAM). */
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
@@ -1014,9 +1009,6 @@ int main(int argc, char **argv)
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
                         brains_place_sounds();
                         inv_sync_icons();
-#ifdef _arch_dreamcast
-                        (void)inv_upload_pvr();
-#endif
                         g_need_title = 0;
                         startpause_reset();
                         dinkc_vm_choice_close_saves();
@@ -1047,9 +1039,6 @@ int main(int argc, char **argv)
                         mem_swap_reset();
                         give_start_fists();
                         inv_sync_icons();
-#ifdef _arch_dreamcast
-                        (void)inv_upload_pvr();
-#endif
                         swap = 1;
                     }
 
@@ -1089,6 +1078,14 @@ int main(int argc, char **argv)
                     if (have_scene) {
                         pvr_wait_ready();
                     }
+#ifdef _arch_dreamcast
+                    if (!inv_showing()) {
+                        inv_evict_pvr();
+                    }
+                    if (!dinkc_vm_waiting_choice()) {
+                        choice_evict_pvr();
+                    }
+#endif
                     if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }
@@ -1131,6 +1128,12 @@ int main(int argc, char **argv)
                             saybox_clear();
                         }
                     } else if (have && dinkc_vm_waiting_choice()) {
+#ifdef _arch_dreamcast
+                        edraw_release_held_idle(g_edg, &g_ned, seqs);
+                        if (choice_upload_pvr() != 0) {
+                            printf("choice upload fail\n");
+                        }
+#endif
                         if (pad_just_pressed(prev_buttons, buttons,
                                              DINK_PAD_UP) ||
                             pad_just_pressed(prev_buttons, buttons,
@@ -1185,6 +1188,7 @@ int main(int argc, char **argv)
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
                         inv_open(now_ms);
 #ifdef _arch_dreamcast
+                        edraw_release_held_idle(g_edg, &g_ned, seqs);
                         if (inv_upload_pvr() != 0) {
                             printf("inv upload fail\n");
                         }
@@ -1274,6 +1278,9 @@ int main(int argc, char **argv)
                                 }
                                 edraw_ensure_draw_frame(
                                     seqs, sq, fr, brains_slot_brain(ei) == 6);
+                            }
+                            if (!inv_showing() && !dinkc_vm_waiting_choice()) {
+                                (void)edraw_warm_held(g_edg, &g_ned, seqs);
                             }
                         }
                     }

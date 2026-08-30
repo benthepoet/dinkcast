@@ -163,6 +163,10 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
             continue;
         }
         pack_dir(&seqs[s], dir, sizeof(dir));
+        /* Armed treefire/splode window — do not steal for other Screen. */
+        if (dir[0] != '\0' && residency_is_held(dir)) {
+            continue;
+        }
         cached = dir[0] != '\0' && ff_is_cached(dir);
         unused = !g[i].live;
         if (unused_only && !unused) {
@@ -340,6 +344,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
                     int frame, int may_evict)
 {
     static uint8_t full_noted[DINK_MAX_SEQ];
+    char dir[160];
 
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
@@ -378,7 +383,11 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
      * sprite_frame_free below does a bare pvr_mem_free: safe only because
      * every load_one caller runs pre-scene (after pvr_wait_ready, before
      * pvr_scene_begin in main.c). Do not call load_one mid-scene. */
-    if (pixel_class(seqs, seq) != PIX_STICKY) {
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    /* ITEM-FB hold: keep the burn/explo window in VRAM (inv/choice
+     * overlays are evicted while closed). Do not dump unheld Screen. */
+    if (pixel_class(seqs, seq) != PIX_STICKY &&
+        (dir[0] == '\0' || !residency_is_held(dir))) {
         int nxt = edraw_loop_next_frame(seqs, seq, frame);
         int i = 0;
 
@@ -979,6 +988,66 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     upload_and_drop_cpu(hit);
     audio_music_pump();
     *n = got;
+}
+
+void edraw_release_held_idle(struct EdGfx *g, int *n, struct SeqInfo *seqs)
+{
+    char dir[160];
+    int i;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return;
+    }
+    i = 0;
+    while (i < *n) {
+        pack_dir(&seqs[g[i].seq], dir, sizeof(dir));
+        if (!g[i].live && dir[0] != '\0' && residency_is_held(dir)) {
+            sprite_frame_free(&g[i].fr);
+            (*n)--;
+            if (i < *n) {
+                g[i] = g[*n];
+                memset(&g[*n], 0, sizeof(g[0]));
+            } else {
+                memset(&g[i], 0, sizeof(g[0]));
+            }
+            continue;
+        }
+        i++;
+    }
+}
+
+int edraw_warm_held(struct EdGfx *g, int *n, struct SeqInfo *seqs)
+{
+    char dir[160];
+    int seq, f, nfr, got;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return 0;
+    }
+    got = *n;
+    for (seq = 1; seq < DINK_MAX_SEQ; seq++) {
+        pack_dir(&seqs[seq], dir, sizeof(dir));
+        if (dir[0] == '\0' || !residency_is_held(dir)) {
+            continue;
+        }
+        nfr = ini_seq_len(seq, seqs[seq].nframes);
+        if (nfr < 1) {
+            nfr = 1;
+        }
+        for (f = 1; f <= nfr; f++) {
+            if (edraw_find(g, got, seq, f) != NULL) {
+                continue;
+            }
+            if (load_one(g, &got, seqs, seq, f, 1) == 0) {
+                *n = got;
+                return 1;
+            }
+            *n = got;
+            return 0;
+        }
+    }
+    *n = got;
+    return 0;
 }
 
 #ifdef _arch_dreamcast

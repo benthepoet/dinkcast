@@ -45,6 +45,10 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq);
 /* Enter path: one frame (people walk dirs: frame 1 only). */
 void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                       int frame);
+/* Drop unused ITEM-FB burn/explo frames so inv/choice can upload. */
+void edraw_release_held_idle(struct EdGfx *g, int *n, struct SeqInfo *seqs);
+/* Decode+upload one missing held-seq frame (ARM warmup). 1 if loaded. */
+int edraw_warm_held(struct EdGfx *g, int *n, struct SeqInfo *seqs);
 size_t edraw_cpu_bytes(const struct EdGfx *g, int n);
 
 #endif
