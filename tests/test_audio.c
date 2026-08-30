@@ -36,6 +36,13 @@ int main(void)
     ret = 1;
     expect(dinkc_cmd("playsound", args, 5, NULL, NULL, &yld, &ret) == 1, "cmd miss");
     expect(ret == 0, "miss bank 0");
+    expect(audio_slot_loaded(7), "open slot");
+    expect(audio_slot_loaded(23), "fire slot");
+    expect(audio_warp_sound(0) != 0, "warp default OPEN");
+    expect(audio_playsound(23, 22050, 0, 20, 1) != 0, "hearth loop");
+    expect(audio_owner_looping(20), "loop owner 20");
+    audio_halt_owner(20);
+    expect(!audio_owner_looping(20), "halt hearth");
     expect(audio_sfx_bytes() > 0 && audio_sfx_bytes() < 2u * 1024u * 1024u, "bytes");
     printf("OK test_audio slots=%d bytes=%zu\n", audio_slot_count(), audio_sfx_bytes());
     audio_shutdown();

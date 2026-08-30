@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "screen.h"
 
+#include "audio.h"
+
 #include <stdio.h>
 
 static int g_process_warp;
@@ -149,6 +151,8 @@ int screen_special_block(const struct World *w, const struct MapScreen *scr,
     if (dest < 1 || dest > 24 * 32 || w->loc[dest] < 1) {
         return -1;
     }
+    /* FreeDink special_block: OPEN.WAV or editor sound, then parm_seq. */
+    (void)audio_warp_sound((int)es->sound);
     if (es->parm_seq != 0) {
         g_process_warp = editor;
         return 1;

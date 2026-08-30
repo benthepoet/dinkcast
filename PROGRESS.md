@@ -217,6 +217,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | `S1-HOLE` crawl: hold last `pseq` while frozen; `sp_seq(1)` is Dink on editor-1 hole | this PR |
 | 2026-08-30 | `load_sequence` numeric delay reuses frame 1 origin (crawl 452 vs crack) | this PR |
 | 2026-08-30 | `Makefile.dc` `$(OBJS)` depends on `ini.h`/`player.h` (`SeqInfo` stride; splash→black) | this PR |
+| 2026-08-30 | Place loop editor `sound` (hearth 23); warp default OPEN bank 7 | this PR |
 
 ## Bites
 

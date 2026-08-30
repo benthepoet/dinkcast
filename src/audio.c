@@ -54,6 +54,8 @@ static struct {
 static struct {
     int used;
     int ch;
+    int owner;
+    int loop;
     unsigned age;
 } g_v[DINK_VOICES];
 
@@ -319,6 +321,8 @@ static int steal_voice(void)
     snd_sfx_stop(g_v[best].ch);
 #endif
     g_v[best].used = 0;
+    g_v[best].owner = 0;
+    g_v[best].loop = 0;
     return best;
 }
 
@@ -356,6 +360,52 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
 #endif
     g_v[v].used = 1;
     g_v[v].ch = ch;
+    g_v[v].owner = sound3d;
+    g_v[v].loop = repeat ? 1 : 0;
     g_v[v].age = g_age++;
     return ch + 1;
+}
+
+int audio_warp_sound(int editor_sound)
+{
+    /* FreeDink special_block: default OPEN.WAV 7 @ 12000. */
+    if (editor_sound == 0) {
+        return audio_playsound(7, 12000, 0, 0, 0);
+    }
+    return audio_playsound(editor_sound, 22050, 0, 0, 0);
+}
+
+void audio_halt_owner(int sprite)
+{
+    int i;
+
+    if (sprite < 1) {
+        return;
+    }
+    for (i = 0; i < DINK_VOICES; i++) {
+        if (!g_v[i].used || g_v[i].owner != sprite) {
+            continue;
+        }
+#ifdef _arch_dreamcast
+        snd_sfx_stop(g_v[i].ch);
+#endif
+        g_v[i].used = 0;
+        g_v[i].owner = 0;
+        g_v[i].loop = 0;
+    }
+}
+
+int audio_owner_looping(int sprite)
+{
+    int i;
+
+    if (sprite < 1) {
+        return 0;
+    }
+    for (i = 0; i < DINK_VOICES; i++) {
+        if (g_v[i].used && g_v[i].loop && g_v[i].owner == sprite) {
+            return 1;
+        }
+    }
+    return 0;
 }
