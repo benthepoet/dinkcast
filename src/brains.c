@@ -81,7 +81,7 @@ struct BrainSpr {
     int disabled;
     int frame_delay;
     int nodraw;
-    int attack_hit_sound, attack_hit_sound_speed, last_sound;
+    int attack_hit_sound, attack_hit_sound_speed, last_sound, sound;
     char script[16];
 };
 
@@ -1510,6 +1510,13 @@ void brains_bind_screen(const struct MapScreen *scr)
 
 void brains_reset(void)
 {
+    int i;
+
+    for (i = 1; i <= 100; i++) {
+        if (g_b[i].live) {
+            audio_halt_owner(i);
+        }
+    }
     memset(g_b, 0, sizeof(g_b));
     g_unimpl = 0;
 }
@@ -1690,8 +1697,13 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].nohit = (int)es->nohit;
         g_b[i].touch_damage = (int)es->touch_damage;
         g_b[i].hard = (int)es->hard;
+        g_b[i].sound = (int)es->sound;
         g_b[i].created = 0;
         g_b[i].hidden = 0;
+        /* game_place_sprites: loop editor sound if not a warp. */
+        if (!es->is_warp && g_b[i].sound != 0) {
+            (void)audio_playsound(g_b[i].sound, 22050, 0, i, 1);
+        }
     }
 }
 
@@ -1759,6 +1771,12 @@ void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
     (void)vision;
     if (scr == NULL) {
         return;
+    }
+    /* update_sound: repeating + owner inactive → halt. */
+    for (i = 1; i <= 100; i++) {
+        if (!g_b[i].live) {
+            audio_halt_owner(i);
+        }
     }
     for (i = 1; i <= 100; i++) {
         struct BrainSpr *s = &g_b[i];
@@ -1868,6 +1886,7 @@ int brains_change_prop(int slot, int prop, int val)
         if (val == 0) {
             s->live = 0;
             s->hidden = 1;
+            audio_halt_owner(slot);
             return 0;
         }
         s->live = 1;

@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "audio.h"
 #include "brains.h"
 #include "dinkc_cmd.h"
 #include "fs.h"
@@ -294,6 +295,7 @@ int main(void)
         struct MapScreen house;
 
         if (dink_fs_init() == 0 && world_load(&w) == 0) {
+            (void)audio_init();
             int rec = (int)w.loc[DINK_START_PLAYER_MAP];
 
             expect(rec >= 1, "start loc");
@@ -318,6 +320,10 @@ int main(void)
                 brains_enter(&house, DINK_VISION_DEFAULT);
                 expect(brains_slot_created(c), "house enter keeps girl");
                 expect(brains_change_prop(c, 5, -1) == 630, "girl x");
+                expect((int)house.sprite[20].sound == 23, "hearth editor 23");
+                if (audio_slot_loaded(23)) {
+                    expect(audio_owner_looping(20), "hearth FIRE loop");
+                }
             }
             {
                 struct MapScreen pig;
