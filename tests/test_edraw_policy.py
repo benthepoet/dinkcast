@@ -28,6 +28,8 @@ def main() -> int:
         bad.append("held treefire warmup")
     if "pvr_mem_available" not in text:
         bad.append("stop warmup before PVR OOM")
+    if "nfr < 16" not in text:
+        bad.append("warm only long held loops")
     if bad:
         print("FAIL", EDRAW, ":", "; ".join(bad))
         return 1

@@ -84,6 +84,12 @@ static struct SpriteFrame *icon_slot(int seq, int frame, int create)
     }
     g_icon[empty].seq = seq;
     g_icon[empty].frame = frame;
+#ifdef _arch_dreamcast
+    if (g_icon[empty].fr.tex == NULL && g_icon[empty].fr.argb1555 != NULL &&
+        sprite_upload_pvr(&g_icon[empty].fr) == 0) {
+        sprite_drop_cpu(&g_icon[empty].fr);
+    }
+#endif
     return &g_icon[empty].fr;
 }
 
@@ -304,11 +310,24 @@ void inv_evict_pvr(void)
 {
     int i;
 
+    /* HUD fist/magic live in g_icon; only the Y-menu overlay is spare. */
     for (i = 1; i <= 5; i++) {
         sprite_evict_pvr(&g_menu[i]);
     }
+}
+
+void inv_upload_icons_pvr(void)
+{
+    int i;
+
     for (i = 0; i < DINK_INV_ICON_N; i++) {
-        sprite_evict_pvr(&g_icon[i].fr);
+        if (g_icon[i].fr.tex != NULL) {
+            continue;
+        }
+        if (g_icon[i].fr.argb1555 != NULL &&
+            sprite_upload_pvr(&g_icon[i].fr) == 0) {
+            sprite_drop_cpu(&g_icon[i].fr);
+        }
     }
 }
 
@@ -329,15 +348,7 @@ int inv_upload_pvr(void)
             n++;
         }
     }
-    for (i = 0; i < DINK_INV_ICON_N; i++) {
-        if (g_icon[i].fr.tex != NULL) {
-            continue;
-        }
-        if (g_icon[i].fr.argb1555 != NULL &&
-            sprite_upload_pvr(&g_icon[i].fr) == 0) {
-            sprite_drop_cpu(&g_icon[i].fr);
-        }
-    }
+    inv_upload_icons_pvr();
     return n >= 5 ? 0 : -1;
 }
 

@@ -962,7 +962,8 @@ int main(int argc, char **argv)
                 last_seq = player_pic_seq(&pl);
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
-                /* Inv/choice stay CPU until those UIs open (treefire VRAM). */
+                /* Menu overlay stays CPU until Y; HUD fist/magic icons upload. */
+                inv_upload_icons_pvr();
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
@@ -1009,6 +1010,9 @@ int main(int argc, char **argv)
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
                         brains_place_sounds();
                         inv_sync_icons();
+#ifdef _arch_dreamcast
+                        inv_upload_icons_pvr();
+#endif
                         g_need_title = 0;
                         startpause_reset();
                         dinkc_vm_choice_close_saves();
@@ -1039,6 +1043,9 @@ int main(int argc, char **argv)
                         mem_swap_reset();
                         give_start_fists();
                         inv_sync_icons();
+#ifdef _arch_dreamcast
+                        inv_upload_icons_pvr();
+#endif
                         swap = 1;
                     }
 

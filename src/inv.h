@@ -41,6 +41,7 @@ struct SpriteFrame *inv_icon_frame(int seq, int frame);
 
 #ifdef _arch_dreamcast
 int inv_upload_pvr(void);
+void inv_upload_icons_pvr(void);
 void inv_evict_pvr(void);
 void inv_draw_pvr(float z);
 #endif

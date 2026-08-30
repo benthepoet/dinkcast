@@ -389,9 +389,11 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
      * sprite_frame_free below does a bare pvr_mem_free: safe only because
      * every load_one caller runs pre-scene (after pvr_wait_ready, before
      * pvr_scene_begin in main.c). Do not call load_one mid-scene. */
-    /* ITEM-FB hold: keep preload_seq frames (treefire 20), not every
-     * seq that shares the pack (167/168 with 70 OOMed PVR). */
-    if (pixel_class(seqs, seq) != PIX_STICKY && !residency_is_held_seq(seq)) {
+    /* Skip current+next only for long held loops (treefire 29). 5-frame
+     * punch/comet and 15-frame splode stay current+next. */
+    if (pixel_class(seqs, seq) != PIX_STICKY &&
+        !(residency_is_held_seq(seq) &&
+          ini_seq_len(seq, seqs[seq].nframes) >= 16)) {
         int nxt = edraw_loop_next_frame(seqs, seq, frame);
         int i = 0;
 
@@ -1037,8 +1039,8 @@ int edraw_warm_held(struct EdGfx *g, int *n, struct SeqInfo *seqs)
             continue;
         }
         nfr = ini_seq_len(seq, seqs[seq].nframes);
-        if (nfr < 1) {
-            nfr = 1;
+        if (nfr < 16) {
+            continue;
         }
         for (f = 1; f <= nfr; f++) {
             if (edraw_find(g, got, seq, f) != NULL) {

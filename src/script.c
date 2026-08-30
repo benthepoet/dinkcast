@@ -365,6 +365,11 @@ int script_attach_live(void)
         if (strlen(g_scr->sprite[i].script) <= 1) {
             continue;
         }
+        /* brains_apply stamps create_sprite as type 1; skip if main already
+         * ran (s2-auntp would spawn a second Jack). */
+        if (dinkc_vm_sprite_fiber(i) != 0) {
+            continue;
+        }
         rank[nrank++] = i;
     }
     for (a = 1; a < nrank; a++) {

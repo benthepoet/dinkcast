@@ -449,8 +449,10 @@ static void pin_seq(int seq)
     /* Hold Screen (not Always) so make_room cannot drop treefire to
      * load splode, or the reverse on DAMAGE. DISARM hold_clear. */
     if (g_pin_kind == 0 || g_pin_kind == 1) {
-        residency_hold(g_pin_kind, dir);
         residency_hold_seq(g_pin_kind, seq);
+        if (!residency_is_always(dir)) {
+            residency_hold(g_pin_kind, dir);
+        }
     }
     /* Open the pack even if EdGfx is full (play-path must not fopen). */
     if (ff_cached(dir, &ff) != 0) {
