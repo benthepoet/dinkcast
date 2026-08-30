@@ -996,7 +996,10 @@ int main(int argc, char **argv)
                         int have, pdir, paused;
 
                     if (need_menu) {
+                        /* Boot/place_sprites runs before START; halt hearth. */
+                        audio_halt_loops();
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
+                        brains_place_sounds();
                         inv_sync_icons();
 #ifdef _arch_dreamcast
                         (void)inv_upload_pvr();
