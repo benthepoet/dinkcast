@@ -73,6 +73,7 @@ static int g_npin[2];
 static char g_pin[2][24][160];
 static int g_fiber;
 static int g_cmd_sprite;
+static int g_arg0_current;
 static int g_touch[100];
 static int g_weapon_slot;
 static int g_magic_slot;
@@ -696,6 +697,11 @@ void dinkc_cmd_bind_fiber(int fiber, int sprite)
     g_cmd_sprite = sprite;
 }
 
+void dinkc_cmd_bind_arg0_current(int on)
+{
+    g_arg0_current = on != 0;
+}
+
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage))
 {
     g_hurt = fn;
@@ -793,10 +799,11 @@ static int spr_is_dink(int id)
 }
 
 /* Map fiber on editor 1: sp_seq(&current_sprite) is that row, not Dink.
- * freeze(1) / hurt(1) / item 1000 still mean the player. */
+ * sp_seq(1, 452) in S1-HOLE is still spr[1] (Dink). freeze(1)/hurt(1)
+ * / item 1000 still mean the player. */
 static int slot1_is_editor(int slot)
 {
-    return slot == 1 && g_cmd_sprite == 1;
+    return slot == 1 && g_cmd_sprite == 1 && g_arg0_current;
 }
 
 static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
@@ -821,9 +828,9 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             } else if (prop == DINKC_SP_BASE_IDLE) {
             p = &g_pl->base_idle;
         } else if (prop == DINKC_SP_PSEQ) {
-            p = &g_pl->seq;
+            p = &g_pl->pseq;
         } else if (prop == DINKC_SP_PFRAME) {
-            p = &g_pl->frame;
+            p = &g_pl->pframe;
         } else if (prop == DINKC_SP_HITPOINTS) {
             p = &g_pl->hitpoints;
         } else if (prop == DINKC_SP_DEFENSE) {
@@ -850,6 +857,9 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
                 *p = val;
                 if (prop == DINKC_SP_SEQ) {
                     g_pl->frame = 1;
+                    g_pl->pseq = val;
+                    g_pl->pframe = 1;
+                    g_pl->acc = 0;
                 }
             }
             if (ret != NULL) {

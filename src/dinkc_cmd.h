@@ -69,6 +69,8 @@ void dinkc_cmd_bind_fill_hard(void (*fn)(void));
 void dinkc_cmd_bind_callback(int (*fn)(const char *proc, int base, int range,
                                        int fiber, int sprite));
 void dinkc_cmd_bind_fiber(int fiber, int sprite);
+/* 1 if this cmd's first arg is &current_sprite (editor 1 smash, not Dink). */
+void dinkc_cmd_bind_arg0_current(int on);
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage));
 void dinkc_cmd_bind_restart(void (*fn)(void));
 void dinkc_cmd_bind_kill_game(void (*fn)(void));

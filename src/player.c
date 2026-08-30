@@ -35,6 +35,8 @@ void player_init(struct Player *p)
     p->dir = DINK_START_DIR;
     p->seq = DINK_BASE_IDLE + DINK_START_DIR;
     p->frame = 1;
+    p->pseq = p->seq;
+    p->pframe = 1;
     p->acc = 0;
     p->freeze = 0;
     p->nocontrol = 0;
@@ -119,6 +121,8 @@ void player_attack(struct Player *p, const struct SeqInfo *seqs)
     }
     p->seq = seq;
     p->frame = 1;
+    p->pseq = seq;
+    p->pframe = 1;
     p->acc = 0;
     p->nocontrol = 1;
     p->just_hit = 0;
@@ -146,6 +150,32 @@ int player_walk_pad(int pad_dir, int freeze, int choice_active)
         return 0;
     }
     return pad_dir;
+}
+
+int player_pic_seq(const struct Player *p)
+{
+    if (p == NULL) {
+        return 0;
+    }
+    if (p->seq > 0) {
+        return p->seq;
+    }
+    return p->pseq;
+}
+
+int player_pic_frame(const struct Player *p)
+{
+    int fr;
+
+    if (p == NULL) {
+        return 1;
+    }
+    if (p->seq > 0) {
+        fr = p->frame;
+    } else {
+        fr = p->pframe;
+    }
+    return fr < 1 ? 1 : fr;
 }
 
 void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
@@ -189,13 +219,15 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         pad_dir = 0;
     }
     if (p->nocontrol) {
+        int sq = p->seq > 0 ? p->seq : p->pseq;
+
         delay = p->frame_delay != 0
                     ? p->frame_delay
-                    : ini_frame_delay(p->seq, p->frame, seqs[p->seq].delay);
+                    : ini_frame_delay(sq, p->frame, seqs[sq].delay);
         if (delay < 1) {
             delay = 50;
         }
-        nfr = ini_seq_len(p->seq, seqs[p->seq].nframes);
+        nfr = ini_seq_len(sq, seqs[sq].nframes);
         if (nfr < 1) {
             nfr = 1;
         }
@@ -206,20 +238,32 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
             p->acc = 0;
             p->frame++;
             if (p->frame > nfr ||
-                ini_resolve_frame(p->seq, p->frame, &dseq, &dfr) != 0) {
+                ini_resolve_frame(sq, p->frame, &dseq, &dfr) != 0) {
+                /* live_sprite_animate: seq=0, pseq last frame, nocontrol off. */
+                p->pseq = sq;
+                p->pframe = nfr;
+                p->seq = 0;
+                p->frame = 0;
                 p->nocontrol = 0;
-                if (p->dir == 1 || p->dir == 3) {
-                    p->dir = 2;
+                /* S1-HOLE freeze: hold crawl. Punch: same tick idle like human_brain. */
+                if (p->freeze > 0) {
+                    return;
                 }
-                if (p->dir == 7 || p->dir == 9) {
-                    p->dir = 8;
+            } else {
+                p->pseq = sq;
+                p->pframe = p->frame;
+                if (ini_frame_special(sq, p->frame)) {
+                    p->just_hit = 1;
                 }
-                p->seq = DINK_BASE_IDLE + p->dir;
-                p->frame = 1;
-            } else if (ini_frame_special(p->seq, p->frame)) {
-                p->just_hit = 1;
+                return;
             }
+        } else {
+            return;
         }
+    }
+    /* human_brain freeze: no walk/idle rewrite. getpic uses pseq.
+     * Scripted move_stop still walks (s1-h1-s fire door). */
+    if (p->freeze > 0 && !p->move_active) {
         return;
     }
     if (p->push_active) {
@@ -230,6 +274,8 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (p->push_active && now_ms > p->push_timer + 600) {
         p->seq = p->base_push + p->dir;
         p->frame = 1;
+        p->pseq = p->seq;
+        p->pframe = 1;
         p->acc = 0;
         p->nocontrol = 1;
         p->just_push = 1;
@@ -250,6 +296,8 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (seq != p->seq) {
         p->seq = seq;
         p->frame = 1;
+        p->pseq = seq;
+        p->pframe = 1;
         p->acc = 0;
     }
     if (seq < 1 || seq >= DINK_MAX_SEQ) {

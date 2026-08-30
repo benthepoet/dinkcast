@@ -471,18 +471,19 @@ static int play_draw_screen(int sprite)
         printf("draw_screen edraw upload fail\n");
     }
     if (seqs != NULL && g_play_pl != NULL && g_play_spr != NULL) {
-        sprite_load_seq_frame(&seqs[g_play_pl->seq], g_play_pl->seq,
-                              g_play_pl->frame, g_play_spr);
+        sprite_load_seq_frame(&seqs[player_pic_seq(g_play_pl)],
+                              player_pic_seq(g_play_pl),
+                              player_pic_frame(g_play_pl), g_play_spr);
         if (g_play_spr->argb1555 != NULL) {
             (void)sprite_upload_pvr(g_play_spr);
         }
         if (g_play_last_seq != NULL) {
-            *g_play_last_seq = g_play_pl->seq;
+            *g_play_last_seq = player_pic_seq(g_play_pl);
         }
         if (g_play_last_frame != NULL) {
-            *g_play_last_frame = g_play_pl->frame;
+            *g_play_last_frame = player_pic_frame(g_play_pl);
         }
-        printf("draw_screen dink seq=%d\n", g_play_pl->seq);
+        printf("draw_screen dink seq=%d\n", player_pic_seq(g_play_pl));
     }
     spr_restore("draw-pre-attach");
     brains_enter(&g_scr, script_play_vision());
@@ -897,7 +898,9 @@ int main(int argc, char **argv)
                 brains_reset();
                 script_enter_vision();
                 if (seqs != NULL) {
-                    sprite_load_seq_frame(&seqs[pl.seq], pl.seq, pl.frame, &spr);
+                    sprite_load_seq_frame(&seqs[player_pic_seq(&pl)],
+                                          player_pic_seq(&pl),
+                                          player_pic_frame(&pl), &spr);
                 }
                 {
                     g_ned = 0;
@@ -944,8 +947,8 @@ int main(int argc, char **argv)
                 if (spr.argb1555 != NULL) {
                     (void)sprite_upload_pvr(&spr);
                 }
-                last_seq = pl.seq;
-                last_frame = pl.frame;
+                last_seq = player_pic_seq(&pl);
+                last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
                 if (choice_upload_pvr() != 0) {
                     printf("choice upload fail\n");
@@ -1356,21 +1359,25 @@ int main(int argc, char **argv)
                                               1);
                             }
                         }
-                        if (pl.seq != last_seq || pl.frame != last_frame) {
+                        if (player_pic_seq(&pl) != last_seq ||
+                            player_pic_frame(&pl) != last_frame) {
                             struct SpriteFrame nxt;
+                            int dseq = player_pic_seq(&pl);
+                            int dfr = player_pic_frame(&pl);
 
                             memset(&nxt, 0, sizeof(nxt));
-                            if (sprite_load_seq_frame(&seqs[pl.seq], pl.seq,
-                                                      pl.frame, &nxt) == 0) {
+                            if (dseq > 0 &&
+                                sprite_load_seq_frame(&seqs[dseq], dseq, dfr,
+                                                      &nxt) == 0) {
                                 sprite_frame_free(&spr);
                                 spr = nxt;
                                 (void)sprite_upload_pvr(&spr);
                             } else {
                                 printf("dink seq load fail seq=%d fr=%d\n",
-                                       pl.seq, pl.frame);
+                                       dseq, dfr);
                             }
-                            last_seq = pl.seq;
-                            last_frame = pl.frame;
+                            last_seq = dseq;
+                            last_frame = dfr;
                         }
                     }
                     pvr_scene_begin();
