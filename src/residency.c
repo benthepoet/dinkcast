@@ -20,6 +20,8 @@ enum {
 
 static char g_hold[HOLD_BANKS][HOLD_MAX][DINK_FS_PATH_MAX];
 static int g_nhold[HOLD_BANKS];
+static int g_hold_seq[HOLD_BANKS][HOLD_MAX];
+static int g_nhold_seq[HOLD_BANKS];
 
 int residency_is_always(const char *rel)
 {
@@ -228,6 +230,25 @@ void residency_hold(int bank, const char *rel)
     g_nhold[bank]++;
 }
 
+void residency_hold_seq(int bank, int seq)
+{
+    int i;
+
+    if (bank < 0 || bank >= HOLD_BANKS || seq < 1) {
+        return;
+    }
+    for (i = 0; i < g_nhold_seq[bank]; i++) {
+        if (g_hold_seq[bank][i] == seq) {
+            return;
+        }
+    }
+    if (g_nhold_seq[bank] >= HOLD_MAX) {
+        return;
+    }
+    g_hold_seq[bank][g_nhold_seq[bank]] = seq;
+    g_nhold_seq[bank]++;
+}
+
 void residency_hold_clear(int bank)
 {
     if (bank < 0 || bank >= HOLD_BANKS) {
@@ -235,6 +256,8 @@ void residency_hold_clear(int bank)
     }
     memset(g_hold[bank], 0, sizeof(g_hold[bank]));
     g_nhold[bank] = 0;
+    memset(g_hold_seq[bank], 0, sizeof(g_hold_seq[bank]));
+    g_nhold_seq[bank] = 0;
 }
 
 int residency_is_held(const char *rel)
@@ -247,6 +270,23 @@ int residency_is_held(const char *rel)
     for (b = 0; b < HOLD_BANKS; b++) {
         for (i = 0; i < g_nhold[b]; i++) {
             if (strcmp(g_hold[b][i], rel) == 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int residency_is_held_seq(int seq)
+{
+    int b, i;
+
+    if (seq < 1) {
+        return 0;
+    }
+    for (b = 0; b < HOLD_BANKS; b++) {
+        for (i = 0; i < g_nhold_seq[b]; i++) {
+            if (g_hold_seq[b][i] == seq) {
                 return 1;
             }
         }

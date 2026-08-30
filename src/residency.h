@@ -23,8 +23,10 @@ int residency_drop_one_prev(void);
 int residency_drop_one_screen(const char *keep);
 /* Screen hold until DISARM (ITEM-FB treefire+splode). Not Always class. */
 void residency_hold(int bank, const char *rel);
+void residency_hold_seq(int bank, int seq);
 void residency_hold_clear(int bank);
 int residency_is_held(const char *rel);
+int residency_is_held_seq(int seq);
 /* Drop Prev dir.ff until file_blob + need fits the cap. 0 if room. */
 int residency_make_room(size_t need);
 int residency_make_room_keep(size_t need, const char *keep);

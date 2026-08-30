@@ -24,8 +24,10 @@ def main() -> int:
         bad.append("evict log missing class=")
     if "current+next" not in text and "edraw_loop_next_frame" not in text:
         bad.append("loop current+next trim")
-    if "edraw_warm_held" not in text or "residency_is_held" not in text:
+    if "edraw_warm_held" not in text or "residency_is_held_seq" not in text:
         bad.append("held treefire warmup")
+    if "pvr_mem_available" not in text:
+        bad.append("stop warmup before PVR OOM")
     if bad:
         print("FAIL", EDRAW, ":", "; ".join(bad))
         return 1

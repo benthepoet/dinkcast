@@ -344,7 +344,6 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
                     int frame, int may_evict)
 {
     static uint8_t full_noted[DINK_MAX_SEQ];
-    char dir[160];
 
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
@@ -372,6 +371,13 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     g[*got].frame = frame;
     g[*got].live = 1;
     upload_and_drop_cpu(&g[*got].fr);
+#ifdef _arch_dreamcast
+    if (g[*got].fr.argb1555 != NULL && g[*got].fr.tex == NULL) {
+        sprite_frame_free(&g[*got].fr);
+        memset(&g[*got], 0, sizeof(g[0]));
+        return -1;
+    }
+#endif
     audio_music_pump();
     (*got)++;
     /* Loop working set is current+next (14.4c). Not gated on
@@ -383,11 +389,9 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
      * sprite_frame_free below does a bare pvr_mem_free: safe only because
      * every load_one caller runs pre-scene (after pvr_wait_ready, before
      * pvr_scene_begin in main.c). Do not call load_one mid-scene. */
-    pack_dir(&seqs[seq], dir, sizeof(dir));
-    /* ITEM-FB hold: keep the burn/explo window in VRAM (inv/choice
-     * overlays are evicted while closed). Do not dump unheld Screen. */
-    if (pixel_class(seqs, seq) != PIX_STICKY &&
-        (dir[0] == '\0' || !residency_is_held(dir))) {
+    /* ITEM-FB hold: keep preload_seq frames (treefire 20), not every
+     * seq that shares the pack (167/168 with 70 OOMed PVR). */
+    if (pixel_class(seqs, seq) != PIX_STICKY && !residency_is_held_seq(seq)) {
         int nxt = edraw_loop_next_frame(seqs, seq, frame);
         int i = 0;
 
@@ -992,7 +996,6 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
 
 void edraw_release_held_idle(struct EdGfx *g, int *n, struct SeqInfo *seqs)
 {
-    char dir[160];
     int i;
 
     if (g == NULL || n == NULL || seqs == NULL) {
@@ -1000,8 +1003,7 @@ void edraw_release_held_idle(struct EdGfx *g, int *n, struct SeqInfo *seqs)
     }
     i = 0;
     while (i < *n) {
-        pack_dir(&seqs[g[i].seq], dir, sizeof(dir));
-        if (!g[i].live && dir[0] != '\0' && residency_is_held(dir)) {
+        if (!g[i].live && residency_is_held_seq(g[i].seq)) {
             sprite_frame_free(&g[i].fr);
             (*n)--;
             if (i < *n) {
@@ -1018,16 +1020,20 @@ void edraw_release_held_idle(struct EdGfx *g, int *n, struct SeqInfo *seqs)
 
 int edraw_warm_held(struct EdGfx *g, int *n, struct SeqInfo *seqs)
 {
-    char dir[160];
     int seq, f, nfr, got;
 
     if (g == NULL || n == NULL || seqs == NULL) {
         return 0;
     }
+#ifdef _arch_dreamcast
+    /* First failed pvr_mem_malloc corrupts the KOS texture heap. */
+    if (pvr_mem_available() < 256 * 1024) {
+        return 0;
+    }
+#endif
     got = *n;
     for (seq = 1; seq < DINK_MAX_SEQ; seq++) {
-        pack_dir(&seqs[seq], dir, sizeof(dir));
-        if (dir[0] == '\0' || !residency_is_held(dir)) {
+        if (!residency_is_held_seq(seq)) {
             continue;
         }
         nfr = ini_seq_len(seq, seqs[seq].nframes);
