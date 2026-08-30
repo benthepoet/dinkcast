@@ -43,6 +43,9 @@ int main(void)
     expect(audio_owner_looping(20), "loop owner 20");
     audio_halt_owner(20);
     expect(!audio_owner_looping(20), "halt hearth");
+    expect(audio_playsound(23, 22050, 0, 20, 1) != 0, "loop again");
+    audio_halt_loops();
+    expect(!audio_owner_looping(20), "halt all loops");
     expect(audio_sfx_bytes() > 0 && audio_sfx_bytes() < 2u * 1024u * 1024u, "bytes");
     printf("OK test_audio slots=%d bytes=%zu\n", audio_slot_count(), audio_sfx_bytes());
     audio_shutdown();

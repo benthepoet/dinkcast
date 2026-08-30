@@ -13,6 +13,8 @@ struct Player;
 void brains_bind_screen(const struct MapScreen *scr);
 void brains_reset(void);
 void brains_enter(const struct MapScreen *scr, int vision);
+/* Restart place-loops after START (boot preloads the house). */
+void brains_place_sounds(void);
 void brains_tick(struct MapScreen *scr, const struct SeqInfo *seqs,
                  const struct HardMask *mask, int now_ms, int vision);
 /* 1 if slot is a live BrainSpr; writes x/y. Slot 1 is Player, not this. */

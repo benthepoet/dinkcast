@@ -82,6 +82,7 @@ struct BrainSpr {
     int frame_delay;
     int nodraw;
     int attack_hit_sound, attack_hit_sound_speed, last_sound, sound;
+    int loop_sfx;
     char script[16];
 };
 
@@ -1521,6 +1522,21 @@ void brains_reset(void)
     g_unimpl = 0;
 }
 
+void brains_place_sounds(void)
+{
+    int i;
+
+    for (i = 1; i <= 100; i++) {
+        if (!g_b[i].live || !g_b[i].loop_sfx || g_b[i].sound == 0) {
+            continue;
+        }
+        if (audio_owner_looping(i)) {
+            continue;
+        }
+        (void)audio_playsound(g_b[i].sound, 22050, 0, i, 1);
+    }
+}
+
 int brains_live_xy(int slot, int *x, int *y)
 {
     if (slot < 1 || slot > 99 || !g_b[slot].live || x == NULL || y == NULL) {
@@ -1698,10 +1714,11 @@ void brains_enter(const struct MapScreen *scr, int vision)
         g_b[i].touch_damage = (int)es->touch_damage;
         g_b[i].hard = (int)es->hard;
         g_b[i].sound = (int)es->sound;
+        g_b[i].loop_sfx = !es->is_warp && g_b[i].sound != 0;
         g_b[i].created = 0;
         g_b[i].hidden = 0;
         /* game_place_sprites: loop editor sound if not a warp. */
-        if (!es->is_warp && g_b[i].sound != 0) {
+        if (g_b[i].loop_sfx) {
             (void)audio_playsound(g_b[i].sound, 22050, 0, i, 1);
         }
     }

@@ -395,6 +395,23 @@ void audio_halt_owner(int sprite)
     }
 }
 
+void audio_halt_loops(void)
+{
+    int i;
+
+    for (i = 0; i < DINK_VOICES; i++) {
+        if (!g_v[i].used || !g_v[i].loop) {
+            continue;
+        }
+#ifdef _arch_dreamcast
+        snd_sfx_stop(g_v[i].ch);
+#endif
+        g_v[i].used = 0;
+        g_v[i].owner = 0;
+        g_v[i].loop = 0;
+    }
+}
+
 int audio_owner_looping(int sprite)
 {
     int i;
