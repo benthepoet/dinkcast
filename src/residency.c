@@ -336,10 +336,12 @@ int residency_make_room_keep(size_t need, const char *keep)
         if (residency_drop_one_prev() == 0) {
             continue;
         }
-        if (residency_drop_one_screen(keep) == 0) {
+        /* Held ARM packs (treefire/splode) yield before live Screen
+         * people. Aunt house was dropping maiden/blue for merchant. */
+        if (residency_drop_one_held(keep) == 0) {
             continue;
         }
-        if (residency_drop_one_held(keep) == 0) {
+        if (residency_drop_one_screen(keep) == 0) {
             continue;
         }
         return -1;
