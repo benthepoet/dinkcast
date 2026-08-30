@@ -225,6 +225,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | **v0.4.0** tagged | this PR |
 | 2026-08-30 | `player_step` animates `seq>0` while frozen (`DINFO` die 436) | this PR |
 | 2026-08-30 | `attach_live` skip existing fiber (one Jack); `make_room` drops held before Screen people (Maria pack) | this PR |
+| 2026-08-30 | `residency_live_keep` this-vision packs so guard walk is not dropped for attack | this PR |
 
 ## Bites
 
