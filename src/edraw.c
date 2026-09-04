@@ -331,7 +331,11 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
     if (dir[0] == '\0') {
         return -1;
     }
-    return ff_cached(dir, &ff);
+    if (ff_cached(dir, &ff) != 0) {
+        return -1;
+    }
+    residency_live_keep(dir);
+    return 0;
 }
 
 static void upload_and_drop_cpu(struct SpriteFrame *f);

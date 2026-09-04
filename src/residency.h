@@ -21,6 +21,8 @@ void residency_swap_end(void);
 int residency_drop_one_prev(void);
 /* Largest Screen dir.ff except tiles/hard.dat, keep, and ARM-held packs. */
 int residency_drop_one_screen(const char *keep);
+/* Packs decoded this vision (guard walk while attack loads). */
+void residency_live_keep(const char *rel);
 /* Screen hold until DISARM (ITEM-FB treefire+splode). Not Always class. */
 void residency_hold(int bank, const char *rel);
 void residency_hold_clear(int bank);

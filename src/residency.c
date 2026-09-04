@@ -17,9 +17,12 @@ enum {
 
 #define HOLD_BANKS 2
 #define HOLD_MAX 24
+#define LIVE_KEEP_MAX 32
 
 static char g_hold[HOLD_BANKS][HOLD_MAX][DINK_FS_PATH_MAX];
 static int g_nhold[HOLD_BANKS];
+static char g_live[LIVE_KEEP_MAX][DINK_FS_PATH_MAX];
+static int g_nlive;
 
 int residency_is_always(const char *rel)
 {
@@ -96,6 +99,8 @@ void residency_swap_begin(void)
     int i, cls, age;
 
     g_open = 1;
+    g_nlive = 0;
+    memset(g_live, 0, sizeof(g_live));
 
     for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
         dink_blob_get_cls(rel, &cls, &age);
@@ -254,7 +259,41 @@ int residency_is_held(const char *rel)
     return 0;
 }
 
-int residency_drop_one_screen(const char *keep)
+void residency_live_keep(const char *rel)
+{
+    int i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < g_nlive; i++) {
+        if (strcmp(g_live[i], rel) == 0) {
+            return;
+        }
+    }
+    if (g_nlive >= LIVE_KEEP_MAX) {
+        return;
+    }
+    snprintf(g_live[g_nlive], sizeof(g_live[0]), "%s", rel);
+    g_nlive++;
+}
+
+static int residency_is_live_keep(const char *rel)
+{
+    int i;
+
+    if (rel == NULL || rel[0] == '\0') {
+        return 0;
+    }
+    for (i = 0; i < g_nlive; i++) {
+        if (strcmp(g_live[i], rel) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int drop_one_screen_ex(const char *keep, int allow_live)
 {
     char key[DINK_FS_PATH_MAX];
     const char *rel;
@@ -276,6 +315,9 @@ int residency_drop_one_screen(const char *keep)
         if (residency_is_held(rel)) {
             continue;
         }
+        if (!allow_live && residency_is_live_keep(rel)) {
+            continue;
+        }
         if (n > best_n) {
             snprintf(key, sizeof(key), "%s", rel);
             best_n = n;
@@ -289,6 +331,11 @@ int residency_drop_one_screen(const char *keep)
     ff_cache_release(key);
     dink_blob_try_drop(key);
     return 0;
+}
+
+int residency_drop_one_screen(const char *keep)
+{
+    return drop_one_screen_ex(keep, 1);
 }
 
 /* Largest held pack as a last resort. Holds are best-effort: keeping
@@ -336,10 +383,15 @@ int residency_make_room_keep(size_t need, const char *keep)
         if (residency_drop_one_prev() == 0) {
             continue;
         }
-        if (residency_drop_one_screen(keep) == 0) {
+        /* Held ARM packs (treefire/splode) yield before live Screen
+         * people. Aunt house was dropping maiden/blue for merchant. */
+        if (residency_drop_one_held(keep) == 0) {
             continue;
         }
-        if (residency_drop_one_held(keep) == 0) {
+        if (drop_one_screen_ex(keep, 0) == 0) {
+            continue;
+        }
+        if (drop_one_screen_ex(keep, 1) == 0) {
             continue;
         }
         return -1;

@@ -3,6 +3,7 @@
 #include "mapscr.h"
 #include "pad.h"
 #include "player.h"
+#include "start_map.h"
 #include "tiles.h"
 
 #include <stdio.h>
@@ -270,6 +271,35 @@ int main(void)
                     p.seq, p.x, player_pic_seq(&p));
             hard_mask_free(&mask);
             return 1;
+        }
+        /* DINFO die(): freeze + sp_seq(1,436), not sp_nocontrol. */
+        player_init(&p);
+        seqs[436].delay = 16;
+        seqs[436].nframes = 4;
+        p.freeze = 1;
+        p.seq = 436;
+        p.frame = 1;
+        p.pseq = 436;
+        p.pframe = 1;
+        p.nocontrol = 0;
+        p.acc = 0;
+        {
+            int steps = 0;
+
+            while (p.seq == 436 && steps < 32) {
+                player_step(&p, 6, &mask, seqs, 0, NULL);
+                steps++;
+            }
+            if (p.seq != 0 || p.pseq != 436 || p.pframe != 4 ||
+                player_pic_seq(&p) != 436 || player_pic_frame(&p) != 4 ||
+                p.x != DINK_START_X) {
+                fprintf(stderr,
+                        "FAIL die anim seq=%d pseq=%d pfr=%d pic=%d/%d x=%d\n",
+                        p.seq, p.pseq, p.pframe, player_pic_seq(&p),
+                        player_pic_frame(&p), p.x);
+                hard_mask_free(&mask);
+                return 1;
+            }
         }
         /* Punch: same-tick idle after nocontrol (not frozen). */
         player_init(&p);

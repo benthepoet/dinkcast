@@ -46,8 +46,8 @@ tests/test_player: tests/test_player.c src/player.c src/hurt.c src/hard.c src/pa
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_player.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/mapscr.c src/audio.c
 	./$@
 
-tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
+tests/test_edraw: tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c src/audio.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
 
@@ -131,8 +131,8 @@ tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_leak: tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c
+tests/test_leak: tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_leak.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c src/audio.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_save: tests/test_save.c src/save.c src/dinkc_cmd.c src/audio.c src/fade.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/ini.c src/ff.c src/mapscr.c src/le.c src/fs.c src/residency.c src/pad.c
@@ -170,8 +170,8 @@ tests/test_ff: tests/test_ff.c src/ff.c src/le.c src/fs.c src/residency.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_ff.c src/ff.c src/le.c src/fs.c src/residency.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c
+tests/test_io_once: tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_io_once.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/tiles.c src/rgb565.c src/hard.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/audio.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tools/dump_ini: tools/dump_ini.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c

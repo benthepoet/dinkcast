@@ -455,6 +455,7 @@ static void pin_seq(int seq)
     if (ff_cached(dir, &ff) != 0) {
         return;
     }
+    residency_live_keep(dir);
     /* Named Always prefixes only (dink idle/walk/hit…). ITEM-FB ARM
      * preload_seq(20/70) is tree-burn/splode; pinning those Always left
      * ~3.6 MB and AlkNut west ts35 / seq 421 refused. */
