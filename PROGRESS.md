@@ -227,6 +227,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | `attach_live` skip existing fiber (one Jack); `make_room` drops held before Screen people (Maria pack) | this PR |
 | 2026-08-30 | `residency_live_keep` this-vision packs so guard walk is not dropped for attack | this PR |
 | 2026-09-04 | **14.6** A: `ff_parse_toc` / `ff_toc_bytes`; runtime still slurps whole `dir.ff` | this PR |
+| 2026-09-05 | **14.6** B: `ff_read_bmp` SEEK_SET or slurped data; load still whole-pack | this PR |
 
 ## Bites
 
