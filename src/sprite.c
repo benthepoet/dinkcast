@@ -54,6 +54,7 @@ static int load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
     const char *sl;
     const uint8_t *bmp = NULL;
     size_t bn = 0;
+    int bmp_owned = 0;
     struct Bitmap bm;
     uint16_t *pad;
     int x, y, tw, th;
@@ -131,12 +132,15 @@ static int load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
         seq->nframes = ini_seq_len(seqn, nf);
         printf("seq %d nframes %d\n", seqn, seq->nframes);
     }
-    if (ff_find(ff, name, &bmp, &bn) != 0) {
+    if (ff_read_bmp(ff, name, &bmp, &bn, &bmp_owned) != 0) {
         return -1;
     }
 decode:
     memset(&bm, 0, sizeof(bm));
     if (bitmap_load_mem(bmp, bn, &bm) != 0) {
+        if (bmp_owned) {
+            free((void *)bmp);
+        }
         return -1;
     }
     tw = next_pow2(bm.w);
@@ -144,6 +148,9 @@ decode:
     pad = (uint16_t *)calloc((size_t)tw * (size_t)th, 2);
     if (pad == NULL) {
         bitmap_free(&bm);
+        if (bmp_owned) {
+            free((void *)bmp);
+        }
         return -1;
     }
     for (y = 0; y < bm.h; y++) {
@@ -182,6 +189,9 @@ decode:
     out->argb1555 = pad;
     out->tex = NULL;
     bitmap_free(&bm);
+    if (bmp_owned) {
+        free((void *)bmp);
+    }
     return 0;
 }
 
