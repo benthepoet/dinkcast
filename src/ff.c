@@ -34,7 +34,12 @@ static int name_eq(const char *a, const char *b)
     return *a == '\0' && *b == '\0';
 }
 
-static int ff_parse_ents(const uint8_t *p, size_t n, struct FfFile *out)
+size_t ff_toc_bytes(uint32_t nent)
+{
+    return 4u + 17u * (size_t)nent;
+}
+
+int ff_parse_toc(const uint8_t *p, size_t n, struct FfFile *out)
 {
     uint32_t nent;
     size_t off;
@@ -71,7 +76,7 @@ static int ff_parse_ents(const uint8_t *p, size_t n, struct FfFile *out)
 
 int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
 {
-    if (ff_parse_ents(p, n, out) != 0) {
+    if (ff_parse_toc(p, n, out) != 0) {
         return -1;
     }
     out->data = (uint8_t *)malloc(n);
@@ -98,7 +103,7 @@ int ff_load_rel(const char *rel, struct FfFile *out)
     if (dink_blob_get(rel, &raw, &n) != 0 || raw == NULL || n < 4) {
         return -1;
     }
-    if (ff_parse_ents(raw, n, out) != 0) {
+    if (ff_parse_toc(raw, n, out) != 0) {
         return -1;
     }
     out->data = (uint8_t *)raw;

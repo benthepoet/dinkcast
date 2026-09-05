@@ -226,6 +226,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-30 | `player_step` animates `seq>0` while frozen (`DINFO` die 436) | this PR |
 | 2026-08-30 | `attach_live` skip existing fiber (one Jack); `make_room` drops held before Screen people (Maria pack) | this PR |
 | 2026-08-30 | `residency_live_keep` this-vision packs so guard walk is not dropped for attack | this PR |
+| 2026-09-04 | **14.6** A: `ff_parse_toc` / `ff_toc_bytes`; runtime still slurps whole `dir.ff` | this PR |
 
 ## Bites
 
@@ -275,7 +276,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** packs #82. **14.4c** pixels #90. Tilesheet slurp uses the same Prev `dir.ff` drop as packs (376 `ts41` after 408) |
 | 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). DC Screen drops CPU after PVR so unused loop frames do not refuse. Flycast punch still the human check |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
-| 14.6 | Per-frame `dir.ff` reads | pending | after **16** + requester full-campaign go. Enter-path TOC/offset; not next after 14.5 |
+| 14.6 | Per-frame `dir.ff` reads | pending | TOC parse on master (`ff_toc_bytes`); load still whole-pack slurp until payload-seek / no-slurp PRs. Play-path must not `fopen` |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
 | 15.2 | Damage | source | #76. Duck first hit stays headless 110 + head 120 (#77). Seq 164 frames stay; magic pack dropped (#78). House duck death 117/123 before people walks (#88). Pixel victims Always/Screen/Sticky (**14.4c**) |
 | 15.3–15.4 | Weapons / magic | source | `add_item`/`arm_weapon`/`arm_magic`; START-1 fists; B USE; X mana; `init` seq rewrite; sword/bow Always. Bow charge later |
