@@ -44,6 +44,45 @@ int main(void)
             return 1;
         }
         printf("ff ds-i4-01.bmp %zu bytes entries %d\n", ln, ff.nent);
+        {
+            size_t toc = ff_toc_bytes((uint32_t)ff.nent);
+            struct FfFile tocff;
+            uint8_t *head;
+
+            if (toc < 4 || toc > ff.n) {
+                fprintf(stderr, "FAIL toc_bytes %zu pack %zu nent %d\n", toc,
+                        ff.n, ff.nent);
+                ff_free(&ff);
+                return 1;
+            }
+            head = (uint8_t *)malloc(toc);
+            if (head == NULL) {
+                ff_free(&ff);
+                return 1;
+            }
+            memcpy(head, ff.data, toc);
+            memset(&tocff, 0, sizeof(tocff));
+            if (ff_parse_toc(head, toc, &tocff) != 0 ||
+                tocff.nent != ff.nent ||
+                strcmp(tocff.ent[0].name, ff.ent[0].name) != 0) {
+                fprintf(stderr, "FAIL parse toc-only nent %d vs %d\n",
+                        tocff.nent, ff.nent);
+                free(head);
+                ff_free(&tocff);
+                ff_free(&ff);
+                return 1;
+            }
+            if (ff_parse_toc(head, toc - 1, &tocff) == 0) {
+                fprintf(stderr, "FAIL toc truncated should fail\n");
+                free(head);
+                ff_free(&tocff);
+                ff_free(&ff);
+                return 1;
+            }
+            free(head);
+            ff_free(&tocff);
+            printf("ff toc bytes %zu pack %zu\n", toc, ff.n);
+        }
         ff_free(&ff);
         {
             struct FfFile *a = NULL, *b = NULL;

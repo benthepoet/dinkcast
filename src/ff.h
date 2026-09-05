@@ -21,6 +21,9 @@ struct FfFile {
 };
 
 void ff_free(struct FfFile *ff);
+/* 14.6: TOC is 4 + 17*nent. Pack payload starts at that offset. */
+size_t ff_toc_bytes(uint32_t nent);
+int ff_parse_toc(const uint8_t *p, size_t n, struct FfFile *out);
 int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out);
 int ff_load_rel(const char *rel, struct FfFile *out);
 /* Named Always list (residency.h). Play-path still must not fopen. */
