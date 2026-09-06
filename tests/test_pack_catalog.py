@@ -48,6 +48,37 @@ def main() -> int:
         return 1
     if "14.5: needed" in out:
         print("note: catalog recorded 14.5: needed (not a fail)")
+    subset = None
+    for ln in out.splitlines():
+        if "toc=" not in ln or "pack=" not in ln or not ln.strip().startswith("seq "):
+            continue
+        toc = pack = 0
+        for part in ln.split():
+            if part.startswith("toc="):
+                toc = int(part.split("=", 1)[1])
+            if part.startswith("pack="):
+                pack = int(part.split("=", 1)[1])
+        if toc >= 4 and pack > toc:
+            subset = (toc, pack, ln)
+            break
+    if subset is None:
+        print("FAIL no seq toc= < pack=")
+        return 1
+    print("14.6 subset pack file_blob=toc", subset[0], "pack", subset[1])
+    peak = [
+        ln
+        for ln in out.splitlines()
+        if ln.startswith("campaign Always+Screen+Prev peak")
+    ]
+    if peak:
+        blob = 0
+        for part in peak[0].split():
+            if part.startswith("file_blob="):
+                blob = int(part.split("=", 1)[1])
+        if blob > 4718592:
+            print("note: 14.6 catalog peak still over cap", blob)
+        else:
+            print("14.6 catalog Always+Screen+Prev peak under 4.5 MB", blob)
     return 0
 
 
