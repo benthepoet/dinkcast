@@ -232,6 +232,35 @@ int main(void)
                 free(seqs);
                 return 1;
             }
+            /* Uploaded tex of a !live frame stays while the seq is live. */
+            {
+                struct SpriteFrame *kept = edraw_find(g, n, 161, 4);
+
+                if (kept == NULL) {
+                    fprintf(stderr, "FAIL 161/4 gone before tex hold\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                kept->tex = (void *)1;
+                edraw_live_begin(g, n, seqs);
+                edraw_live_touch(g, n, 161, 14);
+                edraw_reap_unused(g, &n, seqs);
+                if (edraw_find(g, n, 161, 4) == NULL) {
+                    fprintf(stderr, "FAIL 161 tex dropped while seq live\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                edraw_live_begin(g, n, seqs);
+                edraw_reap_unused(g, &n, seqs);
+                if (edraw_find(g, n, 161, 4) != NULL) {
+                    fprintf(stderr, "FAIL 161 tex held with seq idle\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+            }
         }
         if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
             fprintf(stderr, "FAIL house vis 0 after fire current+next\n");
