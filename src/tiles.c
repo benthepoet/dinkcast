@@ -3,6 +3,7 @@
 
 #include "bmp.h"
 #include "fs.h"
+#include "mem.h"
 #include "rgb565.h"
 
 #include <stdio.h>
@@ -82,9 +83,31 @@ static struct {
 } g_ts[DINK_TS_CACHE];
 static int g_ts_tick;
 
+static int ts_evict_lru(void)
+{
+    int i, victim = -1;
+
+    for (i = 0; i < DINK_TS_CACHE; i++) {
+        if (g_ts[i].pix != NULL &&
+            (victim < 0 || g_ts[i].tick < g_ts[victim].tick)) {
+            victim = i;
+        }
+    }
+    if (victim < 0) {
+        return -1;
+    }
+    printf("tiles evict ts%02d\n", g_ts[victim].sheet0 + 1);
+    free(g_ts[victim].pix);
+    g_ts[victim].pix = NULL;
+    g_ts[victim].w = 0;
+    g_ts[victim].h = 0;
+    g_ts[victim].sheet0 = -1;
+    return 0;
+}
+
 static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
 {
-    int i, empty = -1, victim = -1;
+    int i, empty = -1;
     char rel[32];
     const uint8_t *raw = NULL;
     size_t n = 0;
@@ -103,10 +126,6 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
         }
         if (empty < 0 && g_ts[i].pix == NULL) {
             empty = i;
-        }
-        if (g_ts[i].pix != NULL &&
-            (victim < 0 || g_ts[i].tick < g_ts[victim].tick)) {
-            victim = i;
         }
     }
     snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", sheet0 + 1);
@@ -127,16 +146,47 @@ static int ts_sheet(int sheet0, uint16_t **pix, int *w, int *h)
     *w = bm.w;
     *h = bm.h;
     bitmap_free(&bm);
-    if (empty < 0) {
-        if (victim < 0) {
+    {
+        size_t need = (size_t)(*w) * (size_t)(*h) * 2u;
+
+        /* Plan §1.2: ts_rgb ≤ 1.25 MB, LRU by bytes not slot count. */
+        while (tiles_cache_bytes() + need > (size_t)DINK_MEM_TS_RGB) {
+            if (ts_evict_lru() != 0) {
+                break;
+            }
+            empty = -1;
+        }
+        if (tiles_cache_bytes() + need > (size_t)DINK_MEM_TS_RGB) {
+            printf("mem refuse pool=ts_rgb need=%u have=%u cap=%u\n",
+                   (unsigned)need, (unsigned)tiles_cache_bytes(),
+                   (unsigned)DINK_MEM_TS_RGB);
             free(p);
             return -1;
         }
-        /* Re-decode from the blob; do not fopen. */
-        empty = victim;
-        printf("tiles evict ts%02d\n", g_ts[empty].sheet0 + 1);
-        free(g_ts[empty].pix);
-        g_ts[empty].pix = NULL;
+    }
+    if (empty < 0) {
+        for (i = 0; i < DINK_TS_CACHE; i++) {
+            if (g_ts[i].pix == NULL) {
+                empty = i;
+                break;
+            }
+        }
+    }
+    if (empty < 0) {
+        if (ts_evict_lru() != 0) {
+            free(p);
+            return -1;
+        }
+        for (i = 0; i < DINK_TS_CACHE; i++) {
+            if (g_ts[i].pix == NULL) {
+                empty = i;
+                break;
+            }
+        }
+        if (empty < 0) {
+            free(p);
+            return -1;
+        }
     }
     g_ts[empty].sheet0 = sheet0;
     g_ts[empty].w = *w;

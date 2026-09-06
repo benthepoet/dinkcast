@@ -868,6 +868,14 @@ int main(void)
             free(seqs);
             return 1;
         }
+        if (tiles_cache_bytes() > (size_t)DINK_MEM_TS_RGB) {
+            fprintf(stderr, "FAIL 376 ts_rgb over cap %u\n",
+                    (unsigned)tiles_cache_bytes());
+            tiles_free(&atlas);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
         tiles_free(&atlas);
     }
     {
