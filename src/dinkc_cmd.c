@@ -167,6 +167,7 @@ static const struct {
     {"debug", 0},
     {"playsound", 0},
     {"playmidi", 0},
+    {"stopmidi", 0},
     {"stopcd", 0},
     {"freeze", 0},
     {"unfreeze", 0},
@@ -1414,6 +1415,11 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             (void)audio_music_play(nm);
         }
         printf("playmidi %s\n", str != NULL ? str : "");
+        return 1;
+    }
+    /* FreeDink dc_stopmidi: Mix_HaltMusic. S1-BUL / DINFO. */
+    if (is_cmd(name, "stopmidi")) {
+        audio_music_stop();
         return 1;
     }
     if (is_cmd(name, "stopcd")) {
