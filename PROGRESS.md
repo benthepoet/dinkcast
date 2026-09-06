@@ -230,7 +230,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-05 | **14.6** B: `ff_read_bmp` SEEK_SET or slurped data; load still whole-pack | this PR |
 | 2026-09-05 | **14.6** C: `dir.ff` TOC + open `FILE*`; `file_blob` charges TOC not the pack | this PR |
 | 2026-09-06 | `stopmidi` → `audio_music_stop` (`S1-BUL` bully theme, `DINFO`) | this PR |
-| 2026-09-06 | `human_brain` `freeze:` idle after throw (`ITEM-PIG` / Milder); hole `brain 0` holds crawl | this PR |
+| 2026-09-06 | `human_brain` `freeze:` idle after throw (`ITEM-PIG` / Milder); hole `brain 0` holds crawl | #141 |
+| 2026-09-06 | House fire: reap `!live` Screen after all touches; do not trim per `load_one` | this PR |
 
 ## Bites
 

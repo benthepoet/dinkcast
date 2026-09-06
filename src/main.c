@@ -1275,6 +1275,7 @@ int main(int argc, char **argv)
                                 edraw_ensure_draw_frame(
                                     seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
+                            edraw_reap_unused(g_edg, &g_ned, seqs);
                         }
                     }
                     now_ms += DINKC_TICK_MS;
