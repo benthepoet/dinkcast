@@ -859,6 +859,14 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->attack_hit_sound;
         } else if (prop == DINKC_SP_ATTACK_HIT_SOUND_SPEED) {
             p = &g_pl->attack_hit_sound_speed;
+        } else if (prop == DINKC_SP_BRAIN) {
+            if (val != -1) {
+                g_pl->brain = val;
+            }
+            if (ret != NULL) {
+                *ret = g_pl->brain;
+            }
+            /* Fall through: brains slot 1 too (S1-HOLE 0). */
         }
         if (p != NULL) {
             if (val != -1) {

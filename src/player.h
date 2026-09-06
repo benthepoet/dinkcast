@@ -17,6 +17,7 @@ struct Player {
     int x, y, dir, seq, frame, acc;
     int pseq, pframe; /* getpic: seq==0 holds last anim (S1-HOLE crawl) */
     int freeze; /* FreeDink spr[1].freeze nest */
+    int brain; /* spr[1].brain; S1-HOLE 0 skips freeze: idle */
     int nocontrol; /* attack lock (item-fst / spr.nocontrol) */
     int just_hit; /* 1 after landing on SET_FRAME_SPECIAL */
     int just_push; /* 1 the frame push seq starts (tag_list_push) */
