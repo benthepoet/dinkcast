@@ -14,6 +14,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | [v0.2.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0) | 2026-08-22 | Campaign DinkC host #102–#108 + playtest #109. Flycast Done-when still Open. |
 | [v0.3.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0) | 2026-08-23 | START + VMU **17** + playtest #117. |
 | [v0.4.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.4.0) | 2026-08-30 | AICA **12.1–12.4** SFX + streamed MIDI. |
+| [v0.5.0](https://github.com/benthepoet/dinkcast/releases/tag/v0.5.0) | 2026-09-06 | Per-frame `dir.ff` **14.6**. |
 
 ## On master
 
@@ -233,7 +234,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-06 | `human_brain` `freeze:` idle after throw (`ITEM-PIG` / Milder); hole `brain 0` holds crawl | #141 |
 | 2026-09-06 | House fire: reap `!live` Screen after all touches; do not trim per `load_one` | #142 |
 | 2026-09-06 | Screen loop tex stays while that seq is live (14.6 fire SEEK_SET) | #143 |
-| 2026-09-06 | **14.6** D: catalog `file_blob` is `ff_toc_bytes` not whole `dir.ff` | this PR |
+| 2026-09-06 | **14.6** D: catalog `file_blob` is `ff_toc_bytes` not whole `dir.ff` | #144 |
+| 2026-09-06 | **v0.5.0** tagged | this PR |
 
 ## Bites
 
@@ -304,6 +306,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | Playtest pictures | [docs/PLAYTEST.md](docs/PLAYTEST.md) — HUD + wizard + AlkNuts + 376 pathway after Load confirmed; burning-house exit Open |
 | v0.3.0 | tagged 2026-08-23. START + VMU **17**. Next: requester go. |
 | v0.4.0 | tagged 2026-08-30. Audio **12** in Flycast. **14.6** gated. |
+| v0.5.0 | tagged 2026-09-06. **14.6** on master. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
@@ -313,13 +316,13 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 
 **Difficulty (what is hard):** hardware is easy; **DinkC coverage** is hard; disc seeks and VRAM eviction are daily craft; AICA/VMU/real GD-ROM still unproven.
 
-### Current (2026-08-30)
+### Current (2026-09-06)
 
 | | | |
 |---|---|---|
-| **Overall** | **~92%** | v0.4.0: SFX + MIDI stream in Flycast; hardware/ODE still pending |
-| **Next picture** | requester go | **14.6** gated |
-| **Hardest remaining** | DinkC long tail | then 14.6 RAM |
+| **Overall** | **~94%** | v0.5.0: **14.6** TOC/`FILE*` in Flycast; hardware/ODE still pending |
+| **Next picture** | requester go | bite **18** or DinkC tail |
+| **Hardest remaining** | DinkC long tail | hardware/ODE unproven |
 | **Difficulty** | Medium project, long pole = scripts | Not a “DC is too weak” project |
 
 | Slice | Confidence | Why |
@@ -396,3 +399,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-22 (v0.3 plan) | **~90%** | Requester: title + VMU before remaining campaign issues. **17** before **12**. **14.6** still gated. |
 | 2026-08-23 (v0.3.0) | **~90%** | Requester stamped START + VMU + playtest #117. Audio **12** / **14.6** still gated. |
 | 2026-08-30 (v0.4.0) | **~92%** | Requester stamped AICA **12**. Title `1003.mid`, house `dance.mid`, edge pump. **14.6** gated. |
+| 2026-09-06 (v0.5.0) | **~94%** | Requester stamped **14.6**. Catalog peak ~1.52 MB. House fire keeps loop tex. |
