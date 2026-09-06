@@ -56,6 +56,12 @@ int main(void)
     expect(dinkc_cmd("playmidi", NULL, 0, "1003.mid", NULL, &yld, &ret) == 1,
            "playmidi cmd");
     expect(audio_music_playing(), "still after playmidi same");
+    expect(dinkc_cmd("stopmidi", NULL, 0, NULL, NULL, &yld, &ret) == 1,
+           "stopmidi cmd");
+    expect(!audio_music_playing(), "stopmidi halted");
+    expect(dinkc_cmd("playmidi", NULL, 0, "1003.mid", NULL, &yld, &ret) == 1,
+           "playmidi after stop");
+    expect(audio_music_playing(), "playing after restart");
     audio_music_stop();
     expect(!audio_music_playing(), "stopcd");
     expect(dinkc_cmd("stopcd", NULL, 0, NULL, NULL, &yld, &ret) == 1, "stopcd cmd");

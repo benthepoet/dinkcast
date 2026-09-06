@@ -167,6 +167,7 @@ static const struct {
     {"debug", 0},
     {"playsound", 0},
     {"playmidi", 0},
+    {"stopmidi", 0},
     {"stopcd", 0},
     {"freeze", 0},
     {"unfreeze", 0},
@@ -858,6 +859,14 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             p = &g_pl->attack_hit_sound;
         } else if (prop == DINKC_SP_ATTACK_HIT_SOUND_SPEED) {
             p = &g_pl->attack_hit_sound_speed;
+        } else if (prop == DINKC_SP_BRAIN) {
+            if (val != -1) {
+                g_pl->brain = val;
+            }
+            if (ret != NULL) {
+                *ret = g_pl->brain;
+            }
+            /* Fall through: brains slot 1 too (S1-HOLE 0). */
         }
         if (p != NULL) {
             if (val != -1) {
@@ -1414,6 +1423,11 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             (void)audio_music_play(nm);
         }
         printf("playmidi %s\n", str != NULL ? str : "");
+        return 1;
+    }
+    /* FreeDink dc_stopmidi: Mix_HaltMusic. S1-BUL / DINFO. */
+    if (is_cmd(name, "stopmidi")) {
+        audio_music_stop();
         return 1;
     }
     if (is_cmd(name, "stopcd")) {

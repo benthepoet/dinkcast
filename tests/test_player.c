@@ -240,14 +240,15 @@ int main(void)
         }
     }
     {
-        /* S1-HOLE: freeze + nocontrol seq 452; live_sprite_animate holds
-         * last crawl frame (seq=0 pseq), not idle on the hole. */
+        /* S1-HOLE: freeze + nocontrol seq 452 + sp_brain(1,0); no_brain
+         * holds last crawl. human_brain freeze: would idle. */
         seqs[452].delay = 50;
         seqs[452].nframes = 3;
         player_init(&p);
         p.x = 274;
         p.y = 195;
         p.freeze = 1;
+        p.brain = 0;
         p.seq = 452;
         p.frame = 1;
         p.pseq = 452;
@@ -272,11 +273,12 @@ int main(void)
             hard_mask_free(&mask);
             return 1;
         }
-        /* DINFO die(): freeze + sp_seq(1,436), not sp_nocontrol. */
+        /* DINFO die(): freeze + sp_seq(1,436) + sp_base_idle(1,-1). */
         player_init(&p);
         seqs[436].delay = 16;
         seqs[436].nframes = 4;
         p.freeze = 1;
+        p.base_idle = -1;
         p.seq = 436;
         p.frame = 1;
         p.pseq = 436;
@@ -297,6 +299,33 @@ int main(void)
                         "FAIL die anim seq=%d pseq=%d pfr=%d pic=%d/%d x=%d\n",
                         p.seq, p.pseq, p.pframe, player_pic_seq(&p),
                         player_pic_frame(&p), p.x);
+                hard_mask_free(&mask);
+                return 1;
+            }
+        }
+        /* ITEM-PIG + freeze(1): throw ends, freeze: idle (Milder talk). */
+        player_init(&p);
+        p.dir = 6;
+        seqs[526].delay = 16;
+        seqs[526].nframes = 3;
+        p.seq = 526;
+        p.frame = 1;
+        p.pseq = 526;
+        p.pframe = 1;
+        p.nocontrol = 1;
+        p.freeze = 1;
+        p.acc = 0;
+        {
+            int steps = 0;
+
+            while (p.nocontrol && steps < 32) {
+                player_step(&p, 6, &mask, seqs, 0, NULL);
+                steps++;
+            }
+            player_step(&p, 6, &mask, seqs, 0, NULL);
+            if (p.seq != DINK_BASE_IDLE + 6 || player_pic_seq(&p) != DINK_BASE_IDLE + 6) {
+                fprintf(stderr, "FAIL feed freeze idle seq=%d pic=%d\n", p.seq,
+                        player_pic_seq(&p));
                 hard_mask_free(&mask);
                 return 1;
             }

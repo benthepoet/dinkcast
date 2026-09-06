@@ -20,6 +20,7 @@ struct FfFile {
     int nent;
     int borrowed; /* 1 = data is dink_blob_get; ff_free must not free it */
     FILE *fp; /* 14.6: open pack for SEEK_SET; NULL if slurped */
+    size_t pack_n; /* whole file size; data may be TOC only */
 };
 
 void ff_free(struct FfFile *ff);
@@ -43,5 +44,6 @@ int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
 /* BMP bytes: slurped data or SEEK_SET on fp. *owned 1 → caller free(*out). */
 int ff_read_bmp(struct FfFile *ff, const char *name, const uint8_t **out,
                 size_t *len, int *owned);
+int ff_has(const struct FfFile *ff, const char *name);
 
 #endif

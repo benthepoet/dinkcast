@@ -39,6 +39,7 @@ void player_init(struct Player *p)
     p->pframe = 1;
     p->acc = 0;
     p->freeze = 0;
+    p->brain = 1;
     p->nocontrol = 0;
     p->just_hit = 0;
     p->just_push = 0;
@@ -219,8 +220,9 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         pad_dir = 0;
     }
     /* live_sprite_animate runs seq even while freeze (DINFO die is
-     * freeze + sp_seq(1,436), no sp_nocontrol). human_brain freeze only
-     * skips walk/idle rewrite below. */
+     * freeze + sp_seq(1,436), no sp_nocontrol). human_brain freeze:
+     * idle if brain 1 and base_idle > 0 (feed + Milder). S1-HOLE
+     * sp_brain(1,0) holds last crawl. DINFO base_idle -1 holds 436. */
     if (p->nocontrol ||
         (p->seq > 0 && p->freeze > 0 && !p->move_active)) {
         int sq = p->seq > 0 ? p->seq : p->pseq;
@@ -249,9 +251,9 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
                 p->seq = 0;
                 p->frame = 0;
                 p->nocontrol = 0;
-                /* S1-HOLE freeze: hold crawl. Punch: same tick idle like human_brain. */
+                /* Punch: same tick idle. Freeze: freeze: idle below. */
                 if (p->freeze > 0) {
-                    return;
+                    goto freeze_idle;
                 }
             } else {
                 p->pseq = sq;
@@ -265,9 +267,26 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
             return;
         }
     }
-    /* human_brain freeze: no walk/idle rewrite. getpic uses pseq.
-     * Scripted move_stop still walks (s1-h1-s fire door). */
+    /* human_brain freeze: changedir(base_idle). move_stop still walks. */
     if (p->freeze > 0 && !p->move_active) {
+    freeze_idle:
+        if (p->dir == 1 || p->dir == 3) {
+            p->dir = 2;
+        }
+        if (p->dir == 7 || p->dir == 9) {
+            p->dir = 8;
+        }
+        if (p->brain == 1 && p->base_idle > 0) {
+            int idle = p->base_idle + p->dir;
+
+            if (idle != p->seq) {
+                p->seq = idle;
+                p->frame = 1;
+                p->pseq = idle;
+                p->pframe = 1;
+                p->acc = 0;
+            }
+        }
         return;
     }
     if (p->push_active) {

@@ -155,7 +155,7 @@ Stock-campaign-used and missing/stubbed:
   talk-wait after weapon use.
 - `set_dink_speed` missing (§2). `free_magic` missing — `S6-VEND.c` vendor slot
   check. `run_script_by_number`/`is_script_attached` missing — `DAM-FIRE.c`/
-  `DAM-SFB.c` burn chains dead. `stopmidi` missing — `DINFO.c` death screen.
+  `DAM-SFB.c` burn chains dead. `stopmidi` is `audio_music_stop` (`S1-BUL`, `DINFO`).
 - **`sp()`/`sp_editor_num` are identity stubs** — FreeDink `dc_sp` searches live
   sprites by `sp_index`, returns 0 when absent; `dinkc_cmd.c:1561` echoes the
   argument. Dead-sprite quest checks never fire. **Downgraded P2 (see Response):
@@ -358,7 +358,7 @@ Severity is inflated; several items would regress playtest-accepted pictures.
 | `sp()` / `sp_editor_num` identity | Stub is real. Stock smash uses `sp_editor_num` on the **current** editor sprite (identity is correct). Breaks “is this still the editor row” after death. |
 | `dnotalk` / `dnomagic` | Official data has **no** those files (`talk.c` already notes that). |
 | Bow charge | Known; instant 100 until that bite. |
-| Audio / `stopmidi` | Bite **12**. |
+| Audio / `stopmidi` | Landed (`audio_music_stop`). |
 | Cap 100 vs 300 | DC RAM. Do not raise the cap to “match FreeDink.” |
 | BLACK keyword | Real ini gap; HUD already special-cases. Few in-world BLACK seqs. |
 | Single saybox | Known V5 shape. |

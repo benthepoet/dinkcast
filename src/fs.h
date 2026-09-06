@@ -24,6 +24,9 @@ int dink_slurp_rel(const char *rel, uint8_t **out, size_t *n);
  * of that rel. Do not free the pointer. Never evicts a live slot to insert
  * another (ff/hard borrow it) — grow the table instead. */
 int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n);
+/* Take ownership of data; charges file_blob. 0 on ok. */
+int dink_blob_put(const char *rel, uint8_t *data, size_t n);
+int dink_fp_size(FILE *fp, size_t *n);
 /* Free one blob after the borrower (ff slot) is gone. 0 if dropped or absent. */
 int dink_blob_try_drop(const char *rel);
 size_t dink_blob_bytes(void);

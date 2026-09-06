@@ -38,12 +38,32 @@ int main(void)
             fprintf(stderr, "FAIL official idle dir.ff\n");
             return 1;
         }
-        if (ff_find(&ff, "ds-i4-01.bmp", &p, &ln) != 0 || ln < 54) {
-            fprintf(stderr, "FAIL ds-i4-01.bmp in dir.ff\n");
-            ff_free(&ff);
-            return 1;
+        {
+            int own = 0;
+
+            if (ff_read_bmp(&ff, "ds-i4-01.bmp", &p, &ln, &own) != 0 ||
+                ln < 54 || !own) {
+                fprintf(stderr, "FAIL ds-i4-01.bmp in dir.ff\n");
+                ff_free(&ff);
+                return 1;
+            }
+            printf("ff ds-i4-01.bmp %zu bytes entries %d\n", ln, ff.nent);
+            if (ff.fp == NULL || ff.pack_n <= ff.n) {
+                fprintf(stderr, "FAIL no-slurp fp pack=%zu toc=%zu\n",
+                        ff.pack_n, ff.n);
+                free((void *)p);
+                ff_free(&ff);
+                return 1;
+            }
+            if (dink_blob_bytes() >= ff.pack_n) {
+                fprintf(stderr, "FAIL blob charged pack have=%u pack=%zu\n",
+                        (unsigned)dink_blob_bytes(), ff.pack_n);
+                free((void *)p);
+                ff_free(&ff);
+                return 1;
+            }
+            free((void *)p);
         }
-        printf("ff ds-i4-01.bmp %zu bytes entries %d\n", ln, ff.nent);
         {
             size_t toc = ff_toc_bytes((uint32_t)ff.nent);
             struct FfFile tocff;
@@ -86,33 +106,20 @@ int main(void)
         {
             const uint8_t *a = NULL, *b = NULL;
             size_t la = 0, lb = 0;
-            int own = 0;
-            FILE *fp;
+            int oa = 0, ob = 0;
 
-            if (ff_find(&ff, "ds-i4-01.bmp", &a, &la) != 0) {
-                fprintf(stderr, "FAIL find before read_bmp\n");
-                ff_free(&ff);
-                return 1;
-            }
-            fp = dink_fopen("graphics/dink/idle/dir.ff", "rb");
-            if (fp == NULL) {
-                fprintf(stderr, "FAIL fopen idle for SEEK_SET\n");
-                ff_free(&ff);
-                return 1;
-            }
-            ff.fp = fp;
-            if (ff_read_bmp(&ff, "ds-i4-01.bmp", &b, &lb, &own) != 0 ||
-                !own || lb != la || memcmp(a, b, la) != 0) {
-                fprintf(stderr, "FAIL SEEK_SET bmp %zu vs %zu own=%d\n", lb, la,
-                        own);
+            if (ff_read_bmp(&ff, "ds-i4-01.bmp", &a, &la, &oa) != 0 ||
+                ff_read_bmp(&ff, "ds-i4-01.bmp", &b, &lb, &ob) != 0 ||
+                !oa || !ob || la != lb || memcmp(a, b, la) != 0) {
+                fprintf(stderr, "FAIL SEEK_SET repeat %zu vs %zu\n", la, lb);
+                free((void *)a);
                 free((void *)b);
-                ff.fp = NULL;
-                fclose(fp);
                 ff_free(&ff);
                 return 1;
             }
+            free((void *)a);
             free((void *)b);
-            printf("ff read_bmp SEEK_SET %zu match slurp\n", lb);
+            printf("ff read_bmp SEEK_SET %zu stable\n", la);
         }
         ff_free(&ff);
         {
