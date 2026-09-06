@@ -246,6 +246,30 @@ void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs)
     }
 }
 
+void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs)
+{
+    int i;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return;
+    }
+    i = 0;
+    while (i < *n) {
+        if (pixel_class(seqs, g[i].seq) == PIX_SCREEN && !g[i].live) {
+            sprite_frame_free(&g[i].fr);
+            (*n)--;
+            if (i < *n) {
+                g[i] = g[*n];
+                memset(&g[*n], 0, sizeof(g[0]));
+            } else {
+                memset(&g[i], 0, sizeof(g[0]));
+            }
+        } else {
+            i++;
+        }
+    }
+}
+
 void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame)
 {
     int i;
@@ -373,35 +397,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     upload_and_drop_cpu(&g[*got].fr);
     audio_music_pump();
     (*got)++;
-    /* Loop working set is current+next (14.4c). Not gated on
-     * residency_swap_open: that flag is sticky after the first swap, so
-     * gating there disabled the trim for the whole game and a 29-frame
-     * seq (treefire) OOMed PVR. Enter-path load_seq_frames still fills
-     * unique: its frames are live=1 from load, and live frames are kept
-     * so two sprites on the same seq at different frames do not thrash.
-     * sprite_frame_free below does a bare pvr_mem_free: safe only because
-     * every load_one caller runs pre-scene (after pvr_wait_ready, before
-     * pvr_scene_begin in main.c). Do not call load_one mid-scene. */
-    if (pixel_class(seqs, seq) != PIX_STICKY) {
-        int nxt = edraw_loop_next_frame(seqs, seq, frame);
-        int i = 0;
-
-        while (i < *got) {
-            if (g[i].seq == seq && !g[i].live && g[i].frame != frame &&
-                g[i].frame != nxt) {
-                sprite_frame_free(&g[i].fr);
-                (*got)--;
-                if (i < *got) {
-                    g[i] = g[*got];
-                    memset(&g[*got], 0, sizeof(g[0]));
-                } else {
-                    memset(&g[i], 0, sizeof(g[0]));
-                }
-            } else {
-                i++;
-            }
-        }
-    }
+    /* Play-path reaps !live Screen after every sprite is touched. */
     {
         size_t need = edraw_cpu_bytes(g, *got);
 

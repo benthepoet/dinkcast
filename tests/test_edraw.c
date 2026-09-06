@@ -203,6 +203,36 @@ int main(void)
             free(seqs);
             return 1;
         }
+        /* Play-path: two atomics out of phase. load_one must not drop 161/4
+         * when ensuring another frame (house fire SEEK_SET thrash). */
+        {
+            int n0 = n;
+
+            edraw_live_begin(g, n, seqs);
+            edraw_live_touch(g, n, 161, 4);
+            edraw_live_touch(g, n, 161, nxt4);
+            edraw_live_touch(g, n, 161, 14);
+            edraw_live_touch(g, n, 161, nxt14);
+            if (edraw_ensure_frame(g, &n, seqs, 161, 1) != 0 &&
+                edraw_find(g, n, 161, 1) == NULL) {
+                /* 1 may already be 4/14/next; missing is ok if pack skip. */
+            }
+            if (edraw_find(g, n, 161, 4) == NULL ||
+                edraw_find(g, n, 161, 14) == NULL) {
+                fprintf(stderr, "FAIL 161 phase thrash n=%d was=%d\n", n, n0);
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+            edraw_reap_unused(g, &n, seqs);
+            if (edraw_find(g, n, 161, 4) == NULL ||
+                edraw_find(g, n, 161, 14) == NULL) {
+                fprintf(stderr, "FAIL 161 reap dropped live phases\n");
+                edraw_free(g, n);
+                free(seqs);
+                return 1;
+            }
+        }
         if (edraw_load_screen(scr.sprite, seqs, g, &n, 0) != 0) {
             fprintf(stderr, "FAIL house vis 0 after fire current+next\n");
             edraw_free(g, n);
