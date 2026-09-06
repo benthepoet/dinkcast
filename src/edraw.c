@@ -255,7 +255,27 @@ void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs)
     }
     i = 0;
     while (i < *n) {
+        int drop = 0;
+
         if (pixel_class(seqs, g[i].seq) == PIX_SCREEN && !g[i].live) {
+            /* CPU-only: drop. Uploaded tex: keep while any frame of this
+             * seq is live (house fire 427/161 after 14.6 SEEK_SET). Slot
+             * pressure still evicts unused Screen. */
+            if (g[i].fr.tex == NULL) {
+                drop = 1;
+            } else {
+                int j, seq = g[i].seq, hold = 0;
+
+                for (j = 0; j < *n; j++) {
+                    if (g[j].live && g[j].seq == seq) {
+                        hold = 1;
+                        break;
+                    }
+                }
+                drop = !hold;
+            }
+        }
+        if (drop) {
             sprite_frame_free(&g[i].fr);
             (*n)--;
             if (i < *n) {
