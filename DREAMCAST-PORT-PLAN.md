@@ -6,7 +6,7 @@
 
 **Emulator (binding):** **Flycast** + real BIOS, image = **CHD**. REIOS often never runs `1ST_READ.BIN`. Flycast’s log is not KOS `printf`.
 
-**Where we are:** Tagged **v0.4.0** (2026-08-30). START + VMU **17**. Audio **12.1–12.4** in Flycast. **V6** + **8.6 house** accepted. **14.6** waits for requester go. Next engine bite only when the requester says.
+**Where we are:** Tagged **v0.5.0** (2026-09-06). START + VMU **17**. Audio **12**. **14.6** on master. **V6** + **8.6 house** accepted. Next engine bite only when the requester says.
 
 **Companions (do not fork facts):** landed work + **feasibility %** → [PROGRESS.md](PROGRESS.md); CDI/PVR/Docker mistakes → [docs/GOTCHAS.md](docs/GOTCHAS.md); **FreeDink field-by-field** → [docs/FREEDINK-ALIGN.md](docs/FREEDINK-ALIGN.md); agent rules → [.grok/skills/dreamcast-kos/SKILL.md](.grok/skills/dreamcast-kos/SKILL.md).
 

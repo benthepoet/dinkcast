@@ -6,6 +6,24 @@ The engine still needs original Dink data (`DINK_DATA`). That tree is not in git
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-06
+
+Per-frame `dir.ff` reads (**14.6**). Spec: [docs/V0.5.md](docs/V0.5.md). Requester stamped this tag.
+
+### In this tag
+
+- Enter-path TOC + open `FILE*`; `file_blob` charges `ff_toc_bytes` not the pack
+- Play-path `SEEK_SET` / skip; no `fopen` every frame
+- Catalog Always+Screen+Prev peak **~1.52 MB** (under 4.5 MB); `toc=` vs `pack=`
+- Screen loop textures stay while that seq is live (burning house 60 FPS after first wrap)
+- `stopmidi`; Dink idle after pig-feed throw while Milder talks
+
+### Not in this tag
+
+- Bite **18**; real hardware / ODE still unproven
+- DinkC long tail (`sp_sound` still logs unimplemented)
+- Tilesheets still slurp (`ts_rgb` can print `14.5: needed`)
+
 ## [0.4.0] — 2026-08-30
 
 AICA SFX + streamed MIDI (**12.1–12.4**). Spec: [docs/V0.4.md](docs/V0.4.md). Requester stamped this tag.
@@ -86,6 +104,7 @@ See [PROGRESS.md](PROGRESS.md) for the bite log and [docs/PLAYTEST.md](docs/PLAY
 - Full-campaign test; real hardware / ODE still unproven
 - Open pictures: Ethel outdoor house on first visit (map 409), Dink over smashed barrels, pig-pen south fence joint
 
+[0.5.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.5.0
 [0.4.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.4.0
 [0.3.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.3.0
 [0.2.0]: https://github.com/benthepoet/dinkcast/releases/tag/v0.2.0
