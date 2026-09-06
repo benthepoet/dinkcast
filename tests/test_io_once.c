@@ -14,8 +14,6 @@
 
 int main(void)
 {
-    const uint8_t *p = NULL;
-    size_t n = 0;
     int o0, o1, o2;
 
     if (dink_fs_init() != 0) {
@@ -64,14 +62,22 @@ int main(void)
             fprintf(stderr, "FAIL small pack\n");
             return 1;
         }
-        if (ff_find(&ff, "shadw-01.bmp", &fp, &fln) != 0 || fp == NULL ||
-            fln < 54) {
-            fprintf(stderr, "FAIL small pack find\n");
-            ff_free(&ff);
-            return 1;
+        {
+            int own = 0;
+
+            if (ff_read_bmp(&ff, "shadw-01.bmp", &fp, &fln, &own) != 0 ||
+                fp == NULL || fln < 54) {
+                fprintf(stderr, "FAIL small pack find\n");
+                ff_free(&ff);
+                return 1;
+            }
+            sn = fln < sizeof(snap) ? fln : sizeof(snap);
+            memcpy(snap, fp, sn);
+            if (own) {
+                free((void *)fp);
+            }
+            fp = NULL;
         }
-        sn = fln < sizeof(snap) ? fln : sizeof(snap);
-        memcpy(snap, fp, sn);
         uniq = 1;
         for (i = 1; i <= 41; i++) {
             snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", i);
@@ -80,8 +86,14 @@ int main(void)
             }
         }
         for (i = 0; i < (int)(sizeof extra / sizeof extra[0]); i++) {
-            if (dink_blob_get(extra[i], &bp, &bn) == 0 && bp != NULL &&
-                bn > 0) {
+            struct FfFile *ex = NULL;
+
+            if (strstr(extra[i], "dir.ff") != NULL) {
+                if (ff_cached(extra[i], &ex) == 0 && ex != NULL) {
+                    uniq++;
+                }
+            } else if (dink_blob_get(extra[i], &bp, &bn) == 0 && bp != NULL &&
+                       bn > 0) {
                 uniq++;
             }
         }
@@ -90,11 +102,22 @@ int main(void)
             ff_free(&ff);
             return 1;
         }
-        if (ff_find(&ff, "shadw-01.bmp", &fp, &fln) != 0 || fln < sn ||
-            memcmp(fp, snap, sn) != 0) {
-            fprintf(stderr, "FAIL early pack UAF/corrupt\n");
-            ff_free(&ff);
-            return 1;
+        {
+            int own = 0;
+
+            if (ff_read_bmp(&ff, "shadw-01.bmp", &fp, &fln, &own) != 0 ||
+                fln < sn || memcmp(fp, snap, sn) != 0) {
+                fprintf(stderr, "FAIL early pack UAF/corrupt\n");
+                if (own) {
+                    free((void *)fp);
+                }
+                ff_free(&ff);
+                return 1;
+            }
+            if (own) {
+                free((void *)fp);
+            }
+            fp = NULL;
         }
         o_hold = dink_disc_opens();
         if (dink_blob_get("graphics/Effects/Shadows/dir.ff", &bp, &bn) != 0 ||
@@ -111,23 +134,33 @@ int main(void)
         }
         printf("blob unique %d early pack hold opens %d\n", uniq, o_hold);
         ff_free(&ff);
+        for (i = 1; i <= 41; i++) {
+            snprintf(rel, sizeof(rel), "tiles/ts%02d.bmp", i);
+            dink_blob_try_drop(rel);
+        }
     }
     o0 = dink_disc_opens();
-    if (dink_blob_get("graphics/dink/idle/dir.ff", &p, &n) != 0 || p == NULL ||
-        n < 54) {
-        fprintf(stderr, "FAIL idle blob\n");
-        return 1;
-    }
-    printf("ff ok graphics/dink/idle/dir.ff %u\n", (unsigned)n);
-    if (dink_blob_get("graphics/dink/walk/dir.ff", &p, &n) != 0 || p == NULL ||
-        n < 54) {
-        fprintf(stderr, "FAIL walk blob\n");
-        return 1;
-    }
-    printf("ff ok graphics/dink/walk/dir.ff %u\n", (unsigned)n);
-    if (dink_blob_get("graphics/dink/idle/dir.ff", &p, &n) != 0) {
-        fprintf(stderr, "FAIL idle repeat\n");
-        return 1;
+    {
+        struct FfFile *idle = NULL, *walk = NULL;
+
+        if (ff_cached("graphics/dink/idle/dir.ff", &idle) != 0 || idle == NULL ||
+            idle->n < 4 || idle->pack_n <= idle->n) {
+            fprintf(stderr, "FAIL idle ff\n");
+            return 1;
+        }
+        printf("ff ok graphics/dink/idle/dir.ff toc=%u pack=%u\n",
+               (unsigned)idle->n, (unsigned)idle->pack_n);
+        if (ff_cached("graphics/dink/walk/dir.ff", &walk) != 0 || walk == NULL ||
+            walk->n < 4 || walk->pack_n <= walk->n) {
+            fprintf(stderr, "FAIL walk ff\n");
+            return 1;
+        }
+        printf("ff ok graphics/dink/walk/dir.ff toc=%u pack=%u\n",
+               (unsigned)walk->n, (unsigned)walk->pack_n);
+        if (ff_cached("graphics/dink/idle/dir.ff", &idle) != 0) {
+            fprintf(stderr, "FAIL idle repeat\n");
+            return 1;
+        }
     }
     o1 = dink_disc_opens();
     if (o1 - o0 != 2) {

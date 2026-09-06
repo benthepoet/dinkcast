@@ -118,13 +118,11 @@ static int load_seq_frame(struct SeqInfo *seq, int seqn, int frame,
         int nf = 0, fi;
 
         for (fi = 1; fi < DINK_MAX_FRAMES; fi++) {
-            const uint8_t *p;
-            size_t ln;
             char fn[24];
 
             snprintf(fn, sizeof(fn), fi < 10 ? "%s0%d.bmp" : "%s%d.bmp", base,
                      fi);
-            if (ff_find(ff, fn, &p, &ln) != 0) {
+            if (!ff_has(ff, fn)) {
                 break;
             }
             nf = fi;

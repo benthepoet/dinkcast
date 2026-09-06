@@ -452,7 +452,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
     return 0;
 }
 
-static int file_size(FILE *fp, size_t *n)
+int dink_fp_size(FILE *fp, size_t *n)
 {
     struct stat st;
     int fd;
@@ -481,7 +481,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
     }
     /* fstat, not SEEK_END. Doubling 32 KiB → 1 MiB for a 594 KB pack
      * sbrk-failed on 409 while Prev still held 408. */
-    if (file_size(fp, &known) == 0) {
+    if (dink_fp_size(fp, &known) == 0) {
         p = (uint8_t *)malloc(known);
         if (p == NULL) {
             return -1;
@@ -734,6 +734,28 @@ int dink_blob_get_cls(const char *rel, int *cls, int *age_out)
     return -1;
 }
 
+int dink_blob_put(const char *rel, uint8_t *data, size_t n)
+{
+    char key[DINK_FS_PATH_MAX];
+    int empty;
+
+    if (rel == NULL || rel[0] == '\0' || data == NULL || n == 0) {
+        return -1;
+    }
+    rel_key(key, sizeof(key), rel);
+    empty = blob_slot_empty();
+    if (empty < 0) {
+        return -1;
+    }
+    snprintf(g_blob[empty].rel, sizeof(g_blob[empty].rel), "%s", key);
+    g_blob[empty].data = data;
+    g_blob[empty].n = n;
+    g_blob[empty].cls = 0;
+    g_blob[empty].age_out = 0;
+    residency_touch(g_blob[empty].rel);
+    return 0;
+}
+
 int dink_blob_try_drop(const char *rel)
 {
     char key[DINK_FS_PATH_MAX];
@@ -796,7 +818,7 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
         size_t need = 0;
 
         if (residency_swap_open() && !residency_is_always(key) &&
-            blob_needs_room(key) && file_size(fp, &need) == 0 &&
+            blob_needs_room(key) && dink_fp_size(fp, &need) == 0 &&
             residency_make_room_keep(need, key) != 0) {
             printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)dink_blob_bytes(),

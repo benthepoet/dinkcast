@@ -3,6 +3,7 @@
 
 #include "fs.h"
 #include "le.h"
+#include "mem.h"
 #include "residency.h"
 
 #include <ctype.h>
@@ -95,25 +96,73 @@ int ff_parse_mem(const uint8_t *p, size_t n, struct FfFile *out)
 
 int ff_load_rel(const char *rel, struct FfFile *out)
 {
-    const uint8_t *raw;
-    size_t n;
+    FILE *fp;
+    uint8_t *toc = NULL;
+    uint32_t nent;
+    size_t packn = 0, tocn, need;
+    uint8_t hdr[4];
 
     if (rel == NULL || out == NULL) {
         return -1;
     }
     printf("ff load %s\n", rel);
-    raw = NULL;
-    n = 0;
-    if (dink_blob_get(rel, &raw, &n) != 0 || raw == NULL || n < 4) {
+    memset(out, 0, sizeof(*out));
+    fp = dink_fopen(rel, "rb");
+    if (fp == NULL) {
         return -1;
     }
-    if (ff_parse_toc(raw, n, out) != 0) {
+    dink_disc_note_open();
+    if (dink_fp_size(fp, &packn) != 0 || packn < 4) {
+        fclose(fp);
         return -1;
     }
-    out->data = (uint8_t *)raw;
-    out->n = n;
+    if (dink_fread_n(fp, hdr, 4) != 0 ||
+        le_u32(hdr, 4, 0, &nent) != 0 || nent < 2 || nent > 4096) {
+        fclose(fp);
+        return -1;
+    }
+    tocn = ff_toc_bytes(nent);
+    if (tocn > packn) {
+        fclose(fp);
+        return -1;
+    }
+    need = tocn;
+    if (residency_swap_open() && !residency_is_always(rel) &&
+        residency_make_room_keep(need, rel) != 0) {
+        printf("mem refuse pool=file_blob need=%u have=%u cap=%u\n",
+               (unsigned)need, (unsigned)dink_blob_bytes(),
+               (unsigned)DINK_MEM_BLOB_PEAK);
+        fclose(fp);
+        return -1;
+    }
+    toc = (uint8_t *)malloc(tocn);
+    if (toc == NULL) {
+        fclose(fp);
+        return -1;
+    }
+    memcpy(toc, hdr, 4);
+    if (tocn > 4 && dink_fread_n(fp, toc + 4, tocn - 4) != 0) {
+        free(toc);
+        fclose(fp);
+        return -1;
+    }
+    if (ff_parse_toc(toc, tocn, out) != 0) {
+        free(toc);
+        fclose(fp);
+        return -1;
+    }
+    if (dink_blob_put(rel, toc, tocn) != 0) {
+        ff_free(out);
+        free(toc);
+        fclose(fp);
+        return -1;
+    }
+    out->data = toc;
+    out->n = tocn;
+    out->pack_n = packn;
     out->borrowed = 1;
-    printf("ff ok %s %u\n", rel, (unsigned)n);
+    out->fp = fp;
+    printf("ff ok %s toc=%u pack=%u\n", rel, (unsigned)tocn, (unsigned)packn);
     return 0;
 }
 
@@ -180,7 +229,7 @@ int ff_is_cached(const char *rel)
     }
     for (i = 0; i < DINK_FF_SLOTS; i++) {
         if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
-            g_slot[i].ff.data != NULL) {
+            (g_slot[i].ff.fp != NULL || g_slot[i].ff.ent != NULL)) {
             return 1;
         }
     }
@@ -198,7 +247,7 @@ int ff_cached(const char *rel, struct FfFile **out)
     g_tick++;
     for (i = 0; i < DINK_FF_SLOTS; i++) {
         if (g_slot[i].rel[0] != '\0' && strcmp(g_slot[i].rel, rel) == 0 &&
-            g_slot[i].ff.data != NULL) {
+            (g_slot[i].ff.fp != NULL || g_slot[i].ff.ent != NULL)) {
             hit = i;
             break;
         }
@@ -248,7 +297,8 @@ static int ff_bmp_span(const struct FfFile *ff, const char *name, uint32_t *off,
         ff->ent == NULL || ff->nent < 2) {
         return -1;
     }
-    packn = ff->n > 0 ? (uint32_t)ff->n : 0xffffffffu;
+    packn = ff->pack_n > 0 ? (uint32_t)ff->pack_n
+                           : (ff->n > 0 ? (uint32_t)ff->n : 0xffffffffu);
     for (i = 0; i < ff->nent - 1; i++) {
         if (!name_eq(ff->ent[i].name, name)) {
             continue;
@@ -267,6 +317,14 @@ static int ff_bmp_span(const struct FfFile *ff, const char *name, uint32_t *off,
     return -1;
 }
 
+int ff_has(const struct FfFile *ff, const char *name)
+{
+    uint32_t off;
+    size_t len;
+
+    return ff_bmp_span(ff, name, &off, &len) == 0;
+}
+
 int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
             size_t *len)
 {
@@ -278,6 +336,9 @@ int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
     if (ff_bmp_span(ff, name, &off, len) != 0) {
         return -1;
     }
+    if ((size_t)off + *len > ff->n) {
+        return -1;
+    }
     *ptr = ff->data + off;
     return 0;
 }
@@ -287,7 +348,7 @@ int ff_read_bmp(struct FfFile *ff, const char *name, const uint8_t **out,
 {
     uint32_t off;
     uint8_t *buf;
-    size_t n, got;
+    size_t n;
 
     if (out == NULL || len == NULL) {
         return -1;
@@ -305,12 +366,7 @@ int ff_read_bmp(struct FfFile *ff, const char *name, const uint8_t **out,
         if (buf == NULL) {
             return -1;
         }
-        if (fseek(ff->fp, (long)off, SEEK_SET) != 0) {
-            free(buf);
-            return -1;
-        }
-        got = fread(buf, 1, n, ff->fp);
-        if (got != n) {
+        if (dink_pread(ff->fp, (long)off, buf, n) != 0) {
             free(buf);
             return -1;
         }
