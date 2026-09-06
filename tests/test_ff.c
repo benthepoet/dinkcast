@@ -83,6 +83,37 @@ int main(void)
             ff_free(&tocff);
             printf("ff toc bytes %zu pack %zu\n", toc, ff.n);
         }
+        {
+            const uint8_t *a = NULL, *b = NULL;
+            size_t la = 0, lb = 0;
+            int own = 0;
+            FILE *fp;
+
+            if (ff_find(&ff, "ds-i4-01.bmp", &a, &la) != 0) {
+                fprintf(stderr, "FAIL find before read_bmp\n");
+                ff_free(&ff);
+                return 1;
+            }
+            fp = dink_fopen("graphics/dink/idle/dir.ff", "rb");
+            if (fp == NULL) {
+                fprintf(stderr, "FAIL fopen idle for SEEK_SET\n");
+                ff_free(&ff);
+                return 1;
+            }
+            ff.fp = fp;
+            if (ff_read_bmp(&ff, "ds-i4-01.bmp", &b, &lb, &own) != 0 ||
+                !own || lb != la || memcmp(a, b, la) != 0) {
+                fprintf(stderr, "FAIL SEEK_SET bmp %zu vs %zu own=%d\n", lb, la,
+                        own);
+                free((void *)b);
+                ff.fp = NULL;
+                fclose(fp);
+                ff_free(&ff);
+                return 1;
+            }
+            free((void *)b);
+            printf("ff read_bmp SEEK_SET %zu match slurp\n", lb);
+        }
         ff_free(&ff);
         {
             struct FfFile *a = NULL, *b = NULL;

@@ -18,6 +18,10 @@ void ff_free(struct FfFile *ff)
     if (!ff->borrowed) {
         free(ff->data);
     }
+    if (ff->fp != NULL) {
+        fclose(ff->fp);
+        ff->fp = NULL;
+    }
     free(ff->ent);
     memset(ff, 0, sizeof(*ff));
 }
@@ -234,17 +238,18 @@ int ff_cached(const char *rel, struct FfFile **out)
     return 0;
 }
 
-int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
-            size_t *len)
+static int ff_bmp_span(const struct FfFile *ff, const char *name, uint32_t *off,
+                       size_t *len)
 {
     int i;
+    uint32_t next, packn;
 
-    if (ff == NULL || name == NULL || ptr == NULL || len == NULL) {
+    if (ff == NULL || name == NULL || off == NULL || len == NULL ||
+        ff->ent == NULL || ff->nent < 2) {
         return -1;
     }
+    packn = ff->n > 0 ? (uint32_t)ff->n : 0xffffffffu;
     for (i = 0; i < ff->nent - 1; i++) {
-        uint32_t next;
-
         if (!name_eq(ff->ent[i].name, name)) {
             continue;
         }
@@ -252,12 +257,74 @@ int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
         if (next == 0 && i + 2 < ff->nent) {
             next = ff->ent[i + 2].off;
         }
-        if (ff->ent[i].off > ff->n || next > ff->n || next < ff->ent[i].off) {
+        if (ff->ent[i].off > packn || next > packn || next < ff->ent[i].off) {
             return -1;
         }
-        *ptr = ff->data + ff->ent[i].off;
+        *off = ff->ent[i].off;
         *len = (size_t)(next - ff->ent[i].off);
         return 0;
     }
     return -1;
+}
+
+int ff_find(const struct FfFile *ff, const char *name, const uint8_t **ptr,
+            size_t *len)
+{
+    uint32_t off;
+
+    if (ptr == NULL || ff == NULL || ff->data == NULL) {
+        return -1;
+    }
+    if (ff_bmp_span(ff, name, &off, len) != 0) {
+        return -1;
+    }
+    *ptr = ff->data + off;
+    return 0;
+}
+
+int ff_read_bmp(struct FfFile *ff, const char *name, const uint8_t **out,
+                size_t *len, int *owned)
+{
+    uint32_t off;
+    uint8_t *buf;
+    size_t n, got;
+
+    if (out == NULL || len == NULL) {
+        return -1;
+    }
+    *out = NULL;
+    *len = 0;
+    if (owned != NULL) {
+        *owned = 0;
+    }
+    if (ff_bmp_span(ff, name, &off, &n) != 0) {
+        return -1;
+    }
+    if (ff->fp != NULL) {
+        buf = (uint8_t *)malloc(n);
+        if (buf == NULL) {
+            return -1;
+        }
+        if (fseek(ff->fp, (long)off, SEEK_SET) != 0) {
+            free(buf);
+            return -1;
+        }
+        got = fread(buf, 1, n, ff->fp);
+        if (got != n) {
+            free(buf);
+            return -1;
+        }
+        *out = buf;
+        *len = n;
+        if (owned != NULL) {
+            *owned = 1;
+        }
+        return 0;
+    }
+    if (ff->data == NULL) {
+        return -1;
+    }
+    *out = ff->data + off;
+    *len = n;
+    return 0;
 }
