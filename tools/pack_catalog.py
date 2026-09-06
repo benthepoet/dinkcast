@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""14.4a residency catalog. No game pixels in git. Over-cap prints 14.5: needed."""
+"""14.4a residency catalog; 14.6 D charges dir.ff TOC not the pack."""
 from __future__ import annotations
 
 import os
@@ -295,6 +295,11 @@ def script_seqs(root: Path, name: str) -> set[int]:
     return out
 
 
+def ff_toc_bytes(nent: int) -> int:
+    """C ff_toc_bytes: 4 + 17*nent."""
+    return 4 + 17 * nent
+
+
 def ff_entries(data: bytes) -> list[tuple[str, int]]:
     if len(data) < 4:
         return []
@@ -349,11 +354,22 @@ def pack_frame_pots(root: Path, prefix: str, cache: dict) -> list[int]:
     return list(pack_named_pots(root, prefix, cache).values())
 
 
-def seq_pack_bytes(root: Path, prefix: str, cache: dict) -> tuple[str, int]:
+def seq_pack_bytes(root: Path, prefix: str, cache: dict) -> tuple[str, int, int]:
+    """rel, file_blob charge (TOC for dir.ff), whole pack bytes."""
     rel = pack_rel(prefix)
     path = find_ci(root, rel)
     if path is not None:
-        return rel.replace("\\", "/").lower(), path.stat().st_size
+        key = rel.replace("\\", "/").lower()
+        if key not in cache:
+            cache[key] = path.read_bytes()
+        data = cache[key]
+        pack_n = len(data) if data else path.stat().st_size
+        toc = 0
+        if data and len(data) >= 4:
+            nent = le_u32(data, 0)
+            if 2 <= nent <= 4096:
+                toc = ff_toc_bytes(nent)
+        return key, toc if toc else pack_n, pack_n
     total = 0
     n = 0
     for fr in range(1, 50):
@@ -363,8 +379,9 @@ def seq_pack_bytes(root: Path, prefix: str, cache: dict) -> tuple[str, int]:
         total += bp.stat().st_size
         n += 1
     if n:
-        return prefix.replace("\\", "/").lower() + "*.bmp", total
-    return rel.replace("\\", "/").lower(), 0
+        loose = prefix.replace("\\", "/").lower() + "*.bmp"
+        return loose, total, total
+    return rel.replace("\\", "/").lower(), 0, 0
 
 
 def walk_seqs(seqs: dict[int, str], base: int) -> set[int]:
@@ -471,7 +488,7 @@ def always_packs(root: Path, seqs: dict[int, str], cache: dict) -> dict[str, int
     for s in ALWAYS_SEQ:
         if s not in seqs:
             continue
-        rel, n = seq_pack_bytes(root, seqs[s], cache)
+        rel, n, _pack = seq_pack_bytes(root, seqs[s], cache)
         if n:
             packs[rel] = n
     for name, rel in (("dink.ini", "dink.ini"), ("dink.dat", "dink.dat")):
@@ -501,7 +518,7 @@ def catalog_screen(
     seq_rows = []
     counted_bmp: set[tuple[str, str]] = set()
     for s in sorted(need):
-        rel, nbytes = seq_pack_bytes(root, seqs[s], cache)
+        rel, nbytes, pack_n = seq_pack_bytes(root, seqs[s], cache)
         packs[rel] = nbytes
         named = pack_named_pots(root, seqs[s], cache)
         frs = need[s]
@@ -521,7 +538,7 @@ def catalog_screen(
                 cpu += named[name]
                 counted_bmp.add(key)
             pot_sum += named[name]
-        seq_rows.append((s, rel, nbytes, nfr, pot_sum))
+        seq_rows.append((s, rel, nbytes, pack_n, nfr, pot_sum))
     ts_blob = 0
     ts_rgb = 0
     ts_list = []
@@ -570,8 +587,8 @@ def print_screen(label: str, c: dict) -> None:
           f"drop_after_decode file_blob={c['drop_after']} "
           f"peak_during_load={c['peak']}")
     print(f"  cpu_pixels_all_frames={c['cpu']} ts_rgb={c['ts_rgb']}")
-    for s, rel, n, nf, pot in c["seq_rows"]:
-        print(f"  seq {s} {rel} pack={n} frames={nf} pot1555={pot}")
+    for s, rel, toc, pack_n, nf, pot in c["seq_rows"]:
+        print(f"  seq {s} {rel} toc={toc} pack={pack_n} frames={nf} pot1555={pot}")
     for ts, b, rgb in c["ts"]:
         print(f"  ts{ts:02d} blob={b} rgb565={rgb}")
     for pool, val, cap in (
@@ -613,7 +630,7 @@ def campaign_scan(
             for s in need:
                 if s not in seqs:
                     continue
-                rel, nbytes = seq_pack_bytes(root, seqs[s], cache)
+                rel, nbytes, _pack = seq_pack_bytes(root, seqs[s], cache)
                 if nbytes > 0:
                     packs[rel] = nbytes
             vis_packs[vis] = packs

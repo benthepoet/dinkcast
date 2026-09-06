@@ -707,7 +707,7 @@ Only after 14.4a numbers exist.
 
 Enter-path: `fopen` the pack once, read the existing `dir.ff` TOC (count + name/offset), `SEEK_SET` only the BMP payloads this Screen needs, decode into `cpu_pixels`. Do **not** slurp unused frames into `file_blob`. Play-path still must not `fopen` every tick (GOTCHAS). Same class as `hard.dat` rec reads. Official `DINK_DATA` stays unmodified. **Does not replace 14.4c** (pixel class eviction).
 
-**Done when:** catalog Always+Screen+Prev `file_blob` peak on heavy campaign screens (including map 586/587 class) is under 4.5 MB without dropping rooms, or the requester accepts a documented cap miss. Host check: a pack whose used frames are a subset does not charge `file_blob` the whole `dir.ff`.
+**Done when:** catalog Always+Screen+Prev `file_blob` peak on heavy campaign screens (including map 586/587 class) is under 4.5 MB without dropping rooms, or the requester accepts a documented cap miss. Host check: a pack whose used frames are a subset does not charge `file_blob` the whole `dir.ff`. **14.6 D:** catalog charges `ff_toc_bytes` (`toc=` vs `pack=`); tilesheets still slurp.
 
 ---
 

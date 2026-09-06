@@ -122,7 +122,7 @@ def distill_root(src: Path, dst: Path, in_place: bool) -> int:
     orig: dict[str, bytes] = {}
     for sid, frs in need.items():
         prefix = seqs[sid]
-        rel, nbytes = cat.seq_pack_bytes(src, prefix, {})
+        rel, _toc, nbytes = cat.seq_pack_bytes(src, prefix, {})
         if is_always(rel):
             if not in_place:
                 stale = dst.joinpath(*Path(rel.replace("\\", "/")).parts)
