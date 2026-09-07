@@ -869,7 +869,11 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
             /* Fall through: brains slot 1 too (S1-HOLE 0). */
         }
         if (p != NULL) {
-            if (val != -1) {
+            /* change_sprite_noreturn: DINFO sp_base_idle(1,-1). */
+            if (val != -1 ||
+                (nargs >= 2 &&
+                 (prop == DINKC_SP_BASE_IDLE || prop == DINKC_SP_BASE_ATTACK ||
+                  prop == DINKC_SP_BASE_WALK || prop == DINKC_SP_BASE_DIE))) {
                 *p = val;
                 if (prop == DINKC_SP_SEQ) {
                     g_pl->frame = 1;

@@ -202,6 +202,15 @@ int main(void)
 
     memset(&pl, 0, sizeof(pl));
     dinkc_cmd_bind_player(&pl);
+    {
+        int args[2] = {1, -1};
+        int yld = 0, ret = 0;
+
+        pl.base_idle = 10;
+        expect(dinkc_cmd("sp_base_idle", args, 2, NULL, NULL, &yld, &ret) == 1 &&
+                   pl.base_idle == -1,
+               "DINFO sp_base_idle(1,-1)");
+    }
     dinkc_vm_reset();
     slot = dinkc_vm_start_proc(talk, strlen(talk), 26, "talk");
     expect(slot > 0 && dinkc_vm_waiting_choice(), "talk choice");

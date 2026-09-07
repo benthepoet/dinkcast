@@ -1967,8 +1967,10 @@ int brains_change_prop(int slot, int prop, int val)
     if (p == NULL) {
         return -1;
     }
-    /* change_sprite_noreturn: touch/mx/my may be -1 (pickup, missile). */
-    if (prop == DINKC_SP_TOUCH || prop == DINKC_SP_MX || prop == DINKC_SP_MY) {
+    /* change_sprite_noreturn: touch/mx/my and base_* may be -1. */
+    if (prop == DINKC_SP_TOUCH || prop == DINKC_SP_MX || prop == DINKC_SP_MY ||
+        prop == DINKC_SP_BASE_IDLE || prop == DINKC_SP_BASE_WALK ||
+        prop == DINKC_SP_BASE_ATTACK || prop == DINKC_SP_BASE_DIE) {
         *p = val;
         return *p;
     }

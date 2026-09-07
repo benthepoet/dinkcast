@@ -239,6 +239,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | `sfx-bank` / `music-bank` skip fresh dest (`AUDIO_FORCE=1` rebuild) | #147 |
 | 2026-09-06 | `ts_rgb` LRU by bytes (1.25 MB), not 8 sheet slots | this PR |
 | 2026-09-07 | Enter-path drop Prev after Screen SEEK_SET (map 498 CD wedge) | this PR |
+| 2026-09-07 | Play-path keep Screen tex; `sp_base_idle(-1)` noreturn (bar knights / DINFO) | this PR |
 
 ## Bites
 
