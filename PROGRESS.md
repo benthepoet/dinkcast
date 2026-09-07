@@ -251,6 +251,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | A skips `last_talk` only; B punches during `say_stop_npc` | this PR |
 | 2026-09-07 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | this PR |
 | 2026-09-07 | X magic not gated on `say_stop_npc` WAIT_SAY | this PR |
+| 2026-09-07 | Playtest Open: `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | this PR |
 
 ## Bites
 
