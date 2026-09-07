@@ -250,6 +250,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-19 | Play-path I/O log: `ioplay` disc/frame/gpu_wait lines after screen enter + per-screen summary (diagnostic, no policy) | #151 |
 | 2026-09-07 | A skips `last_talk` only; B punches during `say_stop_npc` | this PR |
 | 2026-09-07 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | this PR |
+| 2026-09-07 | X magic not gated on `say_stop_npc` WAIT_SAY | this PR |
 
 ## Bites
 
