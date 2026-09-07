@@ -23,7 +23,7 @@ make sfx-bank                  # → build/sfx/ (gitignored)
 ./build/wav_to_adpcm --dir "$DINK_DATA/Sound" --out build/sfx
 ```
 
-Yamaha ADPCM WAV **fmt 0x14** unless PCM payload **&lt; 8 KiB** (stays 16-bit PCM). `make docker-cdi` runs `make sfx-bank` on the host, then overlays `build/sfx` onto staged `Sound/` (including files GNU `freedink-data` omitted). Set `DINK_SOUND` in `local.mk` to official 1.08 `Sound/` for the full START.c table. Never rewrite `DINK_DATA`. Never commit those WAVs. MIDI / `playmidi` is **12.4**.
+Yamaha ADPCM WAV **fmt 0x14** unless PCM payload **&lt; 8 KiB** (stays 16-bit PCM). `make docker-cdi` runs `make sfx-bank` on the host, then overlays `build/sfx` onto staged `Sound/` (including files GNU `freedink-data` omitted). `sfx-bank` / `music-bank` skip outputs newer than their sources (and `wav_to_adpcm` / soundfonts). `AUDIO_FORCE=1 make sfx-bank music-bank` rebuilds. Set `DINK_SOUND` in `local.mk` to official 1.08 `Sound/` for the full START.c table. Never rewrite `DINK_DATA`. Never commit those WAVs. MIDI / `playmidi` is **12.4**.
 
 ## Docker vs native (CachyOS)
 

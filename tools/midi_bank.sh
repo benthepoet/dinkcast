@@ -30,6 +30,20 @@ fi
 mkdir -p "$OUT"
 n=0
 fail=0
+skip=0
+fresh() {
+    dest=$1
+    shift
+    if [ "${AUDIO_FORCE:-0}" != 0 ] && [ "${AUDIO_FORCE:-0}" != "" ]; then
+        return 1
+    fi
+    [ -f "$dest" ] && [ -s "$dest" ] || return 1
+    for dep in "$@"; do
+        [ -f "$dep" ] || continue
+        [ "$dest" -nt "$dep" ] || return 1
+    done
+    return 0
+}
 # Windows Dink is Roland GS. GM-only orchestra-hit/brass (1003.mid) sounds
 # like a different cue. Load GS *after* GM when the extra bank exists.
 SF_ARGS="$SF2"
@@ -44,6 +58,10 @@ for mid in "$SND"/*.mid "$SND"/*.MID; do
     raw="$OUT/${stem}.raw.wav"
     pcm="$OUT/${stem}.pcm.wav"
     dest="$OUT/${stem}.wav"
+    if fresh "$dest" "$mid" "$SF2" "$SF2_GS" "$ADPCM" "$ROOT/tools/midi_bank.sh"; then
+        skip=$((skip + 1))
+        continue
+    fi
     # FluidSynth 2.x: -F must precede the MIDI path (`-F` after the file is illegal).
     # -g 0.4 still hard-clips the title theme after stereo→mono; -R/-C off
     # cuts the 4 s release tail so a loop is the MIDI, not a fade-out.
@@ -83,5 +101,5 @@ for mid in "$SND"/*.mid "$SND"/*.MID; do
     echo "midi_bank: $base -> $dest"
     n=$((n + 1))
 done
-echo "midi_bank: converted $n midi ($fail fail) -> $OUT"
+echo "midi_bank: converted $n midi ($skip skip, $fail fail) -> $OUT"
 exit 0
