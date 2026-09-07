@@ -251,6 +251,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | Screen PVR = live walk/attack set (bar fight heap) | this PR |
 | 2026-09-07 | Screen PVR current+next pair; evict unused until POT fits | this PR |
 | 2026-09-07 | X magic not gated on `say_stop_npc` WAIT_SAY | this PR |
+| 2026-09-07 | Playtest Open: `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | this PR |
 
 ## Bites
 
