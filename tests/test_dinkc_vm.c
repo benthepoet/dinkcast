@@ -169,8 +169,26 @@ int main(void)
     expect(dinkc_vm_waiting_say() == 1, "say yield");
     dinkc_vm_tick(1000);
     expect(dinkc_vm_waiting_say() == 1, "tick does not skip say");
+    expect(dinkc_vm_last_talk() == slot, "say_stop last_talk");
     dinkc_vm_advance_say();
     expect(dinkc_vm_live() == 0, "A ends say_stop");
+
+    {
+        const char *npc =
+            "void main(void) { say_stop_npc(\"`0Fight!!!\", 2); &gold = 9; }";
+
+        dinkc_var_init();
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(npc, strlen(npc), 2);
+        expect(dinkc_vm_waiting_say() == 1, "npc yield");
+        expect(dinkc_vm_last_talk() == 0, "npc not last_talk");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 9,
+               "npc still waiting");
+        dinkc_vm_advance_last_talk();
+        expect(dinkc_vm_waiting_say() == 1, "A does not skip npc");
+        dinkc_vm_advance_say();
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 9, "ttl ends npc");
+    }
 
     {
         const char *xy =
