@@ -386,6 +386,7 @@ static int play_load_screen(int map)
     dinkc_var_set("&player_map", map, DINKC_GLOBAL_SCOPE, 1);
     dinkc_cmd_note_map(map, (int)g_world.indoor[map]);
     /* FreeDink game_load_screen → check_midi. Same name = no reopen. */
+    printf("load_screen midi %d\n", (int)g_world.music[map]);
     (void)audio_music_map((int)g_world.music[map]);
     if (!g_hard.ready) {
         printf("load_screen hard load\n");
@@ -393,6 +394,10 @@ static int play_load_screen(int map)
             printf("load_screen hard fail\n");
         }
     }
+    /* Prev pack fclose (498) then SEEK_SET this FILE* wedged shop 35. */
+    hard_fp_release();
+    dink_cd_settle();
+    printf("load_screen stamp map %d\n", map);
     if (g_play_mask != NULL &&
         hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
         printf("load_screen stamp fail\n");

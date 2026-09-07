@@ -57,24 +57,54 @@ void hard_free(struct HardMap *h)
     h->ready = 0;
 }
 
+void hard_fp_release(void)
+{
+    if (g_fp == NULL) {
+        return;
+    }
+    fclose(g_fp);
+    g_fp = NULL;
+    printf("hard fp close\n");
+}
+
+static int hard_fp_ensure(void)
+{
+    if (g_fp != NULL) {
+        return 0;
+    }
+    g_fp = dink_fopen("hard.dat", "rb");
+    if (g_fp == NULL) {
+        printf("hard fp open fail\n");
+        return -1;
+    }
+    dink_disc_note_open();
+    printf("hard fp open\n");
+    return 0;
+}
+
 static int hard_ensure_rec(int hid)
 {
     uint8_t *p;
     long off;
 
-    if (hid < 0 || hid >= DINK_HARD_TILES || g_fp == NULL) {
+    if (hid < 0 || hid >= DINK_HARD_TILES) {
         return -1;
     }
     if (g_rec[hid] != NULL) {
         return 0;
+    }
+    if (hard_fp_ensure() != 0) {
+        return -1;
     }
     p = (uint8_t *)malloc((size_t)DINK_HARD_REC);
     if (p == NULL) {
         return -1;
     }
     off = (long)hid * (long)DINK_HARD_REC;
+    printf("hard rec hid=%d\n", hid);
     if (dink_pread(g_fp, off, p, (size_t)DINK_HARD_REC) != 0) {
         free(p);
+        printf("hard rec fail hid=%d\n", hid);
         return -1;
     }
     g_rec[hid] = p;
@@ -92,18 +122,14 @@ int hard_load(struct HardMap *out)
         return -1;
     }
     memset(out, 0, sizeof(*out));
-    if (g_fp != NULL && g_def_ok) {
+    if (g_def_ok) {
         memcpy(out->btile_default, g_def, sizeof(g_def));
         out->ready = 1;
         return 0;
     }
     printf("hard load\n");
-    if (g_fp == NULL) {
-        g_fp = dink_fopen("hard.dat", "rb");
-        if (g_fp == NULL) {
-            return -1;
-        }
-        dink_disc_note_open();
+    if (hard_fp_ensure() != 0) {
+        return -1;
     }
     off = (long)DINK_HARD_TILES * (long)DINK_HARD_REC;
     ntail = (size_t)DINK_BTILE_MAX * 4u;

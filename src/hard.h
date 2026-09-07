@@ -25,6 +25,9 @@ struct HardMask {
 void hard_free(struct HardMap *h);
 int hard_parse_defaults(const uint8_t *p, size_t n, struct HardMap *out);
 int hard_load(struct HardMap *out);
+/* Close the disc FILE* after Prev pack fclose. Next missing rec reopens.
+ * Do not SEEK_SET a handle that sat through other iso_close (shop map 35). */
+void hard_fp_release(void);
 int hard_id_for_tile(const struct HardMap *h, int32_t square_full_idx0,
                      int32_t althard);
 int hard_sample(const struct HardMap *h, int hid, int lx, int ly);
