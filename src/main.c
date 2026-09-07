@@ -397,6 +397,7 @@ static int play_load_screen(int map)
         hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
         printf("load_screen stamp fail\n");
     }
+    printf("load_screen ready map %d\n", map);
     rc = 0;
 done:
     audio_music_disc_hold(0);
@@ -1088,6 +1089,10 @@ int main(int argc, char **argv)
                      * Skip wait until one play scene has been submitted. */
                     if (have_scene) {
                         pvr_wait_ready();
+                        /* Scene finished. Warp/edge continue skips
+                         * pvr_scene_finish; play_draw_screen must not
+                         * wait again on an idle GPU (bar map 34 lock). */
+                        have_scene = 0;
                     }
                     if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
