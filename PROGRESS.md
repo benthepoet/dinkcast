@@ -242,6 +242,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | Play-path keep Screen tex; `sp_base_idle(-1)` noreturn (bar knights / DINFO) | this PR |
 | 2026-09-07 | DinkC same-file proc call (`S2-OUT` `buybomb`) | this PR |
 | 2026-09-07 | Clear `have_scene` after play-loop wait (bar map 34 idle `pvr_wait`) | this PR |
+| 2026-09-07 | Bomb missile walks all overlaps (`DAM-BOM` / Jack) | this PR |
 
 ## Bites
 

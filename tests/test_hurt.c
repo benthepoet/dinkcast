@@ -402,6 +402,50 @@ int main(void)
         g_missile_dmg = NULL;
     }
 
+    /* DAM-BOM brain 17: keep going after a lower-slot overlap so Jack
+     * (created after furniture) still takes strength. */
+    {
+        static int bomb_dmg;
+        int ms, hp;
+
+        bomb_dmg = 0;
+        brains_bind_proc(on_missile_damage);
+        g_missile_dmg = &bomb_dmg;
+        brains_reset();
+        memset(&scr, 0, sizeof(scr));
+        seqs[20].hl = -20;
+        seqs[20].ht = -20;
+        seqs[20].hr = 20;
+        seqs[20].hb = 20;
+        scr.sprite[2].active = 1;
+        scr.sprite[2].type = 1;
+        scr.sprite[2].brain = 0;
+        scr.sprite[2].x = 200;
+        scr.sprite[2].y = 200;
+        scr.sprite[2].seq = 20;
+        scr.sprite[8].active = 1;
+        scr.sprite[8].type = 1;
+        scr.sprite[8].brain = 16;
+        scr.sprite[8].x = 200;
+        scr.sprite[8].y = 200;
+        scr.sprite[8].seq = 20;
+        scr.sprite[8].hitpoints = 50;
+        brains_bind_screen(&scr);
+        brains_enter(&scr, 0);
+        ms = brains_create(200, 200, 17, 20, 1);
+        expect(ms >= 2, "bomb create");
+        expect(brains_change_prop(ms, DINKC_SP_STRENGTH, 8) == 8, "bomb str");
+        expect(brains_change_prop(ms, DINKC_SP_RANGE, 30) == 30, "bomb range");
+        brains_set_script(ms, "dam-bomn");
+        srand(1);
+        brains_tick(&scr, seqs, &mask, 16, 0);
+        hp = brains_hitpoints(8);
+        expect(hp > 0 && hp < 50, "bomb damages Jack past furniture");
+        expect(brains_slot_live(ms), "bomb DAMAGE keeps missile");
+        brains_bind_proc(NULL);
+        g_missile_dmg = NULL;
+    }
+
     brains_reset();
     memset(&scr, 0, sizeof(scr));
     scr.sprite[5].active = 1;
