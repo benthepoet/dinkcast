@@ -232,8 +232,7 @@ int main(void)
                 free(seqs);
                 return 1;
             }
-            /* Uploaded tex stays on play-path even if the seq is not live
-             * this tick (knight walk while attack plays). */
+            /* Live sprite's walk/attack seqs stay; other Screen tex drop. */
             {
                 struct SpriteFrame *kept = edraw_find(g, n, 161, 4);
 
@@ -245,9 +244,19 @@ int main(void)
                 }
                 kept->tex = (void *)1;
                 edraw_live_begin(g, n, seqs);
+                edraw_hold_seq(161);
+                edraw_hold_apply(g, n);
                 edraw_reap_unused(g, &n, seqs);
                 if (edraw_find(g, n, 161, 4) == NULL) {
-                    fprintf(stderr, "FAIL 161 tex dropped while seq idle\n");
+                    fprintf(stderr, "FAIL 161 tex dropped while seq held\n");
+                    edraw_free(g, n);
+                    free(seqs);
+                    return 1;
+                }
+                edraw_live_begin(g, n, seqs);
+                edraw_reap_unused(g, &n, seqs);
+                if (edraw_find(g, n, 161, 4) != NULL) {
+                    fprintf(stderr, "FAIL 161 tex kept without hold\n");
                     edraw_free(g, n);
                     free(seqs);
                     return 1;

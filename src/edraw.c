@@ -215,6 +215,56 @@ static int g_mark_s[DINK_EDRAW_MARK_MAX];
 static int g_mark_f[DINK_EDRAW_MARK_MAX];
 static int g_nmark;
 
+#define DINK_EDRAW_HOLD_MAX 96
+static int g_hold[DINK_EDRAW_HOLD_MAX];
+static int g_nhold;
+
+void edraw_hold_clear(void)
+{
+    g_nhold = 0;
+}
+
+void edraw_hold_seq(int seq)
+{
+    int i;
+
+    if (seq < 1 || g_nhold >= DINK_EDRAW_HOLD_MAX) {
+        return;
+    }
+    for (i = 0; i < g_nhold; i++) {
+        if (g_hold[i] == seq) {
+            return;
+        }
+    }
+    g_hold[g_nhold++] = seq;
+}
+
+static int seq_held(int seq)
+{
+    int i;
+
+    for (i = 0; i < g_nhold; i++) {
+        if (g_hold[i] == seq) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void edraw_hold_apply(struct EdGfx *g, int n)
+{
+    int i;
+
+    if (g == NULL) {
+        return;
+    }
+    for (i = 0; i < n; i++) {
+        if (seq_held(g[i].seq)) {
+            g[i].live = 1;
+        }
+    }
+}
+
 void edraw_mark_need(int seq, int frame)
 {
     int i;
@@ -236,6 +286,7 @@ void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs)
 {
     int i;
 
+    edraw_hold_clear();
     if (g == NULL || seqs == NULL) {
         return;
     }
@@ -258,10 +309,9 @@ void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs)
         int drop = 0;
 
         if (pixel_class(seqs, g[i].seq) == PIX_SCREEN && !g[i].live) {
-            /* CPU-only: drop. Keep uploaded tex until enter-path unique or
-             * evict_slot. Bar knights switch 293 walk ↔ 297 attack; seq-live
-             * reap made walk vanish for a SEEK_SET. */
-            drop = (g[i].fr.tex == NULL);
+            /* Held walk/attack seqs are marked live. Other Screen tex
+             * (idle dirs, spent attack frames of dead sprites) free PVR. */
+            drop = 1;
         }
         if (drop) {
             sprite_frame_free(&g[i].fr);
@@ -405,6 +455,23 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     upload_and_drop_cpu(&g[*got].fr);
     audio_music_pump();
     (*got)++;
+#ifdef _arch_dreamcast
+    {
+        struct SpriteFrame *hit = edraw_find(g, *got, seq, frame);
+
+        if (hit != NULL && hit->tex == NULL && hit->argb1555 != NULL) {
+            if (evict_slot(g, got, seqs, seq, frame, 1, 1) == 0) {
+                hit = edraw_find(g, *got, seq, frame);
+                if (hit != NULL) {
+                    upload_and_drop_cpu(hit);
+                }
+            }
+            if (hit != NULL && hit->tex == NULL) {
+                printf("edraw pvr miss seq=%d fr=%d\n", seq, frame);
+            }
+        }
+    }
+#endif
     /* Play-path reaps !live Screen after every sprite is touched. */
     {
         size_t need = edraw_cpu_bytes(g, *got);

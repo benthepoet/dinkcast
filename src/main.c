@@ -271,6 +271,42 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
     }
 }
 
+static void edraw_hold_dirs(int base)
+{
+    static const int d[8] = {1, 2, 3, 4, 6, 7, 8, 9};
+    int i;
+
+    if (base <= 0) {
+        return;
+    }
+    for (i = 0; i < 8; i++) {
+        edraw_hold_seq(base + d[i]);
+    }
+}
+
+static void edraw_hold_live_sprites(void)
+{
+    int ei, sq, fr;
+
+    for (ei = 1; ei <= 99; ei++) {
+        if (!brains_slot_live(ei)) {
+            continue;
+        }
+        if (brains_seq_frame(ei, &sq, &fr)) {
+            edraw_hold_seq(sq);
+        }
+        edraw_hold_dirs(brains_slot_base_walk(ei));
+        edraw_hold_dirs(brains_base_attack(ei));
+        edraw_hold_seq(brains_base_idle(ei));
+    }
+    if (g_play_pl != NULL) {
+        edraw_hold_seq(player_pic_seq(g_play_pl));
+        edraw_hold_dirs(g_play_pl->base_walk);
+        edraw_hold_dirs(g_play_pl->base_hit);
+        edraw_hold_seq(g_play_pl->base_idle);
+    }
+}
+
 static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
 {
     int i, seq, bw, d, br, k;
@@ -1264,6 +1300,7 @@ int main(int argc, char **argv)
                             int ei, sq, fr;
 
                             edraw_live_this_draw(seqs, g_ned);
+                            edraw_hold_live_sprites();
                             for (ei = 1; ei <= 100; ei++) {
                                 sq = (int)g_scr.sprite[ei].seq;
                                 fr = (int)g_scr.sprite[ei].frame;
@@ -1285,6 +1322,7 @@ int main(int argc, char **argv)
                                 edraw_ensure_draw_frame(
                                     seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
+                            edraw_hold_apply(g_edg, g_ned);
                             edraw_reap_unused(g_edg, &g_ned, seqs);
                         }
                     }
