@@ -247,6 +247,7 @@ check:
 	DINK_DATA="$(DINK_DATA)" $(PYTHON) tests/test_distill.py
 	$(PYTHON) tests/test_edraw_policy.py
 	$(PYTHON) tests/test_leak_policy.py
+	$(PYTHON) tests/test_kos_iso_patch.py
 
 # Optional: needs DINK_DATA (env or local.mk). Not part of `make host`.
 data-check:
@@ -263,7 +264,7 @@ dc:
 		echo "  source \$$KOS_BASE/environ.sh && make dc" >&2; \
 		exit 2; \
 	fi
-	$(MAKE) -f Makefile.dc
+	sh tools/apply_kos_iso_patch.sh && . build/kos-iso/env && $(MAKE) -f Makefile.dc
 
 # Selfboot CDI + data-track ISO: ELF + DINK_DATA as /cd/dink. See docs/TOOLCHAIN.md.
 cdi:

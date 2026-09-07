@@ -93,9 +93,11 @@ are padded, the source tree is never touched).
 3. **Rebuild the KOS Docker image on current master.** We predate
    `cdrom: Don't poll in cdrom_get_status()` (2026-02-21 — old code polled
    the drive from the vblank IRQ via `iso_vblank`) and the `thd_poll`
-   treewide (2026-02-24). Track #1492 for the upstream stream fix; a local
-   patch (floor stream size to full sectors, serve the tail via `bdread`)
-   is ~10 lines in `iso_read`.
+   treewide (2026-02-24). Track #1492 for the upstream stream fix. **Dinkcast
+   applies that local patch at `make dc`:** `tools/patch_kos_iso9660.py` +
+   `tools/apply_kos_iso_patch.sh` (stream = this read’s complete sectors,
+   tail via `bdread`). Needed because 14.6 `dink_pread` never consumes EOF
+   even when the file is 2048-padded.
 4. **Structural (aligns with plan 18.2):** whole-file reads into
    `aligned_alloc(32, …)` (one stream command per file, the pattern KOS
    examples and shipped homebrew use); skip the per-component
