@@ -236,7 +236,15 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-06 | Screen loop tex stays while that seq is live (14.6 fire SEEK_SET) | #143 |
 | 2026-09-06 | **14.6** D: catalog `file_blob` is `ff_toc_bytes` not whole `dir.ff` | #144 |
 | 2026-09-06 | **v0.5.0** tagged | #145 |
-| 2026-09-07 | `sfx-bank` / `music-bank` skip fresh dest (`AUDIO_FORCE=1` rebuild) | this PR |
+| 2026-09-07 | `sfx-bank` / `music-bank` skip fresh dest (`AUDIO_FORCE=1` rebuild) | #147 |
+| 2026-09-06 | `ts_rgb` LRU by bytes (1.25 MB), not 8 sheet slots | this PR |
+| 2026-09-07 | Enter-path drop Prev after Screen SEEK_SET (map 498 CD wedge) | this PR |
+| 2026-09-07 | Play-path keep Screen tex; `sp_base_idle(-1)` noreturn (bar knights / DINFO) | this PR |
+| 2026-09-07 | DinkC same-file proc call (`S2-OUT` `buybomb`) | this PR |
+| 2026-09-07 | Clear `have_scene` after play-loop wait (bar map 34 idle `pvr_wait`) | this PR |
+| 2026-09-07 | Bomb missile walks all overlaps (`DAM-BOM` / Jack) | this PR |
+| 2026-09-07 | `say_stop('…")` one string (`S2-JACK` die unfreeze) | this PR |
+| 2026-09-07 | Reopen `hard.dat` after Prev drop (shop map 35 SEEK) | this PR |
 
 ## Bites
 

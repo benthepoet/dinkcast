@@ -232,7 +232,8 @@ int main(void)
                 free(seqs);
                 return 1;
             }
-            /* Uploaded tex of a !live frame stays while the seq is live. */
+            /* Uploaded tex stays on play-path even if the seq is not live
+             * this tick (knight walk while attack plays). */
             {
                 struct SpriteFrame *kept = edraw_find(g, n, 161, 4);
 
@@ -244,18 +245,9 @@ int main(void)
                 }
                 kept->tex = (void *)1;
                 edraw_live_begin(g, n, seqs);
-                edraw_live_touch(g, n, 161, 14);
                 edraw_reap_unused(g, &n, seqs);
                 if (edraw_find(g, n, 161, 4) == NULL) {
-                    fprintf(stderr, "FAIL 161 tex dropped while seq live\n");
-                    edraw_free(g, n);
-                    free(seqs);
-                    return 1;
-                }
-                edraw_live_begin(g, n, seqs);
-                edraw_reap_unused(g, &n, seqs);
-                if (edraw_find(g, n, 161, 4) != NULL) {
-                    fprintf(stderr, "FAIL 161 tex held with seq idle\n");
+                    fprintf(stderr, "FAIL 161 tex dropped while seq idle\n");
                     edraw_free(g, n);
                     free(seqs);
                     return 1;
@@ -863,6 +855,14 @@ int main(void)
         if (tiles_build_atlas(&wiz, &atlas) != 0 ||
             atlas.used != DINK_SCREEN_TILES) {
             fprintf(stderr, "FAIL 376 after 408 atlas used=%d\n", atlas.used);
+            tiles_free(&atlas);
+            edraw_free(g, n);
+            free(seqs);
+            return 1;
+        }
+        if (tiles_cache_bytes() > (size_t)DINK_MEM_TS_RGB) {
+            fprintf(stderr, "FAIL 376 ts_rgb over cap %u\n",
+                    (unsigned)tiles_cache_bytes());
             tiles_free(&atlas);
             edraw_free(g, n);
             free(seqs);

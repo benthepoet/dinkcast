@@ -258,22 +258,10 @@ void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs)
         int drop = 0;
 
         if (pixel_class(seqs, g[i].seq) == PIX_SCREEN && !g[i].live) {
-            /* CPU-only: drop. Uploaded tex: keep while any frame of this
-             * seq is live (house fire 427/161 after 14.6 SEEK_SET). Slot
-             * pressure still evicts unused Screen. */
-            if (g[i].fr.tex == NULL) {
-                drop = 1;
-            } else {
-                int j, seq = g[i].seq, hold = 0;
-
-                for (j = 0; j < *n; j++) {
-                    if (g[j].live && g[j].seq == seq) {
-                        hold = 1;
-                        break;
-                    }
-                }
-                drop = !hold;
-            }
+            /* CPU-only: drop. Keep uploaded tex until enter-path unique or
+             * evict_slot. Bar knights switch 293 walk ↔ 297 attack; seq-live
+             * reap made walk vanish for a SEEK_SET. */
+            drop = (g[i].fr.tex == NULL);
         }
         if (drop) {
             sprite_frame_free(&g[i].fr);
@@ -713,7 +701,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 residency_touch(dir);
             }
         }
-        ff_cache_drop_unpinned();
+        /* Drop Prev *after* this Screen's SEEK_SET. fclose of innwalls
+         * then pread a live trees FILE* wedged map 498 (west of 499). */
         old = *n;
         if (old < 0) {
             old = 0;
@@ -831,6 +820,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 drop_seq_pack(seqs, 164);
             }
         }
+        ff_cache_drop_unpinned();
     }
     ff_cache_drop_unpinned();
     printf("blob bytes %u unique %d\n", (unsigned)dink_blob_bytes(), got);

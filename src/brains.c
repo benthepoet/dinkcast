@@ -77,7 +77,7 @@ struct BrainSpr {
     int hitpoints, defense, strength, exp, base_die, nohit, range;
     int touch_damage, damage, last_hit, target, follow, distance, attack_wait,
         just_hit;
-    int hard, notouch, bloodseq, bloodnum;
+    int hard, notouch, notouch_timer, bloodseq, bloodnum;
     int disabled;
     int frame_delay;
     int nodraw;
@@ -1268,27 +1268,70 @@ static int spr_draw_frame(const struct BrainSpr *s)
     return s->pframe;
 }
 
-static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
-                          const struct HardMask *mask, int repeat)
+static int missile_run_damage(struct BrainSpr *s, int h, int target)
 {
-    int hit, j, h;
+    dinkc_var_set("&missile_target", target, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_var_set("&missle_source", h, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_var_set("&enemy_sprite", 1, DINKC_GLOBAL_SCOPE, 1);
+    if (s->script[0] != '\0' && g_on_proc != NULL) {
+        return g_on_proc(h, "DAMAGE");
+    }
+    if (s->attack_hit_sound == 0) {
+        (void)audio_playsound(9, 22050, 0, 0, 0);
+    } else {
+        (void)audio_playsound(s->attack_hit_sound,
+                              s->attack_hit_sound_speed != 0
+                                  ? s->attack_hit_sound_speed
+                                  : 22050,
+                              0, 0, 0);
+    }
+    return -1;
+}
 
-    hit = automove(s, mask);
+static int missile_hit_amount(const struct BrainSpr *s, int defense)
+{
+    int hit, half;
+
+    /* FreeDink missile_brain, not hurt_thing. */
+    if (s->strength == 1) {
+        hit = s->strength - defense;
+    } else {
+        half = s->strength / 2;
+        if (half < 1) {
+            half = 1;
+        }
+        hit = half + ((rand() % half) + 1) - defense;
+    }
+    return hit < 0 ? 0 : hit;
+}
+
+static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
+                          const struct HardMask *mask, int repeat, int now_ms)
+{
+    int wall, j, h, keep;
+
+    wall = automove(s, mask);
     if (repeat && s->seq == 0) {
         s->seq = s->seq_orig;
     }
-    if (hit) {
-        s->live = 0;
+    h = spr_i(s);
+    /* FreeDink: hardness + missile script → DAMAGE, sprite stays (bomb). */
+    if (wall) {
+        if (missile_run_damage(s, h, 0) != 0) {
+            s->live = 0;
+        }
         return;
     }
     if (s->x > 1000 || s->y > 700 || s->y < -500 || s->x < -500) {
         s->live = 0;
         return;
     }
-    h = spr_i(s);
+    keep = 0;
     /* FreeDink loop skips spr[1] when brain_parm is 1 (ITEM-FB). Player
-     * is not g_b[1]; this is that same skip. */
-    if (g_pl != NULL && g_pl->nohit != 1 && s->brain_parm != 1) {
+     * is not g_b[1]; this is that same skip. Do not remove the missile
+     * here: DAM-BOM is at Dink's feet and must still reach Jack. */
+    if (g_pl != NULL && g_pl->nohit != 1 && s->brain_parm != 1 &&
+        !g_pl->notouch) {
         int l, t, r, b;
 
         geom_hardbox(seqs, g_pl->seq, g_pl->frame, g_pl->x, g_pl->y, s->range,
@@ -1296,9 +1339,12 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         if (s->x >= l && s->x <= r && s->y >= t && s->y <= b &&
             s->strength != 0) {
             g_pl->last_hit = h;
+            g_pl->notouch = 1;
+            g_pl->notouch_timer = now_ms + 100;
             (void)player_hurt(g_pl, s->strength);
-            s->live = 0;
-            return;
+            if (missile_run_damage(s, h, 1) == 0) {
+                keep = 1;
+            }
         }
     }
     for (j = 1; j <= 99; j++) {
@@ -1306,6 +1352,13 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 
         if (j == h || !g_b[j].live || g_b[j].nohit == 1) {
             continue;
+        }
+        if (g_b[j].notouch) {
+            if (now_ms > g_b[j].notouch_timer) {
+                g_b[j].notouch = 0;
+            } else {
+                continue;
+            }
         }
         if (s->brain_parm == j || s->brain_parm2 == j) {
             continue;
@@ -1315,49 +1368,29 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
         if (s->x < l || s->x > r || s->y < t || s->y > b) {
             continue;
         }
+        g_b[j].notouch = 1;
+        g_b[j].notouch_timer = now_ms + 100;
+        g_b[j].target = 1;
         if (g_b[j].hitpoints > 0 && s->strength != 0) {
-            int hit, half;
+            int amt = missile_hit_amount(s, g_b[j].defense);
 
-            /* FreeDink missile_brain, not hurt_thing. last_hit is Dink. */
-            if ((rand() % 2) + 1 == 1) {
-                hit = s->strength - g_b[j].defense;
-            } else {
-                half = s->strength / 2;
-                if (half < 1) {
-                    half = 1;
-                }
-                hit = half + ((rand() % half) + 1) - g_b[j].defense;
-            }
-            if (hit < 0) {
-                hit = 0;
-            }
             g_b[j].last_hit = 1;
-            g_b[j].damage += hit;
+            g_b[j].damage += amt;
+            if (amt > 0) {
+                brains_random_blood(g_b[j].x, g_b[j].y - 40, j);
+            }
         }
-        /* FreeDink missile_brain: punch 9 unless attack_hit_sound. */
-        if (s->attack_hit_sound == 0) {
-            (void)audio_playsound(9, 22050, 0, 0, 0);
-        } else {
-            (void)audio_playsound(s->attack_hit_sound,
-                                  s->attack_hit_sound_speed != 0
-                                      ? s->attack_hit_sound_speed
-                                      : 22050,
-                                  0, 0, 0);
-        }
-        /* locate DAMAGE on the missile; HIT on the target. */
-        dinkc_var_set("&missile_target", j, DINKC_GLOBAL_SCOPE, 1);
+        dinkc_var_set("&missile_target", 1, DINKC_GLOBAL_SCOPE, 1);
         dinkc_var_set("&missle_source", h, DINKC_GLOBAL_SCOPE, 1);
         dinkc_var_set("&enemy_sprite", 1, DINKC_GLOBAL_SCOPE, 1);
         if (g_b[j].script[0] != '\0' && g_on_proc != NULL) {
             (void)g_on_proc(j, "HIT");
         }
-        if (s->script[0] != '\0' && g_on_proc != NULL &&
-            g_on_proc(h, "DAMAGE") == 0) {
-            break;
+        if (missile_run_damage(s, h, j) == 0) {
+            keep = 1;
         }
-        s->live = 0;
-        break;
     }
+    (void)keep;
 }
 
 static void scale_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
@@ -1476,7 +1509,7 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         return;
     }
     if (b == DINK_BRAIN_MISSILE) {
-        missile_brain(s, seqs, mask, 1);
+        missile_brain(s, seqs, mask, 1, now_ms);
         return;
     }
     if (b == DINK_BRAIN_SCALE) {
@@ -1492,7 +1525,7 @@ static void brain_switch(struct BrainSpr *s, const struct EditorSprite *es,
         return;
     }
     if (b == DINK_BRAIN_MISS_EXPIRE) {
-        missile_brain(s, seqs, mask, 0);
+        missile_brain(s, seqs, mask, 0, now_ms);
         if (s->seq == 0) {
             s->live = 0;
         }
@@ -1967,8 +2000,10 @@ int brains_change_prop(int slot, int prop, int val)
     if (p == NULL) {
         return -1;
     }
-    /* change_sprite_noreturn: touch/mx/my may be -1 (pickup, missile). */
-    if (prop == DINKC_SP_TOUCH || prop == DINKC_SP_MX || prop == DINKC_SP_MY) {
+    /* change_sprite_noreturn: touch/mx/my and base_* may be -1. */
+    if (prop == DINKC_SP_TOUCH || prop == DINKC_SP_MX || prop == DINKC_SP_MY ||
+        prop == DINKC_SP_BASE_IDLE || prop == DINKC_SP_BASE_WALK ||
+        prop == DINKC_SP_BASE_ATTACK || prop == DINKC_SP_BASE_DIE) {
         *p = val;
         return *p;
     }

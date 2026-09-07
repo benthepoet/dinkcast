@@ -66,6 +66,10 @@ static int fiber_slot(const struct Fiber *f)
     return (int)(f - g_f);
 }
 
+static int start_fiber_args(const char *src, size_t n, int sprite,
+                            const char *proc, int keep, const int *args,
+                            int nargs);
+
 /* draw_screen → kill_all must not fiber_kill the caller mid-dinkc_cmd. */
 static int run_cmd(struct Fiber *f, const char *name, int *args, int nargs,
                    const char *str, const char *str2, int *yield, int *ret)
@@ -427,9 +431,12 @@ static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
             }
             nstr++;
             if (dest != NULL && destsz > 1) {
-                if (n >= 2 && p[0] == '"') {
+                if (n >= 1 && (p[0] == '"' || p[0] == '\'')) {
                     p++;
-                    n -= 2;
+                    n--;
+                }
+                if (n >= 1 && (p[n - 1] == '"' || p[n - 1] == '\'')) {
+                    n--;
                 }
                 if (n >= destsz) {
                     n = destsz - 1;
@@ -762,9 +769,13 @@ static void run_fiber(struct Fiber *f, int now_ms)
                             const char *p = line;
                             size_t ln = strlen(line);
 
-                            if (ln >= 2 && p[0] == '"') {
+                            if (ln >= 1 && (p[0] == '"' || p[0] == '\'')) {
                                 p++;
-                                ln -= 2;
+                                ln--;
+                            }
+                            if (ln >= 1 &&
+                                (p[ln - 1] == '"' || p[ln - 1] == '\'')) {
+                                ln--;
                             }
                             if (ln > 79) {
                                 ln = 79;
@@ -839,6 +850,20 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     return;
                 }
                 continue;
+            }
+            /* FreeDink: ident( is a same-file proc (S2-OUT buybomb). */
+            if (find_proc(f, cname) >= 0) {
+                int ch = start_fiber_args(f->src, f->srclen, f->sprite, cname,
+                                          0, args, nargs);
+
+                if (ch > 0) {
+                    if (dinkc_vm_used(ch)) {
+                        f->wait_child = ch;
+                        f->state = DINKC_WAIT_EXT;
+                        return;
+                    }
+                    continue;
+                }
             }
             printf("dinkc unimplemented %s\n", cname);
             continue;
@@ -1095,8 +1120,9 @@ void dinkc_vm_tick_callbacks(int now_ms)
     }
 }
 
-static int start_fiber(const char *src, size_t n, int sprite, const char *proc,
-                       int keep)
+static int start_fiber_args(const char *src, size_t n, int sprite,
+                            const char *proc, int keep, const int *args,
+                            int nargs)
 {
     int s, ip;
     struct Fiber *f;
@@ -1143,9 +1169,22 @@ static int start_fiber(const char *src, size_t n, int sprite, const char *proc,
     }
     f->ip = ip;
     snprintf(f->name, sizeof(f->name), "slot%d", s);
+    if (args != NULL && nargs > 0) {
+        int i, ncp = nargs < 8 ? nargs : 8;
+
+        for (i = 0; i < ncp; i++) {
+            f->arg[i] = args[i];
+        }
+    }
     f->state = DINKC_RUN;
     run_fiber(f, 0);
     return s;
+}
+
+static int start_fiber(const char *src, size_t n, int sprite, const char *proc,
+                       int keep)
+{
+    return start_fiber_args(src, n, sprite, proc, keep, NULL, 0);
 }
 
 int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)

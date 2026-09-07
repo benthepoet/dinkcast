@@ -43,6 +43,20 @@ int main(void)
     expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_ANDAND, "&&");
     expect(dinkc_lex_count("\"oops", 5) == 1, "unterm string token");
     expect(dinkc_lex_count("&s2-map", 7) == 1, "hyphen var");
+    {
+        const char *jack =
+            "say_stop('I guess I just killed your husband.\", 1);";
+        const char *ok = "say_stop(\"It's ok, I'm here now.\", 1);";
+
+        dinkc_lex_init(&lx, jack, strlen(jack));
+        expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_IDENT, "jack say");
+        expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_LPAREN, "jack (");
+        expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_STRING &&
+                   t.n > 10 && t.p[0] == '\'',
+               "jack mixed quote string");
+        expect(dinkc_lex_next(&lx, &t) == 0 && t.kind == DINKC_COMMA, "jack comma");
+        expect(dinkc_lex_count(ok, strlen(ok)) == 7, "I'm stays in double quotes");
+    }
 
     if (dink_fs_init() != 0) {
         fprintf(stderr, "FAIL no DINK_DATA\n");

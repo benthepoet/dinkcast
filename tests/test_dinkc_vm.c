@@ -202,6 +202,15 @@ int main(void)
 
     memset(&pl, 0, sizeof(pl));
     dinkc_cmd_bind_player(&pl);
+    {
+        int args[2] = {1, -1};
+        int yld = 0, ret = 0;
+
+        pl.base_idle = 10;
+        expect(dinkc_cmd("sp_base_idle", args, 2, NULL, NULL, &yld, &ret) == 1 &&
+                   pl.base_idle == -1,
+               "DINFO sp_base_idle(1,-1)");
+    }
     dinkc_vm_reset();
     slot = dinkc_vm_start_proc(talk, strlen(talk), 26, "talk");
     expect(slot > 0 && dinkc_vm_waiting_choice(), "talk choice");
@@ -495,6 +504,19 @@ int main(void)
         (void)slot;
     }
     {
+        const char *shop =
+            "void buybomb(void) { add_item(\"item-bom\", 438, 3); }\n"
+            "void main(void) { buybomb(); }";
+        int yld = 0, rv = 0;
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(shop, strlen(shop), 1);
+        expect(slot > 0 && dinkc_vm_live() == 0, "buybomb proc");
+        expect(dinkc_cmd("count_item", NULL, 0, "item-bom", NULL, &yld, &rv) == 1 &&
+                   rv == 1,
+               "bought item-bom");
+    }
+    {
         int impl = dinkc_cmd_implemented_count();
         int miss0 = dinkc_cmd_missing_count();
         int yld = 0, rv = 0, args[2] = {0, 0};
@@ -658,6 +680,23 @@ int main(void)
         dinkc_vm_advance_say();
         expect(pl.freeze == 0, "keep extra } unfreeze");
         expect(dinkc_vm_used(ks), "keep still attached");
+    }
+    {
+        /* S2-JACK die: say_stop('…", 1) must not eat unfreeze. */
+        const char *jack_die =
+            "void die(void) { freeze(1); "
+            "say_stop('I guess I just killed your husband.\", 1); "
+            "unfreeze(1); }";
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        slot = dinkc_vm_start_proc(jack_die, strlen(jack_die), 37, "die");
+        expect(pl.freeze == 1 && dinkc_vm_waiting_say(), "jack die say");
+        expect(strstr(saybox_text(), "husband") != NULL,
+               "jack mixed quote text");
+        dinkc_vm_advance_say();
+        expect(dinkc_vm_live() == 0 && pl.freeze == 0, "jack die unfreeze");
     }
 
     {

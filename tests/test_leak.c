@@ -95,6 +95,15 @@ int main(void)
         printf("swap_ms %u\n", swap_ms);
         mem_log("swap", edraw_cpu_bytes(g, n), n, tiles_cache_bytes(),
                 tiles_cache_sheets());
+        if (tiles_cache_bytes() > (size_t)DINK_MEM_TS_RGB) {
+            fprintf(stderr, "FAIL ts_rgb over cap %u\n",
+                    (unsigned)tiles_cache_bytes());
+            tiles_free(&atlas);
+            edraw_gfx_release(g);
+            free(seqs);
+            free(scr);
+            return 1;
+        }
         if (i + 1 == DINK_MEM_LEAK_WARM) {
             blob_warm = dink_blob_bytes();
             always_warm = residency_bytes_always();
