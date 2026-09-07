@@ -249,6 +249,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-19 | Codebase review: capacity (fibers 20, sprite slots), RAM growth, FreeDink gaps, architecture — [CODEBASE-REVIEW-2026-11-19.md](docs/CODEBASE-REVIEW-2026-11-19.md). Analysis only. Release scope NTSC; PAL deferred | #150 |
 | 2026-11-19 | Play-path I/O log: `ioplay` disc/frame/gpu_wait lines after screen enter + per-screen summary (diagnostic, no policy) | #151 |
 | 2026-09-07 | A skips `last_talk` only; B punches during `say_stop_npc` | this PR |
+| 2026-09-07 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | this PR |
 
 ## Bites
 
