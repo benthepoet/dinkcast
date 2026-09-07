@@ -244,11 +244,11 @@ int main(void)
                 }
                 kept->tex = (void *)1;
                 edraw_live_begin(g, n, seqs);
-                edraw_hold_seq(161);
+                edraw_hold_frame(161, 4);
                 edraw_hold_apply(g, n);
                 edraw_reap_unused(g, &n, seqs);
                 if (edraw_find(g, n, 161, 4) == NULL) {
-                    fprintf(stderr, "FAIL 161 tex dropped while seq held\n");
+                    fprintf(stderr, "FAIL 161 tex dropped while frame held\n");
                     edraw_free(g, n);
                     free(seqs);
                     return 1;

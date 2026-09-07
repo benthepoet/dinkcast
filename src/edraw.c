@@ -142,6 +142,8 @@ static const char *pixel_class_name(int cls)
     return "screen";
 }
 
+static int frame_held(int seq, int frame);
+
 /* Screen pixels only. Prefer unused; pack still cached. unused_only skips
  * live frames so a cpu_pixels miss cannot thrash two live seqs each tick. */
 static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
@@ -156,6 +158,9 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         int cls, cached, unused;
 
         if (s == keep_seq && g[i].frame == keep_frame) {
+            continue;
+        }
+        if (frame_held(s, g[i].frame)) {
             continue;
         }
         cls = pixel_class(seqs, s);
@@ -216,7 +221,8 @@ static int g_mark_f[DINK_EDRAW_MARK_MAX];
 static int g_nmark;
 
 #define DINK_EDRAW_HOLD_MAX 96
-static int g_hold[DINK_EDRAW_HOLD_MAX];
+static int g_hold_s[DINK_EDRAW_HOLD_MAX];
+static int g_hold_f[DINK_EDRAW_HOLD_MAX];
 static int g_nhold;
 
 void edraw_hold_clear(void)
@@ -224,27 +230,43 @@ void edraw_hold_clear(void)
     g_nhold = 0;
 }
 
-void edraw_hold_seq(int seq)
+void edraw_hold_frame(int seq, int frame)
 {
     int i;
 
-    if (seq < 1 || g_nhold >= DINK_EDRAW_HOLD_MAX) {
+    if (seq < 1 || frame < 1 || g_nhold >= DINK_EDRAW_HOLD_MAX) {
         return;
     }
     for (i = 0; i < g_nhold; i++) {
-        if (g_hold[i] == seq) {
+        if (g_hold_s[i] == seq && g_hold_f[i] == frame) {
             return;
         }
     }
-    g_hold[g_nhold++] = seq;
+    g_hold_s[g_nhold] = seq;
+    g_hold_f[g_nhold] = frame;
+    g_nhold++;
 }
 
-static int seq_held(int seq)
+void edraw_hold_pair(const struct SeqInfo *seqs, int seq, int frame)
+{
+    int nxt;
+
+    if (frame < 1) {
+        frame = 1;
+    }
+    edraw_hold_frame(seq, frame);
+    nxt = edraw_loop_next_frame(seqs, seq, frame);
+    if (nxt != frame) {
+        edraw_hold_frame(seq, nxt);
+    }
+}
+
+static int frame_held(int seq, int frame)
 {
     int i;
 
     for (i = 0; i < g_nhold; i++) {
-        if (g_hold[i] == seq) {
+        if (g_hold_s[i] == seq && g_hold_f[i] == frame) {
             return 1;
         }
     }
@@ -259,7 +281,7 @@ void edraw_hold_apply(struct EdGfx *g, int n)
         return;
     }
     for (i = 0; i < n; i++) {
-        if (seq_held(g[i].seq)) {
+        if (frame_held(g[i].seq, g[i].frame)) {
             g[i].live = 1;
         }
     }
@@ -458,17 +480,22 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
 #ifdef _arch_dreamcast
     {
         struct SpriteFrame *hit = edraw_find(g, *got, seq, frame);
+        int tries = 0, waited = 0;
 
+        while (hit != NULL && hit->tex == NULL && hit->argb1555 != NULL &&
+               tries++ < DINK_EDGFX_MAX) {
+            if (evict_slot(g, got, seqs, seq, frame, waited ? 0 : 1, 1) != 0) {
+                break;
+            }
+            waited = 1;
+            hit = edraw_find(g, *got, seq, frame);
+            if (hit == NULL) {
+                break;
+            }
+            upload_and_drop_cpu(hit);
+        }
         if (hit != NULL && hit->tex == NULL && hit->argb1555 != NULL) {
-            if (evict_slot(g, got, seqs, seq, frame, 1, 1) == 0) {
-                hit = edraw_find(g, *got, seq, frame);
-                if (hit != NULL) {
-                    upload_and_drop_cpu(hit);
-                }
-            }
-            if (hit != NULL && hit->tex == NULL) {
-                printf("edraw pvr miss seq=%d fr=%d\n", seq, frame);
-            }
+            printf("edraw pvr miss seq=%d fr=%d\n", seq, frame);
         }
     }
 #endif

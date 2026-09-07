@@ -271,41 +271,57 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
     }
 }
 
-static void edraw_hold_dirs(int base)
+static void edraw_hold_live_sprites(struct SeqInfo *seqs)
 {
-    static const int d[8] = {1, 2, 3, 4, 6, 7, 8, 9};
-    int i;
+    int ei, sq, fr, dir, bw, ba, bi;
 
-    if (base <= 0) {
+    if (seqs == NULL) {
         return;
     }
-    for (i = 0; i < 8; i++) {
-        edraw_hold_seq(base + d[i]);
-    }
-}
-
-static void edraw_hold_live_sprites(void)
-{
-    int ei, sq, fr;
-
     for (ei = 1; ei <= 99; ei++) {
-        if (!brains_slot_live(ei)) {
+        if (!brains_slot_live(ei) || !brains_seq_frame(ei, &sq, &fr)) {
             continue;
         }
-        if (brains_seq_frame(ei, &sq, &fr)) {
-            edraw_hold_seq(sq);
+        if (fr < 1) {
+            fr = 1;
         }
-        edraw_hold_dirs(brains_slot_base_walk(ei));
-        edraw_hold_dirs(brains_base_attack(ei));
-        edraw_hold_seq(brains_base_idle(ei));
+        edraw_hold_pair(seqs, sq, fr);
+        dir = brains_change_prop(ei, DINKC_SP_DIR, -1);
+        if (dir < 1 || dir == 5) {
+            dir = 2;
+        }
+        bw = brains_slot_base_walk(ei);
+        if (bw > 0 && bw + dir != sq) {
+            edraw_hold_pair(seqs, bw + dir, 1);
+        }
+        ba = brains_base_attack(ei);
+        if (ba > 0 && ba + dir != sq) {
+            edraw_hold_pair(seqs, ba + dir, 1);
+        }
+        bi = brains_base_idle(ei);
+        if (bi > 0 && bi != sq && bi + dir != sq) {
+            edraw_hold_pair(seqs, bi + dir, 1);
+        }
     }
     if (g_play_pl != NULL) {
-        edraw_hold_seq(player_pic_seq(g_play_pl));
-        edraw_hold_dirs(DINK_BASE_WALK);
-        edraw_hold_dirs(g_play_pl->base_attack);
-        edraw_hold_dirs(g_play_pl->base_hit);
-        edraw_hold_dirs(g_play_pl->base_push);
-        edraw_hold_seq(g_play_pl->base_idle);
+        sq = player_pic_seq(g_play_pl);
+        fr = player_pic_frame(g_play_pl);
+        if (fr < 1) {
+            fr = 1;
+        }
+        edraw_hold_pair(seqs, sq, fr);
+        dir = g_play_pl->dir;
+        if (dir < 1 || dir == 5) {
+            dir = 2;
+        }
+        if (DINK_BASE_WALK + dir != sq) {
+            edraw_hold_pair(seqs, DINK_BASE_WALK + dir, 1);
+        }
+        ba = g_play_pl->base_hit > 0 ? g_play_pl->base_hit
+                                     : g_play_pl->base_attack;
+        if (ba > 0 && ba + dir != sq) {
+            edraw_hold_pair(seqs, ba + dir, 1);
+        }
     }
 }
 
@@ -1302,7 +1318,8 @@ int main(int argc, char **argv)
                             int ei, sq, fr;
 
                             edraw_live_this_draw(seqs, g_ned);
-                            edraw_hold_live_sprites();
+                            edraw_hold_live_sprites(seqs);
+                            edraw_hold_apply(g_edg, g_ned);
                             for (ei = 1; ei <= 100; ei++) {
                                 sq = (int)g_scr.sprite[ei].seq;
                                 fr = (int)g_scr.sprite[ei].frame;
