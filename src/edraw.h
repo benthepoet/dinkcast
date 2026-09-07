@@ -26,10 +26,10 @@ void edraw_mark_need(int seq, int frame);
 /* Play-path: Screen live = this tick's draw set (not "loaded this screen"). */
 void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs);
 void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame);
-/* Live sprite walk/attack dirs: keep those seqs' tex while the sprite is live
- * (knight 293 while 297 plays). Not every Screen tex until leave. */
+/* 14.4c: current+next of this seq (and walk/attack pair). Not whole dirs. */
 void edraw_hold_clear(void);
-void edraw_hold_seq(int seq);
+void edraw_hold_frame(int seq, int frame);
+void edraw_hold_pair(const struct SeqInfo *seqs, int seq, int frame);
 void edraw_hold_apply(struct EdGfx *g, int n);
 /* After play-path touch+ensure+hold: drop unused Screen (CPU and tex). */
 void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs);
