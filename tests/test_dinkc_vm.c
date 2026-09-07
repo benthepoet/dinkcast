@@ -504,6 +504,19 @@ int main(void)
         (void)slot;
     }
     {
+        const char *shop =
+            "void buybomb(void) { add_item(\"item-bom\", 438, 3); }\n"
+            "void main(void) { buybomb(); }";
+        int yld = 0, rv = 0;
+
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(shop, strlen(shop), 1);
+        expect(slot > 0 && dinkc_vm_live() == 0, "buybomb proc");
+        expect(dinkc_cmd("count_item", NULL, 0, "item-bom", NULL, &yld, &rv) == 1 &&
+                   rv == 1,
+               "bought item-bom");
+    }
+    {
         int impl = dinkc_cmd_implemented_count();
         int miss0 = dinkc_cmd_missing_count();
         int yld = 0, rv = 0, args[2] = {0, 0};
