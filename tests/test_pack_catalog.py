@@ -79,6 +79,14 @@ def main() -> int:
             print("note: 14.6 catalog peak still over cap", blob)
         else:
             print("14.6 catalog Always+Screen+Prev peak under 4.5 MB", blob)
+    sys.path.insert(0, str(ROOT / "tools"))
+    import pack_catalog as cat
+
+    bar = cat.script_seqs(Path(env["DINK_DATA"]), "s2-bar")
+    if 728 not in bar:
+        print("FAIL s2-bar missing attack dir 728", sorted(bar)[-12:])
+        return 1
+    print("s2-bar attack dirs include 728")
     return 0
 
 

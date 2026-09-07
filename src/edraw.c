@@ -142,6 +142,8 @@ static const char *pixel_class_name(int cls)
     return "screen";
 }
 
+static int frame_held(int seq, int frame);
+
 /* Screen pixels only. Prefer unused; pack still cached. unused_only skips
  * live frames so a cpu_pixels miss cannot thrash two live seqs each tick. */
 static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
@@ -156,6 +158,9 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         int cls, cached, unused;
 
         if (s == keep_seq && g[i].frame == keep_frame) {
+            continue;
+        }
+        if (frame_held(s, g[i].frame)) {
             continue;
         }
         cls = pixel_class(seqs, s);
@@ -215,6 +220,73 @@ static int g_mark_s[DINK_EDRAW_MARK_MAX];
 static int g_mark_f[DINK_EDRAW_MARK_MAX];
 static int g_nmark;
 
+#define DINK_EDRAW_HOLD_MAX 96
+static int g_hold_s[DINK_EDRAW_HOLD_MAX];
+static int g_hold_f[DINK_EDRAW_HOLD_MAX];
+static int g_nhold;
+
+void edraw_hold_clear(void)
+{
+    g_nhold = 0;
+}
+
+void edraw_hold_frame(int seq, int frame)
+{
+    int i;
+
+    if (seq < 1 || frame < 1 || g_nhold >= DINK_EDRAW_HOLD_MAX) {
+        return;
+    }
+    for (i = 0; i < g_nhold; i++) {
+        if (g_hold_s[i] == seq && g_hold_f[i] == frame) {
+            return;
+        }
+    }
+    g_hold_s[g_nhold] = seq;
+    g_hold_f[g_nhold] = frame;
+    g_nhold++;
+}
+
+void edraw_hold_pair(const struct SeqInfo *seqs, int seq, int frame)
+{
+    int nxt;
+
+    if (frame < 1) {
+        frame = 1;
+    }
+    edraw_hold_frame(seq, frame);
+    nxt = edraw_loop_next_frame(seqs, seq, frame);
+    if (nxt != frame) {
+        edraw_hold_frame(seq, nxt);
+    }
+}
+
+static int frame_held(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nhold; i++) {
+        if (g_hold_s[i] == seq && g_hold_f[i] == frame) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void edraw_hold_apply(struct EdGfx *g, int n)
+{
+    int i;
+
+    if (g == NULL) {
+        return;
+    }
+    for (i = 0; i < n; i++) {
+        if (frame_held(g[i].seq, g[i].frame)) {
+            g[i].live = 1;
+        }
+    }
+}
+
 void edraw_mark_need(int seq, int frame)
 {
     int i;
@@ -236,6 +308,7 @@ void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs)
 {
     int i;
 
+    edraw_hold_clear();
     if (g == NULL || seqs == NULL) {
         return;
     }
@@ -258,10 +331,9 @@ void edraw_reap_unused(struct EdGfx *g, int *n, struct SeqInfo *seqs)
         int drop = 0;
 
         if (pixel_class(seqs, g[i].seq) == PIX_SCREEN && !g[i].live) {
-            /* CPU-only: drop. Keep uploaded tex until enter-path unique or
-             * evict_slot. Bar knights switch 293 walk ↔ 297 attack; seq-live
-             * reap made walk vanish for a SEEK_SET. */
-            drop = (g[i].fr.tex == NULL);
+            /* Held walk/attack seqs are marked live. Other Screen tex
+             * (idle dirs, spent attack frames of dead sprites) free PVR. */
+            drop = 1;
         }
         if (drop) {
             sprite_frame_free(&g[i].fr);
@@ -405,6 +477,28 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     upload_and_drop_cpu(&g[*got].fr);
     audio_music_pump();
     (*got)++;
+#ifdef _arch_dreamcast
+    {
+        struct SpriteFrame *hit = edraw_find(g, *got, seq, frame);
+        int tries = 0, waited = 0;
+
+        while (hit != NULL && hit->tex == NULL && hit->argb1555 != NULL &&
+               tries++ < DINK_EDGFX_MAX) {
+            if (evict_slot(g, got, seqs, seq, frame, waited ? 0 : 1, 1) != 0) {
+                break;
+            }
+            waited = 1;
+            hit = edraw_find(g, *got, seq, frame);
+            if (hit == NULL) {
+                break;
+            }
+            upload_and_drop_cpu(hit);
+        }
+        if (hit != NULL && hit->tex == NULL && hit->argb1555 != NULL) {
+            printf("edraw pvr miss seq=%d fr=%d\n", seq, frame);
+        }
+    }
+#endif
     /* Play-path reaps !live Screen after every sprite is touched. */
     {
         size_t need = edraw_cpu_bytes(g, *got);

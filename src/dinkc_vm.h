@@ -61,7 +61,11 @@ void dinkc_vm_reset(void);
 /* Resume wait(ms) / move_stop stubs. now_ms is elapsed clock. */
 void dinkc_vm_tick(int now_ms);
 /* A while say_stop / say_stop_npc. */
+void dinkc_vm_note_last_talk(int fiber);
+int dinkc_vm_last_talk(void);
 void dinkc_vm_advance_say(void);
+/* FreeDink ACTION_TALK: only play.last_talk, not say_stop_npc. */
+void dinkc_vm_advance_last_talk(void);
 int dinkc_vm_waiting_say(void);
 void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);

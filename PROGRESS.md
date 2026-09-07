@@ -245,7 +245,13 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | Bomb missile walks all overlaps (`DAM-BOM` / Jack) | #146 |
 | 2026-09-07 | `say_stop('…")` one string (`S2-JACK` die unfreeze) | #146 |
 | 2026-09-07 | Reopen `hard.dat` after Prev drop (shop map 35 SEEK) | #146 |
-| 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | this PR |
+| 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | #148 |
+| 2026-09-07 | A skips `last_talk` only; B punches during `say_stop_npc` | this PR |
+| 2026-09-07 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | this PR |
+| 2026-09-07 | Screen PVR = live walk/attack set (bar fight heap) | this PR |
+| 2026-09-07 | Screen PVR current+next pair; evict unused until POT fits | this PR |
+| 2026-09-07 | X magic not gated on `say_stop_npc` WAIT_SAY | this PR |
+| 2026-09-07 | Playtest Open: `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | this PR |
 
 ## Bites
 

@@ -57,8 +57,17 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Dink death pose seq 436 then Load/Restart/Quit (`DINFO.c`) | `test_weapon` `dink/die` Always. Flycast stamp Open. |
 | West of AlkNut (`s1-ntree` → 473) tiles + nuts on return | `test_weapon` fb ARM comet not Always. Flycast stamp Open. |
 | Burned tree seq 20 on the same screen, not only after leave | `test_mem` make_room. Flycast stamp Open. |
+| Bar table `say_stop_npc` does not steal punch (B) | `test_dinkc_vm` npc not last_talk. Flycast stamp Open. |
+| `is_script_attached` + `run_script_by_number` on fireball tree (`DAM-FIRE` `DIE`) | Log 2026-09-07 `dinkc unimplemented is_script_attached` after seq 70/20. Unimplemented is 0 so generic burn only. |
+| `sp_sound` (quiet gap; CAMPAIGN-AUDIT) | Log `dinkc unimplemented sp_sound`. Not silent skip of the script file. |
+| Bar/combat blood seq 187–189 (`pack not cached`) | Play-path skip; blood pack not opened at enter. Pigs Confirmed; bar fight 2026-09-07 skipped. |
+| Seq 31 `nframes 0` / 458 NOTANIM / skip 725 | Inn leftover / sign with no `01.bmp` / `S2-BAR` preload of a seq not in `dink.ini`. Not a hang. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
+
+## Log notes (2026-09-07, bar fight / village)
+
+`build/emu.log` ~16:36. Bar **728** `nframes 6`; no `pvr_mem` / `edraw pvr miss`; guards `kill sprite=57/56` `s2-fight`. Fireball `dam-fire` in bar and outdoor. Session 21 swaps, all `swap atlas ok`, L-map `button6`. Leftovers in **Open** (`is_script_attached`, `sp_sound`, blood skip, seq 31/458/725). Not stamped Confirmed until the requester says so.
 
 ## Log notes (2026-08-23, confirmed)
 

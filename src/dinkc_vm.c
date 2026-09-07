@@ -60,6 +60,7 @@ static int g_sa_on;
 static int g_sa_n;
 static int g_sa_cur;
 static char g_sa_line[20][80];
+static int g_last_talk;
 
 static int fiber_slot(const struct Fiber *f)
 {
@@ -584,6 +585,9 @@ static void fiber_kill(struct Fiber *f)
     int i, slot;
 
     slot = (int)(f - g_f);
+    if (g_last_talk == slot) {
+        g_last_talk = 0;
+    }
     if (f->used) {
         dinkc_var_kill_scope(slot);
         for (i = 1; i < CB_N; i++) {
@@ -1312,6 +1316,22 @@ void dinkc_vm_tick(int now_ms)
     }
 }
 
+void dinkc_vm_note_last_talk(int fiber)
+{
+    g_last_talk = (fiber >= 1 && fiber <= DINKC_MAX_LIVE) ? fiber : 0;
+}
+
+int dinkc_vm_last_talk(void)
+{
+    int i = g_last_talk;
+
+    if (i < 1 || i > DINKC_MAX_LIVE || !g_f[i].used ||
+        g_f[i].state != DINKC_WAIT_SAY) {
+        return 0;
+    }
+    return i;
+}
+
 void dinkc_vm_advance_say(void)
 {
     int i;
@@ -1320,6 +1340,19 @@ void dinkc_vm_advance_say(void)
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_SAY) {
             run_fiber(&g_f[i], g_f[i].wait_until);
         }
+    }
+}
+
+void dinkc_vm_advance_last_talk(void)
+{
+    int i = dinkc_vm_last_talk();
+
+    if (i < 1) {
+        return;
+    }
+    run_fiber(&g_f[i], g_f[i].wait_until);
+    if (!g_f[i].used || g_f[i].state != DINKC_WAIT_SAY) {
+        g_last_talk = 0;
     }
 }
 

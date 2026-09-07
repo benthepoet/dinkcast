@@ -271,6 +271,60 @@ static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
     }
 }
 
+static void edraw_hold_live_sprites(struct SeqInfo *seqs)
+{
+    int ei, sq, fr, dir, bw, ba, bi;
+
+    if (seqs == NULL) {
+        return;
+    }
+    for (ei = 1; ei <= 99; ei++) {
+        if (!brains_slot_live(ei) || !brains_seq_frame(ei, &sq, &fr)) {
+            continue;
+        }
+        if (fr < 1) {
+            fr = 1;
+        }
+        edraw_hold_pair(seqs, sq, fr);
+        dir = brains_change_prop(ei, DINKC_SP_DIR, -1);
+        if (dir < 1 || dir == 5) {
+            dir = 2;
+        }
+        bw = brains_slot_base_walk(ei);
+        if (bw > 0 && bw + dir != sq) {
+            edraw_hold_pair(seqs, bw + dir, 1);
+        }
+        ba = brains_base_attack(ei);
+        if (ba > 0 && ba + dir != sq) {
+            edraw_hold_pair(seqs, ba + dir, 1);
+        }
+        bi = brains_base_idle(ei);
+        if (bi > 0 && bi != sq && bi + dir != sq) {
+            edraw_hold_pair(seqs, bi + dir, 1);
+        }
+    }
+    if (g_play_pl != NULL) {
+        sq = player_pic_seq(g_play_pl);
+        fr = player_pic_frame(g_play_pl);
+        if (fr < 1) {
+            fr = 1;
+        }
+        edraw_hold_pair(seqs, sq, fr);
+        dir = g_play_pl->dir;
+        if (dir < 1 || dir == 5) {
+            dir = 2;
+        }
+        if (DINK_BASE_WALK + dir != sq) {
+            edraw_hold_pair(seqs, DINK_BASE_WALK + dir, 1);
+        }
+        ba = g_play_pl->base_hit > 0 ? g_play_pl->base_hit
+                                     : g_play_pl->base_attack;
+        if (ba > 0 && ba + dir != sq) {
+            edraw_hold_pair(seqs, ba + dir, 1);
+        }
+    }
+}
+
 static void edraw_created_sprites(struct SeqInfo *seqs, int *ned)
 {
     int i, seq, bw, d, br, k;
@@ -1133,10 +1187,11 @@ int main(int argc, char **argv)
                         }
                     } else if (have && inv_showing()) {
                         inv_tick(prev_buttons, buttons, now_ms);
-                    } else if (have && dinkc_vm_waiting_say() &&
-                        (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
-                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
-                        dinkc_vm_advance_say();
+                    } else if (have && dinkc_vm_last_talk() &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
+                        /* FreeDink ACTION_TALK skips play.last_talk only.
+                         * B is attack; say_stop_npc does not set last_talk. */
+                        dinkc_vm_advance_last_talk();
                         if (!dinkc_vm_waiting_say()) {
                             saybox_clear();
                         }
@@ -1212,7 +1267,6 @@ int main(int argc, char **argv)
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
                         if (dinkc_cmd_weapon_armed() && pl.base_hit > 0) {
@@ -1225,7 +1279,6 @@ int main(int argc, char **argv)
                         !status_map_active() &&
                         pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice()) {
                         if (dinkc_cmd_magic_armed() && (buttons & DINK_PAD_X)) {
                             int lv = dinkc_var_get("&magic_level",
@@ -1264,6 +1317,8 @@ int main(int argc, char **argv)
                             int ei, sq, fr;
 
                             edraw_live_this_draw(seqs, g_ned);
+                            edraw_hold_live_sprites(seqs);
+                            edraw_hold_apply(g_edg, g_ned);
                             for (ei = 1; ei <= 100; ei++) {
                                 sq = (int)g_scr.sprite[ei].seq;
                                 fr = (int)g_scr.sprite[ei].frame;
@@ -1285,6 +1340,7 @@ int main(int argc, char **argv)
                                 edraw_ensure_draw_frame(
                                     seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
+                            edraw_hold_apply(g_edg, g_ned);
                             edraw_reap_unused(g_edg, &g_ned, seqs);
                         }
                     }

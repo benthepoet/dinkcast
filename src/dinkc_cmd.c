@@ -941,6 +941,10 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (yield != NULL && !is_cmd(name, "say")) {
             *yield = 1;
         }
+        /* FreeDink play.last_talk is say_stop / say_stop_xy only. */
+        if (is_cmd(name, "say_stop") || is_cmd(name, "say_stop_xy")) {
+            dinkc_vm_note_last_talk(g_fiber);
+        }
         return 1;
     }
     if (is_cmd(name, "say_xy")) {
