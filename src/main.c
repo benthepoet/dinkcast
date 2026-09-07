@@ -301,8 +301,10 @@ static void edraw_hold_live_sprites(void)
     }
     if (g_play_pl != NULL) {
         edraw_hold_seq(player_pic_seq(g_play_pl));
-        edraw_hold_dirs(g_play_pl->base_walk);
+        edraw_hold_dirs(DINK_BASE_WALK);
+        edraw_hold_dirs(g_play_pl->base_attack);
         edraw_hold_dirs(g_play_pl->base_hit);
+        edraw_hold_dirs(g_play_pl->base_push);
         edraw_hold_seq(g_play_pl->base_idle);
     }
 }
