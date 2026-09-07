@@ -46,6 +46,7 @@ Then from this repo (`local.mk` already has `DINK_DATA`):
 
 ```bash
 make docker-cdi        # ELF + CDI + CHD in build/ (needs chdman on the host)
+                       # applies tools/apply_kos_iso_patch.sh (#1492 14.6 pread)
 make emu               # Flycast on the CHD; SCIF also in build/emu.log
 make emu-fast          # same CHD, SCIF off (no emu.log; less hitch)
 ```

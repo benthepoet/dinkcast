@@ -50,4 +50,7 @@ docker run --rm \
       fi
       echo KOS_BASE=\$KOS_BASE
       which kos-cc
+      sh /src/tools/apply_kos_iso_patch.sh
+      # shellcheck disable=SC1091
+      . /src/build/kos-iso/env
       $CMD"
