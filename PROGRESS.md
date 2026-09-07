@@ -235,7 +235,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-06 | House fire: reap `!live` Screen after all touches; do not trim per `load_one` | #142 |
 | 2026-09-06 | Screen loop tex stays while that seq is live (14.6 fire SEEK_SET) | #143 |
 | 2026-09-06 | **14.6** D: catalog `file_blob` is `ff_toc_bytes` not whole `dir.ff` | #144 |
-| 2026-09-06 | **v0.5.0** tagged | this PR |
+| 2026-09-06 | **v0.5.0** tagged | #145 |
+| 2026-09-07 | `sfx-bank` / `music-bank` skip fresh dest (`AUDIO_FORCE=1` rebuild) | this PR |
 
 ## Bites
 

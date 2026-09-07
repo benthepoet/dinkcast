@@ -314,11 +314,46 @@ done:
 }
 
 #ifndef WAV_TO_ADPCM_NO_MAIN
+static const char *g_tool;
+
+static int audio_force(void)
+{
+    const char *e = getenv("AUDIO_FORCE");
+
+    return e != NULL && e[0] != '\0' && strcmp(e, "0") != 0;
+}
+
+/* Skip when dest is a non-empty file not older than src or this tool. */
+static int out_fresh(const char *in_path, const char *out_path)
+{
+    struct stat si, so, st;
+
+    if (audio_force() || in_path == NULL || out_path == NULL) {
+        return 0;
+    }
+    if (strcmp(in_path, out_path) == 0) {
+        return 0;
+    }
+    if (stat(out_path, &so) != 0 || !S_ISREG(so.st_mode) || so.st_size < 1) {
+        return 0;
+    }
+    if (stat(in_path, &si) != 0) {
+        return 0;
+    }
+    if (so.st_mtime < si.st_mtime) {
+        return 0;
+    }
+    if (g_tool != NULL && stat(g_tool, &st) == 0 && so.st_mtime < st.st_mtime) {
+        return 0;
+    }
+    return 1;
+}
+
 static int convert_dir(const char *src, const char *dst)
 {
     DIR *d;
     struct dirent *ent;
-    int n = 0, fail = 0;
+    int n = 0, fail = 0, skip = 0;
 
     if (dst != NULL && strcmp(src, dst) != 0) {
         if (mkdir(dst, 0755) != 0 && errno != EEXIST) {
@@ -342,6 +377,10 @@ static int convert_dir(const char *src, const char *dst)
         } else {
             snprintf(out, sizeof(out), "%s/%s", dst, ent->d_name);
         }
+        if (out_fresh(in, out)) {
+            skip++;
+            continue;
+        }
         if (wav_convert_path(in, out) != 0) {
             fail++;
         } else {
@@ -349,7 +388,8 @@ static int convert_dir(const char *src, const char *dst)
         }
     }
     closedir(d);
-    printf("wav_to_adpcm: converted %d wav (%d fail) in %s\n", n, fail, src);
+    printf("wav_to_adpcm: converted %d wav (%d skip, %d fail) in %s\n", n, skip,
+           fail, src);
     return fail ? -1 : 0;
 }
 
@@ -360,7 +400,9 @@ static void usage(void)
             "  wav_to_adpcm IN.wav OUT.wav\n"
             "  wav_to_adpcm --dir SoundDir --out build/sfx\n"
             "  wav_to_adpcm --dir staged/Sound --inplace\n"
-            "PCM payload < 8 KiB stays 16-bit PCM. Output is not committed.\n");
+            "PCM payload < 8 KiB stays 16-bit PCM. Output is not committed.\n"
+            "--dir skips dest newer than src and this binary. AUDIO_FORCE=1 "
+            "rebuilds.\n");
 }
 
 int main(int argc, char **argv)
@@ -368,6 +410,7 @@ int main(int argc, char **argv)
     const char *dir = NULL, *out = NULL;
     int inplace = 0, i;
 
+    g_tool = argv[0];
     if (argc < 2) {
         usage();
         return 2;

@@ -198,6 +198,7 @@ tests/test_audio: tests/test_audio.c src/audio.c src/dinkc_cmd.c src/fade.c src/
 
 # Optional: convert WAVs into build/sfx (not committed).
 # DINK_SOUND = official 1.08 Sound/ (full SFX). Else DINK_DATA/Sound.
+# Skip dest newer than src and wav_to_adpcm. AUDIO_FORCE=1 rebuilds.
 sfx-bank: build/wav_to_adpcm
 	mkdir -p build/sfx
 	@SND="$(DINK_SOUND)"; \
@@ -211,6 +212,7 @@ sfx-bank: build/wav_to_adpcm
 	fi
 
 # 12.4: MIDI → 22050 mono ADPCM WAV in build/music (not committed).
+# Skip dest newer than the .mid, soundfonts, and this script. AUDIO_FORCE=1.
 music-bank: build/wav_to_adpcm
 	mkdir -p build/music
 	@SND="$(DINK_SOUND)"; \
