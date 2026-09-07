@@ -1279,7 +1279,6 @@ int main(int argc, char **argv)
                         !status_map_active() &&
                         pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice()) {
                         if (dinkc_cmd_magic_armed() && (buttons & DINK_PAD_X)) {
                             int lv = dinkc_var_get("&magic_level",
