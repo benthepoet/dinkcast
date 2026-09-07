@@ -713,7 +713,8 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 residency_touch(dir);
             }
         }
-        ff_cache_drop_unpinned();
+        /* Drop Prev *after* this Screen's SEEK_SET. fclose of innwalls
+         * then pread a live trees FILE* wedged map 498 (west of 499). */
         old = *n;
         if (old < 0) {
             old = 0;
@@ -831,6 +832,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
                 drop_seq_pack(seqs, 164);
             }
         }
+        ff_cache_drop_unpinned();
     }
     ff_cache_drop_unpinned();
     printf("blob bytes %u unique %d\n", (unsigned)dink_blob_bytes(), got);
