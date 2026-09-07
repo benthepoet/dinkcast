@@ -1133,10 +1133,11 @@ int main(int argc, char **argv)
                         }
                     } else if (have && inv_showing()) {
                         inv_tick(prev_buttons, buttons, now_ms);
-                    } else if (have && dinkc_vm_waiting_say() &&
-                        (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
-                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
-                        dinkc_vm_advance_say();
+                    } else if (have && dinkc_vm_last_talk() &&
+                        pad_just_pressed(prev_buttons, buttons, DINK_PAD_A)) {
+                        /* FreeDink ACTION_TALK skips play.last_talk only.
+                         * B is attack; say_stop_npc does not set last_talk. */
+                        dinkc_vm_advance_last_talk();
                         if (!dinkc_vm_waiting_say()) {
                             saybox_clear();
                         }
@@ -1212,7 +1213,6 @@ int main(int argc, char **argv)
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
                         if (dinkc_cmd_weapon_armed() && pl.base_hit > 0) {

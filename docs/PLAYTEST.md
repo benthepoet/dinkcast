@@ -57,6 +57,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Dink death pose seq 436 then Load/Restart/Quit (`DINFO.c`) | `test_weapon` `dink/die` Always. Flycast stamp Open. |
 | West of AlkNut (`s1-ntree` → 473) tiles + nuts on return | `test_weapon` fb ARM comet not Always. Flycast stamp Open. |
 | Burned tree seq 20 on the same screen, not only after leave | `test_mem` make_room. Flycast stamp Open. |
+| Bar table `say_stop_npc` does not steal punch (B) | `test_dinkc_vm` npc not last_talk. Flycast stamp Open. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 

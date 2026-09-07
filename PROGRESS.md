@@ -245,7 +245,8 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | Bomb missile walks all overlaps (`DAM-BOM` / Jack) | #146 |
 | 2026-09-07 | `say_stop('…")` one string (`S2-JACK` die unfreeze) | #146 |
 | 2026-09-07 | Reopen `hard.dat` after Prev drop (shop map 35 SEEK) | #146 |
-| 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | this PR |
+| 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | #148 |
+| 2026-09-07 | A skips `last_talk` only; B punches during `say_stop_npc` | this PR |
 
 ## Bites
 
