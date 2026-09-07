@@ -128,17 +128,34 @@ int dinkc_lex_next(struct DinkcLex *lx, struct DinkcTok *out)
         out->n = (size_t)((lx->src + lx->i) - out->p);
         return 0;
     }
-    if (c == '"') {
+    /* FreeDink is line-based; S2-JACK die is say_stop('…"). Close on
+     * either quote. Apostrophe with no closer on the line is OTHER
+     * (title prose / don't). Unterminated " stops at newline. */
+    if (c == '"' || c == '\'') {
+        size_t start_i = lx->i;
+        int start_line = lx->line;
+        int closer = 0;
+
         eat(lx);
-        while (peek(lx) != 0 && peek(lx) != '"') {
+        while (peek(lx) != 0 && peek(lx) != '\n' && peek(lx) != '\r') {
+            int q = peek(lx);
+
+            /* Open '"': only " closes (It's / I'm inside). Open ': " or '. */
+            if (q == '"' || (c == '\'' && q == '\'')) {
+                eat(lx);
+                closer = 1;
+                break;
+            }
             eat(lx);
         }
-        if (peek(lx) != '"') {
-            out->kind = DINKC_STRING;
-            out->n = (size_t)((lx->src + lx->i) - out->p);
+        if (!closer && c == '\'') {
+            lx->i = start_i;
+            lx->line = start_line;
+            eat(lx);
+            out->kind = DINKC_OTHER;
+            out->n = 1;
             return 0;
         }
-        eat(lx);
         out->kind = DINKC_STRING;
         out->n = (size_t)((lx->src + lx->i) - out->p);
         return 0;

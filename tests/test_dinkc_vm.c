@@ -681,6 +681,23 @@ int main(void)
         expect(pl.freeze == 0, "keep extra } unfreeze");
         expect(dinkc_vm_used(ks), "keep still attached");
     }
+    {
+        /* S2-JACK die: say_stop('…", 1) must not eat unfreeze. */
+        const char *jack_die =
+            "void die(void) { freeze(1); "
+            "say_stop('I guess I just killed your husband.\", 1); "
+            "unfreeze(1); }";
+
+        dinkc_vm_reset();
+        memset(&pl, 0, sizeof(pl));
+        dinkc_cmd_bind_player(&pl);
+        slot = dinkc_vm_start_proc(jack_die, strlen(jack_die), 37, "die");
+        expect(pl.freeze == 1 && dinkc_vm_waiting_say(), "jack die say");
+        expect(strstr(saybox_text(), "husband") != NULL,
+               "jack mixed quote text");
+        dinkc_vm_advance_say();
+        expect(dinkc_vm_live() == 0 && pl.freeze == 0, "jack die unfreeze");
+    }
 
     {
         const char *bounded =

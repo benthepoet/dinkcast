@@ -431,9 +431,12 @@ static void parse_args(struct Fiber *f, int *args, int *nargs, char *str,
             }
             nstr++;
             if (dest != NULL && destsz > 1) {
-                if (n >= 2 && p[0] == '"') {
+                if (n >= 1 && (p[0] == '"' || p[0] == '\'')) {
                     p++;
-                    n -= 2;
+                    n--;
+                }
+                if (n >= 1 && (p[n - 1] == '"' || p[n - 1] == '\'')) {
+                    n--;
                 }
                 if (n >= destsz) {
                     n = destsz - 1;
@@ -766,9 +769,13 @@ static void run_fiber(struct Fiber *f, int now_ms)
                             const char *p = line;
                             size_t ln = strlen(line);
 
-                            if (ln >= 2 && p[0] == '"') {
+                            if (ln >= 1 && (p[0] == '"' || p[0] == '\'')) {
                                 p++;
-                                ln -= 2;
+                                ln--;
+                            }
+                            if (ln >= 1 &&
+                                (p[ln - 1] == '"' || p[ln - 1] == '\'')) {
+                                ln--;
                             }
                             if (ln > 79) {
                                 ln = 79;
