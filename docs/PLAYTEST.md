@@ -57,6 +57,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Dink death pose seq 436 then Load/Restart/Quit (`DINFO.c`) | `test_weapon` `dink/die` Always. Flycast stamp Open. |
 | West of AlkNut (`s1-ntree` → 473) tiles + nuts on return | `test_weapon` fb ARM comet not Always. Flycast stamp Open. |
 | Burned tree seq 20 on the same screen, not only after leave | `test_mem` make_room. Flycast stamp Open. |
+| Fireball tree fire (`DAM-FIRE` seq 20): noticeable delay before the burn animation | Diagnose first: `grep -E 'ioplay|edraw skip|edraw full skip|mem refuse' build/emu.log` (seq 20/70 frame loads after enter; the delay may not be I/O). `preload_seq` decodes frame 1 only. `ioplay` does not cover inv/status/choice/startmenu uploads, `fclose`, or VMU writes. No fix yet. |
 
 Do not mark new pictures confirmed until the requester says so. Name them here when they report them.
 

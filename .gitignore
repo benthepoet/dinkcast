@@ -83,3 +83,4 @@ compile_commands.json
 __pycache__/
 *.pyc
 .venv/
+tests/test_iolog

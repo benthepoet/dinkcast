@@ -247,6 +247,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | Reopen `hard.dat` after Prev drop (shop map 35 SEEK) | #146 |
 | 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | this PR |
 | 2026-11-19 | Codebase review: capacity (fibers 20, sprite slots), RAM growth, FreeDink gaps, architecture — [CODEBASE-REVIEW-2026-11-19.md](docs/CODEBASE-REVIEW-2026-11-19.md). Analysis only. Release scope NTSC; PAL deferred | this PR |
+| 2026-11-19 | Play-path I/O log: `ioplay` disc/frame/gpu_wait lines after screen enter + per-screen summary (diagnostic, no policy) | this PR |
 
 ## Bites
 

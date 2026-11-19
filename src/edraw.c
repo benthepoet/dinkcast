@@ -180,7 +180,10 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     }
 #ifdef _arch_dreamcast
     if (gpu_wait) {
+        unsigned t0 = dink_io_now_us();
+
         pvr_wait_ready();
+        dink_io_note_gpu_wait(dink_io_now_us() - t0);
     }
 #else
     (void)gpu_wait;
@@ -372,17 +375,11 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
 
 static void upload_and_drop_cpu(struct SpriteFrame *f);
 
-static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
-                    int frame, int may_evict)
+static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                         int seq, int frame, int may_evict)
 {
     static uint8_t full_noted[DINK_MAX_SEQ];
 
-    if (edraw_find(g, *got, seq, frame) != NULL) {
-        return 0;
-    }
-    if (miss_has(seq, frame)) {
-        return -1;
-    }
     (void)open_seq_pack(seqs, seq);
     if (*got >= DINK_EDGFX_MAX) {
         if (!may_evict || evict_slot(g, got, seqs, seq, frame, 0, 0) != 0) {
@@ -420,6 +417,35 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
         }
     }
     return 0;
+}
+
+/* Diagnostic window covers pack open, eviction, decode and upload, so a
+ * play-path frame line owns every disc op it caused (ioplay). */
+static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
+                    int frame, int may_evict)
+{
+    struct DinkIoStats io0, io1;
+    char outer[64], ctx[32];
+    unsigned t0;
+    int rc;
+
+    if (edraw_find(g, *got, seq, frame) != NULL) {
+        return 0;
+    }
+    if (miss_has(seq, frame)) {
+        return -1;
+    }
+    t0 = dink_io_now_us();
+    dink_io_stats(&io0);
+    dink_io_ctx_save(outer, sizeof(outer));
+    snprintf(ctx, sizeof(ctx), "edraw seq=%d fr=%d", seq, frame);
+    dink_io_ctx(ctx);
+    rc = load_one_body(g, got, seqs, seq, frame, may_evict);
+    dink_io_ctx(outer);
+    dink_io_stats(&io1);
+    dink_io_note_frame("edraw", rc == 0 ? seq : -seq, frame,
+                       dink_io_now_us() - t0, io1.ops - io0.ops);
+    return rc;
 }
 
 static void load_seq_frames(struct EdGfx *g, int *got, struct SeqInfo *seqs,

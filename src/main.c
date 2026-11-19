@@ -357,10 +357,18 @@ static void edraw_mark_created(void)
 }
 
 /* FreeDink game_load_screen: record + thaw + screenlock=0. No kill_all. */
+static int g_io_map;
+
 static int play_load_screen(int map)
 {
     int rec, rc = -1;
+    /* Script load_screen mid-tick returns to play for the rest of it. */
+    int io_prev = dink_io_play();
 
+    /* Diagnostic: close the last screen's play-path I/O tally. */
+    dink_io_summary(g_io_map);
+    g_io_map = map;
+    dink_io_set_play(0);
     audio_music_disc_hold(1);
     rec = screen_map_rec(&g_world, map);
     if (rec < 1) {
@@ -406,6 +414,7 @@ static int play_load_screen(int map)
     rc = 0;
 done:
     audio_music_disc_hold(0);
+    dink_io_set_play(io_prev);
     return rc;
 }
 
@@ -425,8 +434,10 @@ static int play_draw_screen(int sprite)
 {
     struct SeqInfo *seqs = g_seqs_play;
     int nstamp;
+    int io_prev = dink_io_play();
 
     (void)sprite;
+    dink_io_set_play(0);
     audio_music_disc_hold(1);
     audio_music_pump();
     if (g_play_have_scene != NULL && *g_play_have_scene) {
@@ -513,6 +524,8 @@ static int play_draw_screen(int sprite)
     audio_music_pump();
     script_attach_live();
     audio_music_disc_hold(0);
+    /* Script draw_screen mid-tick: the fiber's work after it is play. */
+    dink_io_set_play(io_prev);
     return 0;
 }
 
@@ -1014,6 +1027,12 @@ int main(int argc, char **argv)
                         uint32_t buttons = 0;
                         int have, pdir, paused;
 
+                        /* Diagnostic: menu/restart/swap are not play-path
+                         * until the gameplay section below; print last
+                         * tick's queued ioplay lines outside any window. */
+                        dink_io_set_play(0);
+                        dink_io_flush();
+
                     if (need_menu) {
                         /* Boot/place_sprites runs before START; halt hearth. */
                         audio_halt_loops();
@@ -1088,6 +1107,9 @@ int main(int argc, char **argv)
                         continue;
                     }
 
+                    /* Diagnostic: from here to the next swap is play-path.
+                     * Any disc/frame load now logs `ioplay`. */
+                    dink_io_set_play(1);
                     /* Finish the last scene before evicting its sprite tex.
                      * Punch cx (~58) vs idle (~36): freeing mid-frame shows
                      * idle pixels at the punch quad (ghost to the left).
@@ -1400,14 +1422,30 @@ int main(int argc, char **argv)
                             int dseq = player_pic_seq(&pl);
                             int dfr = player_pic_frame(&pl);
 
+                            struct DinkIoStats io0, io1;
+                            unsigned io_t0 = dink_io_now_us();
+                            int lrc;
+
                             memset(&nxt, 0, sizeof(nxt));
-                            if (dseq > 0 &&
-                                sprite_load_seq_frame(&seqs[dseq], dseq, dfr,
-                                                      &nxt) == 0) {
+                            dink_io_stats(&io0);
+                            dink_io_ctx("dink");
+                            lrc = dseq > 0 ? sprite_load_seq_frame(
+                                                 &seqs[dseq], dseq, dfr, &nxt)
+                                           : -1;
+                            if (lrc == 0) {
                                 sprite_frame_free(&spr);
                                 spr = nxt;
                                 (void)sprite_upload_pvr(&spr);
-                            } else {
+                            }
+                            dink_io_ctx(NULL);
+                            dink_io_stats(&io1);
+                            if (dseq > 0) {
+                                dink_io_note_frame(
+                                    "dink", lrc == 0 ? dseq : -dseq, dfr,
+                                    dink_io_now_us() - io_t0,
+                                    io1.ops - io0.ops);
+                            }
+                            if (lrc != 0) {
                                 printf("dink seq load fail seq=%d fr=%d\n",
                                        dseq, dfr);
                             }

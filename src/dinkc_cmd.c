@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_cmd.h"
+#include "fs.h"
 
 #include "audio.h"
 #include "dinkc_var.h"
@@ -1464,10 +1465,17 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     }
     if (is_cmd(name, "preload_seq")) {
         if (a0 > 0) {
+            char outer[64], ctx[24];
+
+            /* ioplay: label the pack open in pin_seq and the decode. */
+            dink_io_ctx_save(outer, sizeof(outer));
+            snprintf(ctx, sizeof(ctx), "preload_seq %d", a0);
+            dink_io_ctx(ctx);
             pin_seq(a0);
             if (g_preload != NULL) {
                 g_preload(a0);
             }
+            dink_io_ctx(outer);
         }
         return 1;
     }
