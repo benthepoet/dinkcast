@@ -80,8 +80,8 @@ The port is in good shape for the opening village and the early campaign. The fi
 - **PAL consoles (deferred):** the requester scoped the release to NTSC (2026-11-19). On a PAL unit at 50 Hz, all game time (`wait()`, animation delays, TTLs, respawn timers) would run 20% slow. Recorded so a later PAL bite starts here; not on the NTSC path.
 - **NTSC drifts too:** the release target runs at 59.94 Hz, so 16 ms per frame is about 959 ms of game time per real second, about **4% slow** (`wait()`, animation delays, TTLs, respawn timers, the 100 ms status tick).
 - **Slow frames:** a frame that misses vblank slows the whole game further.
-- FreeDink uses the real clock (`game_compute_speed`, `thisTickCount = game_GetTicks()`), clamps the frame delta to 12..68 ms, and scales movement by `base_timing/4` (`base_timing = fps_final/3`, minimum 4). At a steady 60 Hz that factor is 1, which is why Dinkcast's fixed step looks right.
-- Fix: derive `now_ms` from `timer_ms_gettime64()` with FreeDink's 12..68 ms clamp. Graft `base_timing` from the measured delta rather than fixing it at 4, so a 30 FPS frame moves twice as far as FreeDink does. Clamp swap gaps the same way.
+- FreeDink uses the real, unclamped clock for game time (`game_compute_speed`, `thisTickCount = game_GetTicks()`; that clock drives `wait()`, `attack_wait`, callbacks, the 100 ms status block and respawn timers). Only the per-frame movement delta `fps_final` is clamped to 12..68 ms, and movement is scaled by `base_timing/4` (`base_timing = fps_final/3`, minimum 4). At a steady 60 Hz that factor is 1, which is why Dinkcast's fixed step looks right.
+- Fix: derive `now_ms` from `timer_ms_gettime64()` unclamped (as FreeDink's `thisTickCount`). Separately clamp the frame delta `fps_final` to 12..68 ms and set `base_timing = max(4, fps_final/3)` rather than fixing it at 4, so a 30 FPS frame moves twice as far, as in FreeDink.
 
 ### 2.9 Respawn timers stamp on `editor_type`, not on leaving **[verified, known]**
 - `src/dinkc_cmd.c:1701` stamps `g_spmap_time` when `editor_type(6/7/8)` is set. FreeDink `update_screen_time` stamps `last_time` on every edge, warp and load, so the 1/3/5 minute respawns count from when you left. The timers are also missing from the save blob.
@@ -328,6 +328,6 @@ Today a screen swap does a path resolve (stat, then `readdir` scan on a case mis
 2. **Test harness:** `game_tick`/`game_render` split plus a recording renderer (§6.6 step 1), then headless FreeDink traces (step 2).
 3. **Visible gaps:** animated tiles, `stop_entire_game` plus the exp gate (§2.6), `ESCAPE.c`, `set_dink_speed`, `compare_sprite_script`, `is_script_attached`/`run_script_by_number`, Dink damage floaters, the screen-slide transition.
 4. **Hardness 0/1/2, flying and missile walls** (§2.1–2.4) as one class PR, locked by traces. Deferred until a playtest picture demands it (GRAFT-AUDIT Challenge).
-5. **Timing:** real-clock `now_ms` with FreeDink's 12..68 ms clamp and measured `base_timing` (§2.8; fixes the 4% NTSC drift; PAL deferred).
+5. **Timing:** real-clock, unclamped `now_ms`, plus FreeDink's 12..68 ms clamp on the movement delta only (`base_timing`) (§2.8; fixes the 4% NTSC drift; PAL deferred).
 6. **Plan amendments, then architecture:** amend the plan for §5.2 (Script class), §6.1 (8bpp paletted), §6.4 (VRAM LRU vs 14.4c) and §6.5 (disc bundles). Then 8bpp paletted textures (§6.1), type-0/2 bake (§6.2), the residency simplification (§6.4), and the unified sprite table (§6.3) behind traces.
 7. **Bite 18 on hardware**, including disc bundles if the seek numbers call for them (§6.5, §7).

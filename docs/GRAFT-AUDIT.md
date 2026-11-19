@@ -29,7 +29,7 @@ visibly wrong stock behavior, **P2** cosmetic/rare.
 | 8 | Screen change, warp, vision | 1 | 2 | 6 | editor base_attack/base_idle/base_hit dropped |
 | 9 | Sprite lifecycle & manager | 0 | 6 | 4 | cap 100 vs 300; no eviction; sp() identity stub |
 | 10 | Text, say, choice | 0 | 3 | 9 | single global saybox vs brain-8 text sprites |
-| 11 | Inventory, stats, HUD, save | 0 | 5 | 11 | magic regen ~8× slow; load doesn't re-run main |
+| 11 | Inventory, stats, HUD, save | 0 | 5 | 11 | ~~magic regen ~8× slow~~ (retracted, see §11); load doesn't re-run main |
 | 12 | Main loop ordering | 0 | 4 | 9 | scripts run before brains / during inventory |
 
 Totals: **1 P0, ~58 P1, ~99 P2** (P1/P2 counts overlap slightly where two passes
@@ -315,7 +315,7 @@ requester says go; items 2+ wait for a named playtest picture. Kept for the reco
 5. **Command stubs the campaign hits** (§6): `fill_screen`, `kill_shadow`,
    `sp_kill_wait`, `compare_sprite_script`, `set_dink_speed`, `sp()` real lookup,
    `hurt` HIT-proc path, `sp_dir`/`sp_seq` changedir graft.
-6. **Magic regen / status throttle** (§11 #1, #8, #9) — one-line class fix in
+6. **Magic regen / status throttle** (§11 #1, #8, #9) — one-line class fix in *(Retracted 2026-11-19: FreeDink also runs status on the 100 ms tick; see §11 correction.)*
    `status.c` cadence.
 7. **Bow charge** (§4 F1 + §12 F7) — needs input + yield design; [known] gap.
 8. **Center inheritance + BLACK keyword** (§7 F1/F2) — one ini/sprite bite.
@@ -346,7 +346,7 @@ Severity is inflated; several items would regress playtest-accepted pictures.
 - User-defined `void foo()` → `k_fn` / unimplemented. Interpreter hole; **high `wait`/`external` regression** if grafted wrong.
 - `fill_screen` / `kill_shadow` / `sp_kill_wait` stubs. Letter fade was **accepted without** a real black fill — implementing `fill_screen` now can regress that.
 - `compare_sprite_script` missing (`S4-ROCK.c` / `S4-SEC1.c` / `S5-SEC1.c`). Later secrets, not village.
-- Magic regen: `status_update` early-returns `< 100 ms` then `lv += magic`. FreeDink adds every frame. At 60 Hz ~**6×** slower, not ~8×. Combat feel change.
+- Magic regen: `status_update` early-returns `< 100 ms` then `lv += magic`. FreeDink adds every frame. At 60 Hz ~**6×** slower, not ~8×. Combat feel change. *(Retracted 2026-11-19: FreeDink also runs status on the 100 ms tick; see §11 correction.)*
 - `brains_enter` **keeps `created`** across screens (opposite FreeDink). Can leak loot/dummies. Evicting all created on swap would regress food / `s1-nopas` / bridge dummy / crowd sprites.
 - Inventory/map: `dinkc_vm_tick` still runs. `wait()`/say can advance behind the overlay.
 
@@ -370,7 +370,7 @@ Severity is inflated; several items would regress playtest-accepted pictures.
 - Hardness 2 + flying + missile walls → walk, push, water, fireballs.
 - Kill all `created` on swap → food, hearts, nopas, bridge dummy, 439 crowd.
 - Real `fill_screen` → letter fade_up.
-- Magic regen 6× faster → mana in every fight.
+- Magic regen 6× faster → mana in every fight. *(2026-11-19: magic cadence is also not a gap; see §11 correction.)*
 - VM proc calls / callback fibers → `wait` / `external` / item USE.
 - Main-loop reorder → everything.
 
@@ -411,12 +411,12 @@ Each of Grok's claims re-verified by hand against both trees and the stock
 4. **`sp_editor_num`.** Downgraded to P2: stock uses it on the current editor
    sprite, where the identity stub is correct; the dead-row failure mode is a
    D-Mod/edge risk.
-5. **Magic regen magnitude.** Conceded (also caught in PR #119 review): ~6× slow
+5. **Magic regen magnitude.** Conceded (also caught in PR #119 review): ~6× slow *(Retracted 2026-11-19: FreeDink also runs status on the 100 ms tick; see §11 correction.)*
    at 60 Hz, "~8×" only near 84 fps. Direction and class unchanged.
 6. **Process.** Agreed in full: no mega-PR, no batching into playtest #118, one
    concern per PR, requester-gated; the "what would regress" list is accurate
    (hardness-2/flying/missile walls, evicting `created` on swap, real
-   `fill_screen`, faster magic cadence, VM proc/callback changes, main-loop
+   `fill_screen`, faster magic cadence, VM proc/callback changes, main-loop *(2026-11-19: magic cadence is also not a gap; see §11 correction.)*
    reorder). This matches the audit's own closing note; Grok's four next steps
    are the operative plan.
 
