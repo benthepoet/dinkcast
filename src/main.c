@@ -1155,10 +1155,16 @@ int main(int argc, char **argv)
                         }
                     } else if (have && inv_showing()) {
                         inv_tick(prev_buttons, buttons, now_ms);
-                    } else if (have && dinkc_vm_waiting_say() &&
-                        (pad_just_pressed(prev_buttons, buttons, DINK_PAD_A) ||
-                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B))) {
-                        dinkc_vm_advance_say();
+                    } else if (have && pl.freeze != 0 && pl.nocontrol == 0 &&
+                               !dinkc_vm_waiting_choice() &&
+                               dinkc_vm_last_talk() &&
+                               pad_just_pressed(prev_buttons, buttons,
+                                                DINK_PAD_A)) {
+                        /* FreeDink human_brain: nocontrol returns first, a
+                         * choice wins, then ACTION_TALK while frozen kills
+                         * play.last_talk's text only. Unfrozen A is talk.
+                         * B is attack; say_stop_npc does not set last_talk. */
+                        dinkc_vm_advance_last_talk();
                         if (!dinkc_vm_waiting_say()) {
                             saybox_clear();
                         }
@@ -1197,7 +1203,7 @@ int main(int argc, char **argv)
                             dinkc_vm_choice_open_pause(startpause_focus() + 1);
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
-                        !dinkc_vm_waiting_say() &&
+                        pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_L)) {
                         (void)script_on_button(6);
@@ -1212,7 +1218,7 @@ int main(int argc, char **argv)
                         }
 #endif
                     } else if (have && !paused && pl.freeze == 0 &&
-                        !dinkc_vm_waiting_say() &&
+                        pl.nocontrol == 0 &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
                         inv_open(now_ms);
@@ -1234,7 +1240,6 @@ int main(int argc, char **argv)
                         }
                     } else if (have && !paused && pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice() &&
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_B)) {
                         if (dinkc_cmd_weapon_armed() && pl.base_hit > 0) {
@@ -1247,7 +1252,6 @@ int main(int argc, char **argv)
                         !status_map_active() &&
                         pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
-                        !dinkc_vm_waiting_say() &&
                         !dinkc_vm_waiting_choice()) {
                         if (dinkc_cmd_magic_armed() && (buttons & DINK_PAD_X)) {
                             int lv = dinkc_var_get("&magic_level",
