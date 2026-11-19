@@ -942,8 +942,9 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (yield != NULL && !is_cmd(name, "say")) {
             *yield = 1;
         }
-        /* FreeDink play.last_talk is say_stop / say_stop_xy only. */
-        if (is_cmd(name, "say_stop") || is_cmd(name, "say_stop_xy")) {
+        /* FreeDink play.last_talk: dc_say_stop and dc_say_stop_xy only
+         * (say_stop_xy sets it in its own branch below). */
+        if (is_cmd(name, "say_stop")) {
             dinkc_vm_note_last_talk(g_fiber);
         }
         return 1;
@@ -974,6 +975,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (yield != NULL) {
             *yield = 1;
         }
+        dinkc_vm_note_last_talk(g_fiber);
         return 1;
     }
     if (is_cmd(name, "debug")) {

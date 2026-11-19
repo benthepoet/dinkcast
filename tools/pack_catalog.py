@@ -255,7 +255,7 @@ def script_direct(root: Path, name: str) -> tuple[set[int], list[str]]:
         base = int(m.group(1))
         for d in (1, 2, 3, 4, 6, 7, 8, 9):
             out.add(base + d)
-    # FreeDink changedir: base_attack+dir. S2-BAR preloads 722/724/726 not
+    # FreeDink brain_diagonal.cpp:123 seq = base_attack+dir (walk is changedir). S2-BAR preloads 722/724/726 not
     # 728; guards spawn at y=450 and attack up (seq 728). Distill omitted
     # c05a8 so they vanished on that swing. Same dirs as walk.
     for m in re.finditer(r"sp_base_attack\s*\([^,]+,\s*(\d+)", stripped, re.I):

@@ -191,6 +191,22 @@ int main(void)
     }
 
     {
+        /* FreeDink dc_say_stop_xy sets play.last_talk (S1-LTR, START-3). */
+        const char *sxy =
+            "void main(void) { say_stop_xy(\"`%Dear Dink\", 20, 300); "
+            "&gold = 11; }";
+
+        dinkc_var_init();
+        dinkc_vm_reset();
+        slot = dinkc_vm_start(sxy, strlen(sxy), 1000);
+        expect(dinkc_vm_waiting_say() == 1, "say_stop_xy yield");
+        expect(dinkc_vm_last_talk() == slot, "say_stop_xy last_talk");
+        dinkc_vm_advance_last_talk();
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 11,
+               "A skips say_stop_xy");
+    }
+
+    {
         const char *xy =
             "void main(void) { say_xy(\"`%Try loading a saved game that "
             "exists, friend.\", 0, 390); &gold = 7; }";

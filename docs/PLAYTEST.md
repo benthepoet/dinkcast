@@ -58,7 +58,8 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | West of AlkNut (`s1-ntree` → 473) tiles + nuts on return | `test_weapon` fb ARM comet not Always. Flycast stamp Open. |
 | Burned tree seq 20 on the same screen, not only after leave | `test_mem` make_room. Flycast stamp Open. |
 | Fireball tree fire (`DAM-FIRE` seq 20): noticeable delay before the burn animation | Diagnose first: `grep -E 'ioplay|edraw skip|edraw full skip|mem refuse' build/emu.log` (seq 20/70 frame loads after enter; the delay may not be I/O). `preload_seq` decodes frame 1 only. `ioplay` does not cover inv/status/choice/startmenu uploads, `fclose`, or VMU writes. No fix yet. |
-| Bar table `say_stop_npc` does not steal punch (B) | `test_dinkc_vm` npc not last_talk. Flycast stamp Open. |
+| Bar table `say_stop_npc` does not steal punch (B) or fireball (X); Y/L work during it; A still skips Dink/Maria `say_stop` while frozen | `test_dinkc_vm` npc not last_talk; say_stop_xy last_talk. Flycast stamp Open. |
+| Bar table: an NPC `say_stop_npc` line can be overwritten by Dink's miss line or own say (one shared saybox, not FreeDink brain-8 text sprites) | Known V5 shape (GRAFT-AUDIT §10). Watch for skipped gossip lines. Follow-up: START pause still gated on any `WAIT_SAY`. |
 | `is_script_attached` + `run_script_by_number` on fireball tree (`DAM-FIRE` `DIE`) | Log 2026-09-07 `dinkc unimplemented is_script_attached` after seq 70/20. Unimplemented is 0 so generic burn only. |
 | `sp_sound` (quiet gap; CAMPAIGN-AUDIT) | Log `dinkc unimplemented sp_sound`. Not silent skip of the script file. |
 | Bar/combat blood seq 187–189 (`pack not cached`) | Play-path skip; blood pack not opened at enter. Pigs Confirmed; bar fight 2026-09-07 skipped. |
