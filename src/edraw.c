@@ -353,6 +353,185 @@ static void miss_note(int seq, int frame)
     g_nmiss++;
 }
 
+/* ---- sprite_tex (VRAM) working set, 14.4c class victims ----
+ * An upload that runs out of PVR memory frees Screen textures that are not
+ * live this tick and whose pack is still cached (they decode again), largest
+ * first; then asks the relief hook (Dink's other seqs, pspr_trim). Never
+ * Always/Sticky, never a live frame. If nothing frees, the frame is refused
+ * and remembered until some texture is freed (sprite_pvr_free_gen), so a
+ * full VRAM does not re-read and re-decode it every tick. All callers run
+ * after the last scene finished (top-of-play wait, draw_screen wait, or
+ * before the first scene). */
+static size_t (*g_vram_relief)(void);
+#ifdef _arch_dreamcast
+static int (*g_upload)(struct SpriteFrame *f) = sprite_upload_pvr;
+#else
+static int (*g_upload)(struct SpriteFrame *f);
+#endif
+
+void edraw_set_vram_relief(size_t (*fn)(void))
+{
+    g_vram_relief = fn;
+}
+
+void edraw_set_upload(int (*fn)(struct SpriteFrame *f))
+{
+    g_upload = fn;
+}
+
+#define DINK_VRAM_REFUSE 32
+static int g_ref_seq[DINK_VRAM_REFUSE];
+static int g_ref_fr[DINK_VRAM_REFUSE];
+static unsigned g_ref_gen[DINK_VRAM_REFUSE];
+static int g_nref;
+static unsigned g_nrefused;
+
+static void refuse_clear(void)
+{
+    g_nref = 0;
+}
+
+static int refuse_has(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nref; i++) {
+        if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
+            if (g_ref_gen[i] == sprite_pvr_free_gen()) {
+                return 1;
+            }
+            /* VRAM was freed since: worth one more try. */
+            g_nref--;
+            g_ref_seq[i] = g_ref_seq[g_nref];
+            g_ref_fr[i] = g_ref_fr[g_nref];
+            g_ref_gen[i] = g_ref_gen[g_nref];
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static void refuse_note(int seq, int frame)
+{
+    int i = g_nref;
+
+    if (refuse_has(seq, frame)) {
+        return;
+    }
+    if (g_nref >= DINK_VRAM_REFUSE) {
+        i = 0; /* oldest slot; a full table only costs one extra retry */
+    } else {
+        g_nref++;
+    }
+    g_ref_seq[i] = seq;
+    g_ref_fr[i] = frame;
+    g_ref_gen[i] = sprite_pvr_free_gen();
+}
+
+unsigned edraw_vram_refused(void)
+{
+    return g_nrefused;
+}
+
+static void remove_at(struct EdGfx *g, int *got, int i)
+{
+    sprite_frame_free(&g[i].fr);
+    (*got)--;
+    if (i < *got) {
+        g[i] = g[*got];
+    }
+    memset(&g[*got], 0, sizeof(g[0]));
+}
+
+static int vram_victim(struct EdGfx *g, int got, struct SeqInfo *seqs,
+                       int keep_seq, int keep_frame)
+{
+    int i, pick = -1;
+    long best = 0;
+    char dir[160];
+
+    for (i = 0; i < got; i++) {
+        long sz;
+
+        if (g[i].live || g[i].fr.tex == NULL ||
+            (g[i].seq == keep_seq && g[i].frame == keep_frame) ||
+            pixel_class(seqs, g[i].seq) != PIX_SCREEN) {
+            continue;
+        }
+        pack_dir(&seqs[g[i].seq], dir, sizeof(dir));
+        if (dir[0] == '\0' || !ff_is_cached(dir)) {
+            continue; /* could not come back this screen */
+        }
+        sz = (long)g[i].fr.tw * (long)g[i].fr.th;
+        if (pick < 0 || sz > best) {
+            pick = i;
+            best = sz;
+        }
+    }
+    return pick;
+}
+
+/* Upload (seq,frame) if it holds CPU pixels and no texture, making room
+ * per the policy above. 0 = has a texture (or nothing to upload); -1 =
+ * refused and removed. */
+static int find_index(const struct EdGfx *g, int got, int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < got; i++) {
+        if (g[i].seq == seq && g[i].frame == frame) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq, int frame)
+{
+    struct SpriteFrame *hit = edraw_find(g, *got, seq, frame);
+    int relief = 0;
+
+    if (hit == NULL || g_upload == NULL) {
+        return 0;
+    }
+    for (;;) {
+        int v;
+
+        if (hit->tex != NULL || hit->argb1555 == NULL) {
+            break;
+        }
+        if (g_upload(hit) == 0) {
+            break;
+        }
+        v = vram_victim(g, *got, seqs, seq, frame);
+        if (v >= 0) {
+            printf("edraw vram evict seq=%d fr=%d for seq=%d fr=%d\n",
+                   g[v].seq, g[v].frame, seq, frame);
+            remove_at(g, got, v);
+            hit = edraw_find(g, *got, seq, frame);
+            if (hit == NULL) {
+                return -1;
+            }
+            continue;
+        }
+        if (!relief && g_vram_relief != NULL && g_vram_relief() > 0) {
+            relief = 1;
+            continue;
+        }
+        printf("mem refuse pool=sprite_tex seq=%d fr=%d bytes=%u\n", seq,
+               frame, (unsigned)((size_t)hit->tw * (size_t)hit->th * 2u));
+        g_nrefused++;
+        refuse_note(seq, frame);
+        remove_at(g, got, find_index(g, *got, seq, frame));
+        return -1;
+    }
+    if (hit->tex != NULL) {
+        sprite_drop_cpu(hit);
+    }
+    return 0;
+}
+
 /* Cache dir.ff even when EdGfx is full so play-path ensure can fopen-not. */
 static int open_seq_pack(struct SeqInfo *seqs, int seq)
 {
@@ -373,7 +552,9 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
     return 0;
 }
 
-static void upload_and_drop_cpu(struct SpriteFrame *f);
+static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq, int frame);
+static int refuse_has(int seq, int frame);
 
 static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
                          int seq, int frame, int may_evict)
@@ -399,17 +580,19 @@ static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     g[*got].seq = seq;
     g[*got].frame = frame;
     g[*got].live = 1;
-    upload_and_drop_cpu(&g[*got].fr);
-    audio_music_pump();
     (*got)++;
+    /* VRAM eviction may move slots; address the frame by seq/frame. */
+    if (upload_with_room(g, got, seqs, seq, frame) != 0) {
+        audio_music_pump();
+        return -3;
+    }
+    audio_music_pump();
     /* Play-path reaps !live Screen after every sprite is touched. */
     {
         size_t need = edraw_cpu_bytes(g, *got);
 
         if (need > (size_t)DINK_MEM_CPU_PIXELS) {
-            (*got)--;
-            sprite_frame_free(&g[*got].fr);
-            memset(&g[*got], 0, sizeof(g[0]));
+            remove_at(g, got, find_index(g, *got, seq, frame));
             printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
                    (unsigned)DINK_MEM_CPU_PIXELS);
@@ -432,7 +615,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
     }
-    if (miss_has(seq, frame)) {
+    if (miss_has(seq, frame) || refuse_has(seq, frame)) {
         return -1;
     }
     t0 = dink_io_now_us();
@@ -611,6 +794,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     }
     memcpy(sp, spr, 101u * sizeof(*sp));
     miss_clear();
+    refuse_clear();
     residency_swap_begin();
     printf("edraw in sprite1 seq=%d y=%d act=%d keep=%d\n", (int)sp[1].seq,
            (int)sp[1].y, (int)sp[1].active, *n);
@@ -857,40 +1041,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     return 0;
 }
 
-static size_t (*g_vram_relief)(void);
-
-void edraw_set_vram_relief(size_t (*fn)(void))
-{
-    g_vram_relief = fn;
-}
-
-#ifdef _arch_dreamcast
-/* Inv/HUD already drop CPU after PVR. Screen loops (161/427/70) must too
- * or unused frames fill cpu_pixels and play-path evicts+redecodes forever. */
-static void upload_and_drop_cpu(struct SpriteFrame *f)
-{
-    if (f == NULL) {
-        return;
-    }
-    if (f->tex == NULL && f->argb1555 != NULL) {
-        if (sprite_upload_pvr(f) != 0) {
-            if (g_vram_relief == NULL || g_vram_relief() == 0 ||
-                sprite_upload_pvr(f) != 0) {
-                return;
-            }
-        }
-    }
-    if (f->tex != NULL) {
-        sprite_drop_cpu(f);
-    }
-}
-#else
-static void upload_and_drop_cpu(struct SpriteFrame *f)
-{
-    (void)f;
-}
-#endif
-
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame)
 {
@@ -908,11 +1058,14 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     hit = edraw_find(g, got, seq, frame);
     if (hit != NULL) {
+        int rc;
+
         /* preload_seq may decode CPU during play; draw skips tex==NULL. */
-        upload_and_drop_cpu(hit);
-        return 0;
+        rc = upload_with_room(g, &got, seqs, seq, frame);
+        *n = got;
+        return rc;
     }
-    if (miss_has(seq, frame)) {
+    if (miss_has(seq, frame) || refuse_has(seq, frame)) {
         return -1;
     }
     /* Play path: decode only from a pack already opened at screen load. */
@@ -964,7 +1117,6 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             }
         }
     }
-    upload_and_drop_cpu(&g[got - 1].fr);
     *n = got;
     return 0;
 }
@@ -981,9 +1133,16 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
         got = 0;
     }
     load_seq_frames(g, &got, seqs, seq);
+    /* A refusal or eviction reorders slots: rescan from the start. */
     for (i = 0; i < got; i++) {
-        if (g[i].seq == seq) {
-            upload_and_drop_cpu(&g[i].fr);
+        if (g[i].seq == seq && g[i].fr.tex == NULL &&
+            g[i].fr.argb1555 != NULL && g_upload != NULL) {
+            int before = got;
+
+            (void)upload_with_room(g, &got, seqs, seq, g[i].frame);
+            if (got != before) {
+                i = -1;
+            }
         }
     }
     *n = got;
@@ -993,7 +1152,6 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                       int frame)
 {
     int got;
-    struct SpriteFrame *hit;
 
     if (g == NULL || n == NULL || seqs == NULL) {
         return;
@@ -1021,8 +1179,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             break;
         }
     }
-    hit = edraw_find(g, got, seq, frame);
-    upload_and_drop_cpu(hit);
+    (void)upload_with_room(g, &got, seqs, seq, frame);
     audio_music_pump();
     *n = got;
 }

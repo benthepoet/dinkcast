@@ -26,12 +26,15 @@ struct PsprOps {
                 struct SpriteFrame *out); /* 0 ok */
     int (*upload)(struct SpriteFrame *f); /* 0 ok; DC drops CPU after */
     void (*free_frame)(struct SpriteFrame *f);
+    unsigned (*vram_gen)(void); /* sprite_pvr_free_gen: bumps on any free */
 };
 
 /* Tests only. NULL restores sprite_load_seq_frame / PVR upload / free. */
 void pspr_set_ops(const struct PsprOps *ops);
 
 /* Frame for Dink seq/frame: a hit costs no disc, decode or upload.
+ * A frame refused for VRAM is not reloaded until some texture is freed
+ * (vram_gen changes), so a full VRAM does not re-read it every step.
  * NULL (load fail, no VRAM, slots full) leaves the last returned pointer
  * valid: keep drawing it. Eviction frees PVR textures, so call only after
  * the last scene finished (play loop waits at its top; draw_screen waits

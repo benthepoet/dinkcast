@@ -20,6 +20,9 @@ int sprite_pixel_opaque(uint16_t p);
 
 void sprite_frame_free(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
+/* Bumps each time sprite_evict_pvr frees a texture. A VRAM refusal is
+ * only worth retrying after it changed. */
+unsigned sprite_pvr_free_gen(void);
 /* Free decoded pixels; keep w/h/tw/th and PVR tex (overlay after upload). */
 void sprite_drop_cpu(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). World sprites punch white. */

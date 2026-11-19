@@ -39,8 +39,54 @@ static const struct PsprOps g_default_ops = {
     sprite_load_seq_frame,
     default_upload,
     sprite_frame_free,
+    sprite_pvr_free_gen,
 };
 static const struct PsprOps *g_ops = &g_default_ops;
+
+#define DINK_PSPR_REFUSE 16
+static int g_ref_seq[DINK_PSPR_REFUSE];
+static int g_ref_fr[DINK_PSPR_REFUSE];
+static unsigned g_ref_gen[DINK_PSPR_REFUSE];
+static int g_nref, g_ref_next;
+
+static unsigned vram_gen(void)
+{
+    return g_ops->vram_gen != NULL ? g_ops->vram_gen() : 0u;
+}
+
+static int refused(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nref; i++) {
+        if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
+            return g_ref_gen[i] == vram_gen();
+        }
+    }
+    return 0;
+}
+
+static void refuse_note(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nref; i++) {
+        if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
+            g_ref_gen[i] = vram_gen();
+            return;
+        }
+    }
+    if (g_nref < DINK_PSPR_REFUSE) {
+        i = g_nref++;
+    } else {
+        i = g_ref_next;
+        g_ref_next = (g_ref_next + 1) % DINK_PSPR_REFUSE;
+    }
+    g_ref_seq[i] = seq;
+    g_ref_fr[i] = frame;
+    g_ref_gen[i] = vram_gen();
+}
+
 
 void pspr_set_ops(const struct PsprOps *ops)
 {
@@ -111,6 +157,9 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
             empty = i;
         }
     }
+    if (refused(seq, frame)) {
+        return NULL; /* nothing freed since the last try */
+    }
     /* Load before evicting anything: a failed read keeps the caller's
      * frame (g_last) and every other slot. */
     memset(&fr, 0, sizeof(fr));
@@ -145,9 +194,10 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
         if (v < 0 || v == slot) {
             /* Keep drawing the last good frame; do not hold CPU pixels
              * that no pool counts. */
-            printf("pspr refuse seq=%d fr=%d bytes=%u (no vram)\n", seq,
-                   frame, (unsigned)s->bytes);
+            printf("mem refuse pool=sprite_tex dink seq=%d fr=%d bytes=%u\n",
+                   seq, frame, (unsigned)s->bytes);
             slot_free(slot);
+            refuse_note(seq, frame);
             return NULL;
         }
         evict(v, seq, "vram");
@@ -217,6 +267,8 @@ void pspr_clear(void)
     g_bytes = 0;
     g_tick = 0;
     g_last = -1;
+    g_nref = 0;
+    g_ref_next = 0;
 }
 
 size_t pspr_bytes(void)

@@ -85,3 +85,4 @@ __pycache__/
 .venv/
 tests/test_iolog
 tests/test_pspr
+tests/test_edraw_vram

@@ -18,9 +18,16 @@ struct EdGfx {
 };
 
 void edraw_free(struct EdGfx *g, int n);
-/* PVR upload out of VRAM: call fn (frees other VRAM users, returns bytes
- * freed; GPU idle on every upload path), retry once. pspr_trim on DC. */
+/* sprite_tex: an upload out of VRAM frees Screen textures that are not live
+ * and whose pack is cached (largest first), then calls fn once (frees other
+ * VRAM users, returns bytes freed; pspr_trim on DC), then refuses the frame
+ * until a texture is freed. GPU idle on every upload path. */
 void edraw_set_vram_relief(size_t (*fn)(void));
+/* Tests: fake PVR upload (0 ok). DC default sprite_upload_pvr; host NULL
+ * (frames stay CPU, no VRAM policy). */
+void edraw_set_upload(int (*fn)(struct SpriteFrame *f));
+/* Frames refused for VRAM since boot (mem refuse pool=sprite_tex). */
+unsigned edraw_vram_refused(void);
 /* Size matches edraw.c (do not BSS an array next to g_scr). */
 struct EdGfx *edraw_gfx_alloc(void);
 void edraw_gfx_release(struct EdGfx *g);

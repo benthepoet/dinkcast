@@ -60,7 +60,15 @@ static void fake_free(struct SpriteFrame *f)
     memset(f, 0, sizeof(*f));
 }
 
-static const struct PsprOps ops = {fake_load, fake_upload, fake_free};
+static unsigned g_gen;
+
+static unsigned fake_gen(void)
+{
+    return g_gen;
+}
+
+static const struct PsprOps ops = {fake_load, fake_upload, fake_free,
+                                   fake_gen};
 
 static void reset(void)
 {
@@ -153,8 +161,19 @@ int main(void)
     CHECK(g_upload_fails == 4); /* first try + idle 1..3 (4 is drawn) */
     CHECK(pspr_count() == 1);
     CHECK(pspr_get(seqs, 12, 4) == b && b->tex != NULL);
+    /* Refused: the next step does not reload until VRAM is freed. */
+    {
+        int loads = g_loads;
+
+        CHECK(pspr_get(seqs, 72, 1) == NULL);
+        CHECK(g_loads == loads);
+        g_gen++; /* some texture freed somewhere */
+        CHECK(pspr_get(seqs, 72, 1) == NULL); /* fake VRAM still full */
+        CHECK(g_loads == loads + 1);
+    }
     /* VRAM back: the next get loads and uploads. */
     g_vram_left = -1;
+    g_gen++;
     CHECK(pspr_get(seqs, 72, 1) != NULL);
 
     /* DinkC init redefines walk 72 (sword arm): cached frames are not

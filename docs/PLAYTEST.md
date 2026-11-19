@@ -64,6 +64,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Bar table: an NPC `say_stop_npc` line can be overwritten by Dink's miss line or own say (one shared saybox, not FreeDink brain-8 text sprites) | Known V5 shape (GRAFT-AUDIT §10). Watch for skipped gossip lines. Follow-up: START pause still gated on any `WAIT_SAY`. |
 | `is_script_attached` + `run_script_by_number` on fireball tree (`DAM-FIRE` `DIE`) | Log 2026-09-07 `dinkc unimplemented is_script_attached` after seq 70/20. Unimplemented is 0 so generic burn only. |
 | `sp_sound` (quiet gap; CAMPAIGN-AUDIT) | Log `dinkc unimplemented sp_sound`. Not silent skip of the script file. |
+| Bar fight 2026-11-19 was rough: VRAM full mid-fight (434 `pvr_mem`, knight 724 reloaded 68×, Dink 99 refusals). Expect `edraw vram evict` lines, no `pvr_mem` storm, few or no `mem refuse pool=sprite_tex`; Dink keeps animating | `test_edraw_vram`, `test_pspr` refuse memo. Flycast stamp Open. |
 | Bar/combat blood seq 187–189 (`pack not cached`) | Play-path skip; blood pack not opened at enter. Pigs Confirmed; bar fight 2026-09-07 skipped. |
 | Seq 31 `nframes 0` / 458 NOTANIM / skip 725 | Inn leftover / sign with no `01.bmp` / `S2-BAR` preload of a seq not in `dink.ini`. Not a hang. |
 

@@ -252,8 +252,18 @@ int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
     return 1;
 }
 
+static unsigned g_pvr_free_gen;
+
+unsigned sprite_pvr_free_gen(void)
+{
+    return g_pvr_free_gen;
+}
+
 void sprite_evict_pvr(struct SpriteFrame *f)
 {
+    if (f != NULL && f->tex != NULL) {
+        g_pvr_free_gen++;
+    }
 #ifdef _arch_dreamcast
     if (f != NULL && f->tex != NULL) {
         pvr_mem_free((pvr_ptr_t)f->tex);
