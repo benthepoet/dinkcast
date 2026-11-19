@@ -246,6 +246,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | `say_stop('…")` one string (`S2-JACK` die unfreeze) | #146 |
 | 2026-09-07 | Reopen `hard.dat` after Prev drop (shop map 35 SEEK) | #146 |
 | 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | this PR |
+| 2026-11-19 | Codebase review: capacity (fibers 20, sprite slots), RAM growth, FreeDink gaps, architecture — [CODEBASE-REVIEW-2026-11-19.md](docs/CODEBASE-REVIEW-2026-11-19.md). Analysis only. Release scope NTSC; PAL deferred | this PR |
 
 ## Bites
 
@@ -317,6 +318,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | v0.3.0 | tagged 2026-08-23. START + VMU **17**. Next: requester go. |
 | v0.4.0 | tagged 2026-08-30. Audio **12** in Flycast. **14.6** gated. |
 | v0.5.0 | tagged 2026-09-06. **14.6** on master. |
+| PAL 50 Hz | deferred (requester 2026-11-19). Release target is NTSC. |
 
 When you complete a bite, add a row under **On master** and set the bite **Status**. Do not delete old rows.
 
