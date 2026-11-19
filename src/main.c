@@ -31,6 +31,7 @@
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
 #include "save.h"
+#include "pspr.h"
 #include "sprite.h"
 #include "start_map.h"
 #include "startmenu.h"
@@ -58,7 +59,8 @@ static struct SeqInfo *g_seqs_play;
 static int g_ned;
 static struct Player *g_play_pl;
 static struct HardMask *g_play_mask;
-static struct SpriteFrame *g_play_spr;
+/* Dink frame from pspr_get; NULL until the first load succeeds. */
+static struct SpriteFrame **g_play_dfr;
 static int *g_play_map;
 static int *g_play_last_seq;
 static int *g_play_last_frame;
@@ -447,9 +449,6 @@ static int play_draw_screen(int sprite)
     dinkc_vm_kill_all();
     dinkc_cmd_thaw_if_idle();
     saybox_clear();
-    if (g_play_spr != NULL) {
-        sprite_frame_free(g_play_spr);
-    }
     spr_restore("draw_screen");
     script_bind_screen(&g_scr);
     script_bind_note_script(brains_set_script);
@@ -477,6 +476,15 @@ static int play_draw_screen(int sprite)
         }
     }
     dink_cd_settle();
+    /* GPU idle (waited above). Give the new screen's tiles and sprites
+     * the VRAM of Dink frames from other seqs; the current one stays. */
+    {
+        size_t freed = pspr_trim();
+
+        if (freed > 0) {
+            printf("pspr trim %u\n", (unsigned)freed);
+        }
+    }
     {
         struct TileAtlas nxt;
 
@@ -497,12 +505,13 @@ static int play_draw_screen(int sprite)
     if (edraw_upload_pvr(g_edg, g_ned) != 0) {
         printf("draw_screen edraw upload fail\n");
     }
-    if (seqs != NULL && g_play_pl != NULL && g_play_spr != NULL) {
-        sprite_load_seq_frame(&seqs[player_pic_seq(g_play_pl)],
-                              player_pic_seq(g_play_pl),
-                              player_pic_frame(g_play_pl), g_play_spr);
-        if (g_play_spr->argb1555 != NULL) {
-            (void)sprite_upload_pvr(g_play_spr);
+    if (seqs != NULL && g_play_pl != NULL && g_play_dfr != NULL) {
+        /* Dink frames are kept across screens (pspr); a hit reads nothing. */
+        struct SpriteFrame *f = pspr_get(seqs, player_pic_seq(g_play_pl),
+                                         player_pic_frame(g_play_pl));
+
+        if (f != NULL) {
+            *g_play_dfr = f;
         }
         if (g_play_last_seq != NULL) {
             *g_play_last_seq = player_pic_seq(g_play_pl);
@@ -510,7 +519,9 @@ static int play_draw_screen(int sprite)
         if (g_play_last_frame != NULL) {
             *g_play_last_frame = player_pic_frame(g_play_pl);
         }
-        printf("draw_screen dink seq=%d\n", player_pic_seq(g_play_pl));
+        printf("draw_screen dink seq=%d pspr n=%d bytes=%u misses=%u\n",
+               player_pic_seq(g_play_pl), pspr_count(),
+               (unsigned)pspr_bytes(), pspr_misses());
     }
     spr_restore("draw-pre-attach");
     brains_enter(&g_scr, script_play_vision());
@@ -806,7 +817,7 @@ int main(int argc, char **argv)
                (int)sizeof(struct EditorSprite));
         {
             struct SeqInfo *seqs;
-            struct SpriteFrame spr;
+            struct SpriteFrame *dfr = NULL;
             int hid;
 
             memset(&g_hard, 0, sizeof(g_hard));
@@ -823,7 +834,6 @@ int main(int argc, char **argv)
             printf("hard tile00 id %d\n", hid);
             fflush(stdout);
             seqs = (struct SeqInfo *)calloc(DINK_MAX_SEQ, sizeof(*seqs));
-            memset(&spr, 0, sizeof(spr));
             printf("ini load\n");
             fflush(stdout);
             if (seqs != NULL && ini_load(seqs, DINK_MAX_SEQ) == 0) {
@@ -864,6 +874,8 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_seqs(seqs);
                 dinkc_cmd_bind_preload(preload_seq_cb);
                 dinkc_cmd_bind_load_frame(load_frame_cb);
+                dinkc_cmd_bind_seq_redefined(pspr_forget_seq);
+                edraw_set_vram_relief(pspr_trim);
                 dinkc_cmd_bind_inv(inv_show_cmd);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");
@@ -873,6 +885,7 @@ int main(int argc, char **argv)
                 struct HardMask mask;
                 struct Player pl;
                 int last_seq = 0, last_frame = 0, si;
+                unsigned last_gen = pspr_gen();
                 int player_map = DINK_START_PLAYER_MAP;
                 int swap = 0;
 
@@ -928,11 +941,6 @@ int main(int argc, char **argv)
                 brains_bind_screen(&g_scr);
                 brains_reset();
                 script_enter_vision();
-                if (seqs != NULL) {
-                    sprite_load_seq_frame(&seqs[player_pic_seq(&pl)],
-                                          player_pic_seq(&pl),
-                                          player_pic_frame(&pl), &spr);
-                }
                 {
                     g_ned = 0;
 
@@ -964,7 +972,7 @@ int main(int argc, char **argv)
                     }
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
-                    sprite_frame_free(&spr);
+                    pspr_clear();
                     edraw_free(g_edg, g_ned);
                     hard_mask_free(&mask);
                     free(seqs);
@@ -975,8 +983,9 @@ int main(int argc, char **argv)
                 if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                     printf("edraw upload none\n");
                 }
-                if (spr.argb1555 != NULL) {
-                    (void)sprite_upload_pvr(&spr);
+                if (seqs != NULL) {
+                    dfr = pspr_get(seqs, player_pic_seq(&pl),
+                                   player_pic_frame(&pl));
                 }
                 last_seq = player_pic_seq(&pl);
                 last_frame = player_pic_frame(&pl);
@@ -1008,7 +1017,7 @@ int main(int argc, char **argv)
                  * before START. START.c playmidi is 1003.mid on the menu. */
                 g_play_pl = &pl;
                 g_play_mask = &mask;
-                g_play_spr = &spr;
+                g_play_dfr = &dfr;
                 g_play_map = &player_map;
                 g_play_last_seq = &last_seq;
                 g_play_last_frame = &last_frame;
@@ -1420,41 +1429,46 @@ int main(int argc, char **argv)
                                               1);
                             }
                         }
+                        /* pspr_gen: DinkC init redefined a Dink seq (arm
+                         * sword/bow/fists); re-get the same seq/frame. */
                         if (player_pic_seq(&pl) != last_seq ||
-                            player_pic_frame(&pl) != last_frame) {
-                            struct SpriteFrame nxt;
+                            player_pic_frame(&pl) != last_frame ||
+                            pspr_gen() != last_gen) {
                             int dseq = player_pic_seq(&pl);
-                            int dfr = player_pic_frame(&pl);
-
+                            int dframe = player_pic_frame(&pl);
+                            struct SpriteFrame *nxt = NULL;
                             struct DinkIoStats io0, io1;
                             unsigned io_t0 = dink_io_now_us();
-                            int lrc;
+                            unsigned miss0 = pspr_misses();
 
-                            memset(&nxt, 0, sizeof(nxt));
+                            /* Last scene finished at the top of play, so
+                             * pspr may free an old Dink texture here. */
                             dink_io_stats(&io0);
                             dink_io_ctx("dink");
-                            lrc = dseq > 0 ? sprite_load_seq_frame(
-                                                 &seqs[dseq], dseq, dfr, &nxt)
-                                           : -1;
-                            if (lrc == 0) {
-                                sprite_frame_free(&spr);
-                                spr = nxt;
-                                (void)sprite_upload_pvr(&spr);
+                            if (dseq > 0) {
+                                nxt = pspr_get(seqs, dseq, dframe);
+                            }
+                            if (nxt != NULL) {
+                                dfr = nxt;
                             }
                             dink_io_ctx(NULL);
                             dink_io_stats(&io1);
-                            if (dseq > 0) {
+                            /* Note loads only; a cache hit is not a frame
+                             * load. A failed load is noted as seq<0. */
+                            if (dseq > 0 &&
+                                (nxt == NULL || pspr_misses() != miss0)) {
                                 dink_io_note_frame(
-                                    "dink", lrc == 0 ? dseq : -dseq, dfr,
+                                    "dink", nxt != NULL ? dseq : -dseq, dframe,
                                     dink_io_now_us() - io_t0,
                                     io1.ops - io0.ops);
                             }
-                            if (lrc != 0) {
+                            if (dseq > 0 && nxt == NULL) {
                                 printf("dink seq load fail seq=%d fr=%d\n",
-                                       dseq, dfr);
+                                       dseq, dframe);
                             }
                             last_seq = dseq;
-                            last_frame = dfr;
+                            last_frame = dframe;
+                            last_gen = pspr_gen();
                         }
                     }
                     pvr_scene_begin();
@@ -1510,7 +1524,7 @@ int main(int argc, char **argv)
                             draw[nd].fr = ef;
                             nd++;
                         }
-                        if (spr.argb1555 != NULL && nd < 100) {
+                        if (dfr != NULL && nd < 100) {
                             draw[nd].rank = pl.y;
                             draw[nd].x = pl.x;
                             draw[nd].y = pl.y;
@@ -1519,7 +1533,7 @@ int main(int argc, char **argv)
                             draw[nd].size = 100;
                             draw[nd].al = draw[nd].at = 0;
                             draw[nd].ar = draw[nd].ab = 0;
-                            draw[nd].fr = &spr;
+                            draw[nd].fr = dfr;
                             nd++;
                         }
                         for (a = 0; a < nd; a++) {

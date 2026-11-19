@@ -857,6 +857,13 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     return 0;
 }
 
+static size_t (*g_vram_relief)(void);
+
+void edraw_set_vram_relief(size_t (*fn)(void))
+{
+    g_vram_relief = fn;
+}
+
 #ifdef _arch_dreamcast
 /* Inv/HUD already drop CPU after PVR. Screen loops (161/427/70) must too
  * or unused frames fill cpu_pixels and play-path evicts+redecodes forever. */
@@ -867,7 +874,10 @@ static void upload_and_drop_cpu(struct SpriteFrame *f)
     }
     if (f->tex == NULL && f->argb1555 != NULL) {
         if (sprite_upload_pvr(f) != 0) {
-            return;
+            if (g_vram_relief == NULL || g_vram_relief() == 0 ||
+                sprite_upload_pvr(f) != 0) {
+                return;
+            }
         }
     }
     if (f->tex != NULL) {

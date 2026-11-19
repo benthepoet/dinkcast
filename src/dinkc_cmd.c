@@ -68,6 +68,7 @@ static void (*g_draw_status)(void);
 static int (*g_show_bmp)(const char *rel, int showdot, int fiber);
 static void (*g_preload)(int seq);
 static void (*g_load_frame)(int seq, int frame);
+static void (*g_seq_redefined)(int seq);
 static struct SeqInfo *g_seqs;
 static int g_pin_kind = -1;
 static int g_npin[2];
@@ -385,6 +386,11 @@ void dinkc_cmd_bind_preload(void (*fn)(int seq))
 void dinkc_cmd_bind_load_frame(void (*fn)(int seq, int frame))
 {
     g_load_frame = fn;
+}
+
+void dinkc_cmd_bind_seq_redefined(void (*fn)(int seq))
+{
+    g_seq_redefined = fn;
 }
 
 static int prefix_dir_ff(const char *prefix, char *dir, size_t dirsz)
@@ -1377,6 +1383,11 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (g_seqs != NULL && str != NULL && str[0] != '\0') {
             int seq = ini_apply_line(str, g_seqs, DINK_MAX_SEQ);
 
+            /* Arm scripts reload Dink walk/idle/hit (ITEM-SW1 71..79):
+             * cached Dink frames of that seq are stale. */
+            if (seq > 0 && g_seq_redefined != NULL) {
+                g_seq_redefined(seq);
+            }
             if (seq > 0 && g_load_frame != NULL) {
                 g_load_frame(seq, 1);
             }

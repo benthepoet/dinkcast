@@ -248,9 +248,10 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-09-07 | KOS `iso_read` stream = this read, not EOF (14.6 #1492) | #148 |
 | 2026-11-19 | Codebase review: capacity (fibers 20, sprite slots), RAM growth, FreeDink gaps, architecture — [CODEBASE-REVIEW-2026-11-19.md](docs/CODEBASE-REVIEW-2026-11-19.md). Analysis only. Release scope NTSC; PAL deferred | #150 |
 | 2026-11-19 | Play-path I/O log: `ioplay` disc/frame/gpu_wait lines after screen enter + per-screen summary (diagnostic, no policy) | #151 |
-| 2026-11-19 | A skips `last_talk` (`say_stop`/`say_stop_xy`) only while frozen; B/X/Y/L not gated on `say_stop_npc` (playtest 2026-09-07) | this PR |
-| 2026-11-19 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | this PR |
-| 2026-11-19 | Playtest Open (2026-09-07 log): `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | this PR |
+| 2026-11-19 | A skips `last_talk` (`say_stop`/`say_stop_xy`) only while frozen; B/X/Y/L not gated on `say_stop_npc` (playtest 2026-09-07) | #152 |
+| 2026-11-19 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | #152 |
+| 2026-11-19 | Playtest Open (2026-09-07 log): `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | #152 |
+| 2026-11-19 | Dink frames kept (`pspr`): walk/idle no longer re-read, decode and upload on every frame change (`ioplay` 723 reloads, 4.1 s on Flycast). Plan 8.3 256 KB facing set; current seq never evicted; other Dink seqs LRU over cap or on VRAM fail | #154 |
 
 ## Bites
 
@@ -271,7 +272,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 6.1–6.3 | Atlas + 96 quads | done | V2 accepted |
 | 6.4 | Evict | source | `tiles_evict` |
 | 7.1–7.3 | hard.dat + stamp | source | 7.4 overlay still off |
-| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted; `SET_FRAME_FRAME` ping-pong this PR |
+| 8.1–8.5 | ini + dir.ff + idle | done | V3 accepted; `SET_FRAME_FRAME` ping-pong this PR. Dink frames resident (`pspr`, 256 KB facing set, no per-frame reread) #154 |
 | 8.6 | Draw editor sprites | done | Flycast house accepted |
 | 9.1–9.3 | Walk | done | V4; point `get_hard` this PR |
 | 10.1 | Talk probe | done | #29; requester accepted; miss say this PR |
