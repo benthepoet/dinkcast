@@ -68,7 +68,7 @@ Do not mark new pictures confirmed until the requester says so. Name them here w
 
 ## Log notes (2026-09-07, bar fight / village)
 
-`build/emu.log` ~16:36. Bar **728** `nframes 6`; no `pvr_mem` / `edraw pvr miss`; guards `kill sprite=57/56` `s2-fight`. Fireball `dam-fire` in bar and outdoor. Session 21 swaps, all `swap atlas ok`, L-map `button6`. Leftovers in **Open** (`is_script_attached`, `sp_sound`, blood skip, seq 31/458/725). Not stamped Confirmed until the requester says so.
+`build/emu.log` ~16:36. Bar **728** `nframes 6`; no `pvr_mem` / `edraw pvr miss` (that run also had the Screen PVR hold/reap commits, now split out of this PR); guards `kill sprite=57/56` `s2-fight`. Fireball `dam-fire` in bar and outdoor. Session 21 swaps, all `swap atlas ok`, L-map `button6`. Leftovers in **Open** (`is_script_attached`, `sp_sound`, blood skip, seq 31/458/725). Not stamped Confirmed until the requester says so.
 
 ## Log notes (2026-08-23, confirmed)
 
