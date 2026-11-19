@@ -393,7 +393,7 @@ Commands (names as in file):
 #### Bite 8.3 — Load Dink idle/walk only
 
 - Sequences for Dink walk/idle (ids from `dink.ini` / FreeDink `base_walk` defaults — typically walk seqs in the 1–12 band; **copy the ids FreeDink assigns to player**).
-- VRAM **≤ 256 KB** for the current facing.
+- VRAM **≤ 256 KB** for the current facing. Runtime set (`pspr`): every frame of the seq Dink is drawing stays resident (a seq over 256 KB, e.g. sword hit 384 KB, is held whole while current); frames of other Dink seqs stay until the set passes 256 KB or an upload runs out of VRAM, then go least recently drawn first. FreeDink keeps all Dink seqs (`load_sequence_now`, ~5 MB POT1555); that is the DC exception. Never re-read a frame Dink is still cycling.
 
 #### Bite 8.4 — Draw sprite 1
 

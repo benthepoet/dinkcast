@@ -84,3 +84,4 @@ __pycache__/
 *.pyc
 .venv/
 tests/test_iolog
+tests/test_pspr
