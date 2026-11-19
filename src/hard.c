@@ -102,11 +102,19 @@ static int hard_ensure_rec(int hid)
     }
     off = (long)hid * (long)DINK_HARD_REC;
     printf("hard rec hid=%d\n", hid);
+    {
+        char ctx[24];
+
+        snprintf(ctx, sizeof(ctx), "hard hid=%d", hid);
+        dink_io_ctx(ctx);
+    }
     if (dink_pread(g_fp, off, p, (size_t)DINK_HARD_REC) != 0) {
+        dink_io_ctx(NULL);
         free(p);
         printf("hard rec fail hid=%d\n", hid);
         return -1;
     }
+    dink_io_ctx(NULL);
     g_rec[hid] = p;
     return 0;
 }

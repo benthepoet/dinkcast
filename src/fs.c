@@ -13,10 +13,128 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <time.h>
+
 #ifdef _arch_dreamcast
+#include <arch/timer.h>
 #include <kos.h>
 #include <kos/mutex.h>
 #endif
+
+/* RAM-only decode under 2 ms is counted, not printed. */
+#define DINK_IO_FRAME_QUIET_US 2000u
+
+static int g_io_play;
+static char g_io_ctx[64];
+static struct DinkIoStats g_io;
+
+unsigned dink_io_now_us(void)
+{
+#ifdef _arch_dreamcast
+    return (unsigned)timer_us_gettime64();
+#else
+    struct timespec t;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &t) != 0) {
+        return 0;
+    }
+    return (unsigned)((unsigned long long)t.tv_sec * 1000000ull +
+                      (unsigned long long)t.tv_nsec / 1000ull);
+#endif
+}
+
+void dink_io_set_play(int on)
+{
+    g_io_play = on ? 1 : 0;
+}
+
+int dink_io_play(void)
+{
+    return g_io_play;
+}
+
+void dink_io_ctx(const char *ctx)
+{
+    if (ctx == NULL) {
+        g_io_ctx[0] = '\0';
+        return;
+    }
+    snprintf(g_io_ctx, sizeof(g_io_ctx), "%s", ctx);
+}
+
+void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us)
+{
+    if (op != NULL && strcmp(op, "music") == 0) {
+        g_io.music_ops++;
+        g_io.music_bytes += (unsigned)bytes;
+        g_io.music_us += us;
+        if (us > g_io.music_max) {
+            g_io.music_max = us;
+        }
+        return;
+    }
+    if (!g_io_play) {
+        return;
+    }
+    g_io.ops++;
+    g_io.bytes += (unsigned)bytes;
+    g_io.us += us;
+    if (us > g_io.max_us) {
+        g_io.max_us = us;
+    }
+    printf("ioplay disc op=%s bytes=%u us=%u ctx=%s\n",
+           op != NULL ? op : "?", (unsigned)bytes, us,
+           (what != NULL && what[0] != '\0') ? what
+                                             : (g_io_ctx[0] ? g_io_ctx : "-"));
+}
+
+void dink_io_note_frame(const char *who, int seq, int frame, unsigned us,
+                        unsigned disc_ops)
+{
+    if (!g_io_play) {
+        return;
+    }
+    g_io.frames++;
+    g_io.frame_us += us;
+    if (us > g_io.frame_max) {
+        g_io.frame_max = us;
+    }
+    /* Dink's walk decodes every few frames; print only real stalls. */
+    if (disc_ops == 0 && us < DINK_IO_FRAME_QUIET_US) {
+        return;
+    }
+    printf("ioplay frame who=%s seq=%d fr=%d us=%u disc_ops=%u\n",
+           who != NULL ? who : "?", seq, frame, us, disc_ops);
+}
+
+void dink_io_note_gpu_wait(unsigned us)
+{
+    if (!g_io_play) {
+        return;
+    }
+    g_io.gpu_waits++;
+    g_io.gpu_us += us;
+    printf("ioplay gpu_wait us=%u ctx=%s\n", us,
+           g_io_ctx[0] ? g_io_ctx : "-");
+}
+
+void dink_io_stats(struct DinkIoStats *out)
+{
+    if (out != NULL) {
+        *out = g_io;
+    }
+}
+
+void dink_io_summary(int map)
+{
+    printf("ioplay summary map=%d disc_ops=%u bytes=%u us=%u max_us=%u "
+           "frames=%u frame_us=%u frame_max_us=%u gpu_waits=%u gpu_us=%u "
+           "music_ops=%u music_bytes=%u music_us=%u music_max_us=%u\n",
+           map, g_io.ops, g_io.bytes, g_io.us, g_io.max_us, g_io.frames,
+           g_io.frame_us, g_io.frame_max, g_io.gpu_waits, g_io.gpu_us,
+           g_io.music_ops, g_io.music_bytes, g_io.music_us, g_io.music_max);
+    memset(&g_io, 0, sizeof(g_io));
+}
 
 #ifndef DINK_DATA_DEFAULT
 #define DINK_DATA_DEFAULT ""
@@ -346,20 +464,25 @@ static FILE *fopen_under(const char *root, const char *rel, const char *mode)
 FILE *dink_fopen(const char *rel, const char *mode)
 {
     FILE *fp;
+    unsigned t0;
 
     if (g_root[0] == '\0' || rel == NULL || mode == NULL) {
         return NULL;
     }
+    t0 = dink_io_now_us();
     cd_lock();
     if (g_distill[0] != '\0') {
         fp = fopen_under(g_distill, rel, mode);
         if (fp != NULL) {
             cd_unlock();
+            dink_io_note("open", rel, 0, dink_io_now_us() - t0);
             return fp;
         }
     }
     fp = fopen_under(g_root, rel, mode);
     cd_unlock();
+    dink_io_note(fp != NULL ? "open" : "open-miss", rel, 0,
+                 dink_io_now_us() - t0);
     /* Seek/open can stall past the 16 KiB AICA loop. Pump after. */
     dink_cd_yield();
     return fp;
@@ -400,10 +523,12 @@ void dink_cd_settle(void)
 int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
 {
     size_t got = 0, chunk, nrd;
+    unsigned t0;
 
     if (fp == NULL || dst == NULL) {
         return -1;
     }
+    t0 = dink_io_now_us();
     cd_lock();
     while (got < n) {
         chunk = n - got;
@@ -419,16 +544,19 @@ int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
         cd_pump();
     }
     cd_unlock();
+    dink_io_note("read", NULL, got, dink_io_now_us() - t0);
     return 0;
 }
 
 int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
 {
     size_t got = 0, chunk, nrd;
+    unsigned t0;
 
     if (fp == NULL || dst == NULL) {
         return -1;
     }
+    t0 = dink_io_now_us();
     cd_lock();
     if (fseek(fp, off, SEEK_SET) != 0) {
         cd_unlock();
@@ -449,6 +577,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
         cd_pump();
     }
     cd_unlock();
+    dink_io_note("pread", NULL, got, dink_io_now_us() - t0);
     return 0;
 }
 
@@ -475,10 +604,12 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
 {
     uint8_t *p;
     size_t cap, got, nrd, known;
+    unsigned t0;
 
     if (fp == NULL || out == NULL || n == NULL) {
         return -1;
     }
+    t0 = dink_io_now_us();
     /* fstat, not SEEK_END. Doubling 32 KiB → 1 MiB for a 594 KB pack
      * sbrk-failed on 409 while Prev still held 408. */
     if (dink_fp_size(fp, &known) == 0) {
@@ -502,6 +633,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
             cd_pump();
         }
         cd_unlock();
+        dink_io_note("slurp", NULL, got, dink_io_now_us() - t0);
         if (got == 0) {
             free(p);
             return -1;
@@ -544,6 +676,7 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
         cd_pump();
     }
     cd_unlock();
+    dink_io_note("slurp", NULL, got, dink_io_now_us() - t0);
     *out = p;
     *n = got;
     return 0;
@@ -827,7 +960,14 @@ int dink_blob_get(const char *rel, const uint8_t **ptr, size_t *n)
             return -1;
         }
     }
-    rc = dink_fread_all(fp, &raw, &got);
+    {
+        char outer[sizeof(g_io_ctx)];
+
+        memcpy(outer, g_io_ctx, sizeof(outer));
+        dink_io_ctx(rel);
+        rc = dink_fread_all(fp, &raw, &got);
+        dink_io_ctx(outer);
+    }
     fclose(fp);
     if (rc != 0 || raw == NULL) {
         free(raw);

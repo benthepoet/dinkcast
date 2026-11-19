@@ -399,7 +399,12 @@ static void music_fill_chunk(void)
     if (want > sizeof(g_mbuf)) {
         want = sizeof(g_mbuf);
     }
-    got = fread(g_mbuf, 1, want, g_mfp);
+    {
+        unsigned t0 = dink_io_now_us();
+
+        got = fread(g_mbuf, 1, want, g_mfp);
+        dink_io_note("music", NULL, got, dink_io_now_us() - t0);
+    }
     if (got == 0) {
         return;
     }

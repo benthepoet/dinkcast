@@ -180,7 +180,10 @@ static int evict_slot(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     }
 #ifdef _arch_dreamcast
     if (gpu_wait) {
+        unsigned t0 = dink_io_now_us();
+
         pvr_wait_ready();
+        dink_io_note_gpu_wait(dink_io_now_us() - t0);
     }
 #else
     (void)gpu_wait;
@@ -394,15 +397,29 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
         }
     }
     printf("edraw load seq=%d fr=%d\n", seq, frame);
-    if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
-        miss_note(seq, frame);
-        printf("edraw skip seq=%d frame=%d\n", seq, frame);
-        return -1;
+    {
+        struct DinkIoStats io0, io1;
+        unsigned t0 = dink_io_now_us();
+        char ctx[32];
+
+        dink_io_stats(&io0);
+        snprintf(ctx, sizeof(ctx), "edraw seq=%d fr=%d", seq, frame);
+        dink_io_ctx(ctx);
+        if (sprite_load_seq_frame(&seqs[seq], seq, frame, &g[*got].fr) != 0) {
+            dink_io_ctx(NULL);
+            miss_note(seq, frame);
+            printf("edraw skip seq=%d frame=%d\n", seq, frame);
+            return -1;
+        }
+        g[*got].seq = seq;
+        g[*got].frame = frame;
+        g[*got].live = 1;
+        upload_and_drop_cpu(&g[*got].fr);
+        dink_io_ctx(NULL);
+        dink_io_stats(&io1);
+        dink_io_note_frame("edraw", seq, frame, dink_io_now_us() - t0,
+                           io1.ops - io0.ops);
     }
-    g[*got].seq = seq;
-    g[*got].frame = frame;
-    g[*got].live = 1;
-    upload_and_drop_cpu(&g[*got].fr);
     audio_music_pump();
     (*got)++;
     /* Play-path reaps !live Screen after every sprite is touched. */

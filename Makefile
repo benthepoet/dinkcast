@@ -20,7 +20,7 @@ HOST_CFLAGS := -Wall -Wextra -Werror -Isrc
 
 all: host
 
-host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_leak tests/test_save tests/test_startmenu tests/test_wav_to_adpcm tests/test_audio build/wav_to_adpcm tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
+host: check tests/test_boot_const tools/test_fs_join tests/test_bmp tests/test_dink_dat_size tests/test_pad tests/test_world tests/test_tile_cell tests/test_ini tests/test_ff tests/test_io_once tests/test_sprite tests/test_player tests/test_edraw tests/test_talk tests/test_hit tests/test_script tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse tests/test_dinkc_vm tests/test_dinkc_var tests/test_font tests/test_saybox tests/test_choice tests/test_screen tests/test_brains tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_iolog tests/test_leak tests/test_save tests/test_startmenu tests/test_wav_to_adpcm tests/test_audio build/wav_to_adpcm tools/bmp_info tools/dump_world tools/map_recsize tools/dump_screen tools/dump_ini
 
 tests/test_boot_const: tests/test_boot_const.c src/boot.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_boot_const.c
@@ -126,6 +126,10 @@ tests/test_inv: tests/test_inv.c src/inv.c src/script.c src/dinkc_file.c src/din
 tests/test_status: tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/audio.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_status.c src/status.c src/inv.c src/script.c src/dinkc_file.c src/dinkc_lex.c src/dinkc_parse.c src/dinkc_vm.c src/dinkc_var.c src/dinkc_cmd.c src/audio.c src/fade.c src/save.c src/saybox.c src/font.c src/player.c src/hurt.c src/hard.c src/pad.c src/ini.c src/ff.c src/mapscr.c src/world.c src/le.c src/fs.c src/residency.c src/brains.c src/sprite.c src/bmp.c
 	DINK_DATA="$(DINK_DATA)" ./$@
+
+tests/test_iolog: tests/test_iolog.c src/fs.c src/residency.c src/ff.c src/le.c src/mem.c src/fs.h
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_iolog.c src/fs.c src/residency.c src/ff.c src/le.c src/mem.c
+	./$@
 
 tests/test_mem: tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c src/mem.h src/fs.h
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_mem.c src/mem.c src/fs.c src/residency.c src/ff.c src/le.c
@@ -299,7 +303,7 @@ clean:
 		tests/test_dinkc_file tests/test_dinkc_lex tests/test_dinkc_parse \
 		tests/test_dinkc_vm tests/test_dinkc_var tests/test_font \
 		tests/test_saybox tests/test_choice tests/test_screen tests/test_brains \
-		tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_leak \
+		tests/test_hurt tests/test_playtest tests/test_weapon tests/test_touch tests/test_inv tests/test_status tests/test_mem tests/test_iolog tests/test_leak \
 		tests/test_save tests/test_startmenu tests/test_wav_to_adpcm tests/test_audio \
 		tools/bmp_info tools/title_preview tools/dump_world tools/map_recsize \
 		tools/dump_screen tools/dump_ini
