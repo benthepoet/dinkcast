@@ -86,6 +86,7 @@ static int hard_ensure_rec(int hid)
 {
     uint8_t *p;
     long off;
+    char outer[64];
 
     if (hid < 0 || hid >= DINK_HARD_TILES) {
         return -1;
@@ -102,6 +103,7 @@ static int hard_ensure_rec(int hid)
     }
     off = (long)hid * (long)DINK_HARD_REC;
     printf("hard rec hid=%d\n", hid);
+    dink_io_ctx_save(outer, sizeof(outer));
     {
         char ctx[24];
 
@@ -109,12 +111,12 @@ static int hard_ensure_rec(int hid)
         dink_io_ctx(ctx);
     }
     if (dink_pread(g_fp, off, p, (size_t)DINK_HARD_REC) != 0) {
-        dink_io_ctx(NULL);
+        dink_io_ctx(outer);
         free(p);
         printf("hard rec fail hid=%d\n", hid);
         return -1;
     }
-    dink_io_ctx(NULL);
+    dink_io_ctx(outer);
     g_rec[hid] = p;
     return 0;
 }
@@ -145,10 +147,13 @@ int hard_load(struct HardMap *out)
     if (tail == NULL) {
         return -1;
     }
+    dink_io_ctx("hard tail");
     if (dink_pread(g_fp, off, tail, ntail) != 0) {
+        dink_io_ctx(NULL);
         free(tail);
         return -1;
     }
+    dink_io_ctx(NULL);
     for (i = 0; i < DINK_BTILE_MAX; i++) {
         int32_t v;
 

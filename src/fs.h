@@ -44,8 +44,10 @@ void dink_cd_set_pump(void (*fn)(void));
 
 /* Play-path I/O log (diagnostic only; no policy). Phase "play" is gameplay
  * after a screen finished entering. Every disc op or frame load in that
- * phase prints one `ioplay` line; dink_io_summary prints one line per
- * screen and resets. Music stream refills are counted, not printed. */
+ * phase queues one `ioplay` line; dink_io_flush prints the queue once per
+ * tick so SCIF time stays outside the timed windows. dink_io_summary
+ * flushes, prints one line per screen and resets. Music stream refills are
+ * tallied, not printed (music_max = worst single poll). */
 struct DinkIoStats {
     unsigned ops, bytes, us, max_us;       /* play-path disc ops */
     unsigned frames, frame_us, frame_max;  /* play-path frame loads */
@@ -55,14 +57,19 @@ struct DinkIoStats {
 unsigned dink_io_now_us(void);
 void dink_io_set_play(int on);
 int dink_io_play(void);
-/* Label for the next disc ops (copied). NULL or "" clears. */
+/* Label for the next disc ops (copied). NULL or "" clears. Save the
+ * outer label first and restore it, so nested loads keep attribution. */
 void dink_io_ctx(const char *ctx);
+void dink_io_ctx_save(char *dst, size_t n);
 /* op "music" counts the stream refill only. what overrides ctx if set. */
 void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us);
+/* seq < 0 marks a failed load of -seq (always printed). */
 void dink_io_note_frame(const char *who, int seq, int frame, unsigned us,
                         unsigned disc_ops);
 void dink_io_note_gpu_wait(unsigned us);
 void dink_io_stats(struct DinkIoStats *out);
+int dink_io_pending(void);
+void dink_io_flush(void);
 void dink_io_summary(int map);
 
 /* Host-testable pieces (also used on DC). */

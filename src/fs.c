@@ -23,10 +23,17 @@
 
 /* RAM-only decode under 2 ms is counted, not printed. */
 #define DINK_IO_FRAME_QUIET_US 2000u
+/* Lines are queued, not printed, so SCIF time never lands inside a timed
+ * window. dink_io_flush prints them once per tick (outside any window). */
+#define DINK_IO_RING 48
+#define DINK_IO_LINE 128
 
 static int g_io_play;
 static char g_io_ctx[64];
 static struct DinkIoStats g_io;
+static char g_io_ring[DINK_IO_RING][DINK_IO_LINE];
+static int g_io_nring;
+static unsigned g_io_dropped;
 
 unsigned dink_io_now_us(void)
 {
@@ -62,12 +69,55 @@ void dink_io_ctx(const char *ctx)
     snprintf(g_io_ctx, sizeof(g_io_ctx), "%s", ctx);
 }
 
+void dink_io_ctx_save(char *dst, size_t n)
+{
+    if (dst != NULL && n > 0) {
+        snprintf(dst, n, "%s", g_io_ctx);
+    }
+}
+
+static void io_queue(const char *line)
+{
+    if (g_io_nring >= DINK_IO_RING) {
+        g_io_dropped++;
+        return;
+    }
+    snprintf(g_io_ring[g_io_nring], DINK_IO_LINE, "%s", line);
+    g_io_nring++;
+}
+
+int dink_io_pending(void)
+{
+    return g_io_nring;
+}
+
+void dink_io_flush(void)
+{
+    int i;
+
+    for (i = 0; i < g_io_nring; i++) {
+        printf("ioplay %s\n", g_io_ring[i]);
+    }
+    g_io_nring = 0;
+    if (g_io_dropped != 0) {
+        printf("ioplay dropped=%u (ring %d)\n", g_io_dropped, DINK_IO_RING);
+        g_io_dropped = 0;
+    }
+}
+
 void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us)
 {
+    char line[DINK_IO_LINE];
+
+    /* Stream refills: tallied in either phase, never printed per chunk. */
     if (op != NULL && strcmp(op, "music") == 0) {
         g_io.music_ops++;
         g_io.music_bytes += (unsigned)bytes;
         g_io.music_us += us;
+        return;
+    }
+    /* One audio_music_poll (up to 8 chunks + seeks): worst poll, not chunk. */
+    if (op != NULL && strcmp(op, "music-poll") == 0) {
         if (us > g_io.music_max) {
             g_io.music_max = us;
         }
@@ -82,15 +132,19 @@ void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us)
     if (us > g_io.max_us) {
         g_io.max_us = us;
     }
-    printf("ioplay disc op=%s bytes=%u us=%u ctx=%s\n",
-           op != NULL ? op : "?", (unsigned)bytes, us,
-           (what != NULL && what[0] != '\0') ? what
-                                             : (g_io_ctx[0] ? g_io_ctx : "-"));
+    snprintf(line, sizeof(line), "disc op=%s bytes=%u us=%u ctx=%s",
+             op != NULL ? op : "?", (unsigned)bytes, us,
+             (what != NULL && what[0] != '\0')
+                 ? what
+                 : (g_io_ctx[0] ? g_io_ctx : "-"));
+    io_queue(line);
 }
 
 void dink_io_note_frame(const char *who, int seq, int frame, unsigned us,
                         unsigned disc_ops)
 {
+    char line[DINK_IO_LINE];
+
     if (!g_io_play) {
         return;
     }
@@ -99,23 +153,29 @@ void dink_io_note_frame(const char *who, int seq, int frame, unsigned us,
     if (us > g_io.frame_max) {
         g_io.frame_max = us;
     }
-    /* Dink's walk decodes every few frames; print only real stalls. */
-    if (disc_ops == 0 && us < DINK_IO_FRAME_QUIET_US) {
+    /* Dink's walk decodes every few frames; print only real stalls. A
+     * failed load (us flagged by caller via seq < 0) always prints. */
+    if (seq >= 0 && disc_ops == 0 && us < DINK_IO_FRAME_QUIET_US) {
         return;
     }
-    printf("ioplay frame who=%s seq=%d fr=%d us=%u disc_ops=%u\n",
-           who != NULL ? who : "?", seq, frame, us, disc_ops);
+    snprintf(line, sizeof(line), "frame who=%s seq=%d fr=%d us=%u disc_ops=%u%s",
+             who != NULL ? who : "?", seq < 0 ? -seq : seq, frame, us,
+             disc_ops, seq < 0 ? " fail" : "");
+    io_queue(line);
 }
 
 void dink_io_note_gpu_wait(unsigned us)
 {
+    char line[DINK_IO_LINE];
+
     if (!g_io_play) {
         return;
     }
     g_io.gpu_waits++;
     g_io.gpu_us += us;
-    printf("ioplay gpu_wait us=%u ctx=%s\n", us,
-           g_io_ctx[0] ? g_io_ctx : "-");
+    snprintf(line, sizeof(line), "gpu_wait us=%u ctx=%s", us,
+             g_io_ctx[0] ? g_io_ctx : "-");
+    io_queue(line);
 }
 
 void dink_io_stats(struct DinkIoStats *out)
@@ -127,12 +187,18 @@ void dink_io_stats(struct DinkIoStats *out)
 
 void dink_io_summary(int map)
 {
-    printf("ioplay summary map=%d disc_ops=%u bytes=%u us=%u max_us=%u "
-           "frames=%u frame_us=%u frame_max_us=%u gpu_waits=%u gpu_us=%u "
-           "music_ops=%u music_bytes=%u music_us=%u music_max_us=%u\n",
-           map, g_io.ops, g_io.bytes, g_io.us, g_io.max_us, g_io.frames,
-           g_io.frame_us, g_io.frame_max, g_io.gpu_waits, g_io.gpu_us,
-           g_io.music_ops, g_io.music_bytes, g_io.music_us, g_io.music_max);
+    dink_io_flush();
+    /* map 0 = boot/title tally (menu music); reset without a line. */
+    if (map > 0) {
+        printf("ioplay summary map=%d disc_ops=%u bytes=%u us=%u max_us=%u "
+               "frames=%u frame_us=%u frame_max_us=%u gpu_waits=%u "
+               "gpu_us=%u music_ops=%u music_bytes=%u music_us=%u "
+               "music_max_poll_us=%u\n",
+               map, g_io.ops, g_io.bytes, g_io.us, g_io.max_us, g_io.frames,
+               g_io.frame_us, g_io.frame_max, g_io.gpu_waits, g_io.gpu_us,
+               g_io.music_ops, g_io.music_bytes, g_io.music_us,
+               g_io.music_max);
+    }
     memset(&g_io, 0, sizeof(g_io));
 }
 
@@ -538,6 +604,7 @@ int dink_fread_n(FILE *fp, uint8_t *dst, size_t n)
         nrd = fread(dst + got, 1, chunk, fp);
         if (nrd == 0) {
             cd_unlock();
+            dink_io_note("read-fail", NULL, got, dink_io_now_us() - t0);
             return -1;
         }
         got += nrd;
@@ -560,6 +627,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
     cd_lock();
     if (fseek(fp, off, SEEK_SET) != 0) {
         cd_unlock();
+        dink_io_note("seek-fail", NULL, 0, dink_io_now_us() - t0);
         return -1;
     }
     cd_pump();
@@ -571,6 +639,7 @@ int dink_pread(FILE *fp, long off, uint8_t *dst, size_t n)
         nrd = fread(dst + got, 1, chunk, fp);
         if (nrd == 0) {
             cd_unlock();
+            dink_io_note("pread-fail", NULL, got, dink_io_now_us() - t0);
             return -1;
         }
         got += nrd;
@@ -633,7 +702,8 @@ int dink_fread_all(FILE *fp, uint8_t **out, size_t *n)
             cd_pump();
         }
         cd_unlock();
-        dink_io_note("slurp", NULL, got, dink_io_now_us() - t0);
+        dink_io_note(got == 0 ? "slurp-fail" : "slurp", NULL, got,
+                     dink_io_now_us() - t0);
         if (got == 0) {
             free(p);
             return -1;

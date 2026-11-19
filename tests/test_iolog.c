@@ -4,6 +4,7 @@
 #include "fs.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int fails;
@@ -57,7 +58,7 @@ int main(void)
     dink_io_stats(&st);
     CHECK(st.ops == 2);
     CHECK(st.music_ops == 2 && st.music_bytes == 16384);
-    CHECK(st.music_max == 300);
+    CHECK(st.music_us == 400);
 
     /* Real primitive: dink_pread counts in play phase only. */
     fp = tmpfile();
@@ -75,6 +76,63 @@ int main(void)
         CHECK(st.ops == 3 && st.bytes == 144);
         fclose(fp);
     }
+
+    /* fread_n / fread_all count too; a failed read is still a disc op. */
+    fp = tmpfile();
+    CHECK(fp != NULL);
+    if (fp != NULL) {
+        uint8_t *all = NULL;
+        size_t an = 0;
+
+        memset(buf, 3, sizeof(buf));
+        CHECK(fwrite(buf, 1, sizeof(buf), fp) == sizeof(buf));
+        fflush(fp);
+        rewind(fp);
+        dink_io_stats(&st);
+        {
+            unsigned ops0 = st.ops;
+
+            CHECK(dink_fread_n(fp, buf, 8) == 0);
+            rewind(fp);
+            CHECK(dink_fread_all(fp, &all, &an) == 0 && an == sizeof(buf));
+            free(all);
+            CHECK(dink_fread_n(fp, buf, 8) != 0); /* at EOF: read-fail */
+            dink_io_stats(&st);
+            CHECK(st.ops == ops0 + 3);
+        }
+        fclose(fp);
+    }
+
+    /* Queue: lines wait for dink_io_flush (SCIF outside timed windows). */
+    dink_io_flush();
+    CHECK(dink_io_pending() == 0);
+    dink_io_note_frame("dink", 72, 4, 10, 0);      /* quiet: no line */
+    CHECK(dink_io_pending() == 0);
+    dink_io_note_frame("edraw", 20, 5, 2500, 0);   /* >= 2 ms: line */
+    CHECK(dink_io_pending() == 1);
+    dink_io_note_frame("edraw", -20, 6, 10, 0);    /* failed: line */
+    CHECK(dink_io_pending() == 2);
+    dink_io_flush();
+    CHECK(dink_io_pending() == 0);
+
+    /* Context save/restore keeps the outer label. */
+    {
+        char outer[64], got[64];
+
+        dink_io_ctx("preload_seq 20");
+        dink_io_ctx_save(outer, sizeof(outer));
+        dink_io_ctx("edraw seq=20 fr=1");
+        dink_io_ctx(outer);
+        dink_io_ctx_save(got, sizeof(got));
+        CHECK(strcmp(got, "preload_seq 20") == 0);
+        dink_io_ctx(NULL);
+    }
+
+    /* music-poll keeps the worst poll, not a chunk sum. */
+    dink_io_note("music-poll", NULL, 0, 9000);
+    dink_io_note("music-poll", NULL, 0, 1000);
+    dink_io_stats(&st);
+    CHECK(st.music_max == 9000);
 
     /* Summary resets every counter. */
     dink_io_summary(408);

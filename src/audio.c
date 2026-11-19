@@ -372,6 +372,7 @@ static void music_fill_chunk(void)
 {
     size_t want, got, i;
     int space;
+    unsigned io_t0 = dink_io_now_us(); /* includes loop-wrap fseek */
 
     if (g_mfp == NULL) {
         return;
@@ -399,12 +400,8 @@ static void music_fill_chunk(void)
     if (want > sizeof(g_mbuf)) {
         want = sizeof(g_mbuf);
     }
-    {
-        unsigned t0 = dink_io_now_us();
-
-        got = fread(g_mbuf, 1, want, g_mfp);
-        dink_io_note("music", NULL, got, dink_io_now_us() - t0);
-    }
+    got = fread(g_mbuf, 1, want, g_mfp);
+    dink_io_note("music", NULL, got, dink_io_now_us() - io_t0);
     if (got == 0) {
         return;
     }
@@ -714,6 +711,7 @@ int audio_music_play(const char *midi_name)
         size_t doff = 0;
         int nfill, have_fmt = 0;
         long pos;
+        unsigned io_t0 = dink_io_now_us();
 
         music_stop_dc();
         fp = open_wav(wav);
@@ -796,6 +794,8 @@ int audio_music_play(const char *midi_name)
             snd_stream_volume(g_sh, 255);
             g_stream_on = 1;
         }
+        /* ioplay: open + RIFF walk + first fill, as one disc op. */
+        dink_io_note("music-start", wav, 0, dink_io_now_us() - io_t0);
         printf("music play %s wav=%s adpcm=%d hz=%d used=%d bytes=%lu\n",
                midi_name, wav, g_adpcm, g_hz, g_used,
                (unsigned long)(g_mend > g_moff ? g_mend - g_moff : 0));
@@ -866,6 +866,7 @@ void audio_music_poll(void)
 {
 #ifdef _arch_dreamcast
     int nfill = 0;
+    unsigned io_t0 = dink_io_now_us();
 
     /* Fill on the 60 Hz thread *before* snd_stream_poll. Cap fills so a
      * hitch cannot stall a frame on GD-ROM. Skip fread while a screen
@@ -880,6 +881,9 @@ void audio_music_poll(void)
             }
             nfill++;
         }
+    }
+    if (nfill > 0) {
+        dink_io_note("music-poll", NULL, 0, dink_io_now_us() - io_t0);
     }
     audio_music_pump();
 #endif
