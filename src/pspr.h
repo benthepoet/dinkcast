@@ -11,11 +11,13 @@
  * sequence for the session; all of them are ~5 MB of POT1555, over the
  * plan §1.2 sprite_tex share. Plan 8.3 gives Dink's facing ≤ 256 KB.
  *
- * Policy: the requested seq is never evicted. Frames of other Dink seqs
- * stay until the set is over the cap, then go least recently drawn first.
+ * Policy: the requested seq and the frame last handed out are never
+ * evicted. Frames of other Dink seqs stay until the set is over the cap or
+ * an upload runs out of VRAM, then go least recently drawn first (recency
+ * among Dink's own frames only; 14.4c EdGfx victims stay class-based).
  * Walk (128 KB/facing) + idle (64 KB) of one facing fit, so walk/stop/walk
- * reads no disc. A seq bigger than the cap (sword hit 384 KB) is held whole
- * while current. Bound: max(cap, largest Dink seq) + one frame. */
+ * reads no disc. A seq bigger than the cap (sword hit 384 KB) is held
+ * whole while current. Bound: max(cap, current seq) + the last frame. */
 #define DINK_PSPR_SLOTS 64
 #define DINK_PSPR_TEX_CAP (256u * 1024u)
 
@@ -30,11 +32,22 @@ struct PsprOps {
 void pspr_set_ops(const struct PsprOps *ops);
 
 /* Frame for Dink seq/frame: a hit costs no disc, decode or upload.
- * A miss loads first and evicts only after that load succeeds, so a NULL
- * return leaves every earlier pointer valid. Eviction frees PVR textures:
- * call only after the last scene finished (play loop waits at its top;
- * draw_screen waits before the swap). */
+ * NULL (load fail, no VRAM, slots full) leaves the last returned pointer
+ * valid: keep drawing it. Eviction frees PVR textures, so call only after
+ * the last scene finished (play loop waits at its top; draw_screen waits
+ * before the swap; enter path is before the first scene). */
 struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame);
+
+/* DinkC init redefined seq (sword/bow/fists arm reload walk/idle/hit).
+ * Its frames are no longer hits; they are freed after the next successful
+ * pspr_get (never while the caller may still draw one). Bumps pspr_gen. */
+void pspr_forget_seq(int seq);
+/* Changes on forget: the caller re-gets even if seq/frame did not change. */
+unsigned pspr_gen(void);
+
+/* Screen swap / VRAM relief: free every frame except the current seq's.
+ * GPU must be idle. Returns bytes freed. */
+size_t pspr_trim(void);
 
 /* Free every frame. GPU must be idle. */
 void pspr_clear(void);

@@ -18,6 +18,9 @@ struct EdGfx {
 };
 
 void edraw_free(struct EdGfx *g, int n);
+/* PVR upload out of VRAM: call fn (frees other VRAM users, returns bytes
+ * freed; GPU idle on every upload path), retry once. pspr_trim on DC. */
+void edraw_set_vram_relief(size_t (*fn)(void));
 /* Size matches edraw.c (do not BSS an array next to g_scr). */
 struct EdGfx *edraw_gfx_alloc(void);
 void edraw_gfx_release(struct EdGfx *g);

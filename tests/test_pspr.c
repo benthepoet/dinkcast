@@ -141,22 +141,75 @@ int main(void)
     CHECK(pspr_get(seqs, 72, 1) == a);
     g_fail_load = 0;
 
-    /* Out of VRAM: give back other Dink frames, then upload. */
+    /* Out of VRAM: give back other Dink frames (never the one being
+     * drawn), then refuse with NULL so the caller keeps its last frame
+     * and no CPU pixels are held. */
+    reset();
+    for (fr = 1; fr <= 4; fr++) {
+        b = pspr_get(seqs, 12, fr);
+    }
+    g_vram_left = 0;
+    CHECK(pspr_get(seqs, 72, 1) == NULL);
+    CHECK(g_upload_fails == 4); /* first try + idle 1..3 (4 is drawn) */
+    CHECK(pspr_count() == 1);
+    CHECK(pspr_get(seqs, 12, 4) == b && b->tex != NULL);
+    /* VRAM back: the next get loads and uploads. */
+    g_vram_left = -1;
+    CHECK(pspr_get(seqs, 72, 1) != NULL);
+
+    /* DinkC init redefines walk 72 (sword arm): cached frames are not
+     * hits, the drawn one survives until a new one loads, then the old
+     * pixels are freed. */
+    reset();
+    for (fr = 1; fr <= 8; fr++) {
+        a = pspr_get(seqs, 72, fr);
+    }
+    {
+        unsigned gen = pspr_gen();
+
+        pspr_forget_seq(72);
+        CHECK(pspr_gen() != gen);
+    }
+    pspr_forget_seq(500); /* not cached: no gen bump needed */
+    CHECK(pspr_count() == 8);
+    g_fail_load = 1;
+    CHECK(pspr_get(seqs, 72, 8) == NULL); /* reload fails: keep drawing a */
+    CHECK(a->tex != NULL);
+    g_fail_load = 0;
+    b = pspr_get(seqs, 72, 8);
+    CHECK(b != NULL && b != a);
+    CHECK(pspr_count() == 1); /* 8 stale frames freed */
+    CHECK(g_loads == 9);
+    for (fr = 1; fr <= 8; fr++) {
+        (void)pspr_get(seqs, 72, fr);
+    }
+    CHECK(g_loads == 16);
+
+    /* Screen swap trim: only the current seq stays. */
     reset();
     for (fr = 1; fr <= 4; fr++) {
         (void)pspr_get(seqs, 12, fr);
     }
-    g_vram_left = 0;
-    b = pspr_get(seqs, 72, 1);
-    CHECK(b != NULL);
-    CHECK(g_upload_fails == 5); /* first try + one per idle frame */
-    CHECK(b->tex == NULL); /* still out: fake never frees VRAM */
-    CHECK(pspr_count() == 1); /* idle frames were offered back */
-    /* VRAM comes back: the next hit retries the upload. */
+    for (fr = 1; fr <= 8; fr++) {
+        (void)pspr_get(seqs, 72, fr);
+    }
+    CHECK(pspr_trim() == 4u * 16384u);
+    CHECK(pspr_count() == 8);
+    CHECK(pspr_trim() == 0);
+
+    /* The VRAM loop never takes the frame being drawn, even from another
+     * seq: Dink draws walk 72 fr 1, loading walk 76 runs out of VRAM, the
+     * idle frames go back, 72 fr 1 stays. */
+    reset();
+    for (fr = 1; fr <= 4; fr++) {
+        (void)pspr_get(seqs, 12, fr);
+    }
+    a = pspr_get(seqs, 72, 1);
+    g_vram_left = 0; /* upload fails: VRAM loop must also skip a */
+    CHECK(pspr_get(seqs, 76, 1) == NULL);
+    CHECK(pspr_get(seqs, 72, 1) == a && a->tex != NULL);
+    CHECK(pspr_count() == 1);
     g_vram_left = -1;
-    CHECK(pspr_get(seqs, 72, 1) == b);
-    CHECK(b->tex != NULL);
-    CHECK(g_loads == 5);
 
     /* Slot table full of one seq: refuse, keep everything. */
     reset();

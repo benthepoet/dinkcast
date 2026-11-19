@@ -476,6 +476,15 @@ static int play_draw_screen(int sprite)
         }
     }
     dink_cd_settle();
+    /* GPU idle (waited above). Give the new screen's tiles and sprites
+     * the VRAM of Dink frames from other seqs; the current one stays. */
+    {
+        size_t freed = pspr_trim();
+
+        if (freed > 0) {
+            printf("pspr trim %u\n", (unsigned)freed);
+        }
+    }
     {
         struct TileAtlas nxt;
 
@@ -865,6 +874,8 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_seqs(seqs);
                 dinkc_cmd_bind_preload(preload_seq_cb);
                 dinkc_cmd_bind_load_frame(load_frame_cb);
+                dinkc_cmd_bind_seq_redefined(pspr_forget_seq);
+                edraw_set_vram_relief(pspr_trim);
                 dinkc_cmd_bind_inv(inv_show_cmd);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");
@@ -874,6 +885,7 @@ int main(int argc, char **argv)
                 struct HardMask mask;
                 struct Player pl;
                 int last_seq = 0, last_frame = 0, si;
+                unsigned last_gen = pspr_gen();
                 int player_map = DINK_START_PLAYER_MAP;
                 int swap = 0;
 
@@ -1417,8 +1429,11 @@ int main(int argc, char **argv)
                                               1);
                             }
                         }
+                        /* pspr_gen: DinkC init redefined a Dink seq (arm
+                         * sword/bow/fists); re-get the same seq/frame. */
                         if (player_pic_seq(&pl) != last_seq ||
-                            player_pic_frame(&pl) != last_frame) {
+                            player_pic_frame(&pl) != last_frame ||
+                            pspr_gen() != last_gen) {
                             int dseq = player_pic_seq(&pl);
                             int dframe = player_pic_frame(&pl);
                             struct SpriteFrame *nxt = NULL;
@@ -1453,6 +1468,7 @@ int main(int argc, char **argv)
                             }
                             last_seq = dseq;
                             last_frame = dframe;
+                            last_gen = pspr_gen();
                         }
                     }
                     pvr_scene_begin();

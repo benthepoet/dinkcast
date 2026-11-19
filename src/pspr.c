@@ -6,6 +6,7 @@
 
 struct PsprSlot {
     int seq, frame; /* seq 0 = empty */
+    int stale;      /* seq redefined by DinkC init; free after next load */
     unsigned used;  /* last pspr_get tick */
     size_t bytes;
     struct SpriteFrame fr;
@@ -15,6 +16,8 @@ static struct PsprSlot g_slot[DINK_PSPR_SLOTS];
 static size_t g_bytes;
 static unsigned g_tick;
 static unsigned g_misses;
+static unsigned g_gen;
+static int g_last = -1; /* slot the caller is drawing: never evicted */
 
 static int default_upload(struct SpriteFrame *f)
 {
@@ -49,23 +52,31 @@ static size_t frame_bytes(const struct SpriteFrame *f)
     return (size_t)f->tw * (size_t)f->th * 2u;
 }
 
-static void slot_free(struct PsprSlot *s)
+static void slot_free(int i)
 {
-    g_ops->free_frame(&s->fr);
-    g_bytes -= s->bytes;
-    memset(s, 0, sizeof(*s));
+    g_ops->free_frame(&g_slot[i].fr);
+    g_bytes -= g_slot[i].bytes;
+    memset(&g_slot[i], 0, sizeof(g_slot[i]));
+    if (g_last == i) {
+        g_last = -1;
+    }
 }
 
-/* Least recently drawn frame not in keep_seq, or -1. */
-static int lru_victim(int keep_seq)
+/* Stale first, then least recently drawn, never keep_seq (unless stale)
+ * and never the frame the caller is drawing. -1 if none. */
+static int victim(int keep_seq)
 {
     int i, pick = -1;
 
     for (i = 0; i < DINK_PSPR_SLOTS; i++) {
-        if (g_slot[i].seq == 0 || g_slot[i].seq == keep_seq) {
+        const struct PsprSlot *s = &g_slot[i];
+
+        if (s->seq == 0 || i == g_last ||
+            (s->seq == keep_seq && !s->stale)) {
             continue;
         }
-        if (pick < 0 || g_slot[i].used < g_slot[pick].used) {
+        if (pick < 0 || (s->stale && !g_slot[pick].stale) ||
+            (s->stale == g_slot[pick].stale && s->used < g_slot[pick].used)) {
             pick = i;
         }
     }
@@ -76,45 +87,41 @@ static void evict(int i, int for_seq, const char *why)
 {
     printf("pspr evict seq=%d fr=%d for seq=%d (%s)\n", g_slot[i].seq,
            g_slot[i].frame, for_seq, why);
-    slot_free(&g_slot[i]);
+    slot_free(i);
 }
 
 struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
 {
     struct SpriteFrame fr;
     struct PsprSlot *s;
-    int i, empty = -1;
+    int i, empty = -1, slot;
 
     if (seqs == NULL || seq < 1 || seq >= DINK_MAX_SEQ || frame < 1) {
         return NULL;
     }
     g_tick++;
     for (i = 0; i < DINK_PSPR_SLOTS; i++) {
-        if (g_slot[i].seq == seq && g_slot[i].frame == frame) {
-            s = &g_slot[i];
+        s = &g_slot[i];
+        if (s->seq == seq && s->frame == frame && !s->stale) {
             s->used = g_tick;
-            if (s->fr.tex == NULL && s->fr.argb1555 != NULL) {
-                /* An earlier upload ran out of VRAM; try again. */
-                (void)g_ops->upload(&s->fr);
-            }
+            g_last = i;
             return &s->fr;
         }
-        if (g_slot[i].seq == 0 && empty < 0) {
+        if (s->seq == 0 && empty < 0) {
             empty = i;
         }
     }
     /* Load before evicting anything: a failed read keeps the caller's
-     * previous frame valid. */
+     * frame (g_last) and every other slot. */
     memset(&fr, 0, sizeof(fr));
     if (g_ops->load(&seqs[seq], seq, frame, &fr) != 0) {
         return NULL;
     }
     g_misses++;
     if (empty < 0) {
-        int v = lru_victim(seq);
+        int v = victim(seq);
 
         if (v < 0) {
-            /* Every slot holds this seq: more frames than slots. */
             printf("pspr full seq=%d fr=%d\n", seq, frame);
             g_ops->free_frame(&fr);
             return NULL;
@@ -122,26 +129,37 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
         evict(v, seq, "slots");
         empty = v;
     }
-    s = &g_slot[empty];
+    slot = empty;
+    s = &g_slot[slot];
     s->seq = seq;
     s->frame = frame;
+    s->stale = 0;
     s->used = g_tick;
     s->bytes = frame_bytes(&fr);
     s->fr = fr;
     g_bytes += s->bytes;
     /* Out of VRAM: give back other Dink frames, oldest first. */
     while (g_ops->upload(&s->fr) != 0) {
-        int v = lru_victim(seq);
+        int v = victim(seq);
 
-        if (v < 0) {
-            printf("pspr upload fail seq=%d fr=%d bytes=%u\n", seq, frame,
-                   (unsigned)s->bytes);
-            break;
+        if (v < 0 || v == slot) {
+            /* Keep drawing the last good frame; do not hold CPU pixels
+             * that no pool counts. */
+            printf("pspr refuse seq=%d fr=%d bytes=%u (no vram)\n", seq,
+                   frame, (unsigned)s->bytes);
+            slot_free(slot);
+            return NULL;
         }
         evict(v, seq, "vram");
     }
+    g_last = slot;
+    for (i = 0; i < DINK_PSPR_SLOTS; i++) {
+        if (g_slot[i].stale && i != g_last) {
+            evict(i, seq, "stale");
+        }
+    }
     while (g_bytes > DINK_PSPR_TEX_CAP) {
-        int v = lru_victim(seq);
+        int v = victim(seq);
 
         if (v < 0) {
             break;
@@ -151,17 +169,54 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
     return &s->fr;
 }
 
+void pspr_forget_seq(int seq)
+{
+    int i, n = 0;
+
+    for (i = 0; i < DINK_PSPR_SLOTS; i++) {
+        if (g_slot[i].seq == seq && seq > 0 && !g_slot[i].stale) {
+            g_slot[i].stale = 1;
+            n++;
+        }
+    }
+    if (n > 0) {
+        g_gen++;
+        printf("pspr stale seq=%d n=%d\n", seq, n);
+    }
+}
+
+unsigned pspr_gen(void)
+{
+    return g_gen;
+}
+
+size_t pspr_trim(void)
+{
+    size_t before = g_bytes;
+    int keep = g_last >= 0 ? g_slot[g_last].seq : 0;
+    int i;
+
+    for (i = 0; i < DINK_PSPR_SLOTS; i++) {
+        if (g_slot[i].seq != 0 && i != g_last &&
+            (g_slot[i].seq != keep || g_slot[i].stale)) {
+            slot_free(i);
+        }
+    }
+    return before - g_bytes;
+}
+
 void pspr_clear(void)
 {
     int i;
 
     for (i = 0; i < DINK_PSPR_SLOTS; i++) {
         if (g_slot[i].seq != 0) {
-            slot_free(&g_slot[i]);
+            slot_free(i);
         }
     }
     g_bytes = 0;
     g_tick = 0;
+    g_last = -1;
 }
 
 size_t pspr_bytes(void)
