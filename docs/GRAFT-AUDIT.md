@@ -243,6 +243,7 @@ Stock-campaign-used and missing/stubbed:
 - `stop_entire_game` missing (used by `LRAISE.c`). (missing)
 
 ### 11. Inventory / stats / HUD / save
+- **Correction (2026-11-19, PR #150):** the magic-recharge item below is wrong. FreeDink calls `update_status_all` only inside its 100 ms block (`update_frame.cpp:231-237`), so Dinkcast's 100 ms gate in `status_update` is the faithful graft. Do not speed it up.
 - **Magic recharge ~8× too slow**: FreeDink adds `*pmagic` to `*pmagic_level` every
   frame (~84/s) (`status.cpp:460-464`); `status.c:534,623-629` throttles to 100 ms
   (10/s). Combat pacing shifts campaign-wide. (diverged)
