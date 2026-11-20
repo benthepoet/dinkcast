@@ -158,6 +158,15 @@ int main(void)
         expect(inv_menu_load() == 0, "inv_menu_load");
         expect(audio_music_polls() == polls + 5, "poll per menu frame");
     }
+    /* A zero-length music read must not stick. The next poll refills. */
+    {
+        int allowed = audio_music_refill_allowed();
+
+        audio_music_note_zero_read();
+        expect(audio_music_zero_reads() == 1, "zero read counted");
+        expect(audio_music_refill_allowed() == allowed, "zero read does not latch");
+        expect(audio_music_refill_allowed(), "refill still allowed");
+    }
     fr = inv_menu_frame(1);
     expect(fr != NULL && fr->w > 0 && fr->h > 0, "seq 423 fr 1");
     expect(fr->w == 600 && fr->h == 400, "menu-01 600x400");
