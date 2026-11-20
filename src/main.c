@@ -1055,7 +1055,7 @@ int main(int argc, char **argv)
                     static const struct OverlayVram ov = {
                         sprite_upload_pvr, sprite_vram_avail,
                         ov_screen_evictable, ov_screen_free_one,
-                        pspr_trim_for, pspr_free_one,
+                        pspr_trim_for, pspr_free_one, audio_music_poll,
                     };
 
                     overlay_set_vram(&ov);

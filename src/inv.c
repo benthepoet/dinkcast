@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "inv.h"
 
+#include "audio.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "pad.h"
@@ -142,6 +143,8 @@ int inv_menu_load(void)
             load_fr(g_seqs, DINK_INV_SEQ, f, &g_menu[f]) == 0) {
             ok++;
         }
+        /* Seq 423 is ~1.1 MB. The AICA holds ~0.37 s; poll between frames. */
+        audio_music_poll();
     }
     printf("inv gfx menu=%d/5\n", ok);
     return ok == 5 ? 0 : -1;

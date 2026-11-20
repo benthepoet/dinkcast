@@ -134,7 +134,7 @@ static const struct OverlayOps ops = {fake_load, fake_release, fake_n,
                                       fake_frame};
 static const struct OverlayVram vram = {fake_upload, fake_avail,
                                         fake_screen_ev, fake_screen_one,
-                                        fake_dink, fake_dink_one};
+                                        fake_dink, fake_dink_one, NULL};
 
 static void setv(size_t free_b, size_t block, size_t screen, size_t unit,
                  size_t dink)
