@@ -170,28 +170,80 @@ static int load_fr(struct SeqInfo *seqs, int seq, int frame,
     return 0;
 }
 
-int choice_load(struct SeqInfo *seqs)
+static struct SeqInfo *g_seqs;
+
+/* Arrows (seq 456/457, small) stay resident; the box (seq 30 frames 2..4,
+ * ~0.7 MB) is VRAM only while a choice is up (overlay). */
+int choice_arrows_load(struct SeqInfo *seqs)
 {
     int f, ok = 0;
 
-    choice_free();
+    g_seqs = seqs;
+    if (seqs == NULL) {
+        return -1;
+    }
+    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
+        if (load_fr(seqs, DINK_CHOICE_AROWL, f, &g_arowl[f]) == 0 &&
+            load_fr(seqs, DINK_CHOICE_AROWR, f, &g_arowr[f]) == 0) {
+            ok++;
+        }
+    }
+    printf("choice gfx arrows=%d/%d\n", ok, DINK_CHOICE_ARROW_MAX);
+    return ok == DINK_CHOICE_ARROW_MAX ? 0 : -1;
+}
+
+int choice_box_load(void)
+{
+    int f, ok = 0;
+
+    if (g_seqs == NULL) {
+        return -1;
+    }
+    for (f = 2; f <= 4; f++) {
+        if (g_box[f].tex != NULL || g_box[f].argb1555 != NULL ||
+            load_fr(g_seqs, DINK_CHOICE_SEQ, f, &g_box[f]) == 0) {
+            ok++;
+        }
+    }
+    return ok == 3 ? 0 : -1;
+}
+
+void choice_box_release(void)
+{
+    int f;
+
+    for (f = 0; f < 5; f++) {
+        sprite_frame_free(&g_box[f]);
+    }
+}
+
+int choice_box_nframes(void)
+{
+    return 3;
+}
+
+struct SpriteFrame *choice_box_frame(int i)
+{
+    return i >= 0 && i < 3 ? &g_box[i + 2] : NULL;
+}
+
+/* Start menu Continue: everything, outside the play loop. */
+int choice_load(struct SeqInfo *seqs)
+{
+    int ok;
+
     g_curf = 0;
     g_timer = 0;
     if (seqs == NULL) {
         return -1;
     }
-    for (f = 2; f <= 4; f++) {
-        if (load_fr(seqs, DINK_CHOICE_SEQ, f, &g_box[f]) == 0) {
-            ok++;
-        }
+    g_seqs = seqs;
+    if (!frame_has(&g_arowl[1])) {
+        (void)choice_arrows_load(seqs);
     }
-    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        (void)load_fr(seqs, DINK_CHOICE_AROWL, f, &g_arowl[f]);
-        (void)load_fr(seqs, DINK_CHOICE_AROWR, f, &g_arowr[f]);
-    }
-    printf("choice gfx box=%d arrows=%d/%d\n", ok, DINK_CHOICE_ARROW_MAX,
-           DINK_CHOICE_ARROW_MAX);
-    return ok == 3 ? 0 : -1;
+    ok = choice_box_load();
+    printf("choice gfx box=%s\n", ok == 0 ? "ok" : "partial");
+    return ok;
 }
 
 void choice_free(void)
@@ -221,25 +273,6 @@ struct SpriteFrame *choice_frame(int seq, int frame)
     return NULL;
 }
 
-int choice_resident(void)
-{
-    return frame_has(&g_box[2]);
-}
-
-size_t choice_bytes(void)
-{
-    size_t t = 0;
-    int f;
-
-    for (f = 2; f <= 4; f++) {
-        t += (size_t)g_box[f].tw * (size_t)g_box[f].th * 2u;
-    }
-    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        t += (size_t)g_arowl[f].tw * (size_t)g_arowl[f].th * 2u;
-        t += (size_t)g_arowr[f].tw * (size_t)g_arowr[f].th * 2u;
-    }
-    return t;
-}
 
 void choice_tick(int now_ms)
 {

@@ -123,7 +123,7 @@ Four classes. `mem_log` prints bytes per class every swap. **Official freeware s
 | Set | Pack bytes (approx) | Notes |
 |---|---|---|
 | Always | **~2.03 MB** | idle+walk+push+hit+textbox **+ menu** (`graphics/inter/menu/` ~825 KB). Walk seqs **71–74 and 76–79**, not 75 (`botl-b`). Arrows 456/457 are **loose BMPs** (~38 KB), not a `dir.ff`. `dink.ini` ~45 KB and preloaded `story/` count here. Inventory seq 423 frame 1 is **VRAM after upload** (~1 MiB 1024×512 ARGB1555, same pad class as title_tex) while the inventory shows; then free CPU. Closed: no VRAM. |
-| House vis 0 | **1.18 MB** packs; **~0.96 MB** used-frame POT1555 | mom+innwalls+details+food/paper/shiny. Choice overlay **640 KB** is VRAM, not this row. |
+| House vis 0 | **1.18 MB** packs; **~0.96 MB** used-frame POT1555 | mom+innwalls+details+food/paper/shiny. Choice overlay (~713 KB measured, frames 2–4) is VRAM only while a choice is up, not this row. |
 | Outdoor 439 | **1.51 MB** | **home 676 KB + trees 423 KB** live here, not in the start house. |
 | Duck 441 vis 2 | **1.34 MB** packs; Ts01–03 RGB565 **~1.17 MB** if all three decoded | |
 | 408 savebot/girl | **1.54 MB** | `s1-gate` `preload_seq`/`create_sprite` → `people/girl/dir.ff` **188 KB**. Map.dat-only catalog misses this. |

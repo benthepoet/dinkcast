@@ -31,6 +31,7 @@
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
 #include "save.h"
+#include "overlay.h"
 #include "pspr.h"
 #include "sprite.h"
 #include "start_map.h"
@@ -95,54 +96,44 @@ static size_t dink_vram_room(size_t need)
 }
 
 /* Overlay VRAM (choice box ~0.7 MB, inventory menu ~1.1 MB) only while
- * shown. Called before pvr_scene_begin: the last scene finished at the top
- * of the tick, so freeing and making room are safe here. */
-static void overlay_make_room(struct SeqInfo *seqs, size_t need)
-{
-    size_t avail = sprite_vram_avail();
+ * shown (overlay.c). Hooks make room like edraw (#155). */
+static struct SeqInfo *g_overlay_seqs;
 
-    if (avail >= need || seqs == NULL || g_edg == NULL) {
-        return;
-    }
-    (void)edraw_vram_room(g_edg, &g_ned, seqs, need);
-    avail = sprite_vram_avail();
-    if (avail < need) {
-        (void)pspr_trim_for(need - avail);
-    }
+static size_t ov_screen_evictable(void)
+{
+    return g_overlay_seqs != NULL && g_edg != NULL
+               ? edraw_vram_evictable(g_edg, g_ned, g_overlay_seqs)
+               : 0u;
 }
 
+static size_t ov_screen_free_one(void)
+{
+    return g_overlay_seqs != NULL && g_edg != NULL
+               ? edraw_vram_free_one(g_edg, &g_ned, g_overlay_seqs)
+               : 0u;
+}
+
+static const struct OverlayOps g_choice_ops = {
+    choice_box_load, choice_box_release, choice_box_nframes,
+    choice_box_frame,
+};
+static const struct OverlayOps g_inv_ops = {
+    inv_menu_load, inv_menu_release, inv_menu_nframes, inv_menu_slot,
+};
+static struct Overlay g_ov_choice = {"choice", &g_choice_ops, OVERLAY_OFF};
+static struct Overlay g_ov_inv = {"inv", &g_inv_ops, OVERLAY_OFF};
+
+/* Before pvr_scene_begin: the last scene finished at the top of the tick. */
 static void overlay_sync(struct SeqInfo *seqs)
 {
 #ifdef _arch_dreamcast
-    /* A pack that lacks the art stays missing: do not re-read per tick. */
-    static int choice_missing, inv_missing;
-    int want_choice = dinkc_vm_choice_n() > 0;
-    int want_inv = inv_showing();
+    int c0 = g_ov_choice.state, i0 = g_ov_inv.state;
 
-    if (want_choice && !choice_resident() && !choice_missing) {
-        if (choice_load(seqs) == 0) {
-            overlay_make_room(seqs, choice_bytes());
-        } else if (!choice_resident()) {
-            choice_missing = 1;
-        }
-        if (choice_upload_pvr() != 0) {
-            printf("choice upload fail\n");
-        }
-        mem_vram_note("choice open");
-    } else if (!want_choice && choice_resident()) {
-        choice_free();
-        mem_vram_note("choice close");
-    }
-    if (want_inv && !inv_menu_resident() && !inv_missing) {
-        overlay_make_room(seqs, inv_menu_load());
-        inv_missing = !inv_menu_resident();
-        if (inv_upload_pvr() != 0) {
-            printf("inv upload fail\n");
-        }
-        mem_vram_note("inv open");
-    } else if (!want_inv && inv_menu_resident()) {
-        inv_menu_release();
-        mem_vram_note("inv close");
+    g_overlay_seqs = seqs;
+    overlay_sync_one(&g_ov_choice, dinkc_vm_choice_n() > 0);
+    overlay_sync_one(&g_ov_inv, inv_showing());
+    if (g_ov_choice.state != c0 || g_ov_inv.state != i0) {
+        mem_vram_note("overlay");
     }
 #else
     (void)seqs;
@@ -946,7 +937,21 @@ int main(int argc, char **argv)
                 edraw_set_vram_relief(pspr_trim_for);
                 pspr_set_vram_relief(dink_vram_room);
                 dinkc_cmd_bind_inv(inv_show_cmd);
-                /* Choice box loads when a choice opens (overlay_sync). */
+                /* Arrows stay resident; the box loads on open (overlay). */
+                if (choice_arrows_load(seqs) != 0) {
+                    printf("choice arrows load fail\n");
+                }
+#ifdef _arch_dreamcast
+                {
+                    static const struct OverlayVram ov = {
+                        sprite_upload_pvr, sprite_vram_avail,
+                        ov_screen_evictable, ov_screen_free_one,
+                        pspr_trim_for,
+                    };
+
+                    overlay_set_vram(&ov);
+                }
+#endif
             }
             {
                 struct HardMask mask;
@@ -1063,9 +1068,11 @@ int main(int argc, char **argv)
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
                 mem_vram_note("dink");
-                /* Icons only; menu art and the choice box load on open. */
+                /* Icons and choice arrows; menu art and the choice box
+                 * load on open (overlay). */
                 (void)inv_upload_pvr();
-                mem_vram_note("inv icons");
+                (void)choice_upload_pvr();
+                mem_vram_note("inv icons + arrows");
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
@@ -1303,9 +1310,7 @@ int main(int argc, char **argv)
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
                         inv_open(now_ms);
 #ifdef _arch_dreamcast
-                        if (inv_upload_pvr() != 0) {
-                            printf("inv upload fail\n");
-                        }
+                        (void)inv_upload_pvr(); /* new icons */
 #endif
                     } else if (have && !paused && pl.freeze == 0 &&
                         pl.nocontrol == 0 &&

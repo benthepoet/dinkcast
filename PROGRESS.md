@@ -253,7 +253,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-19 | Playtest Open (2026-09-07 log): `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | #152 |
 | 2026-11-19 | Dink frames kept (`pspr`): walk/idle no longer re-read, decode and upload on every frame change (`ioplay` 723 reloads, 4.1 s on Flycast). Plan 8.3 256 KB facing set; current seq never evicted; other Dink seqs LRU over cap or on VRAM fail | #154 |
 | 2026-11-20 | 14.4c `sprite_tex`: upload out of VRAM frees non-live Screen tex (cached pack, largest first), least recently drawn first, then Dink other seqs (and Dink asks edraw), then `mem refuse pool=sprite_tex` remembered until a tex is freed and VRAM covers it (bar fight 2026-11-19: 434 `pvr_mem`, seq 724 reloaded 68×, Dink 99 refusals). Replaces #153 | #155 |
-| 2026-11-20 | Overlay VRAM only while shown: choice box (713 KB) and inventory menu (1.11 MB) load on open (making room from non-live Screen tex / Dink) and free on close; icons stay for the HUD. `vram <tag>` diagnostic around title, menu and overlay uploads | this PR |
+| 2026-11-20 | Overlay VRAM only while shown: choice box (713 KB) and inventory menu (1.11 MB) load on open (making room from non-live Screen tex / Dink) and free on close; icons stay for the HUD. `vram <tag>` diagnostic around title, menu and overlay uploads. `overlay.c` state per overlay (OFF/ON/FAILED until close); upload makes room like #155 (Dink shortfall, then screen one at a time); choice arrows stay resident | #156 |
 
 ## Bites
 

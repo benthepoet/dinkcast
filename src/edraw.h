@@ -31,6 +31,10 @@ void edraw_set_vram_relief(size_t (*fn)(size_t need));
  * they cannot cover it. Returns bytes freed. GPU must be idle. */
 size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
                        size_t need);
+/* Bytes edraw_vram_room could free (non-live cached Screen textures). */
+size_t edraw_vram_evictable(struct EdGfx *g, int n, struct SeqInfo *seqs);
+/* Free the least recently drawn such texture; bytes freed or 0. GPU idle. */
+size_t edraw_vram_free_one(struct EdGfx *g, int *n, struct SeqInfo *seqs);
 /* Tests: fake PVR upload (0 ok). DC default sprite_upload_pvr; host NULL
  * (frames stay CPU, no VRAM policy). */
 void edraw_set_upload(int (*fn)(struct SpriteFrame *f));

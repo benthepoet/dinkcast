@@ -34,7 +34,7 @@ def main() -> int:
         ("font", "font_init" in text),
         ("saybox", "saybox_draw_pvr" in text),
                         ("choice menu", "saybox_draw_choices_pvr" in text),
-                        ("choice overlay", "choice_load" in text and "choice_upload_pvr" in text),
+                        ("choice overlay", "choice_arrows_load" in text and "choice_upload_pvr" in text and "overlay_sync(seqs)" in text),
         ("screen swap", "screen_try_cross" in text),
         ("brains", "brains_tick" in text and "brains_enter" in text),
         ("arm weapon", "give_start_fists" in text and "dinkc_cmd_weapon_use" in text),

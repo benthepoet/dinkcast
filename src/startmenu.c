@@ -445,6 +445,8 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
         pvr_list_finish();
         pvr_scene_finish();
     }
+    /* The last menu scene may still read these textures. */
+    pvr_wait_ready();
     sprite_frame_free(&logo);
     for (i = 0; i < STARTMENU_N; i++) {
         sprite_frame_free(&btn[i][0]);
@@ -528,6 +530,8 @@ int startmenu_present_slots_pvr(struct SeqInfo *seqs)
         pvr_scene_finish();
     }
     dinkc_vm_choice_close_saves();
+    /* The last menu scene may still read these textures. */
+    pvr_wait_ready();
     sprite_frame_free(&logo);
     sprite_frame_free(&start);
     sprite_frame_free(&cont[0]);
