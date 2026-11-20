@@ -5,6 +5,7 @@
 #include "fs.h"
 #include "mem.h"
 #include "rgb565.h"
+#include "twiddle.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -502,13 +503,15 @@ int tiles_upload_pvr(struct TileAtlas *a)
     if (g_tile_tex == NULL) {
         return -1;
     }
+    /* Fast twiddle (twiddle.c, same layout as pvr_txr_load_ex) straight
+     * into VRAM: the atlas is bigger than the sprite scratch. Paletted must
+     * be twiddled; bank 1 is the opaque main palette. */
     if (g_tile_pal8) {
-        /* Paletted must be twiddled; bank 1 is the opaque main palette. */
-        pvr_txr_load_ex(a->pal8, g_tile_tex, DINK_ATLAS_W, DINK_ATLAS_H,
-                        PVR_TXRLOAD_8BPP);
+        twiddle_8bpp(a->pal8, (uint16_t *)g_tile_tex, DINK_ATLAS_W,
+                     DINK_ATLAS_H);
     } else {
-        pvr_txr_load_ex(a->rgb565, g_tile_tex, DINK_ATLAS_W, DINK_ATLAS_H,
-                        PVR_TXRLOAD_16BPP);
+        twiddle_16bpp(a->rgb565, (uint16_t *)g_tile_tex, DINK_ATLAS_W,
+                      DINK_ATLAS_H);
     }
     return 0;
 }
