@@ -4,6 +4,7 @@
 #include "bmp.h"
 #include "ff.h"
 #include "fs.h"
+#include "twiddle.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -440,6 +441,37 @@ void sprite_pal_init_pvr(void)
     }
 }
 
+/* Twiddle in cached RAM with shifts + a table (twiddle.c, bit-for-bit KOS
+ * pvr_txr_load_ex), then one store-queue copy to VRAM: the KOS loop does a
+ * per-pixel divide and a scattered uncached 16-bit VRAM write. Frames up
+ * to 64 KB (every sprite frame, 256×256 PAL8 tree fire included) use the
+ * scratch; bigger one-offs (inventory background) twiddle straight into
+ * VRAM with the same fast index math. Paletted textures must be twiddled. */
+static uint16_t g_twid_scratch[32768] __attribute__((aligned(32)));
+
+static void sprite_twiddle_load(const struct SpriteFrame *f, pvr_ptr_t tex)
+{
+    size_t bytes = sprite_tex_bytes(f);
+    int pal = f->bpp == 8 && f->pal8 != NULL;
+    uint16_t *dst = bytes <= sizeof(g_twid_scratch) ? g_twid_scratch
+                                                     : (uint16_t *)tex;
+
+    if (!twiddle_size_ok(f->tw, f->th)) { /* > 1024 (a D-Mod): KOS loop */
+        pvr_txr_load_ex(pal ? (const void *)f->pal8 : (const void *)f->argb1555,
+                        tex, f->tw, f->th,
+                        pal ? PVR_TXRLOAD_8BPP : PVR_TXRLOAD_16BPP);
+        return;
+    }
+    if (pal) {
+        twiddle_8bpp(f->pal8, dst, f->tw, f->th);
+    } else {
+        twiddle_16bpp(f->argb1555, dst, f->tw, f->th);
+    }
+    if (dst == g_twid_scratch) {
+        pvr_txr_load(g_twid_scratch, tex, bytes);
+    }
+}
+
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
     pvr_ptr_t tex;
@@ -458,12 +490,7 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     if (dink_io_play()) {
         dink_io_note_vram_upload((unsigned)pvr_mem_available());
     }
-    if (f->bpp == 8 && f->pal8 != NULL) {
-        /* Paletted textures must be twiddled; KOS twiddles 8bpp here. */
-        pvr_txr_load_ex(f->pal8, tex, f->tw, f->th, PVR_TXRLOAD_8BPP);
-    } else {
-        pvr_txr_load_ex(f->argb1555, tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
-    }
+    sprite_twiddle_load(f, tex);
     f->tex = tex;
     return 0;
 }
