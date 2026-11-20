@@ -517,6 +517,9 @@ int startmenu_present_slots_pvr(struct SeqInfo *seqs)
         }
         prev = have ? buttons : 0;
         choice_tick((int)mem_now_ms());
+        /* Same pump as the Start/Continue loop. Without it AICA loops
+         * the last 16 KiB of 1003.mid for the whole slot choice. */
+        audio_music_poll();
         pvr_wait_ready();
         pvr_scene_begin();
         pvr_list_begin(PVR_LIST_OP_POLY);
