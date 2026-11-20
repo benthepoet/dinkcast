@@ -9,17 +9,20 @@
 
 /* Dink (sprite 1) frame set. FreeDink load_sequence_now keeps every Dink
  * sequence for the session; all of them are ~5 MB of POT1555, over the
- * plan §1.2 sprite_tex share. Plan 8.3 gives Dink's facing ≤ 256 KB.
+ * plan §1.2 sprite_tex share. Plan 8.3 gives Dink a 512 KB combat set.
  *
  * Policy: the requested seq and the frame last handed out are never
  * evicted. Frames of other Dink seqs stay until the set is over the cap or
  * an upload runs out of VRAM, then go least recently drawn first (recency
  * among Dink's own frames only; 14.4c EdGfx victims stay class-based).
- * Walk (128 KB/facing) + idle (64 KB) of one facing fit, so walk/stop/walk
- * reads no disc. A seq bigger than the cap (sword hit 384 KB) is held
- * whole while current. Bound: max(cap, current seq) + the last frame. */
+ * Two walk facings (128 KB each) + idle (64 KB) + punch (160 KB) = 480 KB
+ * fit, so the bar fight's turn/punch/walk reads no disc (#155 log: 278
+ * cap evictions at 256 KB). Sword hit (384 KB) fits too. A seq bigger
+ * than the cap is held whole while current. Under VRAM pressure Dink
+ * still gives frames back (vram evict, pspr_trim_for). Bound: max(cap,
+ * current seq) + the last frame. */
 #define DINK_PSPR_SLOTS 64
-#define DINK_PSPR_TEX_CAP (256u * 1024u)
+#define DINK_PSPR_TEX_CAP (512u * 1024u)
 
 struct PsprOps {
     int (*load)(struct SeqInfo *seqs, int seq, int frame,
@@ -52,8 +55,9 @@ unsigned pspr_gen(void);
 /* Screen swap: free every frame except the current seq's (and the drawn
  * one). GPU must be idle. Returns bytes freed. */
 size_t pspr_trim(void);
-/* edraw relief: extra = bytes edraw cannot free itself. pspr_trim only if
- * Dink's other frames cover it. */
+/* edraw/overlay relief: extra = bytes they cannot free themselves. If
+ * Dink's other frames cover it, free least recently drawn ones until
+ * extra is freed (not the whole set). */
 size_t pspr_trim_for(size_t need);
 /* Before refusing a Dink frame for VRAM: fn(need) frees other users'
  * VRAM (edraw_vram_room: non-live Screen textures), once. */

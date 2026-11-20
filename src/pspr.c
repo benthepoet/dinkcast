@@ -209,7 +209,9 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
     {
         int relief = 0;
 
-        while (g_ops->upload(&s->fr) != 0) {
+        /* Short of VRAM: make room before trying (a failed pvr_mem_malloc
+         * logs on KOS). */
+        while (vram_avail() < s->bytes || g_ops->upload(&s->fr) != 0) {
             int v = victim(seq);
 
             if (v >= 0 && v != slot) {
@@ -299,7 +301,22 @@ size_t pspr_trim_for(size_t need)
     if (need == 0 || can < need) {
         return 0; /* nothing missing, or would not be enough */
     }
-    return pspr_trim();
+    /* Only what is missing, least recently drawn first: a 512 KB set
+     * dropped whole would re-decode ~15 frames mid-fight. */
+    {
+        size_t freed = 0;
+
+        while (freed < need) {
+            int v = victim(keep);
+
+            if (v < 0) {
+                break;
+            }
+            freed += g_slot[v].bytes;
+            evict(v, keep, "trim");
+        }
+        return freed;
+    }
 }
 
 void pspr_clear(void)

@@ -33,7 +33,8 @@ static int fake_load(struct SeqInfo *seqs, int seq, int frame,
     }
     g_loads++;
     out->w = out->tw = 64;
-    out->h = out->th = seq == 109 ? 512 : 128;
+    /* walk/idle 16 KB, punch 106 32 KB, sword hit 109 64 KB per frame */
+    out->h = out->th = seq == 109 ? 512 : seq == 106 ? 256 : 128;
     out->argb1555 = (uint16_t *)malloc(4);
     return 0;
 }
@@ -129,31 +130,48 @@ int main(void)
     CHECK(g_frees == 0);
     CHECK(pspr_bytes() == 12u * 16384u);
 
-    /* Turn to walk 76: over the cap, oldest other-seq frames go first
-     * (idle frames were drawn before walk 72's second lap). */
+    /* Bar fight combat set: walk 72 + idle 12 + punch 106 (5 x 32 KB) +
+     * the other walk facing 76 = 480 KB, inside the 512 KB cap: turning
+     * and punching back and forth reloads nothing. */
+    for (lap = 0; lap < 3; lap++) {
+        for (fr = 1; fr <= 5; fr++) {
+            CHECK(pspr_get(seqs, 106, fr) != NULL);
+        }
+        for (fr = 1; fr <= 8; fr++) {
+            CHECK(pspr_get(seqs, 76, fr) != NULL);
+        }
+        for (fr = 1; fr <= 8; fr++) {
+            CHECK(pspr_get(seqs, 72, fr) != NULL);
+        }
+    }
+    CHECK(g_frees == 0);
+    CHECK(g_loads == 12 + 5 + 8);
+    CHECK(pspr_bytes() == 480u * 1024u);
+
+    /* A third walk facing (74) passes the cap: least recently drawn
+     * other-seq frames go first (idle 12, then the oldest punch frames). */
     for (fr = 1; fr <= 8; fr++) {
-        CHECK(pspr_get(seqs, 76, fr) != NULL);
+        CHECK(pspr_get(seqs, 74, fr) != NULL);
     }
     CHECK(pspr_bytes() <= DINK_PSPR_TEX_CAP);
-    CHECK(g_frees == 4); /* 20 frames * 16 KB = 320 KB → 4 out */
     CHECK(pspr_get(seqs, 72, 8) != NULL); /* recent walk 72 still held */
-    CHECK(g_loads == 20);
+    CHECK(g_loads == 12 + 5 + 8 + 8);
 
-    /* Current seq bigger than the cap (sword hit 6 x 64 KB) is held
-     * whole; every other frame is let go. */
+    /* Current seq bigger than the cap (9 x 64 KB = 576 KB) is held whole;
+     * every other frame is let go. */
     reset();
     for (fr = 1; fr <= 8; fr++) {
         (void)pspr_get(seqs, 72, fr);
     }
-    for (fr = 1; fr <= 6; fr++) {
+    for (fr = 1; fr <= 9; fr++) {
         CHECK(pspr_get(seqs, 109, fr) != NULL);
     }
-    CHECK(pspr_count() == 6);
-    CHECK(pspr_bytes() == 6u * 65536u);
-    for (fr = 1; fr <= 6; fr++) {
+    CHECK(pspr_count() == 9);
+    CHECK(pspr_bytes() == 9u * 65536u);
+    for (fr = 1; fr <= 9; fr++) {
         (void)pspr_get(seqs, 109, fr);
     }
-    CHECK(g_loads == 8 + 6);
+    CHECK(g_loads == 8 + 9);
 
     /* A failed load evicts nothing: the caller's last pointer stays. */
     reset();
@@ -179,7 +197,7 @@ int main(void)
     }
     g_vram_left = 0;
     CHECK(pspr_get(seqs, 72, 1) == NULL);
-    CHECK(g_upload_fails == 4); /* first try + idle 1..3 (4 is drawn) */
+    CHECK(g_upload_fails == 0); /* short of VRAM: no malloc attempt at all */
     CHECK(pspr_count() == 1);
     CHECK(pspr_get(seqs, 12, 4) == b && b->tex != NULL);
     /* Refused: the next step does not reload until VRAM is freed. */
@@ -222,8 +240,11 @@ int main(void)
     g_vram_left = 0;
     CHECK(pspr_trim_for(10u * 16384u) == 0); /* 4 idle frames short of 10 */
     CHECK(pspr_count() == 5);
-    CHECK(pspr_trim_for(2u * 16384u) == 4u * 16384u);
-    CHECK(pspr_count() == 1);
+    /* Only the shortfall, oldest first: 2 of the 4 idle frames. */
+    CHECK(pspr_trim_for(2u * 16384u) == 2u * 16384u);
+    CHECK(pspr_count() == 3);
+    CHECK(pspr_get(seqs, 12, 4) != NULL); /* newest idle frame kept */
+    CHECK(pspr_count() == 3);
     g_vram_left = -1;
 
     /* DinkC init redefines walk 72 (sword arm): cached frames are not
