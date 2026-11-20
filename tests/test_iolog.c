@@ -188,7 +188,8 @@ int main(void)
     dink_io_stats(&st);
     CHECK(st.min_upload == 2500000u && st.upload_samples == 2);
 
-    /* Our own log flush is counted apart and taken out of the tick. */
+    /* Our own log flush is counted apart and taken out of the tick.
+     * Leaving the play phase drains it (timed) like the top of a tick. */
     dink_io_summary(34);
     dink_io_tick(3000000u);
     dink_io_note("pread", NULL, 10, 5);
@@ -202,9 +203,11 @@ int main(void)
     {
         unsigned lus = st.log_us;
 
-        dink_io_flush(); /* empty ring: nothing logged, no time */
+        /* Empty ring: no ioplay lines; the timed stdout drain (batched
+         * play printfs on DC) still runs and is counted, ~0 on host. */
+        dink_io_flush();
         dink_io_stats(&st);
-        CHECK(st.logged == 2 && st.log_us == lus);
+        CHECK(st.logged == 2 && st.log_us >= lus && st.log_us - lus < 5000u);
     }
 
     /* Summary resets every counter. */

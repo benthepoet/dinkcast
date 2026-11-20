@@ -50,9 +50,33 @@ unsigned dink_io_now_us(void)
 #endif
 }
 
+#ifdef _arch_dreamcast
+/* Play-path stdout batching: every printf during gameplay (edraw load,
+ * evictions, script logs) lands in RAM and goes to SCIF once per tick at
+ * the top of the loop, inside dink_io_flush's timed window, so it is
+ * subtracted from tick pacing like ioplay's own lines. Menus and boot stay
+ * line-buffered (logs appear at once). A crash loses at most one tick of
+ * play log; fatal hud() flushes first. If one tick prints more than the
+ * buffer, newlib writes the full buffer mid-tick (rare). */
+static char g_play_stdout[16384];
+#endif
+
 void dink_io_set_play(int on)
 {
-    g_io_play = on ? 1 : 0;
+    on = on ? 1 : 0;
+    if (on == g_io_play) {
+        return;
+    }
+    if (!on) {
+        dink_io_flush(); /* timed: drains the batched tick */
+    }
+    g_io_play = on;
+#ifdef _arch_dreamcast
+    /* newlib setvbuf flushes first; the buffer is empty here (flushed
+     * above or line-buffered since the last switch). */
+    setvbuf(stdout, on ? g_play_stdout : NULL, on ? _IOFBF : _IOLBF,
+             on ? sizeof(g_play_stdout) : 0);
+#endif
 }
 
 int dink_io_play(void)
@@ -96,12 +120,8 @@ static unsigned g_log_pending; /* flush us since the last tick */
 void dink_io_flush(void)
 {
     int i, n = g_io_nring;
-    unsigned t0;
+    unsigned t0 = dink_io_now_us(), d;
 
-    if (n == 0 && g_io_dropped == 0) {
-        return;
-    }
-    t0 = dink_io_now_us();
     for (i = 0; i < g_io_nring; i++) {
         printf("ioplay %s\n", g_io_ring[i]);
     }
@@ -110,13 +130,12 @@ void dink_io_flush(void)
         printf("ioplay dropped=%u (ring %d)\n", g_io_dropped, DINK_IO_RING);
         g_io_dropped = 0;
     }
-    {
-        unsigned d = dink_io_now_us() - t0;
-
-        g_log_pending += d;
-        g_io.log_us += d;
-        g_io.logged += (unsigned)n;
-    }
+    /* Batched play-path printfs (see dink_io_set_play) drain here too. */
+    fflush(stdout);
+    d = dink_io_now_us() - t0;
+    g_log_pending += d;
+    g_io.log_us += d;
+    g_io.logged += (unsigned)n;
 }
 
 void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us)

@@ -692,6 +692,7 @@ static int play_draw_screen(int sprite)
 
 static void hud(const char *line0, const char *line1, const char *line2)
 {
+    fflush(stdout); /* play-path stdout is batched; fatal paths halt next */
     /* 12×24 BIOS font; opaque so it is readable on red/brown. */
     if (vram_s == NULL) {
         return;
