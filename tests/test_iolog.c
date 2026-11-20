@@ -220,9 +220,32 @@ int main(void)
     dink_io_stats(&st);
     CHECK(st.work_n == 2 && st.work_over16 == 1 && st.work_max_us == 18000u);
 
-    /* set_play: no-op when unchanged; leaving play drains (timed). */
-    dink_io_set_play(1);
-    CHECK(dink_io_play() == 1);
+    /* A drain inside the tick (script load_screen) is not work. */
+    {
+        unsigned w0;
+
+        dink_io_tick(5000000u);
+        dink_io_note("pread", NULL, 10, 5);
+        dink_io_flush();
+        dink_io_stats(&st);
+        w0 = st.work_max_us;
+        dink_io_work(1000u); /* tiny tick: drain time must not inflate it */
+        dink_io_stats(&st);
+        CHECK(st.work_max_us == w0 || st.work_max_us <= 1000u);
+    }
+
+    /* set_play: no-op when unchanged (nothing drained, nothing logged);
+     * leaving play drains (timed). */
+    {
+        unsigned lus, lg;
+
+        dink_io_stats(&st);
+        lus = st.log_us;
+        lg = st.logged;
+        dink_io_set_play(1);
+        dink_io_stats(&st);
+        CHECK(dink_io_play() == 1 && st.log_us == lus && st.logged == lg);
+    }
     dink_io_note("pread", NULL, 10, 5);
     dink_io_set_play(0);
     dink_io_stats(&st);

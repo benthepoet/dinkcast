@@ -50,7 +50,7 @@ unsigned dink_io_now_us(void)
 #endif
 }
 
-#ifdef _arch_dreamcast
+#if defined(_arch_dreamcast) && !defined(DINK_LOG_SYNC)
 #include <assert.h>
 /* Play-path stdout batching: every printf during gameplay (edraw load,
  * evictions, script logs) lands in RAM and goes to SCIF once per tick at
@@ -140,6 +140,10 @@ int dink_io_pending(void)
 }
 
 static unsigned g_log_pending; /* flush us since the last tick */
+/* Log drain since boot (never reset; summaries reset g_io mid-tick) and
+ * its value at the start of this tick: dink_io_work excludes drains that
+ * happen inside a tick (a script load_screen / draw_screen). */
+static unsigned g_log_total, g_tick_log0;
 
 void dink_io_flush(void)
 {
@@ -167,6 +171,7 @@ void dink_io_flush(void)
 #endif
     fflush(stdout);
     d = dink_io_now_us() - t0;
+    g_log_total += d;
     if (d > g_io.drain_max_us) {
         g_io.drain_max_us = d;
     }
@@ -258,6 +263,7 @@ void dink_io_stats(struct DinkIoStats *out)
 static unsigned g_tick_last;
 static int g_tick_have;
 
+
 void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex)
 {
     if (!dink_io_play()) {
@@ -282,6 +288,7 @@ void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex)
 
 void dink_io_tick(unsigned now_us)
 {
+    g_tick_log0 = g_log_total;
     if (!dink_io_play()) {
         g_tick_have = 0;
         return;
@@ -313,9 +320,12 @@ void dink_io_tick(unsigned now_us)
 
 void dink_io_work(unsigned us)
 {
+    unsigned logd = g_log_total - g_tick_log0;
+
     if (!dink_io_play()) {
         return;
     }
+    us = us > logd ? us - logd : 0u; /* no log drain in "work" */
     g_io.work_n++;
     if (us > 16667u) {
         g_io.work_over16++;
