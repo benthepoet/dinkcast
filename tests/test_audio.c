@@ -1,10 +1,16 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "audio.h"
 #include "dinkc_cmd.h"
+#include "dinkc_var.h"
 #include "fs.h"
+#include "player.h"
+#include "save.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static void expect(int cond, const char *msg)
 {
@@ -65,6 +71,46 @@ int main(void)
     audio_music_stop();
     expect(!audio_music_playing(), "stopcd");
     expect(dinkc_cmd("stopcd", NULL, 0, NULL, NULL, &yld, &ret) == 1, "stopcd cmd");
+
+    /* A playmidi during disc hold is deferred. Stop must drop it, or the
+     * hold release starts that track after load_game / stopmidi. */
+    expect(audio_music_play("1003.mid") == 1, "play before hold");
+    audio_music_disc_hold(1);
+    expect(audio_music_play("dance.mid") == 1, "defer dance");
+    expect(audio_music_playing(), "title still current under hold");
+    audio_music_stop();
+    expect(!audio_music_playing(), "stop cleared current");
+    audio_music_disc_hold(0);
+    expect(!audio_music_playing(), "pending did not start");
+
+    {
+        struct Player pl;
+
+        player_init(&pl);
+        dinkc_var_init();
+        dinkc_cmd_bind_player(&pl);
+        expect(audio_music_play("1003.mid") == 1, "music before bad load");
+        args[0] = 9;
+        ret = 1;
+        expect(dinkc_cmd("load_game", args, 1, NULL, NULL, &yld, &ret) == 1 &&
+                   ret == 0,
+               "load_game missing slot");
+        expect(!audio_music_playing(), "failed load stopped music");
+
+        save_set_dir("build/audiotest");
+        expect(mkdir("build/audiotest", 0755) == 0 || errno == EEXIST, "dir");
+        args[0] = 1;
+        expect(dinkc_cmd("save_game", args, 1, NULL, NULL, &yld, &ret) == 1 &&
+                   ret == 1,
+               "save for load");
+        expect(audio_music_play("1003.mid") == 1, "music before good load");
+        expect(dinkc_cmd("load_game", args, 1, NULL, NULL, &yld, &ret) == 1 &&
+                   ret == 1,
+               "load_game slot");
+        expect(!audio_music_playing(), "load stopped music");
+        unlink("build/audiotest/save01.bin");
+        rmdir("build/audiotest");
+    }
     printf("OK test_audio slots=%d bytes=%zu\n", audio_slot_count(), audio_sfx_bytes());
     audio_shutdown();
     return 0;
