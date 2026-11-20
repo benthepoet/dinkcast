@@ -545,6 +545,19 @@ size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
     return freed;
 }
 
+size_t edraw_tex_bytes(const struct EdGfx *g, int n)
+{
+    size_t b = 0;
+    int i;
+
+    for (i = 0; g != NULL && i < n; i++) {
+        if (g[i].fr.tex != NULL) {
+            b += sprite_tex_bytes(&g[i].fr);
+        }
+    }
+    return b;
+}
+
 size_t edraw_upload_need(const struct EdGfx *g, int n)
 {
     size_t b = 0;

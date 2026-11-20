@@ -457,6 +457,10 @@ int sprite_upload_pvr(struct SpriteFrame *f)
     if (tex == NULL) {
         return -1;
     }
+    /* Diagnostic: a dip undone before the next tick sample still shows. */
+    if (dink_io_play()) {
+        dink_io_note_vram_upload((unsigned)pvr_mem_available());
+    }
     if (f->bpp == 8 && f->pal8 != NULL) {
         /* Paletted textures must be twiddled; KOS twiddles 8bpp here. */
         pvr_txr_load_ex(f->pal8, tex, f->tw, f->th, PVR_TXRLOAD_8BPP);
