@@ -357,6 +357,44 @@ int main(void)
     CHECK(pspr_get(seqs, 12, DINK_PSPR_SLOTS + 1) == NULL);
     CHECK(pspr_count() == DINK_PSPR_SLOTS);
 
+    /* Lookahead (pspr_prefetch): free slot within the cap only, never
+     * moves the drawn frame, never evicts, no refusal memo. */
+    reset();
+    a = pspr_get(seqs, 72, 1);
+    {
+        int loads0 = g_loads;
+
+        CHECK(pspr_prefetch(seqs, 72, 2) == 1);
+        CHECK(pspr_prefetch(seqs, 72, 2) == 0);
+        CHECK(g_loads == loads0 + 1 && pspr_count() == 2);
+        CHECK(pspr_get(seqs, 72, 2) != NULL && g_loads == loads0 + 1);
+    }
+    /* The drawn frame stays the pinned one after a prefetch: VRAM short,
+     * a Dink load gives back other frames but never 72 fr 2 (drawn). */
+    b = pspr_get(seqs, 72, 2);
+    CHECK(pspr_prefetch(seqs, 12, 1) == 1);
+    g_vram_left = 0;
+    CHECK(pspr_prefetch(seqs, 12, 2) == -1); /* no VRAM: skipped */
+    CHECK(pspr_count() == 3);
+    g_vram_left = -1;
+    CHECK(pspr_get(seqs, 12, 2) != NULL); /* not refused: real get loads */
+    /* Over the cap: skipped rather than evicting. */
+    reset();
+    for (fr = 1; fr <= 4; fr++) {
+        (void)pspr_get(seqs, 500, fr); /* 4 x 512 KB = the 2 MB cap */
+    }
+    CHECK(pspr_bytes() == DINK_PSPR_TEX_CAP);
+    {
+        int frees0 = g_frees;
+
+        int loads0 = g_loads;
+
+        CHECK(pspr_prefetch(seqs, 72, 1) == -1);
+        /* Skipped on the size estimate: nothing read, nothing freed. */
+        CHECK(g_loads == loads0 && g_frees == frees0 && pspr_count() == 4);
+    }
+    (void)b;
+
     /* Bad args. */
     CHECK(pspr_get(NULL, 72, 1) == NULL);
     CHECK(pspr_get(seqs, 0, 1) == NULL);

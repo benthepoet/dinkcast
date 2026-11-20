@@ -114,6 +114,8 @@ enum {
 
 /* Bumped per play tick (edraw_live_begin); EdGfx.used = last drawn. */
 static unsigned g_draw_tick = 1;
+/* edraw_prefetch in progress: no eviction, no refusal memo, own log tag. */
+static int g_prefetching;
 
 static int pixel_class(const struct SeqInfo *seqs, int seq)
 {
@@ -635,6 +637,12 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (sprite_vram_avail() >= need && g_upload(hit) == 0) {
             break;
         }
+        if (g_prefetching) {
+            /* Lookahead never evicts and never records a refusal (that
+             * would block the real draw-time load): just drop it. */
+            remove_at(g, got, find_index(g, *got, seq, frame));
+            return -1;
+        }
         /* Edraw victims only when they (with free VRAM) cover it: do not
          * empty the screen for a frame that is refused anyway. When they
          * fall short, ask Dink for the shortfall first, then re-check. */
@@ -766,12 +774,14 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     t0 = dink_io_now_us();
     dink_io_stats(&io0);
     dink_io_ctx_save(outer, sizeof(outer));
-    snprintf(ctx, sizeof(ctx), "edraw seq=%d fr=%d", seq, frame);
+    snprintf(ctx, sizeof(ctx), "%s seq=%d fr=%d",
+             g_prefetching ? "prefetch" : "edraw", seq, frame);
     dink_io_ctx(ctx);
     rc = load_one_body(g, got, seqs, seq, frame, may_evict);
     dink_io_ctx(outer);
     dink_io_stats(&io1);
-    dink_io_note_frame("edraw", rc == 0 ? seq : -seq, frame,
+    dink_io_note_frame(g_prefetching ? "prefetch" : "edraw",
+                       rc == 0 ? seq : -seq, frame,
                        dink_io_now_us() - t0, io1.ops - io0.ops);
     return rc;
 }
@@ -1264,6 +1274,70 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     *n = got;
     return 0;
+}
+
+/* A lookahead that loaded and could not keep its frame (upload or
+ * cpu_pixels): skip it until some texture is freed, so a tight VRAM does
+ * not re-read and drop the same frame every tick. Not a refusal: the real
+ * draw-time load still tries. */
+#define DINK_PREFETCH_MISS 8
+static int g_pfm_seq[DINK_PREFETCH_MISS], g_pfm_fr[DINK_PREFETCH_MISS];
+static unsigned g_pfm_gen[DINK_PREFETCH_MISS];
+static int g_pfm_next;
+
+static int prefetch_missed(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < DINK_PREFETCH_MISS; i++) {
+        if (g_pfm_seq[i] == seq && g_pfm_fr[i] == frame &&
+            g_pfm_gen[i] == sprite_pvr_free_gen()) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int edraw_prefetch(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
+                   int frame)
+{
+    char dir[160];
+    int got, rc;
+
+    if (g == NULL || n == NULL || seqs == NULL || seq < 1 ||
+        seq >= DINK_MAX_SEQ || frame < 1) {
+        return -1;
+    }
+    got = *n < 0 ? 0 : *n;
+    if (edraw_find(g, got, seq, frame) != NULL) {
+        return 0;
+    }
+    if (miss_has(seq, frame) || refuse_blocks(seq, frame) ||
+        prefetch_missed(seq, frame)) {
+        return -1;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] == '\0' || !ff_is_cached(dir)) {
+        return -1; /* play path never opens a pack */
+    }
+    /* Spare room only: a lookahead must not displace anything. */
+    if (got >= DINK_EDGFX_MAX - DINK_PREFETCH_SLOT_SPARE ||
+        sprite_vram_avail() < (size_t)DINK_PREFETCH_VRAM_SPARE ||
+        edraw_cpu_bytes(g, got) + (size_t)DINK_PREFETCH_VRAM_SPARE >
+            (size_t)DINK_MEM_CPU_PIXELS) {
+        return -1;
+    }
+    g_prefetching = 1;
+    rc = load_one(g, &got, seqs, seq, frame, 0);
+    g_prefetching = 0;
+    *n = got;
+    if (rc != 0 && !miss_has(seq, frame)) {
+        g_pfm_seq[g_pfm_next] = seq;
+        g_pfm_fr[g_pfm_next] = frame;
+        g_pfm_gen[g_pfm_next] = sprite_pvr_free_gen();
+        g_pfm_next = (g_pfm_next + 1) % DINK_PREFETCH_MISS;
+    }
+    return rc == 0 ? 1 : -1;
 }
 
 void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)

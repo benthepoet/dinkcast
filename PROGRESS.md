@@ -259,6 +259,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | PAL8 sprites: colour-keyed frames on the main palette keep 8-bit indices (half VRAM and CPU, no 1555 conversion), PVR palette bank 0 with the same white key; HUD/status no-key frames and off-palette BMPs stay ARGB1555. `tools/palette_survey.py`: 3619/3628 BMPs share `Tiles/Esplash.bmp` | #159 |
 | 2026-11-20 | Diagnostic: per-screen `ioplay vram` (VRAM low-water mark per tick, screen/Dink texture bytes at the low point and peaks) and `ioplay ticks` (ticks over 20 ms / 34 ms, worst tick). No gameplay change | #160 |
 | 2026-11-20 | PAL8 tile atlas: tilesheets on the main palette cache as 8-bit (half `ts_rgb`), the atlas is 256 KB PAL8 BSS (was 512 KB RGB565) uploaded twiddled and drawn with palette bank 1 (opaque); an off-palette sheet converts the atlas to RGB565 | #161 |
+| 2026-11-20 | Animation lookahead: after the tick's draws, load the next one or two frames of animating sprites and Dink while the tick is under 6 ms (max 2 per tick), spare room only (no eviction, no refusal memo; failed prefetch remembered until a tex frees). `ioplay frame who=prefetch` / `prefetch-dink` | this PR |
 
 ## Bites
 

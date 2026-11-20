@@ -48,6 +48,10 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame);
  * Its frames are no longer hits; they are freed after the next successful
  * pspr_get (never while the caller may still draw one). Bumps pspr_gen. */
 void pspr_forget_seq(int seq);
+/* Animation lookahead for Dink: load (seq,frame) into a free slot within
+ * the cap and free VRAM, never evicting, never moving the drawn frame.
+ * 1 = loaded now, 0 = resident, -1 = skipped. GPU idle. */
+int pspr_prefetch(struct SeqInfo *seqs, int seq, int frame);
 /* Changes on forget: the caller re-gets even if seq/frame did not change. */
 unsigned pspr_gen(void);
 

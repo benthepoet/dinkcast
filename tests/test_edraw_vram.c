@@ -323,6 +323,46 @@ int main(void)
         }
     }
 
+    /* 7. Lookahead (edraw_prefetch): spare room only. Mom walk 357
+     * (10 frames; fr 2 loaded in case 4). */
+    {
+        int before, uploads0;
+
+        edraw_set_vram_relief(NULL);
+        touch_all(seqs);
+        g_budget = vram_used() + (2u << 20);
+        CHECK(edraw_find(g, n, 357, 3) == NULL);
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 3) == 1);
+        CHECK(edraw_find(g, n, 357, 3) != NULL &&
+              edraw_find(g, n, 357, 3)->tex != NULL);
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 3) == 0); /* resident */
+        /* Short of the spare margin: skipped before any read, nothing
+         * evicted even though every frame is non-live. */
+        edraw_live_begin(g, n, seqs);
+        g_budget = vram_used() + 4096u;
+        before = n;
+        uploads0 = g_uploads;
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 4) == -1);
+        CHECK(n == before && g_uploads == uploads0);
+        /* Upload fails although avail says yes (fragmentation): dropped,
+         * no eviction, no refusal; remembered so the next tick does not
+         * re-read it; the real draw-time ensure still loads it. */
+        refused = (int)edraw_vram_refused();
+        g_budget = vram_used();
+        sprite_set_vram_avail(NULL); /* host default: plenty */
+        before = n;
+        uploads0 = g_uploads;
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 4) == -1);
+        CHECK(g_uploads == uploads0 + 1);
+        CHECK(n == before && edraw_find(g, n, 357, 4) == NULL);
+        CHECK(edraw_vram_refused() == (unsigned)refused);
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 4) == -1);
+        CHECK(g_uploads == uploads0 + 1); /* memo: no second try */
+        sprite_set_vram_avail(fake_avail);
+        g_budget = vram_used() + (1u << 20);
+        CHECK(edraw_ensure_frame(g, &n, seqs, 357, 4) == 0);
+    }
+
     sprite_set_vram_avail(NULL);
     edraw_set_upload(NULL);
     edraw_free(g, n);

@@ -2279,6 +2279,13 @@ int brains_seq_frame(int slot, int *seq, int *frame)
     return 1;
 }
 
+int brains_slot_animating(int slot)
+{
+    /* FreeDink live_sprite_animate advances only while seq > 0; seq 0 is
+     * a held pseq/pframe picture. */
+    return slot >= 1 && slot <= 100 && g_b[slot].live && g_b[slot].seq > 0;
+}
+
 int brains_slot_size(int slot)
 {
     if (slot < 1 || slot > 100 || !g_b[slot].live) {

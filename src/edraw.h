@@ -65,6 +65,13 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
 int edraw_upload_pvr(struct EdGfx *g, int n);
 #endif
 struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame);
+/* Animation lookahead: load (seq,frame) only into spare room (slots,
+ * VRAM, cpu_pixels margins), never evicting or recording a refusal.
+ * 1 = loaded now, 0 = already resident, -1 = skipped. GPU idle. */
+#define DINK_PREFETCH_SLOT_SPARE 8
+#define DINK_PREFETCH_VRAM_SPARE (256 * 1024)
+int edraw_prefetch(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
+                   int frame);
 /* Decode (and on DC upload) a frame if missing. *n may grow.
  * Refuses to fopen: the seq's dir.ff must already be in the ff cache. */
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
