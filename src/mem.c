@@ -60,6 +60,16 @@ static size_t vram_free_now(void)
 #endif
 }
 
+void mem_vram_note(const char *tag)
+{
+    static size_t last;
+    size_t now = vram_free_now();
+
+    printf("vram %s free=%u used=%ld\n", tag != NULL ? tag : "?",
+           (unsigned)now, last != 0 ? (long)last - (long)now : 0L);
+    last = now;
+}
+
 void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
              int sheets)
 {

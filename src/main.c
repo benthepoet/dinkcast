@@ -642,7 +642,9 @@ static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
             title_show_splash();
             g_show_splash = 0;
         }
+        mem_vram_note("pre-startmenu");
         pick = startmenu_present_pvr(seqs);
+        mem_vram_note("startmenu");
         if (pick == STARTMENU_QUIT) {
             printf("start-4 click kill_game\n");
             g_show_splash = 1;
@@ -781,6 +783,7 @@ int main(int argc, char **argv)
 
         (void)st;
         printf("leave_title\n");
+        mem_vram_note("leave_title");
     }
     {
         int rec;
@@ -935,6 +938,7 @@ int main(int argc, char **argv)
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
+                mem_vram_note("pre-font");
                 if (font_init() == 0) {
                     printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
                            font_atlas_h(), font_atlas_bytes());
@@ -942,6 +946,7 @@ int main(int argc, char **argv)
                         printf("saybox upload fail\n");
                     }
                 }
+                mem_vram_note("saybox");
                 if (seqs != NULL && inv_load(seqs) != 0) {
                     printf("inv gfx load fail\n");
                 }
@@ -981,6 +986,7 @@ int main(int argc, char **argv)
                         }
                         stamp_one_editor(&mask, seqs, si);
                     }
+                mem_vram_note("pre-tiles");
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     pspr_clear();
@@ -991,9 +997,11 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
+                mem_vram_note("tiles");
                 if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                     printf("edraw upload none\n");
                 }
+                mem_vram_note("edraw");
                 if (seqs != NULL) {
                     dfr = pspr_get(seqs, player_pic_seq(&pl),
                                    player_pic_frame(&pl));
@@ -1001,17 +1009,21 @@ int main(int argc, char **argv)
                 last_seq = player_pic_seq(&pl);
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
+                mem_vram_note("dink");
                 if (choice_upload_pvr() != 0) {
                     printf("choice upload fail\n");
                 }
+                mem_vram_note("choice");
                 if (inv_upload_pvr() != 0) {
                     printf("inv upload fail\n");
                 }
+                mem_vram_note("inv");
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
                     status_drop_cpu();
                 }
+                mem_vram_note("status");
                 spr_restore("pre-attach");
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
                        g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
