@@ -4,9 +4,10 @@
 
 #include <stddef.h>
 
-/* FreeDink dinkc.h MAX_SCRIPTS. Instances share one copy of each script's
- * source and tokens (refcounted), so the cap costs ~100 B per slot. */
-#define DINKC_MAX_LIVE 200
+/* FreeDink dinkc.h MAX_SCRIPTS 200 with slot 0 unused: 199 live (slots
+ * 1..199). Instances share one copy of each script's source and tokens
+ * (refcounted), so the cap costs ~100 B per slot. */
+#define DINKC_MAX_LIVE 199
 #define DINKC_TICK_MS 16 /* 60 Hz */
 #define DINKC_OPS_CAP 2000
 

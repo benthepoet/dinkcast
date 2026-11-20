@@ -815,7 +815,10 @@ static void run_fiber(struct Fiber *f, int now_ms)
 
                 parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                            sizeof(sarg2));
+                /* FreeDink dinkc_get_choices: game_choice_clear() first, so
+                 * an earlier menu is dropped even if this one ends empty. */
                 g_ch_n = 0;
+                g_ch_owner = 0;
                 choice_meta_clear();
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
