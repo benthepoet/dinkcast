@@ -255,6 +255,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | 14.4c `sprite_tex`: upload out of VRAM frees non-live Screen tex (cached pack, largest first), least recently drawn first, then Dink other seqs (and Dink asks edraw), then `mem refuse pool=sprite_tex` remembered until a tex is freed and VRAM covers it (bar fight 2026-11-19: 434 `pvr_mem`, seq 724 reloaded 68×, Dink 99 refusals). Replaces #153 | #155 |
 | 2026-11-20 | Overlay VRAM only while shown: choice box (713 KB) and inventory menu (1.11 MB) load on open (making room from non-live Screen tex / Dink) and free on close; icons stay for the HUD. `vram <tag>` diagnostic around title, menu and overlay uploads. `overlay.c` state per overlay (OFF/ON/FAILED until close); upload makes room like #155 (Dink shortfall, then screen one at a time); choice arrows stay resident | #156 |
 | 2026-11-20 | Dink combat set 512 KB (two walk facings + idle + punch = 480 KB; bar fight had 278 `(cap)` evictions at 256 KB). Upload paths (edraw, pspr, overlay) make room before trying when `pvr_mem_available` is short, so KOS does not log a failed `pvr_mem_malloc` first | #157 |
+| 2026-11-20 | Dink set cap 2 MB (§1.2 share), 192 slots: bar fight drew every facing (~1.6 MB); at 512 KB Dink still had 240 `(cap)` evictions with 3.5 MB VRAM free | this PR |
 
 ## Bites
 

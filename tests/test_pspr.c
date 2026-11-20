@@ -32,9 +32,13 @@ static int fake_load(struct SeqInfo *seqs, int seq, int frame,
         return -1;
     }
     g_loads++;
-    out->w = out->tw = 64;
-    /* walk/idle 16 KB, punch 106 32 KB, sword hit 109 64 KB per frame */
-    out->h = out->th = seq == 109 ? 512 : seq == 106 ? 256 : 128;
+    /* walk/idle 16 KB, punch 104/106 32 KB, sword hit 109 64 KB, test-only
+     * seq 500 512 KB per frame */
+    out->w = out->tw = seq == 500 ? 512 : 64;
+    out->h = out->th = seq == 500   ? 512
+                       : seq == 109 ? 512
+                       : (seq == 104 || seq == 106) ? 256
+                                                    : 128;
     out->argb1555 = (uint16_t *)malloc(4);
     return 0;
 }
@@ -148,30 +152,59 @@ int main(void)
     CHECK(g_loads == 12 + 5 + 8);
     CHECK(pspr_bytes() == 480u * 1024u);
 
-    /* A third walk facing (74) passes the cap: least recently drawn
-     * other-seq frames go first (idle 12, then the oldest punch frames). */
-    for (fr = 1; fr <= 8; fr++) {
-        CHECK(pspr_get(seqs, 74, fr) != NULL);
-    }
-    CHECK(pspr_bytes() <= DINK_PSPR_TEX_CAP);
-    CHECK(pspr_get(seqs, 72, 8) != NULL); /* recent walk 72 still held */
-    CHECK(g_loads == 12 + 5 + 8 + 8);
+    /* The whole bar-fight set (#157 log): 8 walk facings + 4 idles +
+     * punch 104/106 = 1.57 MB, inside the 2 MB cap: laps over all of it
+     * reload nothing. */
+    {
+        static const int walks[] = {71, 72, 73, 74, 76, 77, 78, 79};
+        static const int idles[] = {12, 14, 16, 18};
+        int k, loads0 = g_loads;
 
-    /* Current seq bigger than the cap (9 x 64 KB = 576 KB) is held whole;
+        for (lap = 0; lap < 3; lap++) {
+            for (k = 0; k < 8; k++) {
+                for (fr = 1; fr <= 8; fr++) {
+                    CHECK(pspr_get(seqs, walks[k], fr) != NULL);
+                }
+            }
+            for (k = 0; k < 4; k++) {
+                for (fr = 1; fr <= 4; fr++) {
+                    CHECK(pspr_get(seqs, idles[k], fr) != NULL);
+                }
+            }
+            for (fr = 1; fr <= 5; fr++) {
+                CHECK(pspr_get(seqs, 104, fr) != NULL);
+                CHECK(pspr_get(seqs, 106, fr) != NULL);
+            }
+        }
+        CHECK(g_frees == 0);
+        /* New since the combat set: 6 walks, 3 idles, punch 104. */
+        CHECK(g_loads == loads0 + 6 * 8 + 3 * 4 + 5);
+        CHECK(pspr_bytes() == 1024u * 1024u + 256u * 1024u + 320u * 1024u);
+    }
+
+    /* Past the cap (two 512 KB frames): least recently drawn other-seq
+     * frames go until the set is back under 2 MB. */
+    CHECK(pspr_get(seqs, 500, 1) != NULL);
+    CHECK(pspr_get(seqs, 500, 2) != NULL);
+    CHECK(pspr_bytes() <= DINK_PSPR_TEX_CAP);
+    CHECK(g_frees > 0);
+    CHECK(pspr_get(seqs, 106, 5) != NULL); /* drawn last lap: kept */
+
+    /* Current seq bigger than the cap (5 x 512 KB = 2.5 MB) is held whole;
      * every other frame is let go. */
     reset();
     for (fr = 1; fr <= 8; fr++) {
         (void)pspr_get(seqs, 72, fr);
     }
-    for (fr = 1; fr <= 9; fr++) {
-        CHECK(pspr_get(seqs, 109, fr) != NULL);
+    for (fr = 1; fr <= 5; fr++) {
+        CHECK(pspr_get(seqs, 500, fr) != NULL);
     }
-    CHECK(pspr_count() == 9);
-    CHECK(pspr_bytes() == 9u * 65536u);
-    for (fr = 1; fr <= 9; fr++) {
-        (void)pspr_get(seqs, 109, fr);
+    CHECK(pspr_count() == 5);
+    CHECK(pspr_bytes() == 5u * 512u * 1024u);
+    for (fr = 1; fr <= 5; fr++) {
+        (void)pspr_get(seqs, 500, fr);
     }
-    CHECK(g_loads == 8 + 9);
+    CHECK(g_loads == 8 + 5);
 
     /* A failed load evicts nothing: the caller's last pointer stays. */
     reset();
