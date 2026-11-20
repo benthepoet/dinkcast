@@ -114,6 +114,8 @@ enum {
 
 /* Bumped per play tick (edraw_live_begin); EdGfx.used = last drawn. */
 static unsigned g_draw_tick = 1;
+/* edraw_prefetch in progress: no eviction, no refusal memo, own log tag. */
+static int g_prefetching;
 
 static int pixel_class(const struct SeqInfo *seqs, int seq)
 {
@@ -635,6 +637,12 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (sprite_vram_avail() >= need && g_upload(hit) == 0) {
             break;
         }
+        if (g_prefetching) {
+            /* Lookahead never evicts and never records a refusal (that
+             * would block the real draw-time load): just drop it. */
+            remove_at(g, got, find_index(g, *got, seq, frame));
+            return -1;
+        }
         /* Edraw victims only when they (with free VRAM) cover it: do not
          * empty the screen for a frame that is refused anyway. When they
          * fall short, ask Dink for the shortfall first, then re-check. */
@@ -738,9 +746,11 @@ static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
 
         if (need > (size_t)DINK_MEM_CPU_PIXELS) {
             remove_at(g, got, find_index(g, *got, seq, frame));
-            printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
-                   (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
-                   (unsigned)DINK_MEM_CPU_PIXELS);
+            if (!g_prefetching) { /* a lookahead is not a refusal */
+                printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
+                       (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
+                       (unsigned)DINK_MEM_CPU_PIXELS);
+            }
             return -2;
         }
     }
@@ -766,12 +776,14 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     t0 = dink_io_now_us();
     dink_io_stats(&io0);
     dink_io_ctx_save(outer, sizeof(outer));
-    snprintf(ctx, sizeof(ctx), "edraw seq=%d fr=%d", seq, frame);
+    snprintf(ctx, sizeof(ctx), "%s seq=%d fr=%d",
+             g_prefetching ? "prefetch" : "edraw", seq, frame);
     dink_io_ctx(ctx);
     rc = load_one_body(g, got, seqs, seq, frame, may_evict);
     dink_io_ctx(outer);
     dink_io_stats(&io1);
-    dink_io_note_frame("edraw", rc == 0 ? seq : -seq, frame,
+    dink_io_note_frame(g_prefetching ? "prefetch" : "edraw",
+                       rc == 0 ? seq : -seq, frame,
                        dink_io_now_us() - t0, io1.ops - io0.ops);
     return rc;
 }
@@ -1264,6 +1276,139 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     *n = got;
     return 0;
+}
+
+int edraw_anim_ahead(const struct SeqInfo *seqs, int sq, int fr, int ahead,
+                     int looping)
+{
+    int nfr, k;
+
+    if (seqs == NULL || sq < 1 || sq >= DINK_MAX_SEQ || fr < 1) {
+        return 0;
+    }
+    /* ini_seq_len stops at a -1 terminator; 0 until frame 1 decoded. */
+    nfr = ini_seq_len(sq, seqs[sq].nframes);
+    if (nfr < 2) {
+        return 0;
+    }
+    for (k = 0; k < ahead; k++) {
+        if (fr >= nfr) {
+            if (!looping) {
+                return 0;
+            }
+            fr = 1;
+        } else {
+            fr++;
+        }
+    }
+    return fr;
+}
+
+/* A lookahead that loaded and could not keep its frame (upload, VRAM
+ * margin, cpu_pixels): skip it until a texture was freed and enough VRAM
+ * (need + margin) is free, so a tight VRAM does not re-read the same frame
+ * every tick. Not a refusal: the real draw-time load still tries. */
+#define DINK_PREFETCH_MISS 16
+static int g_pfm_seq[DINK_PREFETCH_MISS], g_pfm_fr[DINK_PREFETCH_MISS];
+static unsigned g_pfm_gen[DINK_PREFETCH_MISS];
+static size_t g_pfm_need[DINK_PREFETCH_MISS];
+static int g_pfm_next;
+
+static int prefetch_missed(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < DINK_PREFETCH_MISS; i++) {
+        if (g_pfm_seq[i] == seq && g_pfm_fr[i] == frame) {
+            return !sprite_vram_retry_ok(g_pfm_need[i] +
+                                             DINK_PREFETCH_VRAM_SPARE,
+                                         g_pfm_gen[i]);
+        }
+    }
+    return 0;
+}
+
+static void prefetch_note_miss(int seq, int frame, size_t need)
+{
+    int i;
+
+    for (i = 0; i < DINK_PREFETCH_MISS; i++) {
+        if (g_pfm_seq[i] == seq && g_pfm_fr[i] == frame) {
+            break;
+        }
+    }
+    if (i == DINK_PREFETCH_MISS) {
+        i = g_pfm_next;
+        g_pfm_next = (g_pfm_next + 1) % DINK_PREFETCH_MISS;
+    }
+    g_pfm_seq[i] = seq;
+    g_pfm_fr[i] = frame;
+    g_pfm_need[i] = need;
+    g_pfm_gen[i] = sprite_pvr_free_gen();
+}
+
+int edraw_prefetch_room(const struct EdGfx *g, int n)
+{
+    return g != NULL && n < DINK_EDGFX_MAX - DINK_PREFETCH_SLOT_SPARE &&
+           sprite_vram_avail() >= (size_t)DINK_PREFETCH_VRAM_SPARE &&
+           edraw_cpu_bytes((struct EdGfx *)g, n) +
+                   (size_t)DINK_PREFETCH_CPU_SPARE <=
+               (size_t)DINK_MEM_CPU_PIXELS;
+}
+
+int edraw_prefetch(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
+                   int frame)
+{
+    char dir[160];
+    int got, rc, i;
+
+    if (g == NULL || n == NULL || seqs == NULL || seq < 1 ||
+        seq >= DINK_MAX_SEQ || frame < 1) {
+        return -1;
+    }
+    got = *n < 0 ? 0 : *n;
+    if (edraw_find(g, got, seq, frame) != NULL) {
+        return 0;
+    }
+    if (miss_has(seq, frame) || refuse_blocks(seq, frame) ||
+        prefetch_missed(seq, frame)) {
+        return -1;
+    }
+    pack_dir(&seqs[seq], dir, sizeof(dir));
+    if (dir[0] == '\0' || !ff_is_cached(dir)) {
+        return -1; /* play path never opens a pack */
+    }
+    /* Spare room only: a lookahead must not displace anything. */
+    if (!edraw_prefetch_room(g, got)) {
+        return -1;
+    }
+    g_prefetching = 1;
+    rc = load_one(g, &got, seqs, seq, frame, 0);
+    g_prefetching = 0;
+    i = find_index(g, got, seq, frame);
+    if (rc == 0 && i >= 0 &&
+        sprite_vram_avail() < (size_t)DINK_PREFETCH_VRAM_SPARE) {
+        /* Kept the margin before, not after: give the frame back. */
+        size_t need = sprite_tex_bytes(&g[i].fr);
+
+        remove_at(g, &got, i);
+        prefetch_note_miss(seq, frame, need);
+        *n = got;
+        return -1;
+    }
+    *n = got;
+    if (rc != 0) {
+        if (!miss_has(seq, frame)) {
+            prefetch_note_miss(seq, frame, 0);
+        }
+        return -1;
+    }
+    /* Not drawn this tick: an ordinary non-live Screen frame (evictable,
+     * stamped this tick). */
+    if (i >= 0) {
+        g[i].live = 0;
+    }
+    return 1;
 }
 
 void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)

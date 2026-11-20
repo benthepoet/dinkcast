@@ -291,6 +291,90 @@ static void edraw_ensure_draw_frame(struct SeqInfo *seqs, int sq, int fr,
     }
 }
 
+/* Start of this play tick (after the scene wait), for the lookahead
+ * budget. */
+static unsigned g_tick_t0;
+
+/* Option (b), 2026-11-20: load the next one or two frames of live
+ * animations during the tick's spare time, so a frame is resident before
+ * it is first drawn (tree fire, explosions, attacks, Dink). Runs last in
+ * the tick (after Dink's load and overlays, before the scene), only while
+ * the tick is young (DINK_LOOKAHEAD_US since the scene wait), at most
+ * DINK_LOOKAHEAD_MAX loads; never evicts and keeps a VRAM margin after
+ * the load (edraw_prefetch / pspr_prefetch). Round-robin over sprites, +1
+ * before +2. Same work as loading at first draw, spread over idle ticks. */
+#define DINK_LOOKAHEAD_US 6000u
+#define DINK_LOOKAHEAD_MAX 2
+
+/* Dink loops walk and idle; punch, push, magic, death are one-shots. */
+static int dink_seq_loops(const struct Player *pl, int sq)
+{
+    int bi = pl->base_idle > 0 ? pl->base_idle : DINK_BASE_IDLE;
+
+    return (sq > DINK_BASE_WALK && sq < DINK_BASE_WALK + 10) ||
+           (sq > bi && sq < bi + 10);
+}
+
+static void anim_lookahead(struct SeqInfo *seqs, const struct Player *pl)
+{
+    static int rr;
+    int ahead, k, loaded = 0, edraw_ok, dink_ok;
+
+    if (seqs == NULL || g_edg == NULL ||
+        dink_io_now_us() - g_tick_t0 >= DINK_LOOKAHEAD_US) {
+        return;
+    }
+    /* Once per tick: is there spare room at all? */
+    edraw_ok = edraw_prefetch_room(g_edg, g_ned);
+    dink_ok = pl != NULL && pl->seq > 0; /* seq 0: a held picture */
+    if (!edraw_ok && !dink_ok) {
+        return;
+    }
+    for (ahead = 1; ahead <= 2; ahead++) {
+        /* Dink first: his frame is on screen every tick. */
+        if (dink_ok) {
+            int dsq = pl->seq, nf;
+
+            nf = edraw_anim_ahead(seqs, dsq, player_pic_frame(pl), ahead,
+                                  dink_seq_loops(pl, dsq));
+            if (nf > 0 && dink_io_now_us() - g_tick_t0 < DINK_LOOKAHEAD_US) {
+                unsigned t0 = dink_io_now_us();
+
+                if (pspr_prefetch(seqs, dsq, nf) > 0) {
+                    dink_io_note_frame("prefetch-dink", dsq, nf,
+                                       dink_io_now_us() - t0, 0);
+                    if (++loaded >= DINK_LOOKAHEAD_MAX) {
+                        return;
+                    }
+                }
+            }
+        }
+        for (k = 0; edraw_ok && k < 99; k++) {
+            int ei = 1 + (rr + k) % 99, sq, fr, nf;
+
+            if (!brains_slot_animating(ei) ||
+                !brains_seq_frame(ei, &sq, &fr)) {
+                continue;
+            }
+            nf = edraw_anim_ahead(seqs, sq, fr, ahead,
+                                  brains_slot_brain(ei) == 6);
+            if (nf <= 0) {
+                continue;
+            }
+            if (dink_io_now_us() - g_tick_t0 >= DINK_LOOKAHEAD_US) {
+                rr = (rr + k) % 99;
+                return;
+            }
+            if (edraw_prefetch(g_edg, &g_ned, seqs, sq, nf) > 0 &&
+                ++loaded >= DINK_LOOKAHEAD_MAX) {
+                rr = (rr + k + 1) % 99;
+                return;
+            }
+        }
+    }
+    rr = (rr + 1) % 99;
+}
+
 static void edraw_live_this_draw(struct SeqInfo *seqs, int ned)
 {
     int ei, sq, fr;
@@ -1235,7 +1319,8 @@ int main(int argc, char **argv)
                     }
                     /* Diagnostic: per-tick pacing and VRAM low-water mark
                      * (one pvr_mem_available + a 128-slot sum per tick). */
-                    dink_io_tick(dink_io_now_us());
+                    g_tick_t0 = dink_io_now_us();
+                    dink_io_tick(g_tick_t0);
                     dink_io_note_vram((unsigned)sprite_vram_avail(),
                                       (unsigned)edraw_tex_bytes(g_edg, g_ned),
                                       (unsigned)pspr_bytes());
@@ -1579,6 +1664,12 @@ int main(int argc, char **argv)
                         }
                     }
                     overlay_sync(seqs);
+                    /* After every real load of this tick (sprites, Dink,
+                     * overlays) and before the scene: spare time only. */
+                    if (seqs != NULL && !inv_showing() &&
+                        !status_map_active()) {
+                        anim_lookahead(seqs, &pl);
+                    }
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);

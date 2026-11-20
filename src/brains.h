@@ -65,6 +65,8 @@ int brains_follow(int slot);
 int brains_target(int slot);
 int brains_take_just_hit(int slot);
 int brains_seq_frame(int slot, int *seq, int *frame);
+/* Sprite is animating (seq > 0), not holding a pseq/pframe picture. */
+int brains_slot_animating(int slot);
 int brains_slot_size(int slot);
 int brains_slot_hard(int slot);
 /* FreeDink spr[].disabled: skip draw, keep active/hard. */
