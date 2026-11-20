@@ -188,7 +188,8 @@ int main(void)
     dink_io_stats(&st);
     CHECK(st.min_upload == 2500000u && st.upload_samples == 2);
 
-    /* Our own log flush is counted apart and taken out of the tick. */
+    /* Our own log flush is counted apart and taken out of the tick.
+     * Leaving the play phase drains it (timed) like the top of a tick. */
     dink_io_summary(34);
     dink_io_tick(3000000u);
     dink_io_note("pread", NULL, 10, 5);
@@ -202,10 +203,56 @@ int main(void)
     {
         unsigned lus = st.log_us;
 
-        dink_io_flush(); /* empty ring: nothing logged, no time */
+        /* Empty ring: no ioplay lines; the timed stdout drain (batched
+         * play printfs on DC) still runs and is counted, ~0 on host. */
+        dink_io_flush();
         dink_io_stats(&st);
-        CHECK(st.logged == 2 && st.log_us == lus);
+        CHECK(st.logged == 2 && st.log_us >= lus && st.log_us - lus < 50000u);
     }
+
+    /* Tick work: counted on the play path only; over 16.7 ms flagged.
+     * Start a tick first: work subtracts drains since the tick began. */
+    dink_io_summary(34);
+    dink_io_tick(4000000u); /* below the next block's 5000000: no wrap */
+    dink_io_work(10000u);
+    dink_io_work(18000u);
+    dink_io_set_play(0);
+    dink_io_work(50000u); /* enter path: ignored */
+    dink_io_set_play(1);
+    dink_io_stats(&st);
+    CHECK(st.work_n == 2 && st.work_over16 == 1 && st.work_max_us == 18000u);
+
+    /* A drain inside the tick (script load_screen) is not work. */
+    {
+        unsigned w0;
+
+        dink_io_tick(5000000u);
+        dink_io_note("pread", NULL, 10, 5);
+        dink_io_flush();
+        dink_io_stats(&st);
+        w0 = st.work_max_us;
+        dink_io_work(1000u); /* tiny tick: drain time must not inflate it */
+        dink_io_stats(&st);
+        CHECK(st.work_max_us == w0 || st.work_max_us <= 1000u);
+    }
+
+    /* set_play: no-op when unchanged (nothing drained, nothing logged);
+     * leaving play drains (timed). */
+    {
+        unsigned lus, lg;
+
+        dink_io_stats(&st);
+        lus = st.log_us;
+        lg = st.logged;
+        dink_io_set_play(1);
+        dink_io_stats(&st);
+        CHECK(dink_io_play() == 1 && st.log_us == lus && st.logged == lg);
+    }
+    dink_io_note("pread", NULL, 10, 5);
+    dink_io_set_play(0);
+    dink_io_stats(&st);
+    CHECK(st.logged >= 1 && dink_io_play() == 0);
+    dink_io_set_play(1);
 
     /* Summary resets every counter. */
     dink_io_summary(408);

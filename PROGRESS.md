@@ -260,8 +260,11 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | Diagnostic: per-screen `ioplay vram` (VRAM low-water mark per tick, screen/Dink texture bytes at the low point and peaks) and `ioplay ticks` (ticks over 20 ms / 34 ms, worst tick). No gameplay change | #160 |
 | 2026-11-20 | PAL8 tile atlas: tilesheets on the main palette cache as 8-bit (half `ts_rgb`), the atlas is 256 KB PAL8 BSS (was 512 KB RGB565) uploaded twiddled and drawn with palette bank 1 (opaque); an off-palette sheet converts the atlas to RGB565 | #161 |
 | 2026-11-20 | Animation lookahead: after the tick's draws, load the next one or two frames of animating sprites and Dink while the tick is under 6 ms (max 2 per tick), spare room only (no eviction, no refusal memo; failed prefetch remembered until a tex frees). `ioplay frame who=prefetch` / `prefetch-dink` | #162 |
+| 2026-11-20 | START Continue slot choice calls `audio_music_poll` each frame so `1003.mid` does not loop the AICA 16 KiB slice | #165 |
 | 2026-11-20 | Inventory open polls the music stream between seq 423 frame loads. Overlay uploads only pump the AICA from RAM | #167 |
 | 2026-11-20 | Fast texture upload: `twiddle.c` (table + shifts, bit-for-bit KOS `pvr_txr_load_ex`, host-tested on 16 sizes) twiddles sprite frames ≤ 64 KB in a RAM scratch and copies with one store-queue `pvr_txr_load`; bigger textures (atlas, inventory background) twiddle straight into VRAM without per-pixel divides | #163 |
+| 2026-11-20 | Diagnostic: play-path stdout batched (16 KB, full buffering while `dink_io_play`, line-buffered in menus/boot) and drained once per tick inside the timed `dink_io_flush`, so every gameplay printf is excluded from `ioplay ticks` like ioplay's own lines; fatal `hud()` flushes | #164 |
+| 2026-11-20 | `test_iolog`: start a tick before the tick-work block (it inherited the drain of the flushes since the last tick, the summary's and an empty one, 0–1 µs on host, and failed ~3 in 20 runs after #164; 0/500 now). Test only | #168 |
 
 ## Bites
 

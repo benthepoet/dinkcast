@@ -64,6 +64,10 @@ struct DinkIoStats {
      * ring flush (SCIF, ~87 us/byte) is subtracted and reported apart. */
     unsigned ticks, ticks_over20, ticks_over34, tick_max_us;
     unsigned log_us, logged;
+    /* Batched stdout drains (DC): worst single drain, largest backlog. */
+    unsigned drain_max_us, backlog_max;
+    /* Tick work: scene wait done -> scene submitted (no vsync, no log). */
+    unsigned work_n, work_over16, work_max_us;
 };
 unsigned dink_io_now_us(void);
 void dink_io_set_play(int on);
@@ -90,6 +94,10 @@ void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex);
 void dink_io_tick(unsigned now_us);
 /* After a successful play-path texture upload (DC sprite_upload_pvr). */
 void dink_io_note_vram_upload(unsigned free_b);
+/* Once per play tick, just before pvr_scene_finish: time since the scene
+ * wait at the top of the tick (game work + draw submit). Over 16.7 ms is a
+ * tick that could not keep 60 Hz regardless of logging or vsync jitter. */
+void dink_io_work(unsigned us);
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);
