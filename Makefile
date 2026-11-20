@@ -4,6 +4,10 @@
 
 -include local.mk
 
+# A test target compiles and runs its binary: a failed run must not leave
+# the binary up to date, or the next `make host` skips it and reports 0.
+.DELETE_ON_ERROR:
+
 PYTHON ?= python3
 HOSTCC ?= gcc
 EMU ?= flycast
