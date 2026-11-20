@@ -86,30 +86,30 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-18 | PVR clear after leave-title | #57 |
 | 2026-08-18 | Makefile.dc header deps for EditorSprite | #58 |
 | 2026-08-18 | Swap: keep tile PVR until new atlas | #59 |
-| 2026-08-19 | No brown clear on screen swap | this PR |
-| 2026-08-19 | Editor `alt` crop (`get_box`) — extra pig fences | this PR |
-| 2026-08-19 | Pin Dink walk/idle `dir.ff` (re-enter house hang) | this PR |
-| 2026-08-19 | Keep `map.dat` open; LRU `dir.ff`; reuse edraw | this PR |
-| 2026-08-19 | Keep unused editor CPU; cache ts sheets | this PR |
-| 2026-08-19 | CD settle after slurp; drop dir.ff after decode | this PR |
-| 2026-08-19 | Do not count bow/bottles dir.ff at boot | this PR |
-| 2026-08-19 | Decode all frames of a seq while dir.ff is open | this PR |
-| 2026-08-19 | Pin large dir.ff for the session (no reopen) | this PR |
+| 2026-08-19 | No brown clear on screen swap | #157 |
+| 2026-08-19 | Editor `alt` crop (`get_box`) — extra pig fences | #157 |
+| 2026-08-19 | Pin Dink walk/idle `dir.ff` (re-enter house hang) | #157 |
+| 2026-08-19 | Keep `map.dat` open; LRU `dir.ff`; reuse edraw | #157 |
+| 2026-08-19 | Keep unused editor CPU; cache ts sheets | #157 |
+| 2026-08-19 | CD settle after slurp; drop dir.ff after decode | #157 |
+| 2026-08-19 | Do not count bow/bottles dir.ff at boot | #157 |
+| 2026-08-19 | Decode all frames of a seq while dir.ff is open | #157 |
+| 2026-08-19 | Pin large dir.ff for the session (no reopen) | #157 |
 | 2026-08-19 | Warm ts02/ts03 at first atlas (house-door hang) | dropped; blob cache |
-| 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | this PR |
-| 2026-08-19 | Pin idle+walk dir.ff before house edraw | this PR |
-| 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | this PR |
-| 2026-08-19 | Blob cache grows; never evict borrowed dir.ff/hard.dat | this PR |
-| 2026-08-19 | Tile atlas is BSS; ts sheet LRU re-decodes from blob | this PR |
-| 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | this PR |
-| 2026-08-19 | hard.dat FILE* + rec reads; no mid-file yield; /cd mutex | this PR |
-| 2026-08-19 | `make chd-redream` 3-track MODE1/2352 CHD for Redream | this PR |
+| 2026-08-19 | Free unused sprite pixels; keep atlas on OOM | #157 |
+| 2026-08-19 | Pin idle+walk dir.ff before house edraw | #157 |
+| 2026-08-19 | Session blob cache; disc_opens; live-only swap decode | #157 |
+| 2026-08-19 | Blob cache grows; never evict borrowed dir.ff/hard.dat | #157 |
+| 2026-08-19 | Tile atlas is BSS; ts sheet LRU re-decodes from blob | #157 |
+| 2026-08-19 | `make emu` loads CHD (GDI from mkdcdisc ISO); CDI stays for hardware | #157 |
+| 2026-08-19 | hard.dat FILE* + rec reads; no mid-file yield; /cd mutex | #157 |
+| 2026-08-19 | `make chd-redream` 3-track MODE1/2352 CHD for Redream | #157 |
 | 2026-08-19 | Sector-pad staged disc files + boot binary (KOS #1492 stream abort) | #61 |
 | 2026-08-19 | First-open /cd hang root-caused: [CD-HANG-ROOTCAUSE.md](docs/CD-HANG-ROOTCAUSE.md) | #61 |
 | 2026-08-19 | First-open /cd hang retired in Flycast (3 clean cold boots) | requester report |
-| 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | this PR |
+| 2026-08-20 | Idle ping-pong: `SET_FRAME_FRAME` 5→3, 6→2 (no 4→1 snap) | #157 |
 | 2026-08-20 | Drop `make chd-redream` / Redream CHD | master |
-| 2026-08-20 | Defer **14.3** leak check until after 15.x | this PR |
+| 2026-08-20 | Defer **14.3** leak check until after 15.x | #157 |
 | 2026-08-20 | **15.1** brains (`update_frame`; pigs/ducks/people/repeat + rest) | #65 |
 | 2026-08-20 | Sequence **11.10** (wave-1 live sprite cmds) after 15.1, before 15.2 | #65 |
 | 2026-08-20 | **11.10** live `move`/`create_sprite`/`sp_kill`/NPC `sp_*` | #66 |
@@ -168,69 +168,69 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-08-22 | Playtest AlkNuts: `free_items` counts empty slots | #109 |
 | 2026-08-22 | Playtest: burning-house exit logged (no patch) | #109 |
 | 2026-08-22 | **v0.2.0** tagged | #109 |
-| 2026-08-22 | **v0.3.0** plan (START menu + VMU **17** before **12**) | this PR |
-| 2026-08-22 | START hover seq 199/200/198 (`live_sprite_animate` + noclip) | this PR |
-| 2026-08-22 | START: no Quit; buttons stay pframe 1 | this PR |
-| 2026-08-22 | START: pframe 2 glow, idle word stays put | this PR |
-| 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | this PR |
-| 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | this PR |
-| 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | this PR |
+| 2026-08-22 | **v0.3.0** plan (START menu + VMU **17** before **12**) | #157 |
+| 2026-08-22 | START hover seq 199/200/198 (`live_sprite_animate` + noclip) | #157 |
+| 2026-08-22 | START: no Quit; buttons stay pframe 1 | #157 |
+| 2026-08-22 | START: pframe 2 glow, idle word stays put | #157 |
+| 2026-08-22 | START Continue: choice overlay + 10 slots + Nevermind | #157 |
+| 2026-08-22 | start-2 empty slot `Say_xy` (0, 390) | #157 |
+| 2026-08-22 | editor slot 1 `sp_*` is not Dink (408 bar-sh) | #157 |
 | 2026-08-23 | Tilesheet slurp drops Prev `dir.ff` (376 path after 408) | #114 |
-| 2026-08-23 | Playtest: 376 pathway after Load confirmed | this PR |
-| 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | this PR |
+| 2026-08-23 | Playtest: 376 pathway after Load confirmed | #157 |
+| 2026-08-22 | Playtest: 408 bar-sh smash is barrel-only | #157 |
 | 2026-08-23 | `s1-h1-s` fire exit: `get_hard_play` + `special_block` while frozen | #116 |
 | 2026-08-23 | `force_vision` is sprite 1000 + `fill_whole_hard` + `draw_screen_game` (11.8) | #116 |
 | 2026-08-23 | 14.4c: remake Screen live before `create_sprite` frame-1 | #116 |
 | 2026-08-23 | Playtest: burning-house exit + 439 crowd confirmed | #116 |
-| 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | this PR |
-| 2026-08-23 | `draw_hard_map` + type 1 hardness is live-only (S1-H1-4 table/beds) | this PR |
-| 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | this PR |
-| 2026-08-23 | Indoor fire hitch with SCIF off; come back later | this PR |
-| 2026-08-23 | 14.4c: brain-6 current+next (not nfr / not seq 161 pin) | this PR |
-| 2026-08-23 | 14.4c: drop Screen CPU after PVR (fire loop cache) | this PR |
-| 2026-08-23 | Playtest: indoor fire hitch confirmed | this PR |
-| 2026-08-23 | 14.4b: create_sprite marks before editor unique (257) | this PR |
-| 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | this PR |
-| 2026-08-23 | Playtest: S1-H1-O fade confirmed | this PR |
-| 2026-08-23 | Playtest: burned-house hardness + Libby confirmed | this PR |
-| 2026-08-23 | Choice Down does not walk (`player_walk_pad`; SAVEBOT slots) | this PR |
-| 2026-08-23 | `edraw upload fail` after CPU drop is a second pass, not a miss | this PR |
-| 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | this PR |
-| 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | this PR |
-| 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | this PR |
-| 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | this PR |
-| 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | this PR |
-| 2026-08-23 | **v0.3.0** tagged | this PR |
-| 2026-08-23 | Campaign audit remainder: frame_delay, count/kill item, say_stop_xy, last_map, editor 6/7/8 timers | this PR |
-| 2026-08-23 | `player_init` zeros `frame_delay` (seq delay until MAIN.c) | this PR |
-| 2026-08-23 | `sp_nodraw` skip draw (`s1-nopas` lean-to dummy) | this PR |
-| 2026-08-23 | repeat_brain: create_sprite food not seq-animated (BAR-F1) | this PR |
-| 2026-08-23 | ini hardbox: right and bottom independent (421 food touch) | this PR |
-| 2026-08-23 | map.dat +100/+104/+108 `base_idle`/`base_attack`/`base_hit`; `brains_enter` copies (`game_place_sprites`) | this PR |
-| 2026-08-23 | `create_sprite` `load_frame` (S1-MH-M seq 56 bottle; play-path ensure skips) | this PR |
-| 2026-08-23 | Cave unique: combat type-1 before type-0; pill/dragon all 8 dirs + `base_attack`; distill `external` | this PR |
-| 2026-08-23 | Unique `base_die` dirs (Bonca corpse 551/559; `add_kill_sprite` is not DinkC create) | this PR |
-| 2026-08-23 | NPC `preload_seq` is Screen, not Always (s1-rob vis 1 knights) | this PR |
-| 2026-08-23 | missile skips Dink when `brain_parm==1` (ITEM-FB fireball) | this PR |
-| 2026-08-23 | Always `graphics/dink/die/` seq 436 (`DINFO.c` death pose) | this PR |
-| 2026-08-23 | missile `DAMAGE` (`DAM-FIRE` seq 70 brain 7); `sp_seq` `load_frame` | this PR |
-| 2026-08-23 | ARM `preload_seq` Always only for named prefixes (AlkNut west ts35 / seq 421) | this PR |
-| 2026-08-23 | `make_room` drops Screen `dir.ff` after Prev (live burned tree seq 20) | this PR |
-| 2026-08-30 | `S1-HOLE` crawl: hold last `pseq` while frozen; `sp_seq(1)` is Dink on editor-1 hole | this PR |
-| 2026-08-30 | `load_sequence` numeric delay reuses frame 1 origin (crawl 452 vs crack) | this PR |
-| 2026-08-30 | `Makefile.dc` `$(OBJS)` depends on `ini.h`/`player.h` (`SeqInfo` stride; splash→black) | this PR |
-| 2026-08-30 | Place loop editor `sound` (hearth 23); warp default OPEN bank 7 | this PR |
-| 2026-08-30 | Halt hearth loop on START; place again after title pick | this PR |
-| 2026-08-30 | **12.4** `snd_stream` MIDI; START `1003.mid`; mom `dance.mid`; pump on `fread_all` | this PR |
-| 2026-08-30 | `sp_speed`/`sp_dir` `changedir` (Chealse hit zip) | this PR |
-| 2026-08-30 | **v0.4.0** tagged | this PR |
-| 2026-08-30 | `player_step` animates `seq>0` while frozen (`DINFO` die 436) | this PR |
-| 2026-08-30 | `attach_live` skip existing fiber (one Jack); `make_room` drops held before Screen people (Maria pack) | this PR |
-| 2026-08-30 | `residency_live_keep` this-vision packs so guard walk is not dropped for attack | this PR |
-| 2026-09-04 | **14.6** A: `ff_parse_toc` / `ff_toc_bytes`; runtime still slurps whole `dir.ff` | this PR |
-| 2026-09-05 | **14.6** B: `ff_read_bmp` SEEK_SET or slurped data; load still whole-pack | this PR |
-| 2026-09-05 | **14.6** C: `dir.ff` TOC + open `FILE*`; `file_blob` charges TOC not the pack | this PR |
-| 2026-09-06 | `stopmidi` → `audio_music_stop` (`S1-BUL` bully theme, `DINFO`) | this PR |
+| 2026-08-23 | Playtest: no type 0/1 hardness without pixels (pie table) | #157 |
+| 2026-08-23 | `draw_hard_map` + type 1 hardness is live-only (S1-H1-4 table/beds) | #157 |
+| 2026-08-23 | `make emu-fast` / `EMU_SERIAL=0` disables Flycast SCIF | #157 |
+| 2026-08-23 | Indoor fire hitch with SCIF off; come back later | #157 |
+| 2026-08-23 | 14.4c: brain-6 current+next (not nfr / not seq 161 pin) | #157 |
+| 2026-08-23 | 14.4c: drop Screen CPU after PVR (fire loop cache) | #157 |
+| 2026-08-23 | Playtest: indoor fire hitch confirmed | #157 |
+| 2026-08-23 | 14.4b: create_sprite marks before editor unique (257) | #157 |
+| 2026-08-23 | Playtest: `fade_down` / `fade_up` truecolor clock (11.8) | #157 |
+| 2026-08-23 | Playtest: S1-H1-O fade confirmed | #157 |
+| 2026-08-23 | Playtest: burned-house hardness + Libby confirmed | #157 |
+| 2026-08-23 | Choice Down does not walk (`player_walk_pad`; SAVEBOT slots) | #157 |
+| 2026-08-23 | `edraw upload fail` after CPU drop is a second pass, not a miss | #157 |
+| 2026-08-23 | Start pause Continue/Title uses the seq 30 choice overlay | #157 |
+| 2026-08-23 | `draw_screen` yield=3 uses caller sprite, not last nested bind | #157 |
+| 2026-08-23 | Playtest: letter fade_up onto 439 confirmed | #157 |
+| 2026-08-23 | `sp_disabled` skip draw (`spr.disabled`; Terris bridge dummy) | #157 |
+| 2026-08-23 | Say after HUD chrome (`text_draw` after background status) | #157 |
+| 2026-08-23 | **v0.3.0** tagged | #157 |
+| 2026-08-23 | Campaign audit remainder: frame_delay, count/kill item, say_stop_xy, last_map, editor 6/7/8 timers | #157 |
+| 2026-08-23 | `player_init` zeros `frame_delay` (seq delay until MAIN.c) | #157 |
+| 2026-08-23 | `sp_nodraw` skip draw (`s1-nopas` lean-to dummy) | #157 |
+| 2026-08-23 | repeat_brain: create_sprite food not seq-animated (BAR-F1) | #157 |
+| 2026-08-23 | ini hardbox: right and bottom independent (421 food touch) | #157 |
+| 2026-08-23 | map.dat +100/+104/+108 `base_idle`/`base_attack`/`base_hit`; `brains_enter` copies (`game_place_sprites`) | #157 |
+| 2026-08-23 | `create_sprite` `load_frame` (S1-MH-M seq 56 bottle; play-path ensure skips) | #157 |
+| 2026-08-23 | Cave unique: combat type-1 before type-0; pill/dragon all 8 dirs + `base_attack`; distill `external` | #157 |
+| 2026-08-23 | Unique `base_die` dirs (Bonca corpse 551/559; `add_kill_sprite` is not DinkC create) | #157 |
+| 2026-08-23 | NPC `preload_seq` is Screen, not Always (s1-rob vis 1 knights) | #157 |
+| 2026-08-23 | missile skips Dink when `brain_parm==1` (ITEM-FB fireball) | #157 |
+| 2026-08-23 | Always `graphics/dink/die/` seq 436 (`DINFO.c` death pose) | #157 |
+| 2026-08-23 | missile `DAMAGE` (`DAM-FIRE` seq 70 brain 7); `sp_seq` `load_frame` | #157 |
+| 2026-08-23 | ARM `preload_seq` Always only for named prefixes (AlkNut west ts35 / seq 421) | #157 |
+| 2026-08-23 | `make_room` drops Screen `dir.ff` after Prev (live burned tree seq 20) | #157 |
+| 2026-08-30 | `S1-HOLE` crawl: hold last `pseq` while frozen; `sp_seq(1)` is Dink on editor-1 hole | #157 |
+| 2026-08-30 | `load_sequence` numeric delay reuses frame 1 origin (crawl 452 vs crack) | #157 |
+| 2026-08-30 | `Makefile.dc` `$(OBJS)` depends on `ini.h`/`player.h` (`SeqInfo` stride; splash→black) | #157 |
+| 2026-08-30 | Place loop editor `sound` (hearth 23); warp default OPEN bank 7 | #157 |
+| 2026-08-30 | Halt hearth loop on START; place again after title pick | #157 |
+| 2026-08-30 | **12.4** `snd_stream` MIDI; START `1003.mid`; mom `dance.mid`; pump on `fread_all` | #157 |
+| 2026-08-30 | `sp_speed`/`sp_dir` `changedir` (Chealse hit zip) | #157 |
+| 2026-08-30 | **v0.4.0** tagged | #157 |
+| 2026-08-30 | `player_step` animates `seq>0` while frozen (`DINFO` die 436) | #157 |
+| 2026-08-30 | `attach_live` skip existing fiber (one Jack); `make_room` drops held before Screen people (Maria pack) | #157 |
+| 2026-08-30 | `residency_live_keep` this-vision packs so guard walk is not dropped for attack | #157 |
+| 2026-09-04 | **14.6** A: `ff_parse_toc` / `ff_toc_bytes`; runtime still slurps whole `dir.ff` | #157 |
+| 2026-09-05 | **14.6** B: `ff_read_bmp` SEEK_SET or slurped data; load still whole-pack | #157 |
+| 2026-09-05 | **14.6** C: `dir.ff` TOC + open `FILE*`; `file_blob` charges TOC not the pack | #157 |
+| 2026-09-06 | `stopmidi` → `audio_music_stop` (`S1-BUL` bully theme, `DINFO`) | #157 |
 | 2026-09-06 | `human_brain` `freeze:` idle after throw (`ITEM-PIG` / Milder); hole `brain 0` holds crawl | #141 |
 | 2026-09-06 | House fire: reap `!live` Screen after all touches; do not trim per `load_one` | #142 |
 | 2026-09-06 | Screen loop tex stays while that seq is live (14.6 fire SEEK_SET) | #143 |
@@ -254,7 +254,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-19 | Dink frames kept (`pspr`): walk/idle no longer re-read, decode and upload on every frame change (`ioplay` 723 reloads, 4.1 s on Flycast). Plan 8.3 256 KB facing set; current seq never evicted; other Dink seqs LRU over cap or on VRAM fail | #154 |
 | 2026-11-20 | 14.4c `sprite_tex`: upload out of VRAM frees non-live Screen tex (cached pack, largest first), least recently drawn first, then Dink other seqs (and Dink asks edraw), then `mem refuse pool=sprite_tex` remembered until a tex is freed and VRAM covers it (bar fight 2026-11-19: 434 `pvr_mem`, seq 724 reloaded 68×, Dink 99 refusals). Replaces #153 | #155 |
 | 2026-11-20 | Overlay VRAM only while shown: choice box (713 KB) and inventory menu (1.11 MB) load on open (making room from non-live Screen tex / Dink) and free on close; icons stay for the HUD. `vram <tag>` diagnostic around title, menu and overlay uploads. `overlay.c` state per overlay (OFF/ON/FAILED until close); upload makes room like #155 (Dink shortfall, then screen one at a time); choice arrows stay resident | #156 |
-| 2026-11-20 | Dink combat set 512 KB (two walk facings + idle + punch = 480 KB; bar fight had 278 `(cap)` evictions at 256 KB). Upload paths (edraw, pspr, overlay) make room before trying when `pvr_mem_available` is short, so KOS does not log a failed `pvr_mem_malloc` first | this PR |
+| 2026-11-20 | Dink combat set 512 KB (two walk facings + idle + punch = 480 KB; bar fight had 278 `(cap)` evictions at 256 KB). Upload paths (edraw, pspr, overlay) make room before trying when `pvr_mem_available` is short, so KOS does not log a failed `pvr_mem_malloc` first | #157 |
 
 ## Bites
 
