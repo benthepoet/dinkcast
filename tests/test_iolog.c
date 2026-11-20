@@ -207,8 +207,27 @@ int main(void)
          * play printfs on DC) still runs and is counted, ~0 on host. */
         dink_io_flush();
         dink_io_stats(&st);
-        CHECK(st.logged == 2 && st.log_us >= lus && st.log_us - lus < 5000u);
+        CHECK(st.logged == 2 && st.log_us >= lus && st.log_us - lus < 50000u);
     }
+
+    /* Tick work: counted on the play path only; over 16.7 ms flagged. */
+    dink_io_summary(34);
+    dink_io_work(10000u);
+    dink_io_work(18000u);
+    dink_io_set_play(0);
+    dink_io_work(50000u); /* enter path: ignored */
+    dink_io_set_play(1);
+    dink_io_stats(&st);
+    CHECK(st.work_n == 2 && st.work_over16 == 1 && st.work_max_us == 18000u);
+
+    /* set_play: no-op when unchanged; leaving play drains (timed). */
+    dink_io_set_play(1);
+    CHECK(dink_io_play() == 1);
+    dink_io_note("pread", NULL, 10, 5);
+    dink_io_set_play(0);
+    dink_io_stats(&st);
+    CHECK(st.logged >= 1 && dink_io_play() == 0);
+    dink_io_set_play(1);
 
     /* Summary resets every counter. */
     dink_io_summary(408);

@@ -692,7 +692,7 @@ static int play_draw_screen(int sprite)
 
 static void hud(const char *line0, const char *line1, const char *line2)
 {
-    fflush(stdout); /* play-path stdout is batched; fatal paths halt next */
+    fflush(stdout); /* fatal paths halt next: nothing left in a buffer */
     /* 12×24 BIOS font; opaque so it is readable on red/brown. */
     if (vram_s == NULL) {
         return;
@@ -1780,6 +1780,8 @@ int main(int argc, char **argv)
                         fade_draw_pvr();
                         pvr_list_finish();
                     }
+                    /* Diagnostic: the tick's own work, no vsync or log. */
+                    dink_io_work(dink_io_now_us() - g_tick_t0);
                     pvr_scene_finish();
                     have_scene = 1;
                     }
