@@ -134,11 +134,53 @@ int main(void)
     dink_io_stats(&st);
     CHECK(st.music_max == 9000);
 
+    /* VRAM low-water mark: enter = first sample, min keeps the split
+     * held at the low point, peaks are independent. Enter path ignored. */
+    dink_io_note_vram(4000000u, 100000u, 200000u);
+    dink_io_note_vram(3000000u, 900000u, 400000u);
+    dink_io_note_vram(3500000u, 950000u, 300000u);
+    dink_io_set_play(0);
+    dink_io_note_vram(1000u, 0u, 0u);
+    dink_io_set_play(1);
+    dink_io_stats(&st);
+    CHECK(st.vram_samples == 3 && st.vram_enter == 4000000u &&
+          st.vram_min == 3000000u);
+    CHECK(st.min_screen_tex == 900000u && st.min_dink_tex == 400000u);
+    CHECK(st.peak_screen_tex == 950000u && st.peak_dink_tex == 400000u);
+
+    /* Tick pacing: first tick is the baseline; >20 ms and >34 ms count;
+     * an enter-path tick drops the baseline (swap time is not a tick). */
+    dink_io_tick(1000000u);
+    dink_io_tick(1016667u);           /* 16.7 ms */
+    dink_io_tick(1041667u);           /* 25 ms: over20 */
+    dink_io_tick(1081667u);           /* 40 ms: over20 + over34 */
+    dink_io_set_play(0);
+    dink_io_tick(1500000u);
+    dink_io_set_play(1);
+    dink_io_tick(1900000u);           /* new baseline, not a 400 ms tick */
+    dink_io_tick(1916667u);
+    dink_io_stats(&st);
+    CHECK(st.ticks == 4 && st.ticks_over20 == 2 && st.ticks_over34 == 1);
+    CHECK(st.tick_max_us == 40000u);
+    {
+        unsigned wrap = 0xFFFFF000u;   /* dink_io_now_us wraps */
+
+        dink_io_summary(34);
+        dink_io_tick(wrap);
+        dink_io_tick(wrap + 16000u);
+        dink_io_stats(&st);
+        CHECK(st.ticks == 1 && st.tick_max_us == 16000u);
+    }
+
     /* Summary resets every counter. */
     dink_io_summary(408);
     dink_io_stats(&st);
     CHECK(st.ops == 0 && st.frames == 0 && st.music_ops == 0 &&
-          st.gpu_waits == 0);
+          st.gpu_waits == 0 && st.vram_samples == 0 && st.ticks == 0);
+    dink_io_tick(2000000u);
+    dink_io_tick(2016000u);
+    dink_io_stats(&st);
+    CHECK(st.ticks == 1); /* baseline restarts after a summary */
 
     if (fails != 0) {
         return 1;

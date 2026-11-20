@@ -53,6 +53,12 @@ struct DinkIoStats {
     unsigned frames, frame_us, frame_max;  /* play-path frame loads */
     unsigned gpu_waits, gpu_us;            /* play-path pvr_wait_ready */
     unsigned music_ops, music_bytes, music_us, music_max;
+    /* Per-tick VRAM samples on the play path (dink_io_note_vram). */
+    unsigned vram_samples, vram_enter, vram_min;
+    unsigned min_screen_tex, min_dink_tex; /* held at the low point */
+    unsigned peak_screen_tex, peak_dink_tex;
+    /* Play-path tick pacing (dink_io_tick): 60 Hz is 16.7 ms. */
+    unsigned ticks, ticks_over20, ticks_over34, tick_max_us;
 };
 unsigned dink_io_now_us(void);
 void dink_io_set_play(int on);
@@ -71,6 +77,12 @@ void dink_io_stats(struct DinkIoStats *out);
 int dink_io_pending(void);
 void dink_io_flush(void);
 void dink_io_summary(int map);
+/* Once per play tick: free VRAM and what screen sprites / Dink hold. The
+ * summary reports the screen's low-water mark and the split at it. */
+void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex);
+/* Once per play tick at the same point: tick-to-tick time. The first tick
+ * after a summary (screen change) only sets the baseline. */
+void dink_io_tick(unsigned now_us);
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);

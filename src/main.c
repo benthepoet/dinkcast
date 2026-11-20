@@ -1234,6 +1234,12 @@ int main(int argc, char **argv)
                          * wait again on an idle GPU (bar map 34 lock). */
                         have_scene = 0;
                     }
+                    /* Diagnostic: per-tick pacing and VRAM low-water mark
+                     * (one pvr_mem_available + a 128-slot sum per tick). */
+                    dink_io_tick(dink_io_now_us());
+                    dink_io_note_vram((unsigned)sprite_vram_avail(),
+                                      (unsigned)edraw_tex_bytes(g_edg, g_ned),
+                                      (unsigned)pspr_bytes());
                     if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }

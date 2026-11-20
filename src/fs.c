@@ -185,6 +185,55 @@ void dink_io_stats(struct DinkIoStats *out)
     }
 }
 
+static unsigned g_tick_last;
+static int g_tick_have;
+
+void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex)
+{
+    if (!dink_io_play()) {
+        return;
+    }
+    if (g_io.vram_samples == 0 || free_b < g_io.vram_min) {
+        g_io.vram_min = free_b;
+        g_io.min_screen_tex = screen_tex;
+        g_io.min_dink_tex = dink_tex;
+    }
+    if (g_io.vram_samples == 0) {
+        g_io.vram_enter = free_b;
+    }
+    if (screen_tex > g_io.peak_screen_tex) {
+        g_io.peak_screen_tex = screen_tex;
+    }
+    if (dink_tex > g_io.peak_dink_tex) {
+        g_io.peak_dink_tex = dink_tex;
+    }
+    g_io.vram_samples++;
+}
+
+void dink_io_tick(unsigned now_us)
+{
+    if (!dink_io_play()) {
+        g_tick_have = 0;
+        return;
+    }
+    if (g_tick_have) {
+        unsigned d = now_us - g_tick_last; /* wraps cleanly */
+
+        g_io.ticks++;
+        if (d > 20000u) {
+            g_io.ticks_over20++;
+        }
+        if (d > 34000u) {
+            g_io.ticks_over34++;
+        }
+        if (d > g_io.tick_max_us) {
+            g_io.tick_max_us = d;
+        }
+    }
+    g_tick_last = now_us;
+    g_tick_have = 1;
+}
+
 void dink_io_summary(int map)
 {
     dink_io_flush();
@@ -198,8 +247,26 @@ void dink_io_summary(int map)
                g_io.frame_us, g_io.frame_max, g_io.gpu_waits, g_io.gpu_us,
                g_io.music_ops, g_io.music_bytes, g_io.music_us,
                g_io.music_max);
+        if (g_io.vram_samples > 0) {
+            printf("ioplay vram map=%d samples=%u enter=%u min=%u drop=%u "
+                   "min_screen_tex=%u min_dink_tex=%u peak_screen_tex=%u "
+                   "peak_dink_tex=%u\n",
+                   map, g_io.vram_samples, g_io.vram_enter, g_io.vram_min,
+                   g_io.vram_enter > g_io.vram_min
+                       ? g_io.vram_enter - g_io.vram_min
+                       : 0u,
+                   g_io.min_screen_tex, g_io.min_dink_tex,
+                   g_io.peak_screen_tex, g_io.peak_dink_tex);
+        }
+        if (g_io.ticks > 0) {
+            printf("ioplay ticks map=%d n=%u over20ms=%u over34ms=%u "
+                   "max_us=%u\n",
+                   map, g_io.ticks, g_io.ticks_over20, g_io.ticks_over34,
+                   g_io.tick_max_us);
+        }
     }
     memset(&g_io, 0, sizeof(g_io));
+    g_tick_have = 0;
 }
 
 #ifndef DINK_DATA_DEFAULT
