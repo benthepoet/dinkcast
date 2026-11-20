@@ -218,7 +218,7 @@ int main(void)
         (void)pspr_get(seqs, 12, fr);
     }
     (void)pspr_get(seqs, 72, 1);
-    CHECK(pspr_trim_for(16384u) == 0); /* VRAM free: nothing to do */
+    CHECK(pspr_trim_for(0u) == 0); /* nothing missing */
     g_vram_left = 0;
     CHECK(pspr_trim_for(10u * 16384u) == 0); /* 4 idle frames short of 10 */
     CHECK(pspr_count() == 5);

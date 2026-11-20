@@ -460,6 +460,11 @@ static void remove_at(struct EdGfx *g, int *got, int i)
     memset(&g[*got], 0, sizeof(g[0]));
 }
 
+static size_t sat_add(size_t a, size_t b)
+{
+    return a > (size_t)-1 - b ? (size_t)-1 : a + b;
+}
+
 static size_t tex_size(const struct SpriteFrame *f)
 {
     return (size_t)f->tw * (size_t)f->th * 2u;
@@ -524,7 +529,7 @@ size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
     if (sprite_vram_avail() >= need) {
         return 0;
     }
-    if (sprite_vram_avail() + vram_evictable_bytes(g, *n, seqs, 0, 0) <
+    if (sat_add(sprite_vram_avail(), vram_evictable_bytes(g, *n, seqs, 0, 0)) <
         need) {
         return 0; /* would empty the screen and still not fit */
     }
@@ -568,12 +573,8 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         return 0;
     }
     need = tex_size(hit);
-    /* Edraw victims only when they can cover it: do not empty the screen
-     * for a frame that will be refused anyway. */
-    own_room = sprite_vram_avail() +
-                   vram_evictable_bytes(g, *got, seqs, seq, frame) >=
-               need;
     for (;;) {
+        size_t room;
         int v;
 
         if (hit->tex != NULL || hit->argb1555 == NULL) {
@@ -582,6 +583,18 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (g_upload(hit) == 0) {
             break;
         }
+        /* Edraw victims only when they (with free VRAM) cover it: do not
+         * empty the screen for a frame that is refused anyway. When they
+         * fall short, ask Dink for the shortfall first, then re-check. */
+        room = sat_add(sprite_vram_avail(),
+                       vram_evictable_bytes(g, *got, seqs, seq, frame));
+        if (room < need && !relief && g_vram_relief != NULL) {
+            relief = 1;
+            if (g_vram_relief(need - room) > 0) {
+                continue; /* retry the upload, then re-check room */
+            }
+        }
+        own_room = room >= need;
         v = own_room ? vram_victim(g, *got, seqs, seq, frame) : -1;
         if (v >= 0) {
             printf("edraw vram evict seq=%d fr=%d for seq=%d fr=%d\n",
@@ -597,8 +610,9 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
             relief = 1;
             continue;
         }
-        printf("mem refuse pool=sprite_tex seq=%d fr=%d bytes=%u\n", seq,
-               frame, (unsigned)need);
+        printf("mem refuse pool=sprite_tex seq=%d fr=%d bytes=%u%s\n", seq,
+               frame, (unsigned)need,
+               sprite_vram_avail() >= need ? " (fragmented)" : "");
         g_nrefused++;
         refuse_note(seq, frame, need);
         remove_at(g, got, find_index(g, *got, seq, frame));

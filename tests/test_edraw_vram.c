@@ -289,6 +289,40 @@ int main(void)
         }
     }
 
+    /* 6. Combined pools: VRAM is 8 KB over budget, the one non-live
+     *    16 KB innwalls frame leaves 8 KB missing for a 16 KB mom frame,
+     *    and only Dink (relief) can give the rest. Edraw evicts its
+     *    victim, sees the shortfall, asks relief once, then fits. */
+    {
+        int v = -1, vs, vf;
+
+        touch_all(seqs);
+        for (i = 0; i < n; i++) {
+            if (g[i].seq == 31 && tex_bytes(&g[i].fr) == 16384u) {
+                v = i;
+                break;
+            }
+        }
+        if (v >= 0) {
+            vs = g[v].seq;
+            vf = g[v].frame;
+            edraw_live_begin(g, n, seqs);
+            for (i = 0; i < n; i++) {
+                if (!(g[i].seq == vs && g[i].frame == vf)) {
+                    edraw_live_touch(g, n, g[i].seq, g[i].frame);
+                }
+            }
+            g_budget = vram_used() - 8192u;
+            g_relief_give = 8192u + 16384u;
+            g_relief_calls = 0;
+            edraw_set_vram_relief(fake_relief);
+            CHECK(edraw_ensure_frame(g, &n, seqs, 355, 2) == 0);
+            CHECK(g_relief_calls == 1);
+            edraw_set_vram_relief(NULL);
+            g_relief_give = 0;
+        }
+    }
+
     sprite_set_vram_avail(NULL);
     edraw_set_upload(NULL);
     edraw_free(g, n);

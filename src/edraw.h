@@ -20,10 +20,11 @@ struct EdGfx {
 
 void edraw_free(struct EdGfx *g, int n);
 /* sprite_tex: an upload out of VRAM frees non-live Screen textures with a
- * cached pack (least recently drawn first) when they can cover the need,
- * else calls fn(need) once (pspr: Dink's other seqs), else refuses the
- * frame until a texture is freed and enough VRAM is free. GPU idle on
- * every upload path. */
+ * cached pack (least recently drawn first) when they can cover the need.
+ * When they fall short it calls fn(extra) once, extra = bytes still
+ * missing after them (pspr_trim_for: Dink's other seqs), then re-checks.
+ * Else it refuses the frame until a texture is freed and enough VRAM is
+ * free. GPU idle on every upload path. */
 void edraw_set_vram_relief(size_t (*fn)(size_t need));
 /* For other VRAM users (Dink, pspr): free non-live cached Screen textures,
  * least recently drawn first, until need bytes are free. Frees nothing if

@@ -296,8 +296,8 @@ size_t pspr_trim_for(size_t need)
             can += g_slot[i].bytes;
         }
     }
-    if (vram_avail() >= need || vram_avail() + can < need) {
-        return 0; /* not needed, or would not be enough */
+    if (need == 0 || can < need) {
+        return 0; /* nothing missing, or would not be enough */
     }
     return pspr_trim();
 }
