@@ -120,8 +120,6 @@ static void clamp_cur(void)
 
 int inv_load(struct SeqInfo *seqs)
 {
-    int f, ok = 0;
-
     inv_free();
     g_seqs = seqs;
     g_pic = 2;
@@ -129,14 +127,43 @@ int inv_load(struct SeqInfo *seqs)
     if (seqs == NULL) {
         return -1;
     }
+    /* Menu art (seq 423, ~1.1 MB VRAM) loads on open: inv_menu_load. The
+     * weapon/magic icons stay resident; the status HUD draws them. */
+    sync_icons();
+    return 0;
+}
+
+size_t inv_menu_load(void)
+{
+    size_t t = 0;
+    int f, ok = 0;
+
     for (f = 1; f <= 5; f++) {
-        if (load_fr(seqs, DINK_INV_SEQ, f, &g_menu[f]) == 0) {
-            ok++;
+        if (g_menu[f].tex == NULL && g_menu[f].argb1555 == NULL &&
+            load_fr(g_seqs, DINK_INV_SEQ, f, &g_menu[f]) != 0) {
+            continue;
+        }
+        ok++;
+        if (g_menu[f].tex == NULL) {
+            t += (size_t)g_menu[f].tw * (size_t)g_menu[f].th * 2u;
         }
     }
-    sync_icons();
     printf("inv gfx menu=%d/5\n", ok);
-    return ok >= 5 ? 0 : -1;
+    return t;
+}
+
+void inv_menu_release(void)
+{
+    int f;
+
+    for (f = 0; f < 6; f++) {
+        sprite_frame_free(&g_menu[f]);
+    }
+}
+
+int inv_menu_resident(void)
+{
+    return g_menu[1].tex != NULL || g_menu[1].argb1555 != NULL;
 }
 
 void inv_free(void)

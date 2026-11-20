@@ -150,6 +150,12 @@ void choice_layout(int last, int cur, const int *h, int newy,
     out->view_hi = last;
 }
 
+/* Loaded: CPU pixels before upload, texture after (CPU dropped). */
+static int frame_has(const struct SpriteFrame *f)
+{
+    return f->argb1555 != NULL || f->tex != NULL;
+}
+
 static int load_fr(struct SeqInfo *seqs, int seq, int frame,
                    struct SpriteFrame *dst)
 {
@@ -204,15 +210,35 @@ void choice_free(void)
 struct SpriteFrame *choice_frame(int seq, int frame)
 {
     if (seq == DINK_CHOICE_SEQ && frame >= 2 && frame <= 4) {
-        return g_box[frame].argb1555 != NULL ? &g_box[frame] : NULL;
+        return frame_has(&g_box[frame]) ? &g_box[frame] : NULL;
     }
     if (seq == DINK_CHOICE_AROWL && frame >= 1 && frame <= DINK_CHOICE_ARROW_MAX) {
-        return g_arowl[frame].argb1555 != NULL ? &g_arowl[frame] : NULL;
+        return frame_has(&g_arowl[frame]) ? &g_arowl[frame] : NULL;
     }
     if (seq == DINK_CHOICE_AROWR && frame >= 1 && frame <= DINK_CHOICE_ARROW_MAX) {
-        return g_arowr[frame].argb1555 != NULL ? &g_arowr[frame] : NULL;
+        return frame_has(&g_arowr[frame]) ? &g_arowr[frame] : NULL;
     }
     return NULL;
+}
+
+int choice_resident(void)
+{
+    return frame_has(&g_box[2]);
+}
+
+size_t choice_bytes(void)
+{
+    size_t t = 0;
+    int f;
+
+    for (f = 2; f <= 4; f++) {
+        t += (size_t)g_box[f].tw * (size_t)g_box[f].th * 2u;
+    }
+    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
+        t += (size_t)g_arowl[f].tw * (size_t)g_arowl[f].th * 2u;
+        t += (size_t)g_arowr[f].tw * (size_t)g_arowr[f].th * 2u;
+    }
+    return t;
 }
 
 void choice_tick(int now_ms)
@@ -240,16 +266,20 @@ int choice_upload_pvr(void)
     int f, n = 0;
 
     for (f = 2; f <= 4; f++) {
-        if (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0) {
+        if (g_box[f].tex != NULL ||
+            (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0)) {
+            sprite_drop_cpu(&g_box[f]);
             n++;
         }
     }
     for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        if (g_arowl[f].argb1555 != NULL) {
-            (void)sprite_upload_pvr(&g_arowl[f]);
+        if (g_arowl[f].argb1555 != NULL &&
+            sprite_upload_pvr(&g_arowl[f]) == 0) {
+            sprite_drop_cpu(&g_arowl[f]);
         }
-        if (g_arowr[f].argb1555 != NULL) {
-            (void)sprite_upload_pvr(&g_arowr[f]);
+        if (g_arowr[f].argb1555 != NULL &&
+            sprite_upload_pvr(&g_arowr[f]) == 0) {
+            sprite_drop_cpu(&g_arowr[f]);
         }
     }
     return n == 3 ? 0 : -1;

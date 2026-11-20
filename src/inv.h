@@ -26,6 +26,11 @@
 void inv_cell_xy(int magic, int idx0, int *x, int *y);
 int inv_load(struct SeqInfo *seqs);
 void inv_free(void);
+/* Menu art (seq 423 frames 1..5) is VRAM only while the inventory shows.
+ * Load CPU (returns POT bytes still to upload), then inv_upload_pvr. */
+size_t inv_menu_load(void);
+void inv_menu_release(void);
+int inv_menu_resident(void);
 void inv_reset(void);
 void inv_sync_icons(void);
 void inv_open(int now_ms);

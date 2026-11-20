@@ -94,6 +94,61 @@ static size_t dink_vram_room(size_t need)
     return edraw_vram_room(g_edg, &g_ned, g_seqs_play, need);
 }
 
+/* Overlay VRAM (choice box ~0.7 MB, inventory menu ~1.1 MB) only while
+ * shown. Called before pvr_scene_begin: the last scene finished at the top
+ * of the tick, so freeing and making room are safe here. */
+static void overlay_make_room(struct SeqInfo *seqs, size_t need)
+{
+    size_t avail = sprite_vram_avail();
+
+    if (avail >= need || seqs == NULL || g_edg == NULL) {
+        return;
+    }
+    (void)edraw_vram_room(g_edg, &g_ned, seqs, need);
+    avail = sprite_vram_avail();
+    if (avail < need) {
+        (void)pspr_trim_for(need - avail);
+    }
+}
+
+static void overlay_sync(struct SeqInfo *seqs)
+{
+#ifdef _arch_dreamcast
+    /* A pack that lacks the art stays missing: do not re-read per tick. */
+    static int choice_missing, inv_missing;
+    int want_choice = dinkc_vm_choice_n() > 0;
+    int want_inv = inv_showing();
+
+    if (want_choice && !choice_resident() && !choice_missing) {
+        if (choice_load(seqs) == 0) {
+            overlay_make_room(seqs, choice_bytes());
+        } else if (!choice_resident()) {
+            choice_missing = 1;
+        }
+        if (choice_upload_pvr() != 0) {
+            printf("choice upload fail\n");
+        }
+        mem_vram_note("choice open");
+    } else if (!want_choice && choice_resident()) {
+        choice_free();
+        mem_vram_note("choice close");
+    }
+    if (want_inv && !inv_menu_resident() && !inv_missing) {
+        overlay_make_room(seqs, inv_menu_load());
+        inv_missing = !inv_menu_resident();
+        if (inv_upload_pvr() != 0) {
+            printf("inv upload fail\n");
+        }
+        mem_vram_note("inv open");
+    } else if (!want_inv && inv_menu_resident()) {
+        inv_menu_release();
+        mem_vram_note("inv close");
+    }
+#else
+    (void)seqs;
+#endif
+}
+
 static void inv_show_cmd(int on)
 {
     if (on) {
@@ -891,9 +946,7 @@ int main(int argc, char **argv)
                 edraw_set_vram_relief(pspr_trim_for);
                 pspr_set_vram_relief(dink_vram_room);
                 dinkc_cmd_bind_inv(inv_show_cmd);
-                if (choice_load(seqs) != 0) {
-                    printf("choice gfx load fail\n");
-                }
+                /* Choice box loads when a choice opens (overlay_sync). */
             }
             {
                 struct HardMask mask;
@@ -1010,14 +1063,9 @@ int main(int argc, char **argv)
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
                 mem_vram_note("dink");
-                if (choice_upload_pvr() != 0) {
-                    printf("choice upload fail\n");
-                }
-                mem_vram_note("choice");
-                if (inv_upload_pvr() != 0) {
-                    printf("inv upload fail\n");
-                }
-                mem_vram_note("inv");
+                /* Icons only; menu art and the choice box load on open. */
+                (void)inv_upload_pvr();
+                mem_vram_note("inv icons");
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
@@ -1494,6 +1542,7 @@ int main(int argc, char **argv)
                             last_gen = pspr_gen();
                         }
                     }
+                    overlay_sync(seqs);
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);
