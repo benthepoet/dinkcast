@@ -71,6 +71,9 @@ static unsigned g_age;
 static size_t g_bytes;
 static int g_nslot;
 static char g_midi[32];
+/* Host and DC: a playmidi during disc hold is deferred, not started. */
+static int g_disc_hold;
+static char g_pending[32];
 #ifdef _arch_dreamcast
 static uint8_t g_ring[MUSIC_RING] __attribute__((aligned(32)));
 static int16_t g_bounce[8192] __attribute__((aligned(32)));
@@ -84,8 +87,6 @@ static int g_rpos, g_wpos, g_used;
 static int16_t g_hist, g_step;
 static snd_stream_hnd_t g_sh = SND_STREAM_INVALID;
 static int g_stream_on;
-static int g_disc_hold;
-static char g_pending[32];
 #endif
 
 static FILE *open_wav(const char *file)
@@ -692,17 +693,15 @@ int audio_music_play(const char *midi_name)
     }
     midi_to_wav_name(midi_name, wav, sizeof(wav));
     if (name_eq(g_midi, midi_name) && audio_music_playing()) {
-#ifdef _arch_dreamcast
         g_pending[0] = '\0';
-#endif
         return 1;
     }
-#ifdef _arch_dreamcast
     if (g_disc_hold) {
         strncpy(g_pending, midi_name, sizeof(g_pending) - 1);
         g_pending[sizeof(g_pending) - 1] = '\0';
         return 1;
     }
+#ifdef _arch_dreamcast
     {
         FILE *fp;
         uint8_t rid[12], chunk[8], fmt[16];
@@ -828,6 +827,8 @@ void audio_music_stop(void)
     music_stop_dc();
 #endif
     g_midi[0] = '\0';
+    /* A track queued under disc hold must not start when the hold ends. */
+    g_pending[0] = '\0';
 }
 
 void audio_music_pump(void)
@@ -841,7 +842,6 @@ void audio_music_pump(void)
 
 void audio_music_disc_hold(int on)
 {
-#ifdef _arch_dreamcast
     char pending[32];
 
     if (on) {
@@ -857,9 +857,6 @@ void audio_music_disc_hold(int on)
     memcpy(pending, g_pending, sizeof(pending));
     g_pending[0] = '\0';
     (void)audio_music_play(pending);
-#else
-    (void)on;
-#endif
 }
 
 void audio_music_poll(void)

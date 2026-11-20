@@ -1834,7 +1834,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "load_game")) {
         int ok;
 
+        /* FreeDink load_game: DISARM, then StopMidi, before the slot is
+         * read. music==0 keeps the current stream; without the halt,
+         * START's 1003.mid plays until a screen with a real dink.dat id.
+         * Stop also drops a track deferred during disc hold. */
         disarm_armed();
+        audio_music_stop();
         ok = save_load_slot(a0, g_pl);
         printf("load_game slot=%d ok=%d\n", a0, ok);
         if (ret != NULL) {
