@@ -153,7 +153,7 @@ void choice_layout(int last, int cur, const int *h, int newy,
 /* Loaded: CPU pixels before upload, texture after (CPU dropped). */
 static int frame_has(const struct SpriteFrame *f)
 {
-    return f->argb1555 != NULL || f->tex != NULL;
+    return sprite_has_cpu(f) || f->tex != NULL;
 }
 
 static int load_fr(struct SeqInfo *seqs, int seq, int frame,
@@ -200,7 +200,7 @@ int choice_box_load(void)
         return -1;
     }
     for (f = 2; f <= 4; f++) {
-        if (g_box[f].tex != NULL || g_box[f].argb1555 != NULL ||
+        if (g_box[f].tex != NULL || sprite_has_cpu(&g_box[f]) ||
             load_fr(g_seqs, DINK_CHOICE_SEQ, f, &g_box[f]) == 0) {
             ok++;
         }
@@ -300,17 +300,17 @@ int choice_upload_pvr(void)
 
     for (f = 2; f <= 4; f++) {
         if (g_box[f].tex != NULL ||
-            (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0)) {
+            (sprite_has_cpu(&g_box[f]) && sprite_upload_pvr(&g_box[f]) == 0)) {
             sprite_drop_cpu(&g_box[f]);
             n++;
         }
     }
     for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        if (g_arowl[f].argb1555 != NULL &&
+        if (sprite_has_cpu(&g_arowl[f]) &&
             sprite_upload_pvr(&g_arowl[f]) == 0) {
             sprite_drop_cpu(&g_arowl[f]);
         }
-        if (g_arowr[f].argb1555 != NULL &&
+        if (sprite_has_cpu(&g_arowr[f]) &&
             sprite_upload_pvr(&g_arowr[f]) == 0) {
             sprite_drop_cpu(&g_arowr[f]);
         }

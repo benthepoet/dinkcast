@@ -33,10 +33,10 @@ int overlay_upload_with_room(struct SpriteFrame *f)
     if (f->tex != NULL) {
         return 0;
     }
-    if (f->argb1555 == NULL || g_v.upload == NULL) {
+    if (!sprite_has_cpu(f) || g_v.upload == NULL) {
         return -1;
     }
-    need = (size_t)f->tw * (size_t)f->th * 2u;
+    need = sprite_tex_bytes(f);
     for (tries = 0; tries < 256; tries++) {
         if ((g_v.avail == NULL || g_v.avail() >= need) && g_v.upload(f) == 0) {
             sprite_drop_cpu(f);
@@ -79,7 +79,7 @@ static int any_loaded(struct Overlay *o)
     for (i = 0; i < n; i++) {
         struct SpriteFrame *f = o->ops->frame(i);
 
-        if (f != NULL && (f->tex != NULL || f->argb1555 != NULL)) {
+        if (f != NULL && (f->tex != NULL || sprite_has_cpu(f))) {
             return 1;
         }
     }
@@ -113,7 +113,7 @@ void overlay_sync_one(struct Overlay *o, int want)
     for (i = 0; i < n; i++) {
         struct SpriteFrame *f = o->ops->frame(i);
 
-        if (f == NULL || (f->tex == NULL && f->argb1555 == NULL)) {
+        if (f == NULL || (f->tex == NULL && !sprite_has_cpu(f))) {
             continue;
         }
         if (overlay_upload_with_room(f) != 0) {

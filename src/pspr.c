@@ -112,7 +112,7 @@ void pspr_set_ops(const struct PsprOps *ops)
 
 static size_t frame_bytes(const struct SpriteFrame *f)
 {
-    return (size_t)f->tw * (size_t)f->th * 2u;
+    return sprite_tex_bytes(f);
 }
 
 static void slot_free(int i)
