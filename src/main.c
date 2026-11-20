@@ -538,9 +538,7 @@ static int play_draw_screen(int sprite)
     {
         /* The old atlas is freed inside tiles_upload_pvr before the new
          * one is allocated: count it only if none is held. */
-        size_t need = (tiles_tex_held()
-                           ? 0u
-                           : (size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u) +
+        size_t need = (tiles_tex_held() ? 0u : tiles_atlas_tex_bytes()) +
                       edraw_upload_need(g_edg, g_ned);
         size_t avail = sprite_vram_avail();
         size_t freed = avail < need ? pspr_trim_for(need - avail) : 0u;
@@ -849,6 +847,7 @@ int main(int argc, char **argv)
 
             if (sprite_load_main_palette(pal) == 0) {
                 sprite_set_main_palette(pal);
+                tiles_cache_clear(); /* reload sheets as PAL8 */
                 (void)tiles_pvr_ensure();
                 sprite_pal_init_pvr();
                 printf("pal8 on (Tiles/Esplash.bmp)\n");

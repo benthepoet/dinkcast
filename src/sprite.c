@@ -61,22 +61,14 @@ size_t sprite_cpu_bytes(const struct SpriteFrame *f)
     return 0;
 }
 
-static uint8_t g_main_pal[768];
-static int g_pal8_on;
-
 void sprite_set_main_palette(const uint8_t *rgb)
 {
-    if (rgb == NULL) {
-        g_pal8_on = 0;
-        return;
-    }
-    memcpy(g_main_pal, rgb, sizeof(g_main_pal));
-    g_pal8_on = 1;
+    bmp_set_main_palette(rgb);
 }
 
 int sprite_pal8_on(void)
 {
-    return g_pal8_on;
+    return bmp_main_palette() != NULL;
 }
 
 int sprite_load_main_palette(uint8_t rgb[768])
@@ -215,8 +207,7 @@ decode:
     th = next_pow2(bm.h);
     /* PAL8: colour-keyed 8-bit on the main palette keeps its indices (the
      * PVR palette does the colour key; pad index 0 is transparent white). */
-    if (!nocolorkey && g_pal8_on && bm.bpp == 8 &&
-        memcmp(bm.pal, g_main_pal, sizeof(g_main_pal)) == 0) {
+    if (!nocolorkey && bmp_pal_is_main(&bm)) {
         uint8_t *idx = (uint8_t *)calloc((size_t)tw * (size_t)th, 1);
 
         if (idx == NULL) {
@@ -434,12 +425,18 @@ void sprite_pal_init_pvr(void)
 {
     int i;
 
+    const uint8_t *pal = bmp_main_palette();
+
+    if (pal == NULL) {
+        return;
+    }
     pvr_set_pal_format(PVR_PAL_ARGB1555);
     for (i = 0; i < 256; i++) {
-        uint8_t r = g_main_pal[i * 3], g = g_main_pal[i * 3 + 1],
-                b = g_main_pal[i * 3 + 2];
+        uint8_t r = pal[i * 3], g = pal[i * 3 + 1], b = pal[i * 3 + 2];
 
+        /* Bank 0: sprites, white key. Bank 1: tiles, every entry opaque. */
         pvr_set_pal_entry((uint32_t)i, pack1555(r, g, b, 0));
+        pvr_set_pal_entry(256u + (uint32_t)i, pack1555(r, g, b, 1));
     }
 }
 

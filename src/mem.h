@@ -7,7 +7,7 @@
 #define DINK_MEM_BLOB_PEAK (4718592u) /* 4.5 MiB */
 #define DINK_MEM_CPU_PIXELS (2097152u) /* 2.0 MiB */
 #define DINK_MEM_TS_RGB (1310720u) /* 1.25 MiB */
-#define DINK_MEM_ATLAS_BSS (524288u) /* 512×512 RGB565 */
+#define DINK_MEM_ATLAS_BSS (262144u) /* 512×512 PAL8 (RGB565 fallback allocates) */
 /* 14.3: stable-pool delta after a warm two-screen ping-pong. */
 #define DINK_MEM_LEAK_DELTA (4096u)
 #define DINK_MEM_LEAK_WARM (4)
@@ -15,6 +15,8 @@
 
 /* 14.4b: Always/Screen/Prev. mem refuse over file_blob cap during swap. */
 void mem_note_peak(size_t n);
+/* Tiles: the kept RGB565 fallback atlas (512 KB) once allocated. */
+void mem_set_atlas_extra(size_t n);
 /* Diagnostic: "vram <tag> free=N used=D" where D is the drop since the
  * previous note (which upload owns which VRAM). */
 void mem_vram_note(const char *tag);

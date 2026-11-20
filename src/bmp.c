@@ -150,3 +150,27 @@ int bitmap_load_file(const char *path, struct Bitmap *out)
     fclose(fp);
     return rc;
 }
+
+static uint8_t g_main_pal[256 * 3];
+static int g_main_pal_set;
+
+void bmp_set_main_palette(const uint8_t *rgb)
+{
+    if (rgb == NULL) {
+        g_main_pal_set = 0;
+        return;
+    }
+    memcpy(g_main_pal, rgb, sizeof(g_main_pal));
+    g_main_pal_set = 1;
+}
+
+const uint8_t *bmp_main_palette(void)
+{
+    return g_main_pal_set ? g_main_pal : NULL;
+}
+
+int bmp_pal_is_main(const struct Bitmap *bm)
+{
+    return g_main_pal_set && bm != NULL && bm->bpp == 8 &&
+           memcmp(bm->pal, g_main_pal, sizeof(g_main_pal)) == 0;
+}

@@ -10,6 +10,7 @@
 #include "mapscr.h"
 #include "mem.h"
 #include "residency.h"
+#include "sprite.h"
 #include "tiles.h"
 #include "world.h"
 
@@ -38,6 +39,17 @@ int main(void)
     if (dink_fs_init() != 0 || world_load(&w) != 0) {
         fprintf(stderr, "FAIL world\n");
         return 1;
+    }
+    {
+        /* Ship config: PAL8 sprites and tiles (main palette set at
+         * leave-title on DC), so the swap leak covers what runs. */
+        static uint8_t pal[768];
+
+        if (sprite_load_main_palette(pal) != 0) {
+            fprintf(stderr, "FAIL main palette\n");
+            return 1;
+        }
+        sprite_set_main_palette(pal);
     }
     rec[0] = (int)w.loc[map[0]];
     rec[1] = (int)w.loc[map[1]];
