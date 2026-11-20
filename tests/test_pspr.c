@@ -60,7 +60,36 @@ static void fake_free(struct SpriteFrame *f)
     memset(f, 0, sizeof(*f));
 }
 
-static const struct PsprOps ops = {fake_load, fake_upload, fake_free};
+static unsigned g_gen;
+
+static unsigned fake_gen(void)
+{
+    return g_gen;
+}
+
+static size_t fake_avail(void)
+{
+    return g_vram_left < 0 ? (size_t)-1 : (size_t)g_vram_left * 16384u;
+}
+
+static int g_relief_calls;
+static size_t g_relief_need;
+static int g_relief_give; /* uploads the fake relief frees */
+
+static size_t fake_relief(size_t need)
+{
+    g_relief_calls++;
+    g_relief_need = need;
+    if (g_relief_give > 0) {
+        g_vram_left += g_relief_give;
+        g_gen++;
+        return (size_t)g_relief_give * 16384u;
+    }
+    return 0;
+}
+
+static const struct PsprOps ops = {fake_load, fake_upload, fake_free,
+                                   fake_gen, fake_avail};
 
 static void reset(void)
 {
@@ -153,9 +182,49 @@ int main(void)
     CHECK(g_upload_fails == 4); /* first try + idle 1..3 (4 is drawn) */
     CHECK(pspr_count() == 1);
     CHECK(pspr_get(seqs, 12, 4) == b && b->tex != NULL);
+    /* Refused: the next step does not reload until VRAM is freed. */
+    {
+        int loads = g_loads;
+
+        CHECK(pspr_get(seqs, 72, 1) == NULL);
+        CHECK(g_loads == loads);
+        g_gen++; /* a texture freed somewhere, but VRAM still short */
+        CHECK(pspr_get(seqs, 72, 1) == NULL);
+        CHECK(g_loads == loads); /* no read: retry needs room too */
+    }
     /* VRAM back: the next get loads and uploads. */
     g_vram_left = -1;
+    g_gen++;
     CHECK(pspr_get(seqs, 72, 1) != NULL);
+
+    /* No Dink frame to give back: ask the screen (relief) once with the
+     * need before refusing. */
+    reset();
+    pspr_set_vram_relief(fake_relief);
+    g_vram_left = 0;
+    g_relief_calls = 0;
+    g_relief_give = 1;
+    CHECK(pspr_get(seqs, 72, 1) != NULL);
+    CHECK(g_relief_calls == 1 && g_relief_need == 16384u);
+    g_relief_give = 0;
+    CHECK(pspr_get(seqs, 72, 2) == NULL); /* relief had nothing */
+    CHECK(g_relief_calls == 2);
+    pspr_set_vram_relief(NULL);
+    g_vram_left = -1;
+
+    /* edraw relief: trim only when VRAM is short and the trim covers it. */
+    reset();
+    for (fr = 1; fr <= 4; fr++) {
+        (void)pspr_get(seqs, 12, fr);
+    }
+    (void)pspr_get(seqs, 72, 1);
+    CHECK(pspr_trim_for(0u) == 0); /* nothing missing */
+    g_vram_left = 0;
+    CHECK(pspr_trim_for(10u * 16384u) == 0); /* 4 idle frames short of 10 */
+    CHECK(pspr_count() == 5);
+    CHECK(pspr_trim_for(2u * 16384u) == 4u * 16384u);
+    CHECK(pspr_count() == 1);
+    g_vram_left = -1;
 
     /* DinkC init redefines walk 72 (sword arm): cached frames are not
      * hits, the drawn one survives until a new one loads, then the old

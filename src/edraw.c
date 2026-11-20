@@ -114,6 +114,9 @@ enum {
     PIX_STICKY = 2
 };
 
+/* Bumped per play tick (edraw_live_begin); EdGfx.used = last drawn. */
+static unsigned g_draw_tick = 1;
+
 static int pixel_class(const struct SeqInfo *seqs, int seq)
 {
     char dir[160];
@@ -242,6 +245,7 @@ void edraw_live_begin(struct EdGfx *g, int n, struct SeqInfo *seqs)
     if (g == NULL || seqs == NULL) {
         return;
     }
+    g_draw_tick++;
     for (i = 0; i < n; i++) {
         if (pixel_class(seqs, g[i].seq) == PIX_SCREEN) {
             g[i].live = 0;
@@ -291,6 +295,7 @@ void edraw_live_touch(struct EdGfx *g, int n, int seq, int frame)
     for (i = 0; i < n; i++) {
         if (g[i].seq == seq && g[i].frame == frame) {
             g[i].live = 1;
+            g[i].used = g_draw_tick;
             return;
         }
     }
@@ -353,6 +358,272 @@ static void miss_note(int seq, int frame)
     g_nmiss++;
 }
 
+/* ---- sprite_tex (VRAM) working set, 14.4c class victims ----
+ * Uploaded Screen textures stay after their frame stops drawing (reloading
+ * every tick is worse). An upload out of PVR memory makes room:
+ *  1. Screen textures not live this tick whose pack is still cached (they
+ *     decode again), least recently drawn first, size as tie-break; only
+ *     if they (with what is free) can cover the need.
+ *  2. Else the relief hook once (Dink's other seqs, pspr), told the need.
+ *  3. Else refuse (mem refuse pool=sprite_tex), drop the frame, and do not
+ *     retry until a texture was freed AND enough VRAM is free for it
+ *     (sprite_vram_retry_ok), so a full VRAM does not re-read it per tick.
+ * Never Always/Sticky, never live. DinkC preload_seq/load_frame callbacks
+ * can run before this tick's live marking and so see last tick's set; a
+ * frame evicted that way reloads once when drawn. All callers run after
+ * the last scene finished (top-of-play wait, draw_screen wait, or before
+ * the first scene). */
+static size_t (*g_vram_relief)(size_t need);
+#ifdef _arch_dreamcast
+static int (*g_upload)(struct SpriteFrame *f) = sprite_upload_pvr;
+#else
+static int (*g_upload)(struct SpriteFrame *f);
+#endif
+
+void edraw_set_vram_relief(size_t (*fn)(size_t need))
+{
+    g_vram_relief = fn;
+}
+
+void edraw_set_upload(int (*fn)(struct SpriteFrame *f))
+{
+    g_upload = fn;
+}
+
+#define DINK_VRAM_REFUSE 32
+static int g_ref_seq[DINK_VRAM_REFUSE];
+static int g_ref_fr[DINK_VRAM_REFUSE];
+static unsigned g_ref_gen[DINK_VRAM_REFUSE];
+static size_t g_ref_need[DINK_VRAM_REFUSE];
+static int g_nref, g_ref_next;
+static unsigned g_nrefused;
+
+static void refuse_clear(void)
+{
+    g_nref = 0;
+    g_ref_next = 0;
+}
+
+static int refuse_find(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < g_nref; i++) {
+        if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* 1 = still refused: nothing freed since, or not enough VRAM free. */
+static int refuse_blocks(int seq, int frame)
+{
+    int i = refuse_find(seq, frame);
+
+    return i >= 0 && !sprite_vram_retry_ok(g_ref_need[i], g_ref_gen[i]);
+}
+
+static void refuse_note(int seq, int frame, size_t need)
+{
+    int i = refuse_find(seq, frame);
+
+    if (i < 0) {
+        if (g_nref < DINK_VRAM_REFUSE) {
+            i = g_nref++;
+        } else {
+            i = g_ref_next; /* ring: overwrite the oldest entry */
+            g_ref_next = (g_ref_next + 1) % DINK_VRAM_REFUSE;
+        }
+    }
+    g_ref_seq[i] = seq;
+    g_ref_fr[i] = frame;
+    g_ref_need[i] = need;
+    g_ref_gen[i] = sprite_pvr_free_gen();
+}
+
+unsigned edraw_vram_refused(void)
+{
+    return g_nrefused;
+}
+
+static void remove_at(struct EdGfx *g, int *got, int i)
+{
+    if (i < 0 || i >= *got) {
+        return;
+    }
+    sprite_frame_free(&g[i].fr);
+    (*got)--;
+    if (i < *got) {
+        g[i] = g[*got];
+    }
+    memset(&g[*got], 0, sizeof(g[0]));
+}
+
+static size_t sat_add(size_t a, size_t b)
+{
+    return a > (size_t)-1 - b ? (size_t)-1 : a + b;
+}
+
+static size_t tex_size(const struct SpriteFrame *f)
+{
+    return (size_t)f->tw * (size_t)f->th * 2u;
+}
+
+static int vram_evictable(const struct EdGfx *e, struct SeqInfo *seqs,
+                          int keep_seq, int keep_frame)
+{
+    char dir[160];
+
+    if (e->live || e->fr.tex == NULL ||
+        (e->seq == keep_seq && e->frame == keep_frame) ||
+        pixel_class(seqs, e->seq) != PIX_SCREEN) {
+        return 0;
+    }
+    pack_dir(&seqs[e->seq], dir, sizeof(dir));
+    return dir[0] != '\0' && ff_is_cached(dir); /* can come back */
+}
+
+/* Least recently drawn evictable texture; larger on a tie. */
+static int vram_victim(struct EdGfx *g, int got, struct SeqInfo *seqs,
+                       int keep_seq, int keep_frame)
+{
+    int i, pick = -1;
+
+    for (i = 0; i < got; i++) {
+        if (!vram_evictable(&g[i], seqs, keep_seq, keep_frame)) {
+            continue;
+        }
+        if (pick < 0 || g[i].used < g[pick].used ||
+            (g[i].used == g[pick].used &&
+             tex_size(&g[i].fr) > tex_size(&g[pick].fr))) {
+            pick = i;
+        }
+    }
+    return pick;
+}
+
+static size_t vram_evictable_bytes(struct EdGfx *g, int got,
+                                   struct SeqInfo *seqs, int keep_seq,
+                                   int keep_frame)
+{
+    size_t b = 0;
+    int i;
+
+    for (i = 0; i < got; i++) {
+        if (vram_evictable(&g[i], seqs, keep_seq, keep_frame)) {
+            b += tex_size(&g[i].fr);
+        }
+    }
+    return b;
+}
+
+size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
+                       size_t need)
+{
+    size_t freed = 0;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return 0;
+    }
+    if (sprite_vram_avail() >= need) {
+        return 0;
+    }
+    if (sat_add(sprite_vram_avail(), vram_evictable_bytes(g, *n, seqs, 0, 0)) <
+        need) {
+        return 0; /* would empty the screen and still not fit */
+    }
+    while (sprite_vram_avail() < need) {
+        int v = vram_victim(g, *n, seqs, 0, 0);
+
+        if (v < 0) {
+            break;
+        }
+        printf("edraw vram evict seq=%d fr=%d (room %u)\n", g[v].seq,
+               g[v].frame, (unsigned)need);
+        freed += tex_size(&g[v].fr);
+        remove_at(g, n, v);
+    }
+    return freed;
+}
+
+static int find_index(const struct EdGfx *g, int got, int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < got; i++) {
+        if (g[i].seq == seq && g[i].frame == frame) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* Upload (seq,frame) if it holds CPU pixels and no texture, making room
+ * per the policy above. 0 = has a texture (or nothing to upload); -1 =
+ * refused and removed. */
+static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq, int frame)
+{
+    struct SpriteFrame *hit = edraw_find(g, *got, seq, frame);
+    int relief = 0, own_room;
+    size_t need;
+
+    if (hit == NULL || g_upload == NULL) {
+        return 0;
+    }
+    need = tex_size(hit);
+    for (;;) {
+        size_t room;
+        int v;
+
+        if (hit->tex != NULL || hit->argb1555 == NULL) {
+            break;
+        }
+        if (g_upload(hit) == 0) {
+            break;
+        }
+        /* Edraw victims only when they (with free VRAM) cover it: do not
+         * empty the screen for a frame that is refused anyway. When they
+         * fall short, ask Dink for the shortfall first, then re-check. */
+        room = sat_add(sprite_vram_avail(),
+                       vram_evictable_bytes(g, *got, seqs, seq, frame));
+        if (room < need && !relief && g_vram_relief != NULL) {
+            relief = 1;
+            if (g_vram_relief(need - room) > 0) {
+                continue; /* retry the upload, then re-check room */
+            }
+        }
+        own_room = room >= need;
+        v = own_room ? vram_victim(g, *got, seqs, seq, frame) : -1;
+        if (v >= 0) {
+            printf("edraw vram evict seq=%d fr=%d for seq=%d fr=%d\n",
+                   g[v].seq, g[v].frame, seq, frame);
+            remove_at(g, got, v);
+            hit = edraw_find(g, *got, seq, frame);
+            if (hit == NULL) {
+                return -1;
+            }
+            continue;
+        }
+        if (!relief && g_vram_relief != NULL && g_vram_relief(need) > 0) {
+            relief = 1;
+            continue;
+        }
+        printf("mem refuse pool=sprite_tex seq=%d fr=%d bytes=%u%s\n", seq,
+               frame, (unsigned)need,
+               sprite_vram_avail() >= need ? " (fragmented)" : "");
+        g_nrefused++;
+        refuse_note(seq, frame, need);
+        remove_at(g, got, find_index(g, *got, seq, frame));
+        return -1;
+    }
+    if (hit->tex != NULL) {
+        sprite_drop_cpu(hit);
+    }
+    return 0;
+}
+
 /* Cache dir.ff even when EdGfx is full so play-path ensure can fopen-not. */
 static int open_seq_pack(struct SeqInfo *seqs, int seq)
 {
@@ -373,7 +644,9 @@ static int open_seq_pack(struct SeqInfo *seqs, int seq)
     return 0;
 }
 
-static void upload_and_drop_cpu(struct SpriteFrame *f);
+static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
+                            int seq, int frame);
+static int refuse_blocks(int seq, int frame);
 
 static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
                          int seq, int frame, int may_evict)
@@ -399,17 +672,20 @@ static int load_one_body(struct EdGfx *g, int *got, struct SeqInfo *seqs,
     g[*got].seq = seq;
     g[*got].frame = frame;
     g[*got].live = 1;
-    upload_and_drop_cpu(&g[*got].fr);
-    audio_music_pump();
+    g[*got].used = g_draw_tick;
     (*got)++;
+    /* VRAM eviction may move slots; address the frame by seq/frame. */
+    if (upload_with_room(g, got, seqs, seq, frame) != 0) {
+        audio_music_pump();
+        return -3;
+    }
+    audio_music_pump();
     /* Play-path reaps !live Screen after every sprite is touched. */
     {
         size_t need = edraw_cpu_bytes(g, *got);
 
         if (need > (size_t)DINK_MEM_CPU_PIXELS) {
-            (*got)--;
-            sprite_frame_free(&g[*got].fr);
-            memset(&g[*got], 0, sizeof(g[0]));
+            remove_at(g, got, find_index(g, *got, seq, frame));
             printf("mem refuse pool=cpu_pixels need=%u have=%u cap=%u\n",
                    (unsigned)need, (unsigned)edraw_cpu_bytes(g, *got),
                    (unsigned)DINK_MEM_CPU_PIXELS);
@@ -432,7 +708,7 @@ static int load_one(struct EdGfx *g, int *got, struct SeqInfo *seqs, int seq,
     if (edraw_find(g, *got, seq, frame) != NULL) {
         return 0;
     }
-    if (miss_has(seq, frame)) {
+    if (miss_has(seq, frame) || refuse_blocks(seq, frame)) {
         return -1;
     }
     t0 = dink_io_now_us();
@@ -611,6 +887,7 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     }
     memcpy(sp, spr, 101u * sizeof(*sp));
     miss_clear();
+    refuse_clear();
     residency_swap_begin();
     printf("edraw in sprite1 seq=%d y=%d act=%d keep=%d\n", (int)sp[1].seq,
            (int)sp[1].y, (int)sp[1].active, *n);
@@ -857,40 +1134,6 @@ int edraw_load_screen(struct EditorSprite *spr, struct SeqInfo *seqs,
     return 0;
 }
 
-static size_t (*g_vram_relief)(void);
-
-void edraw_set_vram_relief(size_t (*fn)(void))
-{
-    g_vram_relief = fn;
-}
-
-#ifdef _arch_dreamcast
-/* Inv/HUD already drop CPU after PVR. Screen loops (161/427/70) must too
- * or unused frames fill cpu_pixels and play-path evicts+redecodes forever. */
-static void upload_and_drop_cpu(struct SpriteFrame *f)
-{
-    if (f == NULL) {
-        return;
-    }
-    if (f->tex == NULL && f->argb1555 != NULL) {
-        if (sprite_upload_pvr(f) != 0) {
-            if (g_vram_relief == NULL || g_vram_relief() == 0 ||
-                sprite_upload_pvr(f) != 0) {
-                return;
-            }
-        }
-    }
-    if (f->tex != NULL) {
-        sprite_drop_cpu(f);
-    }
-}
-#else
-static void upload_and_drop_cpu(struct SpriteFrame *f)
-{
-    (void)f;
-}
-#endif
-
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                        int frame)
 {
@@ -908,11 +1151,14 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
     }
     hit = edraw_find(g, got, seq, frame);
     if (hit != NULL) {
+        int rc;
+
         /* preload_seq may decode CPU during play; draw skips tex==NULL. */
-        upload_and_drop_cpu(hit);
-        return 0;
+        rc = upload_with_room(g, &got, seqs, seq, frame);
+        *n = got;
+        return rc;
     }
-    if (miss_has(seq, frame)) {
+    if (miss_has(seq, frame) || refuse_blocks(seq, frame)) {
         return -1;
     }
     /* Play path: decode only from a pack already opened at screen load. */
@@ -964,7 +1210,6 @@ int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             }
         }
     }
-    upload_and_drop_cpu(&g[got - 1].fr);
     *n = got;
     return 0;
 }
@@ -981,9 +1226,16 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
         got = 0;
     }
     load_seq_frames(g, &got, seqs, seq);
+    /* A refusal or eviction reorders slots: rescan from the start. */
     for (i = 0; i < got; i++) {
-        if (g[i].seq == seq) {
-            upload_and_drop_cpu(&g[i].fr);
+        if (g[i].seq == seq && g[i].fr.tex == NULL &&
+            g[i].fr.argb1555 != NULL && g_upload != NULL) {
+            int before = got;
+
+            (void)upload_with_room(g, &got, seqs, seq, g[i].frame);
+            if (got != before) {
+                i = -1;
+            }
         }
     }
     *n = got;
@@ -993,7 +1245,6 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                       int frame)
 {
     int got;
-    struct SpriteFrame *hit;
 
     if (g == NULL || n == NULL || seqs == NULL) {
         return;
@@ -1021,8 +1272,7 @@ void edraw_load_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
             break;
         }
     }
-    hit = edraw_find(g, got, seq, frame);
-    upload_and_drop_cpu(hit);
+    (void)upload_with_room(g, &got, seqs, seq, frame);
     audio_music_pump();
     *n = got;
 }

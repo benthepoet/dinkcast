@@ -84,6 +84,16 @@ static void load_frame_cb(int seq, int frame)
     edraw_load_frame(g_edg, &g_ned, g_seqs_play, seq, frame);
 }
 
+/* pspr relief: Dink's frame needs VRAM held by non-live screen sprites.
+ * Every pspr_get runs after the last scene finished. */
+static size_t dink_vram_room(size_t need)
+{
+    if (g_seqs_play == NULL || g_edg == NULL) {
+        return 0;
+    }
+    return edraw_vram_room(g_edg, &g_ned, g_seqs_play, need);
+}
+
 static void inv_show_cmd(int on)
 {
     if (on) {
@@ -875,7 +885,8 @@ int main(int argc, char **argv)
                 dinkc_cmd_bind_preload(preload_seq_cb);
                 dinkc_cmd_bind_load_frame(load_frame_cb);
                 dinkc_cmd_bind_seq_redefined(pspr_forget_seq);
-                edraw_set_vram_relief(pspr_trim);
+                edraw_set_vram_relief(pspr_trim_for);
+                pspr_set_vram_relief(dink_vram_room);
                 dinkc_cmd_bind_inv(inv_show_cmd);
                 if (choice_load(seqs) != 0) {
                     printf("choice gfx load fail\n");

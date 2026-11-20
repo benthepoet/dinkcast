@@ -4,6 +4,7 @@
 
 #include "ini.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 struct SpriteFrame {
@@ -20,6 +21,15 @@ int sprite_pixel_opaque(uint16_t p);
 
 void sprite_frame_free(struct SpriteFrame *f);
 void sprite_evict_pvr(struct SpriteFrame *f);
+/* Bumps each time sprite_evict_pvr frees a texture. A VRAM refusal is
+ * only worth retrying after it changed. */
+unsigned sprite_pvr_free_gen(void);
+/* Free PVR bytes (pvr_mem_available on DC). Tests may inject a fake. */
+size_t sprite_vram_avail(void);
+void sprite_set_vram_avail(size_t (*fn)(void));
+/* A frame refused for VRAM is worth one more try only after a texture was
+ * freed (gen moved) and enough VRAM is free for it. */
+int sprite_vram_retry_ok(size_t need, unsigned gen_at_refuse);
 /* Free decoded pixels; keep w/h/tw/th and PVR tex (overlay after upload). */
 void sprite_drop_cpu(struct SpriteFrame *f);
 /* Frame index is 1-based (ds-i4-01.bmp). World sprites punch white. */

@@ -14,13 +14,28 @@ struct EdGfx {
     int seq;
     int frame;
     int live; /* Screen: needed this tick. Always/Sticky never play-evicted. */
+    unsigned used; /* last draw tick touched (VRAM victim order) */
     struct SpriteFrame fr;
 };
 
 void edraw_free(struct EdGfx *g, int n);
-/* PVR upload out of VRAM: call fn (frees other VRAM users, returns bytes
- * freed; GPU idle on every upload path), retry once. pspr_trim on DC. */
-void edraw_set_vram_relief(size_t (*fn)(void));
+/* sprite_tex: an upload out of VRAM frees non-live Screen textures with a
+ * cached pack (least recently drawn first) when they can cover the need.
+ * When they fall short it calls fn(extra) once, extra = bytes still
+ * missing after them (pspr_trim_for: Dink's other seqs), then re-checks.
+ * Else it refuses the frame until a texture is freed and enough VRAM is
+ * free. GPU idle on every upload path. */
+void edraw_set_vram_relief(size_t (*fn)(size_t need));
+/* For other VRAM users (Dink, pspr): free non-live cached Screen textures,
+ * least recently drawn first, until need bytes are free. Frees nothing if
+ * they cannot cover it. Returns bytes freed. GPU must be idle. */
+size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
+                       size_t need);
+/* Tests: fake PVR upload (0 ok). DC default sprite_upload_pvr; host NULL
+ * (frames stay CPU, no VRAM policy). */
+void edraw_set_upload(int (*fn)(struct SpriteFrame *f));
+/* Frames refused for VRAM since boot (mem refuse pool=sprite_tex). */
+unsigned edraw_vram_refused(void);
 /* Size matches edraw.c (do not BSS an array next to g_scr). */
 struct EdGfx *edraw_gfx_alloc(void);
 void edraw_gfx_release(struct EdGfx *g);
