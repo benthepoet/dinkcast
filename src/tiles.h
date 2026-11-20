@@ -5,7 +5,8 @@
 /*
  * Bite 6.1 policy A: one 512×512 RGB565 atlas of *used* 50×50 cells
  * with 1 px gutter (10×10 slots). Whole tsNN.bmp is 12×8 and will not
- * fit; pack only cells this screen needs. Budget 512×512×2 = 512 KB.
+ * fit; pack only cells this screen needs. PAL8 512×512 = 256 KB (main
+ * palette, bank 1 opaque); RGB565 fallback 512 KB.
  */
 #define DINK_TILE_PX 50
 #define DINK_ATLAS_W 512
@@ -23,7 +24,11 @@
 #include <stdint.h>
 
 struct TileAtlas {
-    uint16_t *rgb565; /* 512×512 BSS; do not free. PVR upload copies. */
+    /* Exactly one is set. pal8: 512×512 BSS indices on the main palette
+     * (official tilesheets); rgb565: malloc'd fallback when a sheet is
+     * off the main palette. PVR upload copies. */
+    uint8_t *pal8;
+    uint16_t *rgb565;
     int slot_x[DINK_SCREEN_TILES];
     int slot_y[DINK_SCREEN_TILES];
     int used;
@@ -36,6 +41,8 @@ int tiles_cell00_rgb(const uint8_t *bmp, size_t n, uint8_t rgb[3]);
 void tiles_evict(struct TileAtlas *a);
 
 size_t tiles_cache_bytes(void);
+/* Drop every cached sheet (main palette changed: reload as PAL8/565). */
+void tiles_cache_clear(void);
 int tiles_cache_sheets(void);
 
 #ifdef _arch_dreamcast

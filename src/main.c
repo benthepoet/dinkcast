@@ -849,6 +849,7 @@ int main(int argc, char **argv)
 
             if (sprite_load_main_palette(pal) == 0) {
                 sprite_set_main_palette(pal);
+                tiles_cache_clear(); /* reload sheets as PAL8 */
                 (void)tiles_pvr_ensure();
                 sprite_pal_init_pvr();
                 printf("pal8 on (Tiles/Esplash.bmp)\n");

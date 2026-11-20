@@ -258,6 +258,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | Dink set cap 2 MB (§1.2 share), 192 slots: bar fight drew every facing (~1.6 MB); at 512 KB Dink still had 240 `(cap)` evictions with 3.5 MB VRAM free | #158 |
 | 2026-11-20 | PAL8 sprites: colour-keyed frames on the main palette keep 8-bit indices (half VRAM and CPU, no 1555 conversion), PVR palette bank 0 with the same white key; HUD/status no-key frames and off-palette BMPs stay ARGB1555. `tools/palette_survey.py`: 3619/3628 BMPs share `Tiles/Esplash.bmp` | #159 |
 | 2026-11-20 | Diagnostic: per-screen `ioplay vram` (VRAM low-water mark per tick, screen/Dink texture bytes at the low point and peaks) and `ioplay ticks` (ticks over 20 ms / 34 ms, worst tick). No gameplay change | #160 |
+| 2026-11-20 | PAL8 tile atlas: tilesheets on the main palette cache as 8-bit (half `ts_rgb`), the atlas is 256 KB PAL8 BSS (was 512 KB RGB565) uploaded twiddled and drawn with palette bank 1 (opaque); an off-palette sheet converts the atlas to RGB565 | this PR |
 
 ## Bites
 

@@ -19,6 +19,12 @@ struct Bitmap {
 };
 
 void bitmap_free(struct Bitmap *bm);
+
+/* Main game palette (Tiles/Esplash.bmp; PAL8 sprites and tiles). NULL
+ * clears it. bmp_pal_is_main: 8-bit bitmap on exactly that palette. */
+void bmp_set_main_palette(const uint8_t *rgb);
+const uint8_t *bmp_main_palette(void); /* NULL if unset */
+int bmp_pal_is_main(const struct Bitmap *bm);
 int bitmap_load_file(const char *path, struct Bitmap *out);
 int bitmap_load_mem(const uint8_t *data, size_t n, struct Bitmap *out);
 

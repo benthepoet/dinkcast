@@ -88,3 +88,4 @@ tests/test_pspr
 tests/test_edraw_vram
 tests/test_overlay
 tests/test_pal8
+tests/test_tiles_pal8

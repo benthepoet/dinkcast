@@ -7,7 +7,7 @@
 #define DINK_MEM_BLOB_PEAK (4718592u) /* 4.5 MiB */
 #define DINK_MEM_CPU_PIXELS (2097152u) /* 2.0 MiB */
 #define DINK_MEM_TS_RGB (1310720u) /* 1.25 MiB */
-#define DINK_MEM_ATLAS_BSS (524288u) /* 512×512 RGB565 */
+#define DINK_MEM_ATLAS_BSS (262144u) /* 512×512 PAL8 (RGB565 fallback allocates) */
 /* 14.3: stable-pool delta after a warm two-screen ping-pong. */
 #define DINK_MEM_LEAK_DELTA (4096u)
 #define DINK_MEM_LEAK_WARM (4)
