@@ -286,6 +286,20 @@ size_t pspr_trim(void)
     return before - g_bytes;
 }
 
+size_t pspr_free_one(void)
+{
+    int keep = g_last >= 0 ? g_slot[g_last].seq : 0;
+    int v = victim(keep);
+    size_t b;
+
+    if (v < 0) {
+        return 0;
+    }
+    b = g_slot[v].bytes;
+    evict(v, keep, "free_one");
+    return b;
+}
+
 size_t pspr_trim_for(size_t need)
 {
     size_t can = 0;

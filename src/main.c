@@ -532,13 +532,21 @@ static int play_draw_screen(int sprite)
         }
     }
     dink_cd_settle();
-    /* GPU idle (waited above). Give the new screen's tiles and sprites
-     * the VRAM of Dink frames from other seqs; the current one stays. */
+    /* GPU idle (waited above). Dink's set survives the swap; take only
+     * the shortfall the new screen's tiles and sprites need (LRU), so a
+     * swap does not throw away the combat set. */
     {
-        size_t freed = pspr_trim();
+        /* The old atlas is freed inside tiles_upload_pvr before the new
+         * one is allocated: count it only if none is held. */
+        size_t need = (tiles_tex_held()
+                           ? 0u
+                           : (size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u) +
+                      edraw_upload_need(g_edg, g_ned);
+        size_t avail = sprite_vram_avail();
+        size_t freed = avail < need ? pspr_trim_for(need - avail) : 0u;
 
         if (freed > 0) {
-            printf("pspr trim %u\n", (unsigned)freed);
+            printf("pspr trim %u for swap\n", (unsigned)freed);
         }
     }
     {
@@ -551,7 +559,11 @@ static int play_draw_screen(int sprite)
             printf("swap atlas ok\n");
             audio_music_pump();
             if (tiles_upload_pvr(&g_atlas) != 0) {
-                printf("draw_screen tiles upload fail\n");
+                /* Fragmented: total free covered it, no block did. */
+                printf("pspr trim %u for tiles\n", (unsigned)pspr_trim());
+                if (tiles_upload_pvr(&g_atlas) != 0) {
+                    printf("draw_screen tiles upload fail\n");
+                }
             }
         } else {
             printf("draw_screen atlas fail keep\n");
@@ -946,7 +958,7 @@ int main(int argc, char **argv)
                     static const struct OverlayVram ov = {
                         sprite_upload_pvr, sprite_vram_avail,
                         ov_screen_evictable, ov_screen_free_one,
-                        pspr_trim_for,
+                        pspr_trim_for, pspr_free_one,
                     };
 
                     overlay_set_vram(&ov);

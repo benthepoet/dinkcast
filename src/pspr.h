@@ -9,20 +9,19 @@
 
 /* Dink (sprite 1) frame set. FreeDink load_sequence_now keeps every Dink
  * sequence for the session; all of them are ~5 MB of POT1555, over the
- * plan §1.2 sprite_tex share. Plan 8.3 gives Dink a 512 KB combat set.
+ * plan §1.2 sprite_tex share. Plan 8.3: Dink's set is capped at 2 MB.
  *
  * Policy: the requested seq and the frame last handed out are never
- * evicted. Frames of other Dink seqs stay until the set is over the cap or
- * an upload runs out of VRAM, then go least recently drawn first (recency
- * among Dink's own frames only; 14.4c EdGfx victims stay class-based).
- * Two walk facings (128 KB each) + idle (64 KB) + punch (160 KB) = 480 KB
- * fit, so the bar fight's turn/punch/walk reads no disc (#155 log: 278
- * cap evictions at 256 KB). Sword hit (384 KB) fits too. A seq bigger
- * than the cap is held whole while current. Under VRAM pressure Dink
- * still gives frames back (vram evict, pspr_trim_for). Bound: max(cap,
- * current seq) + the last frame. */
-#define DINK_PSPR_SLOTS 64
-#define DINK_PSPR_TEX_CAP (512u * 1024u)
+ * evicted. Frames of other Dink seqs stay until the set passes the cap or
+ * VRAM runs short, then go least recently drawn first (recency among
+ * Dink's own frames only; 14.4c EdGfx victims stay class-based). Real
+ * combat uses every facing (bar fight, #157 log: 8 walks, 4 idles, punch
+ * 104/106, magic = ~1.6 MB), so the cap is the §1.2 share, not a fight
+ * shape. Screen sprites and overlays take Dink frames back when short
+ * (pspr_trim_for, (vram) evict). A seq bigger than the cap is held whole
+ * while current. Bound: max(cap, current seq) + the last frame. */
+#define DINK_PSPR_SLOTS 192
+#define DINK_PSPR_TEX_CAP (2048u * 1024u)
 
 struct PsprOps {
     int (*load)(struct SeqInfo *seqs, int seq, int frame,
@@ -62,6 +61,9 @@ size_t pspr_trim_for(size_t need);
 /* Before refusing a Dink frame for VRAM: fn(need) frees other users'
  * VRAM (edraw_vram_room: non-live Screen textures), once. */
 void pspr_set_vram_relief(size_t (*fn)(size_t need));
+/* Fragmented VRAM: free one least recently drawn non-current frame;
+ * bytes freed or 0. GPU must be idle. */
+size_t pspr_free_one(void);
 
 /* Free every frame. GPU must be idle. */
 void pspr_clear(void);
