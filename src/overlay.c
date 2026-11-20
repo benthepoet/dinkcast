@@ -55,7 +55,10 @@ int overlay_upload_with_room(struct SpriteFrame *f)
         if (sat_add(avail, ev) < need) {
             return -1; /* would empty the screen and still not fit */
         }
-        if (call0(g_v.screen_free_one) == 0) {
+        if (call0(g_v.screen_free_one) == 0 &&
+            call0(g_v.dink_free_one) == 0) {
+            /* Fragmented: the screen is empty of victims and Dink has no
+             * frame left to give either. */
             return -1;
         }
     }

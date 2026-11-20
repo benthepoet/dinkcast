@@ -114,11 +114,27 @@ static size_t fake_dink(size_t extra)
     return extra;
 }
 
+static size_t g_dink_unit;
+static int g_dink_ones;
+
+/* Fragmented relief: one Dink frame at a time grows the largest block. */
+static size_t fake_dink_one(void)
+{
+    if (g_dink < g_dink_unit || g_dink_unit == 0) {
+        return 0;
+    }
+    g_dink -= g_dink_unit;
+    g_free += g_dink_unit;
+    g_block += g_dink_unit;
+    g_dink_ones++;
+    return g_dink_unit;
+}
+
 static const struct OverlayOps ops = {fake_load, fake_release, fake_n,
                                       fake_frame};
 static const struct OverlayVram vram = {fake_upload, fake_avail,
                                         fake_screen_ev, fake_screen_one,
-                                        fake_dink};
+                                        fake_dink, fake_dink_one};
 
 static void setv(size_t free_b, size_t block, size_t screen, size_t unit,
                  size_t dink)
@@ -128,7 +144,8 @@ static void setv(size_t free_b, size_t block, size_t screen, size_t unit,
     g_screen = screen;
     g_screen_unit = unit;
     g_dink = dink;
-    g_uploads = g_screen_frees = g_dink_calls = 0;
+    g_uploads = g_screen_frees = g_dink_calls = g_dink_ones = 0;
+    g_dink_unit = 0;
 }
 
 int main(void)
@@ -166,6 +183,16 @@ int main(void)
     overlay_sync_one(&o, 1);
     CHECK(o.state == OVERLAY_ON);
     CHECK(g_screen_frees == 3);
+    overlay_sync_one(&o, 0);
+
+    /* Fragmented with no screen victims: total free covers it, no block
+     * does; Dink gives frames one at a time until each frame fits (the
+     * shortfall ask is skipped since total free already covers it). */
+    setv(393216u, 0, 0, 0, 393216u);
+    g_dink_unit = 131072u;
+    overlay_sync_one(&o, 1);
+    CHECK(o.state == OVERLAY_ON);
+    CHECK(g_dink_ones == 3);
     overlay_sync_one(&o, 0);
 
     /* Not enough anywhere: nothing on screen is freed for nothing, every

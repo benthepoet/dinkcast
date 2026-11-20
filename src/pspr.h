@@ -61,6 +61,9 @@ size_t pspr_trim_for(size_t need);
 /* Before refusing a Dink frame for VRAM: fn(need) frees other users'
  * VRAM (edraw_vram_room: non-live Screen textures), once. */
 void pspr_set_vram_relief(size_t (*fn)(size_t need));
+/* Fragmented VRAM: free one least recently drawn non-current frame;
+ * bytes freed or 0. GPU must be idle. */
+size_t pspr_free_one(void);
 
 /* Free every frame. GPU must be idle. */
 void pspr_clear(void);

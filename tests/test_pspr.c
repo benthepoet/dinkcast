@@ -187,8 +187,20 @@ int main(void)
     CHECK(pspr_get(seqs, 500, 1) != NULL);
     CHECK(pspr_get(seqs, 500, 2) != NULL);
     CHECK(pspr_bytes() <= DINK_PSPR_TEX_CAP);
-    CHECK(g_frees > 0);
-    CHECK(pspr_get(seqs, 106, 5) != NULL); /* drawn last lap: kept */
+    /* 1600 KB set: the first 512 KB frame overshoots by 64 KB (4 oldest
+     * 16 KB frames go), the second by 512 KB (32 more): 36 frees, oldest
+     * first (walk 71, 72, 73, 74, then 76 fr 1..4), landing on the cap. */
+    CHECK(g_frees == 36);
+    CHECK(pspr_bytes() == DINK_PSPR_TEX_CAP);
+    {
+        int loads1 = g_loads;
+
+        CHECK(pspr_get(seqs, 106, 5) != NULL); /* drawn last lap: kept */
+        CHECK(pspr_get(seqs, 79, 8) != NULL);  /* newest walk: kept */
+        CHECK(g_loads == loads1);
+        CHECK(pspr_get(seqs, 71, 1) != NULL);  /* oldest: was evicted */
+        CHECK(g_loads == loads1 + 1);
+    }
 
     /* Current seq bigger than the cap (5 x 512 KB = 2.5 MB) is held whole;
      * every other frame is let go. */

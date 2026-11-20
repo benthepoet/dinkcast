@@ -547,6 +547,19 @@ size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
     return freed;
 }
 
+size_t edraw_upload_need(const struct EdGfx *g, int n)
+{
+    size_t b = 0;
+    int i;
+
+    for (i = 0; g != NULL && i < n; i++) {
+        if (g[i].live && g[i].fr.tex == NULL && g[i].fr.argb1555 != NULL) {
+            b += tex_size(&g[i].fr);
+        }
+    }
+    return b;
+}
+
 size_t edraw_vram_evictable(struct EdGfx *g, int n, struct SeqInfo *seqs)
 {
     if (g == NULL || seqs == NULL) {
