@@ -22,6 +22,8 @@ int audio_music_play(const char *midi_name);
 int audio_music_map(int midi_id);
 void audio_music_stop(void);
 void audio_music_poll(void);
+/* How many times audio_music_poll has been entered (host tests). */
+unsigned audio_music_polls(void);
 /* AICA only: drain the PCM ring into snd_stream. No GD-ROM. */
 void audio_music_pump(void);
 /* During a screen swap, do not fopen/fread the MIDI; keep the current loop. */

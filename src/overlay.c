@@ -115,11 +115,16 @@ void overlay_sync_one(struct Overlay *o, int want)
     if (o->state != OVERLAY_OFF) {
         return; /* ON, or FAILED until closed */
     }
-    if (o->ops->load() != 0) {
-        fail(o, "load");
-        return;
+    {
+        int loaded = o->ops->load();
+
+        /* Service the stream even when the load failed. */
+        pump();
+        if (loaded != 0) {
+            fail(o, "load");
+            return;
+        }
     }
-    pump();
     n = o->ops->nframes();
     for (i = 0; i < n; i++) {
         struct SpriteFrame *f = o->ops->frame(i);

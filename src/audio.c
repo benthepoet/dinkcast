@@ -86,6 +86,7 @@ static snd_stream_hnd_t g_sh = SND_STREAM_INVALID;
 static int g_stream_on;
 static int g_disc_hold;
 static char g_pending[32];
+static int g_music_io_fail; /* fread returned 0; do not retry until stop */
 #endif
 
 static FILE *open_wav(const char *file)
@@ -317,6 +318,7 @@ static void music_stop_dc(void)
     g_used = 0;
     g_rpos = 0;
     g_wpos = 0;
+    g_music_io_fail = 0;
 }
 
 static int16_t ymz_step_d(uint8_t step, int16_t *history, int16_t *step_size)
@@ -403,6 +405,8 @@ static void music_fill_chunk(void)
     got = fread(g_mbuf, 1, want, g_mfp);
     dink_io_note("music", NULL, got, dink_io_now_us() - io_t0);
     if (got == 0) {
+        /* Position did not move. Further polls must not hammer the drive. */
+        g_music_io_fail = 1;
         return;
     }
     g_mpos += got;
@@ -862,8 +866,16 @@ void audio_music_disc_hold(int on)
 #endif
 }
 
+static unsigned g_polls;
+
+unsigned audio_music_polls(void)
+{
+    return g_polls;
+}
+
 void audio_music_poll(void)
 {
+    g_polls++;
 #ifdef _arch_dreamcast
     int nfill = 0;
     unsigned io_t0 = dink_io_now_us();
@@ -871,7 +883,7 @@ void audio_music_poll(void)
     /* Fill on the 60 Hz thread *before* snd_stream_poll. Cap fills so a
      * hitch cannot stall a frame on GD-ROM. Skip fread while a screen
      * swap owns the drive (AICA loops its 16 KiB buffer if we starve). */
-    if (!g_disc_hold) {
+    if (!g_disc_hold && !g_music_io_fail) {
         while (g_mfp != NULL && g_used < (int)MUSIC_WATER && nfill < 8) {
             int before = g_used;
 

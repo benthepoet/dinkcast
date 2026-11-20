@@ -39,7 +39,7 @@ struct OverlayVram {
     size_t (*screen_free_one)(void);
     size_t (*dink_trim_for)(size_t extra);
     size_t (*dink_free_one)(void); /* fragmented: one Dink frame */
-    void (*pump)(void); /* between disc loads and VRAM uploads; NULL ok */
+    void (*pump)(void); /* AICA/RAM only between uploads; NULL ok */
 };
 void overlay_set_vram(const struct OverlayVram *v);
 
