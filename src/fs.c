@@ -234,7 +234,9 @@ void dink_io_tick(unsigned now_us)
         unsigned d = now_us - g_tick_last; /* wraps cleanly */
 
         /* Our own serial logging is not game work. Other printfs inside
-         * the tick (evictions, refusals) are still counted. */
+         * the tick (evictions, refusals) are still counted. Part of the
+         * flush overlaps the vsync wait, so subtracting all of it makes
+         * over20ms a lower bound, not an overcount. */
         d = d > g_log_pending ? d - g_log_pending : 0u;
 
         g_io.ticks++;
@@ -279,6 +281,13 @@ void dink_io_summary(int map)
                g_io.music_max);
         if (g_io.vram_samples > 0) {
             unsigned lo = g_io.vram_min;
+            char upl[16];
+
+            if (g_io.upload_samples > 0) {
+                snprintf(upl, sizeof(upl), "%u", g_io.min_upload);
+            } else {
+                snprintf(upl, sizeof(upl), "none");
+            }
 
             if (g_io.upload_samples > 0 && g_io.min_upload < lo) {
                 lo = g_io.min_upload;
@@ -286,12 +295,12 @@ void dink_io_summary(int map)
             /* Split is partial: tile atlas, HUD/status, overlays, font and
              * allocator overhead are not in screen/dink. */
             printf("ioplay vram map=%d samples=%u enter=%u min=%u drop=%u "
-                   "min_tick=%u min_upload=%u uploads=%u "
+                   "min_tick=%u min_upload=%s uploads=%u "
                    "tick_min_screen_tex=%u tick_min_dink_tex=%u "
                    "peak_screen_tex=%u peak_dink_tex=%u\n",
                    map, g_io.vram_samples, g_io.vram_enter, lo,
                    g_io.vram_enter > lo ? g_io.vram_enter - lo : 0u,
-                   g_io.vram_min, g_io.min_upload, g_io.upload_samples,
+                   g_io.vram_min, upl, g_io.upload_samples,
                    g_io.min_screen_tex, g_io.min_dink_tex,
                    g_io.peak_screen_tex, g_io.peak_dink_tex);
         }

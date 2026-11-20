@@ -199,9 +199,13 @@ int main(void)
     dink_io_tick(3016000u + st.log_us);
     dink_io_stats(&st);
     CHECK(st.ticks == 1 && st.tick_max_us <= 16000u + 1u);
-    dink_io_flush(); /* empty ring: nothing logged, no time */
-    dink_io_stats(&st);
-    CHECK(st.logged == 2);
+    {
+        unsigned lus = st.log_us;
+
+        dink_io_flush(); /* empty ring: nothing logged, no time */
+        dink_io_stats(&st);
+        CHECK(st.logged == 2 && st.log_us == lus);
+    }
 
     /* Summary resets every counter. */
     dink_io_summary(408);
