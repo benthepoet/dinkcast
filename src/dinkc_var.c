@@ -166,6 +166,10 @@ int dinkc_var_make(const char *name, int value, int scope)
         }
     }
     if (slot == 0) {
+        /* FreeDink dinkc.cpp: "out of var space, all %d used". Reachable
+         * now that 200 script instances can each declare locals. */
+        printf("dinkc out of var space, all %d used (%s scope %d)\n",
+               DINKC_MAX_VARS - 1, name, scope);
         return 0;
     }
     g_var[slot].active = 1;

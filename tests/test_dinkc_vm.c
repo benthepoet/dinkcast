@@ -1187,6 +1187,58 @@ int main(void)
                "all code freed");
     }
 
+    /* Refcount edges: a start whose proc is missing releases its ref; a
+     * same-file child shares the parent's code and outlives it; a timer
+     * callback starts from the owner's code. */
+    {
+        static const char two[] =
+            "void main(void)\n{\n  wait(100);\n}\n"
+            "void other(void)\n{\n  wait(100);\n}\n";
+        int p, ch;
+
+        dinkc_vm_reset();
+        expect(dinkc_vm_start_keep(two, strlen(two), 5, "nope") < 0,
+               "missing proc refused");
+        expect(dinkc_vm_code_count() == 0, "failed start released code");
+        p = dinkc_vm_start_proc(two, strlen(two), 5, "main");
+        ch = dinkc_vm_start_proc(two, strlen(two), 5, "other");
+        expect(p > 0 && ch > 0 && dinkc_vm_code_count() == 1,
+               "parent and child share one copy");
+        dinkc_vm_kill(p);
+        expect(dinkc_vm_used(ch) && dinkc_vm_code_count() == 1,
+               "child keeps the code after the parent dies");
+        dinkc_vm_kill(ch);
+        expect(dinkc_vm_code_count() == 0, "last ref frees the code");
+    }
+
+    /* Two scripts build choices: the later one owns the menu (FreeDink);
+     * the earlier waiter is never resumed with the other's lines. */
+    {
+        static const char ca[] =
+            "void main(void)\n{\n  choice_start();\n  \"A one\"\n"
+            "  \"A two\"\n  choice_end();\n  int &ga = &result;\n}\n";
+        static const char cb[] =
+            "void main(void)\n{\n  choice_start();\n  \"B one\"\n"
+            "  \"B two\"\n  \"B three\"\n  choice_end();\n}\n";
+        int a, b;
+
+        dinkc_vm_reset();
+        a = dinkc_vm_start_proc(ca, strlen(ca), 5, "main");
+        expect(a > 0 && dinkc_vm_waiting_choice() && dinkc_vm_choice_n() == 2,
+               "A's menu up");
+        b = dinkc_vm_start_proc(cb, strlen(cb), 6, "main");
+        expect(b > 0 && dinkc_vm_choice_n() == 3 &&
+                   strcmp(dinkc_vm_choice_line(1), "B one") == 0,
+               "B owns the menu");
+        dinkc_vm_choice_pick(3);
+        expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "B got its 3rd line");
+        expect(!dinkc_vm_waiting_choice(), "A not resumed with B's menu");
+        expect(dinkc_vm_state(a) == DINKC_WAIT_CHOICE, "A left orphaned");
+        dinkc_vm_kill(a);
+        expect(!dinkc_vm_waiting_choice(), "no owner after kill");
+    }
+
     printf("OK test_dinkc_vm\n");
     return 0;
 }
