@@ -262,7 +262,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | Animation lookahead: after the tick's draws, load the next one or two frames of animating sprites and Dink while the tick is under 6 ms (max 2 per tick), spare room only (no eviction, no refusal memo; failed prefetch remembered until a tex frees). `ioplay frame who=prefetch` / `prefetch-dink` | #162 |
 | 2026-11-20 | Fast texture upload: `twiddle.c` (table + shifts, bit-for-bit KOS `pvr_txr_load_ex`, host-tested on 16 sizes) twiddles sprite frames ≤ 64 KB in a RAM scratch and copies with one store-queue `pvr_txr_load`; bigger textures (atlas, inventory background) twiddle straight into VRAM without per-pixel divides | #163 |
 | 2026-11-20 | Diagnostic: play-path stdout batched (16 KB, full buffering while `dink_io_play`, line-buffered in menus/boot) and drained once per tick inside the timed `dink_io_flush`, so every gameplay printf is excluded from `ioplay ticks` like ioplay's own lines; fatal `hud()` flushes | #164 |
-| 2026-11-20 | `test_iolog`: start a tick before the tick-work block (it inherited the empty flush's 0–1 µs drain and failed ~3 in 20 host runs after #164; 200/200 now). Test only | #168 |
+| 2026-11-20 | `test_iolog`: start a tick before the tick-work block (it inherited the drain of the flushes since the last tick, the summary's and an empty one, 0–1 µs on host, and failed ~3 in 20 runs after #164; 0/500 now). Test only | #168 |
 
 ## Bites
 
