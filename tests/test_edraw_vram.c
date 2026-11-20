@@ -336,6 +336,16 @@ int main(void)
         CHECK(edraw_find(g, n, 357, 3) != NULL &&
               edraw_find(g, n, 357, 3)->tex != NULL);
         CHECK(edraw_prefetch(g, &n, seqs, 357, 3) == 0); /* resident */
+        /* Not drawn this tick: non-live, so evictable like any other. */
+        {
+            int k;
+
+            for (k = 0; k < n; k++) {
+                if (g[k].seq == 357 && g[k].frame == 3) {
+                    CHECK(g[k].live == 0);
+                }
+            }
+        }
         /* Short of the spare margin: skipped before any read, nothing
          * evicted even though every frame is non-live. */
         edraw_live_begin(g, n, seqs);
@@ -361,6 +371,40 @@ int main(void)
         sprite_set_vram_avail(fake_avail);
         g_budget = vram_used() + (1u << 20);
         CHECK(edraw_ensure_frame(g, &n, seqs, 357, 4) == 0);
+
+        /* Margin kept after the load: a frame that would leave less than
+         * the margin free is given back and remembered. */
+        before = n;
+        uploads0 = g_uploads;
+        g_budget = vram_used() + (size_t)DINK_PREFETCH_VRAM_SPARE + 1024u;
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 5) == -1);
+        CHECK(n == before && edraw_find(g, n, 357, 5) == NULL);
+        CHECK(g_uploads == uploads0 + 1);
+        CHECK(edraw_prefetch(g, &n, seqs, 357, 5) == -1);
+        CHECK(g_uploads == uploads0 + 1); /* memo */
+    }
+
+    /* edraw_anim_ahead: loops wrap, one-shots stop at the last frame,
+     * nothing for a seq not decoded yet. 357 has 10 frames. */
+    CHECK(edraw_anim_ahead(seqs, 357, 3, 1, 0) == 4);
+    CHECK(edraw_anim_ahead(seqs, 357, 3, 2, 0) == 5);
+    CHECK(edraw_anim_ahead(seqs, 357, 10, 1, 0) == 0);
+    CHECK(edraw_anim_ahead(seqs, 357, 9, 2, 0) == 0);
+    CHECK(edraw_anim_ahead(seqs, 357, 10, 1, 1) == 1);
+    CHECK(edraw_anim_ahead(seqs, 357, 9, 2, 1) == 1);
+    CHECK(edraw_anim_ahead(seqs, 355, 1, 1, 1) == 0); /* 1-frame seq */
+    {
+        int unseen = 0, s2;
+
+        for (s2 = 700; s2 < DINK_MAX_SEQ; s2++) {
+            if (seqs[s2].prefix[0] != '\0' && seqs[s2].nframes == 0) {
+                unseen = s2;
+                break;
+            }
+        }
+        if (unseen > 0) {
+            CHECK(edraw_anim_ahead(seqs, unseen, 1, 1, 1) == 0);
+        }
     }
 
     sprite_set_vram_avail(NULL);

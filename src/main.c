@@ -295,57 +295,48 @@ static void edraw_ensure_draw_frame(struct SeqInfo *seqs, int sq, int fr,
  * budget. */
 static unsigned g_tick_t0;
 
-/* Next frame of an animation that is `ahead` frames on: loops wrap
- * (brain 6, Dink walk), one-shots stop at their last frame (0 = none). */
-static int anim_ahead(struct SeqInfo *seqs, int sq, int fr, int ahead,
-                      int looping)
-{
-    int nfr, k;
-
-    if (sq < 1 || sq >= DINK_MAX_SEQ || fr < 1) {
-        return 0;
-    }
-    nfr = ini_seq_len(sq, seqs[sq].nframes);
-    if (nfr < 2) {
-        return 0;
-    }
-    for (k = 0; k < ahead; k++) {
-        if (fr >= nfr) {
-            if (!looping) {
-                return 0;
-            }
-            fr = 1;
-        } else {
-            fr++;
-        }
-    }
-    return fr;
-}
-
 /* Option (b), 2026-11-20: load the next one or two frames of live
  * animations during the tick's spare time, so a frame is resident before
- * it is first drawn (tree fire, explosions, attacks, Dink). Loads only
- * while the tick is young (DINK_LOOKAHEAD_US since the scene wait) and at
- * most DINK_LOOKAHEAD_MAX per tick; never evicts (edraw_prefetch /
- * pspr_prefetch use spare room only). Round-robin over sprites, +1 before
- * +2. Same work as loading at first draw, spread over idle ticks. */
+ * it is first drawn (tree fire, explosions, attacks, Dink). Runs last in
+ * the tick (after Dink's load and overlays, before the scene), only while
+ * the tick is young (DINK_LOOKAHEAD_US since the scene wait), at most
+ * DINK_LOOKAHEAD_MAX loads; never evicts and keeps a VRAM margin after
+ * the load (edraw_prefetch / pspr_prefetch). Round-robin over sprites, +1
+ * before +2. Same work as loading at first draw, spread over idle ticks. */
 #define DINK_LOOKAHEAD_US 6000u
 #define DINK_LOOKAHEAD_MAX 2
+
+/* Dink loops walk and idle; punch, push, magic, death are one-shots. */
+static int dink_seq_loops(const struct Player *pl, int sq)
+{
+    int bi = pl->base_idle > 0 ? pl->base_idle : DINK_BASE_IDLE;
+
+    return (sq > DINK_BASE_WALK && sq < DINK_BASE_WALK + 10) ||
+           (sq > bi && sq < bi + 10);
+}
 
 static void anim_lookahead(struct SeqInfo *seqs, const struct Player *pl)
 {
     static int rr;
-    int ahead, k, loaded = 0;
+    int ahead, k, loaded = 0, edraw_ok, dink_ok;
 
-    if (seqs == NULL || g_edg == NULL) {
+    if (seqs == NULL || g_edg == NULL ||
+        dink_io_now_us() - g_tick_t0 >= DINK_LOOKAHEAD_US) {
+        return;
+    }
+    /* Once per tick: is there spare room at all? */
+    edraw_ok = edraw_prefetch_room(g_edg, g_ned);
+    dink_ok = pl != NULL && pl->seq > 0; /* seq 0: a held picture */
+    if (!edraw_ok && !dink_ok) {
         return;
     }
     for (ahead = 1; ahead <= 2; ahead++) {
         /* Dink first: his frame is on screen every tick. */
-        if (pl != NULL) {
-            int dsq = player_pic_seq(pl), nf;
+        if (dink_ok) {
+            int dsq = pl->seq, nf;
 
-            nf = anim_ahead(seqs, dsq, player_pic_frame(pl), ahead, 1);
+            nf = edraw_anim_ahead(seqs, dsq, player_pic_frame(pl), ahead,
+                                  dink_seq_loops(pl, dsq));
             if (nf > 0 && dink_io_now_us() - g_tick_t0 < DINK_LOOKAHEAD_US) {
                 unsigned t0 = dink_io_now_us();
 
@@ -358,15 +349,15 @@ static void anim_lookahead(struct SeqInfo *seqs, const struct Player *pl)
                 }
             }
         }
-        for (k = 0; k < 99; k++) {
+        for (k = 0; edraw_ok && k < 99; k++) {
             int ei = 1 + (rr + k) % 99, sq, fr, nf;
 
             if (!brains_slot_animating(ei) ||
                 !brains_seq_frame(ei, &sq, &fr)) {
                 continue;
             }
-            nf = anim_ahead(seqs, sq, fr, ahead,
-                            brains_slot_brain(ei) == 6);
+            nf = edraw_anim_ahead(seqs, sq, fr, ahead,
+                                  brains_slot_brain(ei) == 6);
             if (nf <= 0) {
                 continue;
             }
@@ -1522,7 +1513,6 @@ int main(int argc, char **argv)
                                     seqs, sq, fr, brains_slot_brain(ei) == 6);
                             }
                             edraw_reap_unused(g_edg, &g_ned, seqs);
-                            anim_lookahead(seqs, &pl);
                         }
                     }
                     now_ms += DINKC_TICK_MS;
@@ -1674,6 +1664,12 @@ int main(int argc, char **argv)
                         }
                     }
                     overlay_sync(seqs);
+                    /* After every real load of this tick (sprites, Dink,
+                     * overlays) and before the scene: spare time only. */
+                    if (seqs != NULL && !inv_showing() &&
+                        !status_map_active()) {
+                        anim_lookahead(seqs, &pl);
+                    }
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);

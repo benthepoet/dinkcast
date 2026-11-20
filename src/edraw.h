@@ -69,9 +69,16 @@ struct SpriteFrame *edraw_find(struct EdGfx *g, int n, int seq, int frame);
  * VRAM, cpu_pixels margins), never evicting or recording a refusal.
  * 1 = loaded now, 0 = already resident, -1 = skipped. GPU idle. */
 #define DINK_PREFETCH_SLOT_SPARE 8
-#define DINK_PREFETCH_VRAM_SPARE (256 * 1024)
+#define DINK_PREFETCH_VRAM_SPARE (256 * 1024) /* free VRAM kept after */
+#define DINK_PREFETCH_CPU_SPARE (256 * 1024)  /* cpu_pixels headroom */
 int edraw_prefetch(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,
                    int frame);
+/* Once per tick: any spare room for a lookahead at all (cheap early out). */
+int edraw_prefetch_room(const struct EdGfx *g, int n);
+/* Frame `ahead` steps on from fr: loops wrap, one-shots stop at the last
+ * frame (ini_seq_len, -1 terminator) and return 0; 0 if not decoded yet. */
+int edraw_anim_ahead(const struct SeqInfo *seqs, int sq, int fr, int ahead,
+                     int looping);
 /* Decode (and on DC upload) a frame if missing. *n may grow.
  * Refuses to fopen: the seq's dir.ff must already be in the ff cache. */
 int edraw_ensure_frame(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq,

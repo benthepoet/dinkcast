@@ -43,8 +43,15 @@ static int fake_load(struct SeqInfo *seqs, int seq, int frame,
     return 0;
 }
 
+static int g_fail_upload_once;
+
 static int fake_upload(struct SpriteFrame *f)
 {
+    if (g_fail_upload_once) {
+        g_fail_upload_once = 0;
+        g_upload_fails++;
+        return -1;
+    }
     if (g_vram_left == 0) {
         g_upload_fails++;
         return -1;
@@ -378,6 +385,25 @@ int main(void)
     CHECK(pspr_count() == 3);
     g_vram_left = -1;
     CHECK(pspr_get(seqs, 12, 2) != NULL); /* not refused: real get loads */
+    /* No drawn frame yet: nothing to estimate from, skip. */
+    reset();
+    CHECK(pspr_prefetch(seqs, 72, 1) == -1 && g_loads == 0);
+    /* Read but could not keep (upload fails): remembered, no re-read
+     * until a texture is freed and room is back. */
+    (void)pspr_get(seqs, 72, 1);
+    {
+        int loads0 = g_loads;
+
+        /* Free VRAM looks plenty but the upload refuses (fragmented). */
+        g_fail_upload_once = 1;
+        CHECK(pspr_prefetch(seqs, 72, 2) == -1);
+        CHECK(g_loads == loads0 + 1);
+        CHECK(pspr_prefetch(seqs, 72, 2) == -1);
+        CHECK(g_loads == loads0 + 1); /* memo: gen unchanged */
+        g_gen++;
+        CHECK(pspr_prefetch(seqs, 72, 2) == 1);
+        CHECK(g_loads == loads0 + 2);
+    }
     /* Over the cap: skipped rather than evicting. */
     reset();
     for (fr = 1; fr <= 4; fr++) {

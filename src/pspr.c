@@ -250,6 +250,48 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
     return &s->fr;
 }
 
+/* A Dink lookahead that read a frame and could not keep it: skip until a
+ * texture was freed and its bytes + margin are free (no per-tick re-read;
+ * plan 14.4c item 5). Not a refusal. */
+#define DINK_PSPR_PF_MISS 8
+#define DINK_PSPR_PF_SPARE (256u * 1024u) /* VRAM kept free after */
+static int g_pfm_seq[DINK_PSPR_PF_MISS], g_pfm_fr[DINK_PSPR_PF_MISS];
+static unsigned g_pfm_gen[DINK_PSPR_PF_MISS];
+static size_t g_pfm_need[DINK_PSPR_PF_MISS];
+static int g_pfm_next;
+
+static int pf_missed(int seq, int frame)
+{
+    int i;
+
+    for (i = 0; i < DINK_PSPR_PF_MISS; i++) {
+        if (g_pfm_seq[i] == seq && g_pfm_fr[i] == frame) {
+            return g_pfm_gen[i] == vram_gen() ||
+                   vram_avail() < g_pfm_need[i] + DINK_PSPR_PF_SPARE;
+        }
+    }
+    return 0;
+}
+
+static void pf_note_miss(int seq, int frame, size_t need)
+{
+    int i;
+
+    for (i = 0; i < DINK_PSPR_PF_MISS; i++) {
+        if (g_pfm_seq[i] == seq && g_pfm_fr[i] == frame) {
+            break;
+        }
+    }
+    if (i == DINK_PSPR_PF_MISS) {
+        i = g_pfm_next;
+        g_pfm_next = (g_pfm_next + 1) % DINK_PSPR_PF_MISS;
+    }
+    g_pfm_seq[i] = seq;
+    g_pfm_fr[i] = frame;
+    g_pfm_need[i] = need;
+    g_pfm_gen[i] = vram_gen();
+}
+
 int pspr_prefetch(struct SeqInfo *seqs, int seq, int frame)
 {
     struct SpriteFrame fr;
@@ -268,15 +310,18 @@ int pspr_prefetch(struct SeqInfo *seqs, int seq, int frame)
             empty = i;
         }
     }
-    if (empty < 0 || refused(seq, frame)) {
+    /* No drawn frame yet: nothing to size the estimate from. */
+    if (empty < 0 || g_last < 0 || refused(seq, frame) ||
+        pf_missed(seq, frame)) {
         return -1;
     }
     /* Skip before reading anything when the drawn frame's size says it
-     * cannot fit: a full set must not re-read and drop a frame per tick. */
+     * cannot fit with the margin left over. */
     {
-        size_t est = g_last >= 0 ? g_slot[g_last].bytes : 0u;
+        size_t est = g_slot[g_last].bytes;
 
-        if (g_bytes + est > DINK_PSPR_TEX_CAP || vram_avail() < est) {
+        if (g_bytes + est > DINK_PSPR_TEX_CAP ||
+            vram_avail() < est + DINK_PSPR_PF_SPARE) {
             return -1;
         }
     }
@@ -285,14 +330,15 @@ int pspr_prefetch(struct SeqInfo *seqs, int seq, int frame)
         return -1;
     }
     bytes = frame_bytes(&fr);
-    /* Spare room only: never evict, never pass the cap, never fall back on
-     * relief; a failed upload is dropped without a refusal memo. */
-    if (g_bytes + bytes > DINK_PSPR_TEX_CAP || vram_avail() < bytes ||
+    /* Spare room only: never evict, never pass the cap, keep the margin
+     * after it; a failure is remembered, not a refusal. */
+    if (g_bytes + bytes > DINK_PSPR_TEX_CAP ||
+        vram_avail() < bytes + DINK_PSPR_PF_SPARE ||
         g_ops->upload(&fr) != 0) {
         g_ops->free_frame(&fr);
+        pf_note_miss(seq, frame, bytes);
         return -1;
     }
-    g_misses++;
     g_slot[empty].seq = seq;
     g_slot[empty].frame = frame;
     g_slot[empty].stale = 0;
@@ -400,6 +446,8 @@ void pspr_clear(void)
     g_last = -1;
     g_nref = 0;
     g_ref_next = 0;
+    memset(g_pfm_seq, 0, sizeof(g_pfm_seq));
+    g_pfm_next = 0;
 }
 
 size_t pspr_bytes(void)
