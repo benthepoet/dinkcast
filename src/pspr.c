@@ -301,7 +301,22 @@ size_t pspr_trim_for(size_t need)
     if (need == 0 || can < need) {
         return 0; /* nothing missing, or would not be enough */
     }
-    return pspr_trim();
+    /* Only what is missing, least recently drawn first: a 512 KB set
+     * dropped whole would re-decode ~15 frames mid-fight. */
+    {
+        size_t freed = 0;
+
+        while (freed < need) {
+            int v = victim(keep);
+
+            if (v < 0) {
+                break;
+            }
+            freed += g_slot[v].bytes;
+            evict(v, keep, "trim");
+        }
+        return freed;
+    }
 }
 
 void pspr_clear(void)

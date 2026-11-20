@@ -240,8 +240,11 @@ int main(void)
     g_vram_left = 0;
     CHECK(pspr_trim_for(10u * 16384u) == 0); /* 4 idle frames short of 10 */
     CHECK(pspr_count() == 5);
-    CHECK(pspr_trim_for(2u * 16384u) == 4u * 16384u);
-    CHECK(pspr_count() == 1);
+    /* Only the shortfall, oldest first: 2 of the 4 idle frames. */
+    CHECK(pspr_trim_for(2u * 16384u) == 2u * 16384u);
+    CHECK(pspr_count() == 3);
+    CHECK(pspr_get(seqs, 12, 4) != NULL); /* newest idle frame kept */
+    CHECK(pspr_count() == 3);
     g_vram_left = -1;
 
     /* DinkC init redefines walk 72 (sword arm): cached frames are not
