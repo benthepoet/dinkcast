@@ -89,7 +89,8 @@ int sprite_load_main_palette(uint8_t rgb[768])
         return -1;
     }
     if (dink_fread_n(fp, hdr, sizeof(hdr)) == 0 && hdr[0] == 'B' &&
-        hdr[1] == 'M' && hdr[28] == 8 && hdr[29] == 0 && hdr[14] == 40) {
+        hdr[1] == 'M' && hdr[28] == 8 && hdr[29] == 0 && hdr[14] == 40 &&
+        hdr[15] == 0 && hdr[16] == 0 && hdr[17] == 0) {
         /* BITMAPINFOHEADER: palette at 14 + 40, BGRA. */
         for (i = 0; i < 256; i++) {
             rgb[i * 3 + 0] = hdr[54 + i * 4 + 2];
