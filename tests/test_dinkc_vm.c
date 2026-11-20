@@ -1145,6 +1145,48 @@ int main(void)
         expect(dinkc_cmd_hard_redraw_take() == 1, "s1-h1-4 draw_hard_map");
     }
 
+    /* FreeDink MAX_SCRIPTS 200 (map 536: 31 scripted sprites). Instances
+     * of one script share one copy of its source and tokens. */
+    {
+        static const char duck[] =
+            "void main(void)\n{\n  int &q = 1;\n}\n"
+            "void hit(void)\n{\n  &q = 2;\n}\n";
+        static const char rock[] = "void main(void)\n{\n  int &r = 3;\n}\n";
+        int k, ok = 1, first = 0, last = 0;
+
+        dinkc_vm_reset();
+        expect(dinkc_vm_code_count() == 0, "no code after reset");
+        for (k = 0; k < DINKC_MAX_LIVE - 1; k++) {
+            int sl = dinkc_vm_start_keep(duck, strlen(duck), 2 + k % 98,
+                                         "main");
+
+            if (sl <= 0) {
+                ok = 0;
+            }
+            if (k == 0) {
+                first = sl;
+            }
+            last = sl;
+        }
+        expect(ok, "199 instances of one script start");
+        expect(dinkc_vm_code_count() == 1, "one shared copy");
+        expect(dinkc_vm_start_keep(rock, strlen(rock), 99, "main") > 0,
+               "200th: a second script");
+        expect(dinkc_vm_code_count() == 2, "two distinct scripts");
+        expect(dinkc_vm_code_bytes() < 4096, "code sized to the scripts");
+        expect(dinkc_vm_start_keep(duck, strlen(duck), 1, "main") < 0,
+               "201st refused (vm full)");
+        /* A shared instance still runs its own procs (locate). */
+        expect(dinkc_vm_locate(last, "hit") == last, "locate on shared code");
+        dinkc_vm_kill(first);
+        expect(dinkc_vm_code_count() == 2, "code kept while others use it");
+        expect(dinkc_vm_start_keep(duck, strlen(duck), 1, "main") > 0,
+               "slot reused");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_code_count() == 0 && dinkc_vm_code_bytes() == 0,
+               "all code freed");
+    }
+
     printf("OK test_dinkc_vm\n");
     return 0;
 }
