@@ -536,7 +536,11 @@ static int play_draw_screen(int sprite)
      * the shortfall the new screen's tiles and sprites need (LRU), so a
      * swap does not throw away the combat set. */
     {
-        size_t need = (size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u +
+        /* The old atlas is freed inside tiles_upload_pvr before the new
+         * one is allocated: count it only if none is held. */
+        size_t need = (tiles_tex_held()
+                           ? 0u
+                           : (size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u) +
                       edraw_upload_need(g_edg, g_ned);
         size_t avail = sprite_vram_avail();
         size_t freed = avail < need ? pspr_trim_for(need - avail) : 0u;

@@ -200,6 +200,8 @@ int main(void)
         CHECK(g_loads == loads1);
         CHECK(pspr_get(seqs, 71, 1) != NULL);  /* oldest: was evicted */
         CHECK(g_loads == loads1 + 1);
+        CHECK(g_frees == 37); /* the reload pushed 16 KB over: one more */
+        CHECK(pspr_bytes() == DINK_PSPR_TEX_CAP);
     }
 
     /* Current seq bigger than the cap (5 x 512 KB = 2.5 MB) is held whole;

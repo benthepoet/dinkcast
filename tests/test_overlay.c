@@ -193,6 +193,14 @@ int main(void)
     overlay_sync_one(&o, 1);
     CHECK(o.state == OVERLAY_ON);
     CHECK(g_dink_ones == 3);
+    CHECK(g_dink_calls == 0 && g_screen_frees == 0);
+    overlay_sync_one(&o, 0);
+
+    /* Fragmented, and neither the screen nor Dink has anything left:
+     * refuse and latch FAILED. */
+    setv(393216u, 0, 0, 0, 0);
+    overlay_sync_one(&o, 1);
+    CHECK(o.state == OVERLAY_FAILED);
     overlay_sync_one(&o, 0);
 
     /* Not enough anywhere: nothing on screen is freed for nothing, every

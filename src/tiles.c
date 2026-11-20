@@ -339,6 +339,11 @@ void tiles_draw_clear_pvr(uint32_t argb)
     pvr_wait_ready();
 }
 
+int tiles_tex_held(void)
+{
+    return g_tile_tex != NULL;
+}
+
 int tiles_upload_pvr(struct TileAtlas *a)
 {
     if (a == NULL || a->rgb565 == NULL) {

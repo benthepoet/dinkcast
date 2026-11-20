@@ -42,6 +42,9 @@ int tiles_cache_sheets(void);
 int tiles_pvr_ensure(void);
 void tiles_draw_clear_pvr(uint32_t argb);
 int tiles_upload_pvr(struct TileAtlas *a);
+/* An atlas texture is allocated (tiles_upload_pvr frees it before it
+ * allocates the next one, so a swap needs no extra VRAM for tiles). */
+int tiles_tex_held(void);
 void tiles_draw_pvr(const struct TileAtlas *a);
 #endif
 
