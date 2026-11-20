@@ -25,6 +25,12 @@ static int g_loads, g_load_fail;
 /* VRAM: free bytes, largest block (fragmentation), screen and Dink pools. */
 static size_t g_free, g_block, g_screen, g_screen_unit, g_dink;
 static int g_uploads, g_screen_frees, g_dink_calls;
+static int g_pumps;
+
+static void fake_pump(void)
+{
+    g_pumps++;
+}
 
 static int fake_load(void)
 {
@@ -132,9 +138,9 @@ static size_t fake_dink_one(void)
 
 static const struct OverlayOps ops = {fake_load, fake_release, fake_n,
                                       fake_frame};
-static const struct OverlayVram vram = {fake_upload, fake_avail,
-                                        fake_screen_ev, fake_screen_one,
-                                        fake_dink, fake_dink_one};
+static struct OverlayVram vram = {fake_upload, fake_avail,
+                                  fake_screen_ev, fake_screen_one,
+                                  fake_dink, fake_dink_one, fake_pump};
 
 static void setv(size_t free_b, size_t block, size_t screen, size_t unit,
                  size_t dink)
@@ -155,9 +161,12 @@ int main(void)
 
     overlay_set_vram(&vram);
 
-    /* Plenty of VRAM: open uploads all, drops CPU; close frees. */
+    /* Plenty of VRAM: open uploads all, drops CPU; close frees.
+     * One pump after load, two per uploaded frame (before and after). */
     setv(1u << 20, 1u << 20, 0, 0, 0);
+    g_pumps = 0;
     overlay_sync_one(&o, 1);
+    CHECK(g_pumps == 1 + NF * 2);
     CHECK(o.state == OVERLAY_ON);
     for (i = 0; i < NF; i++) {
         CHECK(g_fr[i].tex != NULL && g_fr[i].argb1555 == NULL);
@@ -171,8 +180,10 @@ int main(void)
      * one texture at a time until each frame fits. Need 384 KB; free 0;
      * screen 256 KB in 64 KB units; Dink 128 KB. */
     setv(0, 0, 262144u, 65536u, 131072u);
+    g_pumps = 0;
     overlay_sync_one(&o, 1);
     CHECK(o.state == OVERLAY_ON);
+    CHECK(g_pumps > g_screen_frees);
     CHECK(g_dink_calls >= 1);
     CHECK(g_screen_frees == 4);
     overlay_sync_one(&o, 0);
@@ -199,8 +210,10 @@ int main(void)
     /* Fragmented, and neither the screen nor Dink has anything left:
      * refuse and latch FAILED. */
     setv(393216u, 0, 0, 0, 0);
+    g_pumps = 0;
     overlay_sync_one(&o, 1);
     CHECK(o.state == OVERLAY_FAILED);
+    CHECK(g_pumps >= 2);
     overlay_sync_one(&o, 0);
 
     /* Not enough anywhere: nothing on screen is freed for nothing, every
@@ -226,8 +239,10 @@ int main(void)
 
     /* Partial load (a frame missing): release everything, FAILED. */
     g_load_fail = 1;
+    g_pumps = 0;
     overlay_sync_one(&o, 1);
     CHECK(o.state == OVERLAY_FAILED);
+    CHECK(g_pumps == 1);
     for (i = 0; i < NF; i++) {
         CHECK(g_fr[i].argb1555 == NULL && g_fr[i].tex == NULL);
     }

@@ -22,6 +22,13 @@ static size_t call0(size_t (*fn)(void))
     return fn != NULL ? fn() : 0u;
 }
 
+static void pump(void)
+{
+    if (g_v.pump != NULL) {
+        g_v.pump();
+    }
+}
+
 int overlay_upload_with_room(struct SpriteFrame *f)
 {
     size_t need, avail, ev;
@@ -38,8 +45,10 @@ int overlay_upload_with_room(struct SpriteFrame *f)
     }
     need = sprite_tex_bytes(f);
     for (tries = 0; tries < 256; tries++) {
+        pump();
         if ((g_v.avail == NULL || g_v.avail() >= need) && g_v.upload(f) == 0) {
             sprite_drop_cpu(f);
+            pump();
             return 0;
         }
         avail = g_v.avail != NULL ? g_v.avail() : 0u;
@@ -57,6 +66,7 @@ int overlay_upload_with_room(struct SpriteFrame *f)
         }
         if (call0(g_v.screen_free_one) == 0 &&
             call0(g_v.dink_free_one) == 0) {
+            pump();
             /* Fragmented: the screen is empty of victims and Dink has no
              * frame left to give either. */
             return -1;
@@ -105,9 +115,15 @@ void overlay_sync_one(struct Overlay *o, int want)
     if (o->state != OVERLAY_OFF) {
         return; /* ON, or FAILED until closed */
     }
-    if (o->ops->load() != 0) {
-        fail(o, "load");
-        return;
+    {
+        int loaded = o->ops->load();
+
+        /* Service the stream even when the load failed. */
+        pump();
+        if (loaded != 0) {
+            fail(o, "load");
+            return;
+        }
     }
     n = o->ops->nframes();
     for (i = 0; i < n; i++) {

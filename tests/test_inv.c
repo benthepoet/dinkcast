@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "audio.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
@@ -151,7 +152,21 @@ int main(void)
     expect(inv_load(seqs) == 0, "inv_load");
     /* Menu art is overlay VRAM: not loaded until the inventory opens. */
     expect(inv_menu_frame(1) == NULL, "seq 423 not resident at load");
-    expect(inv_menu_load() == 0, "inv_menu_load");
+    {
+        unsigned polls = audio_music_polls();
+
+        expect(inv_menu_load() == 0, "inv_menu_load");
+        expect(audio_music_polls() == polls + 5, "poll per menu frame");
+    }
+    /* A zero-length music read must not stick. The next poll refills. */
+    {
+        int allowed = audio_music_refill_allowed();
+
+        audio_music_note_zero_read();
+        expect(audio_music_zero_reads() == 1, "zero read counted");
+        expect(audio_music_refill_allowed() == allowed, "zero read does not latch");
+        expect(audio_music_refill_allowed(), "refill still allowed");
+    }
     fr = inv_menu_frame(1);
     expect(fr != NULL && fr->w > 0 && fr->h > 0, "seq 423 fr 1");
     expect(fr->w == 600 && fr->h == 400, "menu-01 600x400");

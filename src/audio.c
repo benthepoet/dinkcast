@@ -89,6 +89,9 @@ static snd_stream_hnd_t g_sh = SND_STREAM_INVALID;
 static int g_stream_on;
 #endif
 
+/* A zero-length read ends this fill only. The next poll tries again. */
+static int g_zero_reads;
+
 static FILE *open_wav(const char *file)
 {
     const char *dir[2] = {"Sound", "sound"};
@@ -404,6 +407,9 @@ static void music_fill_chunk(void)
     got = fread(g_mbuf, 1, want, g_mfp);
     dink_io_note("music", NULL, got, dink_io_now_us() - io_t0);
     if (got == 0) {
+        /* This poll stops. The next poll reads again. One transient
+         * GD-ROM error must not mute the rest of the track. */
+        audio_music_note_zero_read();
         return;
     }
     g_mpos += got;
@@ -859,8 +865,35 @@ void audio_music_disc_hold(int on)
     (void)audio_music_play(pending);
 }
 
+static unsigned g_polls;
+
+unsigned audio_music_polls(void)
+{
+    return g_polls;
+}
+
+void audio_music_note_zero_read(void)
+{
+    g_zero_reads++;
+}
+
+int audio_music_zero_reads(void)
+{
+    return g_zero_reads;
+}
+
+int audio_music_refill_allowed(void)
+{
+#ifdef _arch_dreamcast
+    return g_disc_hold == 0;
+#else
+    return 1;
+#endif
+}
+
 void audio_music_poll(void)
 {
+    g_polls++;
 #ifdef _arch_dreamcast
     int nfill = 0;
     unsigned io_t0 = dink_io_now_us();
@@ -868,7 +901,7 @@ void audio_music_poll(void)
     /* Fill on the 60 Hz thread *before* snd_stream_poll. Cap fills so a
      * hitch cannot stall a frame on GD-ROM. Skip fread while a screen
      * swap owns the drive (AICA loops its 16 KiB buffer if we starve). */
-    if (!g_disc_hold) {
+    if (audio_music_refill_allowed()) {
         while (g_mfp != NULL && g_used < (int)MUSIC_WATER && nfill < 8) {
             int before = g_used;
 
