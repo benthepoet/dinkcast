@@ -17,8 +17,8 @@
 
 /* Swap must not sbrk a big atlas: heap is full of packs; calloc fails and
  * the previous screen's tiles stay on PVR (house floor in the yard). PAL8
- * (every official tilesheet) uses this 256 KB BSS; the RGB565 fallback
- * for an off-palette sheet allocates. */
+ * (every official tilesheet) uses this 256 KB BSS; the RGB565 fallback is
+ * allocated once on first need and kept (below). */
 static uint8_t g_atlas_pal8[DINK_ATLAS_W * DINK_ATLAS_H];
 /* RGB565 fallback (main palette unset, or an off-palette sheet): allocated
  * once on first need and kept for the session, never per swap (GOTCHAS:

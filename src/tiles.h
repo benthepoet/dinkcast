@@ -24,9 +24,11 @@
 #include <stdint.h>
 
 struct TileAtlas {
-    /* Exactly one is set. pal8: 512×512 BSS indices on the main palette
-     * (official tilesheets); rgb565: malloc'd fallback when a sheet is
-     * off the main palette. PVR upload copies. */
+    /* Exactly one is set, both static (tiles_free frees nothing). pal8:
+     * 512×512 BSS indices on the main palette (official tilesheets);
+     * rgb565: the kept 512 KB fallback (palette unset or an off-palette
+     * sheet), allocated once. Each build reuses its buffer, so only the
+     * latest atlas's CPU pixels are valid; PVR upload copies. */
     uint8_t *pal8;
     uint16_t *rgb565;
     int slot_x[DINK_SCREEN_TILES];
