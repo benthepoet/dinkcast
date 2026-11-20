@@ -57,8 +57,13 @@ struct DinkIoStats {
     unsigned vram_samples, vram_enter, vram_min;
     unsigned min_screen_tex, min_dink_tex; /* held at the low point */
     unsigned peak_screen_tex, peak_dink_tex;
-    /* Play-path tick pacing (dink_io_tick): 60 Hz is 16.7 ms. */
+    /* Free VRAM right after each play-path upload: catches a dip that is
+     * undone before the next tick sample. */
+    unsigned upload_samples, min_upload;
+    /* Play-path tick pacing (dink_io_tick): 60 Hz is 16.7 ms. ioplay's own
+     * ring flush (SCIF, ~87 us/byte) is subtracted and reported apart. */
     unsigned ticks, ticks_over20, ticks_over34, tick_max_us;
+    unsigned log_us, logged;
 };
 unsigned dink_io_now_us(void);
 void dink_io_set_play(int on);
@@ -83,6 +88,8 @@ void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex);
 /* Once per play tick at the same point: tick-to-tick time. The first tick
  * after a summary (screen change) only sets the baseline. */
 void dink_io_tick(unsigned now_us);
+/* After a successful play-path texture upload (DC sprite_upload_pvr). */
+void dink_io_note_vram_upload(unsigned free_b);
 
 /* Host-testable pieces (also used on DC). */
 int dink_fs_join(char *dst, size_t dstsz, const char *root, const char *rel);

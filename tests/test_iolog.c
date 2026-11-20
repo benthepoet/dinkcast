@@ -148,8 +148,9 @@ int main(void)
     CHECK(st.min_screen_tex == 900000u && st.min_dink_tex == 400000u);
     CHECK(st.peak_screen_tex == 950000u && st.peak_dink_tex == 400000u);
 
-    /* Tick pacing: first tick is the baseline; >20 ms and >34 ms count;
-     * an enter-path tick drops the baseline (swap time is not a tick). */
+    /* Tick pacing: first tick is the baseline; >20 ms and >34 ms count.
+     * In main.c the baseline reset on a swap comes from dink_io_summary
+     * (play_load_screen); the enter-path branch below is a guard. */
     dink_io_tick(1000000u);
     dink_io_tick(1016667u);           /* 16.7 ms */
     dink_io_tick(1041667u);           /* 25 ms: over20 */
@@ -171,6 +172,36 @@ int main(void)
         dink_io_stats(&st);
         CHECK(st.ticks == 1 && st.tick_max_us == 16000u);
     }
+
+    /* Upload-time low-water: a dip below every tick sample wins min. */
+    dink_io_summary(34);
+    dink_io_note_vram(4000000u, 0u, 0u);
+    dink_io_note_vram_upload(2500000u);
+    dink_io_note_vram_upload(2600000u);
+    dink_io_note_vram(3900000u, 0u, 0u);
+    dink_io_stats(&st);
+    CHECK(st.vram_min == 3900000u && st.upload_samples == 2 &&
+          st.min_upload == 2500000u);
+    dink_io_set_play(0);
+    dink_io_note_vram_upload(1u); /* enter path: ignored */
+    dink_io_set_play(1);
+    dink_io_stats(&st);
+    CHECK(st.min_upload == 2500000u && st.upload_samples == 2);
+
+    /* Our own log flush is counted apart and taken out of the tick. */
+    dink_io_summary(34);
+    dink_io_tick(3000000u);
+    dink_io_note("pread", NULL, 10, 5);
+    dink_io_note("pread", NULL, 10, 5);
+    dink_io_flush();
+    dink_io_stats(&st);
+    CHECK(st.logged == 2);
+    dink_io_tick(3016000u + st.log_us);
+    dink_io_stats(&st);
+    CHECK(st.ticks == 1 && st.tick_max_us <= 16000u + 1u);
+    dink_io_flush(); /* empty ring: nothing logged, no time */
+    dink_io_stats(&st);
+    CHECK(st.logged == 2);
 
     /* Summary resets every counter. */
     dink_io_summary(408);

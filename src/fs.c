@@ -91,10 +91,17 @@ int dink_io_pending(void)
     return g_io_nring;
 }
 
+static unsigned g_log_pending; /* flush us since the last tick */
+
 void dink_io_flush(void)
 {
-    int i;
+    int i, n = g_io_nring;
+    unsigned t0;
 
+    if (n == 0 && g_io_dropped == 0) {
+        return;
+    }
+    t0 = dink_io_now_us();
     for (i = 0; i < g_io_nring; i++) {
         printf("ioplay %s\n", g_io_ring[i]);
     }
@@ -102,6 +109,13 @@ void dink_io_flush(void)
     if (g_io_dropped != 0) {
         printf("ioplay dropped=%u (ring %d)\n", g_io_dropped, DINK_IO_RING);
         g_io_dropped = 0;
+    }
+    {
+        unsigned d = dink_io_now_us() - t0;
+
+        g_log_pending += d;
+        g_io.log_us += d;
+        g_io.logged += (unsigned)n;
     }
 }
 
@@ -219,6 +233,10 @@ void dink_io_tick(unsigned now_us)
     if (g_tick_have) {
         unsigned d = now_us - g_tick_last; /* wraps cleanly */
 
+        /* Our own serial logging is not game work. Other printfs inside
+         * the tick (evictions, refusals) are still counted. */
+        d = d > g_log_pending ? d - g_log_pending : 0u;
+
         g_io.ticks++;
         if (d > 20000u) {
             g_io.ticks_over20++;
@@ -232,6 +250,18 @@ void dink_io_tick(unsigned now_us)
     }
     g_tick_last = now_us;
     g_tick_have = 1;
+    g_log_pending = 0;
+}
+
+void dink_io_note_vram_upload(unsigned free_b)
+{
+    if (!dink_io_play()) {
+        return;
+    }
+    if (g_io.upload_samples == 0 || free_b < g_io.min_upload) {
+        g_io.min_upload = free_b;
+    }
+    g_io.upload_samples++;
 }
 
 void dink_io_summary(int map)
@@ -248,25 +278,33 @@ void dink_io_summary(int map)
                g_io.music_ops, g_io.music_bytes, g_io.music_us,
                g_io.music_max);
         if (g_io.vram_samples > 0) {
+            unsigned lo = g_io.vram_min;
+
+            if (g_io.upload_samples > 0 && g_io.min_upload < lo) {
+                lo = g_io.min_upload;
+            }
+            /* Split is partial: tile atlas, HUD/status, overlays, font and
+             * allocator overhead are not in screen/dink. */
             printf("ioplay vram map=%d samples=%u enter=%u min=%u drop=%u "
-                   "min_screen_tex=%u min_dink_tex=%u peak_screen_tex=%u "
-                   "peak_dink_tex=%u\n",
-                   map, g_io.vram_samples, g_io.vram_enter, g_io.vram_min,
-                   g_io.vram_enter > g_io.vram_min
-                       ? g_io.vram_enter - g_io.vram_min
-                       : 0u,
+                   "min_tick=%u min_upload=%u uploads=%u "
+                   "tick_min_screen_tex=%u tick_min_dink_tex=%u "
+                   "peak_screen_tex=%u peak_dink_tex=%u\n",
+                   map, g_io.vram_samples, g_io.vram_enter, lo,
+                   g_io.vram_enter > lo ? g_io.vram_enter - lo : 0u,
+                   g_io.vram_min, g_io.min_upload, g_io.upload_samples,
                    g_io.min_screen_tex, g_io.min_dink_tex,
                    g_io.peak_screen_tex, g_io.peak_dink_tex);
         }
         if (g_io.ticks > 0) {
             printf("ioplay ticks map=%d n=%u over20ms=%u over34ms=%u "
-                   "max_us=%u\n",
+                   "max_us=%u log_us=%u logged=%u\n",
                    map, g_io.ticks, g_io.ticks_over20, g_io.ticks_over34,
-                   g_io.tick_max_us);
+                   g_io.tick_max_us, g_io.log_us, g_io.logged);
         }
     }
     memset(&g_io, 0, sizeof(g_io));
     g_tick_have = 0;
+    g_log_pending = 0;
 }
 
 #ifndef DINK_DATA_DEFAULT
