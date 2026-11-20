@@ -210,8 +210,10 @@ int main(void)
         CHECK(st.logged == 2 && st.log_us >= lus && st.log_us - lus < 50000u);
     }
 
-    /* Tick work: counted on the play path only; over 16.7 ms flagged. */
+    /* Tick work: counted on the play path only; over 16.7 ms flagged.
+     * Start a tick first: work subtracts drains since the tick began. */
     dink_io_summary(34);
+    dink_io_tick(4000000u); /* below the next block's 5000000: no wrap */
     dink_io_work(10000u);
     dink_io_work(18000u);
     dink_io_set_play(0);
