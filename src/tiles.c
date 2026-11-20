@@ -20,13 +20,45 @@
  * (every official tilesheet) uses this 256 KB BSS; the RGB565 fallback
  * for an off-palette sheet allocates. */
 static uint8_t g_atlas_pal8[DINK_ATLAS_W * DINK_ATLAS_H];
+/* RGB565 fallback (main palette unset, or an off-palette sheet): allocated
+ * once on first need and kept for the session, never per swap (GOTCHAS:
+ * the heap cannot sbrk 512 KB after packs). Counted in mem peak. */
+static uint16_t *g_atlas_565;
+static int g_force_565_at = -1; /* tests: switch to 565 at this cell */
 
+static uint16_t *atlas_565_buf(void)
+{
+    if (g_atlas_565 == NULL) {
+        g_atlas_565 = (uint16_t *)malloc((size_t)DINK_ATLAS_W *
+                                         DINK_ATLAS_H * 2u);
+        if (g_atlas_565 == NULL) {
+            printf("tiles atlas rgb565 fallback alloc fail\n");
+            return NULL;
+        }
+        mem_set_atlas_extra((size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
+        printf("tiles atlas rgb565 fallback allocated (kept)\n");
+    }
+    memset(g_atlas_565, 0, (size_t)DINK_ATLAS_W * DINK_ATLAS_H * 2u);
+    return g_atlas_565;
+}
+
+void tiles_test_force_565_at(int cell)
+{
+    g_force_565_at = cell;
+}
+
+size_t tiles_atlas_tex_bytes(void)
+{
+    return (size_t)DINK_ATLAS_W * DINK_ATLAS_H *
+           (bmp_main_palette() != NULL ? 1u : 2u);
+}
+
+/* Buffers are static (BSS or the kept fallback): nothing to free. */
 void tiles_free(struct TileAtlas *a)
 {
     if (a == NULL) {
         return;
     }
-    free(a->rgb565);
     a->rgb565 = NULL;
     a->pal8 = NULL;
     a->used = 0;
@@ -274,9 +306,9 @@ static uint16_t to565(const uint8_t *rgb)
                       (rgb[2] >> 3));
 }
 
-/* Copy one 50×50 cell. Out of range on the sheet stays 0 (index 0 / black
- * 565, as before). A PAL8 sheet into an RGB565 atlas converts via the main
- * palette (a screen mixing palettes). */
+/* Copy one 50×50 cell. Out of range on the sheet stays 0: black in RGB565,
+ * index 0 (white) in PAL8; no official screen uses an off-sheet cell. A
+ * PAL8 sheet into an RGB565 atlas converts via the main palette. */
 static void blit_cell(struct TileAtlas *a, const uint16_t *sheet,
                       const uint8_t *sheet8, int sw, int sh, int cell, int dx,
                       int dy)
@@ -315,9 +347,8 @@ static int atlas_to_565(struct TileAtlas *a, int done)
     const uint8_t *pal = bmp_main_palette();
     int s, x, y;
 
-    a->rgb565 = (uint16_t *)calloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H, 2u);
+    a->rgb565 = atlas_565_buf();
     if (a->rgb565 == NULL || pal == NULL) {
-        printf("tiles atlas rgb565 fallback alloc fail\n");
         return -1;
     }
     for (s = 0; s < done; s++) {
@@ -348,10 +379,8 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
         memset(g_atlas_pal8, 0, sizeof(g_atlas_pal8));
         out->pal8 = g_atlas_pal8;
     } else {
-        out->rgb565 = (uint16_t *)calloc((size_t)DINK_ATLAS_W * DINK_ATLAS_H,
-                                         2u);
+        out->rgb565 = atlas_565_buf();
         if (out->rgb565 == NULL) {
-            printf("tiles atlas rgb565 alloc fail\n");
             return -1;
         }
     }
@@ -370,7 +399,8 @@ int tiles_build_atlas(const struct MapScreen *scr, struct TileAtlas *out)
             tiles_free(out);
             return -1;
         }
-        if (out->pal8 != NULL && pix8 == NULL && atlas_to_565(out, i) != 0) {
+        if (out->pal8 != NULL && (pix8 == NULL || i == g_force_565_at) &&
+            atlas_to_565(out, i) != 0) {
             tiles_free(out);
             return -1;
         }

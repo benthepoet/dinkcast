@@ -116,6 +116,25 @@ int main(void)
            (unsigned)mism, (unsigned)bytes16, (unsigned)bytes8);
     tiles_free(&a);
 
+    /* Mid-build switch (an off-palette sheet at cell 40): the 40 PAL8
+     * cells already built convert to RGB565, the rest blit as RGB565, and
+     * the whole atlas matches the reference on every cell. */
+    tiles_test_force_565_at(40);
+    memset(&a, 0, sizeof(a));
+    CHECK(tiles_build_atlas(&scr, &a) == 0);
+    tiles_test_force_565_at(-1);
+    CHECK(a.rgb565 != NULL && a.pal8 == NULL);
+    if (a.rgb565 != NULL) {
+        mism = 0;
+        for (i = 0; i < n; i++) {
+            if (in_cell(&a, i) && a.rgb565[i] != ref[i]) {
+                mism++;
+            }
+        }
+        CHECK(mism == 0);
+    }
+    tiles_free(&a);
+
     /* Mixed: PAL8 sheets cached, then an off-palette main palette makes
      * the next sheet 16-bit only if reloaded; clear and rebuild instead
      * to check the all-565 path matches the reference. */

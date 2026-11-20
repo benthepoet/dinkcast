@@ -44,6 +44,13 @@ void mem_swap_reset(void)
     g_warm_vram = 0;
 }
 
+static size_t g_atlas_extra;
+
+void mem_set_atlas_extra(size_t n)
+{
+    g_atlas_extra = n;
+}
+
 void mem_note_peak(size_t n)
 {
     if (n > g_peak) {
@@ -86,7 +93,8 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
     for (i = 0; dink_blob_slot(i, &rel, &n) == 0; i++) {
         nblob++;
     }
-    mem_note_peak(blob + cpu_pixels + ts_rgb + (size_t)DINK_MEM_ATLAS_BSS);
+    mem_note_peak(blob + cpu_pixels + ts_rgb + (size_t)DINK_MEM_ATLAS_BSS +
+                  g_atlas_extra);
     if (strcmp(where, "swap") == 0) {
         g_swap_n++;
         if (g_swap_n == DINK_MEM_LEAK_WARM) {
@@ -100,7 +108,8 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
            "sheets=%d atlas_bss=%u peak=%u always=%u screen=%u prev=%u "
            "sticky_in_cpu=%u vram_free=%u swap_n=%d\n",
            where, (unsigned)blob, nblob, (unsigned)cpu_pixels, frames,
-           (unsigned)ts_rgb, sheets, (unsigned)DINK_MEM_ATLAS_BSS,
+           (unsigned)ts_rgb, sheets,
+           (unsigned)(DINK_MEM_ATLAS_BSS + g_atlas_extra),
            (unsigned)g_peak, (unsigned)always, (unsigned)screen,
            (unsigned)prev, (unsigned)cpu_pixels, (unsigned)vram, g_swap_n);
     if (strcmp(where, "swap") == 0 && g_swap_n == DINK_MEM_LEAK_N) {

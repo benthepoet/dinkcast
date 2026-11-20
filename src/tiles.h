@@ -43,6 +43,10 @@ void tiles_evict(struct TileAtlas *a);
 size_t tiles_cache_bytes(void);
 /* Drop every cached sheet (main palette changed: reload as PAL8/565). */
 void tiles_cache_clear(void);
+/* VRAM bytes the atlas texture takes in the current format. */
+size_t tiles_atlas_tex_bytes(void);
+/* Tests: switch the atlas build to RGB565 at this cell (-1 = off). */
+void tiles_test_force_565_at(int cell);
 int tiles_cache_sheets(void);
 
 #ifdef _arch_dreamcast

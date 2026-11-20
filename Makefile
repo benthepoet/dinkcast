@@ -135,8 +135,8 @@ tests/test_edraw_vram: tests/test_edraw_vram.c src/edraw.c src/edraw.h src/sprit
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_edraw_vram.c src/edraw.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/mem.c src/tiles.c src/rgb565.c src/audio.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
-tests/test_tiles_pal8: tests/test_tiles_pal8.c src/tiles.c src/tiles.h src/mapscr.c src/world.c src/bmp.c src/bmp.h src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_tiles_pal8.c src/tiles.c src/mapscr.c src/world.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
+tests/test_tiles_pal8: tests/test_tiles_pal8.c src/tiles.c src/mem.c src/tiles.h src/mapscr.c src/world.c src/bmp.c src/bmp.h src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_tiles_pal8.c src/tiles.c src/mem.c src/mapscr.c src/world.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_pal8: tests/test_pal8.c src/sprite.c src/sprite.h src/ini.c src/ff.c src/bmp.c src/le.c src/fs.c src/residency.c
@@ -175,8 +175,8 @@ tests/test_world: tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c 
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_world.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c
 	./$@
 
-tests/test_tile_cell: tests/test_tile_cell.c src/tiles.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_tile_cell.c src/tiles.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
+tests/test_tile_cell: tests/test_tile_cell.c src/tiles.c src/mem.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_tile_cell.c src/tiles.c src/mem.c src/mapscr.c src/bmp.c src/le.c src/rgb565.c src/fs.c src/residency.c src/ff.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 DUMP_COMMON := src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c src/dinkdat.c

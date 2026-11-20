@@ -15,6 +15,8 @@
 
 /* 14.4b: Always/Screen/Prev. mem refuse over file_blob cap during swap. */
 void mem_note_peak(size_t n);
+/* Tiles: the kept RGB565 fallback atlas (512 KB) once allocated. */
+void mem_set_atlas_extra(size_t n);
 /* Diagnostic: "vram <tag> free=N used=D" where D is the drop since the
  * previous note (which upload owns which VRAM). */
 void mem_vram_note(const char *tag);
