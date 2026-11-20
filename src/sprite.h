@@ -13,7 +13,27 @@ struct SpriteFrame {
     int hl, ht, hr, hb;
     uint16_t *argb1555; /* POT-padded; white RGB is alpha 0 */
     void *tex;          /* DC pvr_ptr_t */
+    /* PAL8 (main palette, colour-keyed): POT-padded indices, 0 = pad and
+     * transparent. Only one of argb1555 / pal8 is set. */
+    uint8_t *pal8;
+    int bpp; /* 8 = PAL8 texture/pixels, else 16 (ARGB1555); kept after drop */
 };
+
+/* CPU pixels present (either format). */
+int sprite_has_cpu(const struct SpriteFrame *f);
+/* POT texture bytes in VRAM for this frame's format. */
+size_t sprite_tex_bytes(const struct SpriteFrame *f);
+/* CPU pixel bytes currently held (0 after drop). */
+size_t sprite_cpu_bytes(const struct SpriteFrame *f);
+
+/* Main game palette (every Dink BMP but 8 unused tiny Tiles/S0x shares it,
+ * survey 2026-11-20). Once set, colour-keyed 8-bit frames on it decode to
+ * PAL8 (half the VRAM, no 1555 conversion); others stay ARGB1555. rgb is
+ * 256 x {r,g,b}. NULL turns PAL8 off. */
+void sprite_set_main_palette(const uint8_t *rgb);
+int sprite_pal8_on(void);
+/* Read Tiles/Esplash.bmp's palette (header only). 0 ok. */
+int sprite_load_main_palette(uint8_t rgb[768]);
 
 /* ARGB1555: bit 15 set = opaque. White RGB → 0. */
 #define SPRITE_ARGB1555_OPAQUE 0x8000u
@@ -46,6 +66,9 @@ int sprite_alt_src(int fw, int fh, int al, int at, int ar, int ab, int *sl,
 /* 1 = need pvr_mem from CPU; 0 = tex already; -1 = no pixels. */
 int sprite_upload_needed(const struct SpriteFrame *f);
 #ifdef _arch_dreamcast
+/* After pvr_init and sprite_set_main_palette: bank 0 = main palette with
+ * the same colour key as ARGB1555 decode (white -> alpha 0). */
+void sprite_pal_init_pvr(void);
 int sprite_upload_pvr(struct SpriteFrame *f);
 void sprite_draw_pvr(const struct SpriteFrame *f, float x, float y, float z);
 /* get_box when spr[].noclip: playl=0 playx=640 playy=480. */

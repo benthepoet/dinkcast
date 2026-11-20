@@ -842,6 +842,20 @@ int main(int argc, char **argv)
         (void)st;
         printf("leave_title\n");
         mem_vram_note("leave_title");
+        {
+            /* PAL8 sprites: one main palette (bank 0) for every colour-keyed
+             * frame on it; others stay ARGB1555. */
+            static uint8_t pal[768];
+
+            if (sprite_load_main_palette(pal) == 0) {
+                sprite_set_main_palette(pal);
+                (void)tiles_pvr_ensure();
+                sprite_pal_init_pvr();
+                printf("pal8 on (Tiles/Esplash.bmp)\n");
+            } else {
+                printf("pal8 off: no main palette\n");
+            }
+        }
     }
     {
         int rec;

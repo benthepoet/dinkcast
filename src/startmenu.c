@@ -360,6 +360,7 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
             btn[i][1] = btn[i][0];
             btn[i][1].tex = btn[i][0].tex;
             btn[i][1].argb1555 = NULL;
+            btn[i][1].pal8 = NULL;
         } else {
             startmenu_highlight_center(btn[i][0].w, btn[i][0].h, btn[i][0].cx,
                                        btn[i][0].cy, btn[i][1].w, btn[i][1].h,
@@ -432,7 +433,7 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
 
                 if (pf >= 1 && pf <= 15 &&
                     (hover[i][pf].tex != NULL ||
-                     hover[i][pf].argb1555 != NULL)) {
+                     sprite_has_cpu(&hover[i][pf]))) {
                     sprite_draw_pvr_noclip(&hover[i][pf],
                                            (float)startmenu_hover_x(i),
                                            (float)startmenu_hover_y(i), 3.2f);
@@ -450,12 +451,12 @@ int startmenu_present_pvr(struct SeqInfo *seqs)
     sprite_frame_free(&logo);
     for (i = 0; i < STARTMENU_N; i++) {
         sprite_frame_free(&btn[i][0]);
-        if (btn[i][1].argb1555 != NULL ||
+        if (sprite_has_cpu(&btn[i][1]) ||
             (btn[i][1].tex != NULL && btn[i][1].tex != btn[i][0].tex)) {
             sprite_frame_free(&btn[i][1]);
         }
         for (f = 1; f <= 15; f++) {
-            if (hover[i][f].argb1555 != NULL || hover[i][f].tex != NULL) {
+            if (sprite_has_cpu(&hover[i][f]) || hover[i][f].tex != NULL) {
                 sprite_frame_free(&hover[i][f]);
             }
         }
@@ -535,7 +536,7 @@ int startmenu_present_slots_pvr(struct SeqInfo *seqs)
     sprite_frame_free(&logo);
     sprite_frame_free(&start);
     sprite_frame_free(&cont[0]);
-    if (cont[1].argb1555 != NULL ||
+    if (sprite_has_cpu(&cont[1]) ||
         (cont[1].tex != NULL && cont[1].tex != cont[0].tex)) {
         sprite_frame_free(&cont[1]);
     }

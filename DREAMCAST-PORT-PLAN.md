@@ -106,7 +106,7 @@ Keep a `mem_log()` that prints these counters every screen load. **14.4** owns t
 | `hard_cache` | ≤ 256 KB | Main | Current screen 600×400 hardness **or** 96 tile-hard refs + sprite boxes |
 | `seq_meta` | ≤ 256 KB | Main | `dink.ini` parsed table (paths, delays, boxes) — **not** pixels. **14.4 catalog** may add a few KB of pack/frame sizes (no pixels). |
 | `tile_tex` | ≤ 512 KB | VRAM | Current tileset atlas |
-| `sprite_tex` | ≤ 4 MB | VRAM | Current screen + Dink seqs. **Dink ≤ 2 MB** (8.3 `pspr`, LRU among his frames); the screen (14.4c `EdGfx`) and overlays get the rest and take Dink frames back when short (`pspr_trim_for`, `pspr_free_one`). |
+| `sprite_tex` | ≤ 4 MB | VRAM | Current screen + Dink seqs. Colour-keyed frames on the main palette (`Tiles/Esplash.bmp`; 3619/3628 official BMPs, the rest unused) are **PAL8** (1 B/px, PVR palette bank 0, twiddled); no-colour-key (HUD/status compositing) and off-palette frames stay ARGB1555. **Dink ≤ 2 MB** (8.3 `pspr`, LRU among his frames); the screen (14.4c `EdGfx`) and overlays get the rest and take Dink frames back when short (`pspr_trim_for`, `pspr_free_one`). |
 | `title_tex` | ≤ **1 MiB** | VRAM | 1024×512 RGB565 pad of 640×480 still; **freed** on leave-title (4.2) |
 | `sfx_bank` | ≤ 512 KB | AICA | Boot SFX |
 | `bgm_ring` | 256–512 KB | AICA | One stream |

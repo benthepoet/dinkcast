@@ -64,9 +64,7 @@ size_t edraw_cpu_bytes(const struct EdGfx *g, int n)
         return 0;
     }
     for (i = 0; i < n; i++) {
-        if (g[i].fr.argb1555 != NULL && g[i].fr.tw > 0 && g[i].fr.th > 0) {
-            t += (size_t)g[i].fr.tw * (size_t)g[i].fr.th * 2u;
-        }
+        t += sprite_cpu_bytes(&g[i].fr);
     }
     return t;
 }
@@ -467,7 +465,7 @@ static size_t sat_add(size_t a, size_t b)
 
 static size_t tex_size(const struct SpriteFrame *f)
 {
-    return (size_t)f->tw * (size_t)f->th * 2u;
+    return sprite_tex_bytes(f);
 }
 
 static int vram_evictable(const struct EdGfx *e, struct SeqInfo *seqs,
@@ -553,7 +551,7 @@ size_t edraw_upload_need(const struct EdGfx *g, int n)
     int i;
 
     for (i = 0; g != NULL && i < n; i++) {
-        if (g[i].live && g[i].fr.tex == NULL && g[i].fr.argb1555 != NULL) {
+        if (g[i].live && g[i].fr.tex == NULL && sprite_has_cpu(&g[i].fr)) {
             b += tex_size(&g[i].fr);
         }
     }
@@ -616,7 +614,7 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         size_t room;
         int v;
 
-        if (hit->tex != NULL || hit->argb1555 == NULL) {
+        if (hit->tex != NULL || !sprite_has_cpu(hit)) {
             break;
         }
         /* Short of VRAM: make room before trying (a failed pvr_mem_malloc
@@ -1270,7 +1268,7 @@ void edraw_load_seq(struct EdGfx *g, int *n, struct SeqInfo *seqs, int seq)
     /* A refusal or eviction reorders slots: rescan from the start. */
     for (i = 0; i < got; i++) {
         if (g[i].seq == seq && g[i].fr.tex == NULL &&
-            g[i].fr.argb1555 != NULL && g_upload != NULL) {
+            sprite_has_cpu(&g[i].fr) && g_upload != NULL) {
             int before = got;
 
             (void)upload_with_room(g, &got, seqs, seq, g[i].frame);

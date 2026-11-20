@@ -825,13 +825,9 @@ size_t status_cpu_bytes(void)
     } else if (g_side_fr.argb1555 != NULL) {
         t += 64u * 512u * 2u;
     }
-    if (g_map.argb1555 != NULL && g_map.tw > 0 && g_map.th > 0) {
-        t += (size_t)g_map.tw * (size_t)g_map.th * 2u;
-    }
+    t += sprite_cpu_bytes(&g_map);
     for (i = 1; i < 8; i++) {
-        if (g_mark[i].argb1555 != NULL && g_mark[i].tw > 0 && g_mark[i].th > 0) {
-            t += (size_t)g_mark[i].tw * (size_t)g_mark[i].th * 2u;
-        }
+        t += sprite_cpu_bytes(&g_mark[i]); /* PAL8 marks: 1 B/px */
     }
     return t;
 }
@@ -1005,7 +1001,7 @@ static int upload_fr(struct SpriteFrame *f)
     if (f->tex != NULL) {
         return 0;
     }
-    if (f->argb1555 == NULL) {
+    if (!sprite_has_cpu(f)) {
         return -1;
     }
     if (sprite_upload_pvr(f) != 0) {
@@ -1030,7 +1026,7 @@ int status_upload_pvr(void)
         (void)upload_fr(&g_map);
     }
     for (f = 1; f <= 7; f++) {
-        if (g_mark[f].argb1555 != NULL) {
+        if (sprite_has_cpu(&g_mark[f])) {
             (void)upload_fr(&g_mark[f]);
         }
     }

@@ -138,7 +138,7 @@ int inv_menu_load(void)
     int f, ok = 0;
 
     for (f = 1; f <= 5; f++) {
-        if (g_menu[f].tex != NULL || g_menu[f].argb1555 != NULL ||
+        if (g_menu[f].tex != NULL || sprite_has_cpu(&g_menu[f]) ||
             load_fr(g_seqs, DINK_INV_SEQ, f, &g_menu[f]) == 0) {
             ok++;
         }
@@ -336,7 +336,7 @@ int inv_upload_pvr(void)
         if (g_icon[i].fr.tex != NULL) {
             continue;
         }
-        if (g_icon[i].fr.argb1555 != NULL &&
+        if (sprite_has_cpu(&g_icon[i].fr) &&
             sprite_upload_pvr(&g_icon[i].fr) == 0) {
             sprite_drop_cpu(&g_icon[i].fr);
         }
@@ -408,15 +408,10 @@ size_t inv_cpu_bytes(void)
     int i;
 
     for (i = 1; i <= 5; i++) {
-        if (g_menu[i].argb1555 != NULL && g_menu[i].tw > 0 && g_menu[i].th > 0) {
-            t += (size_t)g_menu[i].tw * (size_t)g_menu[i].th * 2u;
-        }
+        t += sprite_cpu_bytes(&g_menu[i]);
     }
     for (i = 0; i < DINK_INV_ICON_N; i++) {
-        if (g_icon[i].fr.argb1555 != NULL && g_icon[i].fr.tw > 0 &&
-            g_icon[i].fr.th > 0) {
-            t += (size_t)g_icon[i].fr.tw * (size_t)g_icon[i].fr.th * 2u;
-        }
+        t += sprite_cpu_bytes(&g_icon[i].fr);
     }
     return t;
 }

@@ -256,6 +256,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | Overlay VRAM only while shown: choice box (713 KB) and inventory menu (1.11 MB) load on open (making room from non-live Screen tex / Dink) and free on close; icons stay for the HUD. `vram <tag>` diagnostic around title, menu and overlay uploads. `overlay.c` state per overlay (OFF/ON/FAILED until close); upload makes room like #155 (Dink shortfall, then screen one at a time); choice arrows stay resident | #156 |
 | 2026-11-20 | Dink combat set 512 KB (two walk facings + idle + punch = 480 KB; bar fight had 278 `(cap)` evictions at 256 KB). Upload paths (edraw, pspr, overlay) make room before trying when `pvr_mem_available` is short, so KOS does not log a failed `pvr_mem_malloc` first | #157 |
 | 2026-11-20 | Dink set cap 2 MB (§1.2 share), 192 slots: bar fight drew every facing (~1.6 MB); at 512 KB Dink still had 240 `(cap)` evictions with 3.5 MB VRAM free | #158 |
+| 2026-11-20 | PAL8 sprites: colour-keyed frames on the main palette keep 8-bit indices (half VRAM and CPU, no 1555 conversion), PVR palette bank 0 with the same white key; HUD/status no-key frames and off-palette BMPs stay ARGB1555. `tools/palette_survey.py`: 3619/3628 BMPs share `Tiles/Esplash.bmp` | this PR |
 
 ## Bites
 

@@ -30,7 +30,76 @@ void sprite_frame_free(struct SpriteFrame *f)
     }
     sprite_evict_pvr(f);
     free(f->argb1555);
+    free(f->pal8);
     memset(f, 0, sizeof(*f));
+}
+
+int sprite_has_cpu(const struct SpriteFrame *f)
+{
+    return f != NULL && (f->argb1555 != NULL || f->pal8 != NULL);
+}
+
+size_t sprite_tex_bytes(const struct SpriteFrame *f)
+{
+    if (f == NULL) {
+        return 0;
+    }
+    return (size_t)f->tw * (size_t)f->th * (f->bpp == 8 ? 1u : 2u);
+}
+
+size_t sprite_cpu_bytes(const struct SpriteFrame *f)
+{
+    if (f == NULL || f->tw < 1 || f->th < 1) {
+        return 0;
+    }
+    if (f->pal8 != NULL) {
+        return (size_t)f->tw * (size_t)f->th;
+    }
+    if (f->argb1555 != NULL) {
+        return (size_t)f->tw * (size_t)f->th * 2u;
+    }
+    return 0;
+}
+
+static uint8_t g_main_pal[768];
+static int g_pal8_on;
+
+void sprite_set_main_palette(const uint8_t *rgb)
+{
+    if (rgb == NULL) {
+        g_pal8_on = 0;
+        return;
+    }
+    memcpy(g_main_pal, rgb, sizeof(g_main_pal));
+    g_pal8_on = 1;
+}
+
+int sprite_pal8_on(void)
+{
+    return g_pal8_on;
+}
+
+int sprite_load_main_palette(uint8_t rgb[768])
+{
+    uint8_t hdr[54 + 1024];
+    FILE *fp = dink_fopen("Tiles/Esplash.bmp", "rb");
+    int i, rc = -1;
+
+    if (fp == NULL) {
+        return -1;
+    }
+    if (dink_fread_n(fp, hdr, sizeof(hdr)) == 0 && hdr[0] == 'B' &&
+        hdr[1] == 'M' && hdr[28] == 8 && hdr[29] == 0 && hdr[14] == 40) {
+        /* BITMAPINFOHEADER: palette at 14 + 40, BGRA. */
+        for (i = 0; i < 256; i++) {
+            rgb[i * 3 + 0] = hdr[54 + i * 4 + 2];
+            rgb[i * 3 + 1] = hdr[54 + i * 4 + 1];
+            rgb[i * 3 + 2] = hdr[54 + i * 4 + 0];
+        }
+        rc = 0;
+    }
+    fclose(fp);
+    return rc;
 }
 
 int sprite_pixel_opaque(uint16_t p)
@@ -143,6 +212,27 @@ decode:
     }
     tw = next_pow2(bm.w);
     th = next_pow2(bm.h);
+    /* PAL8: colour-keyed 8-bit on the main palette keeps its indices (the
+     * PVR palette does the colour key; pad index 0 is transparent white). */
+    if (!nocolorkey && g_pal8_on && bm.bpp == 8 &&
+        memcmp(bm.pal, g_main_pal, sizeof(g_main_pal)) == 0) {
+        uint8_t *idx = (uint8_t *)calloc((size_t)tw * (size_t)th, 1);
+
+        if (idx == NULL) {
+            bitmap_free(&bm);
+            if (bmp_owned) {
+                free((void *)bmp);
+            }
+            return -1;
+        }
+        for (y = 0; y < bm.h; y++) {
+            memcpy(idx + (size_t)y * (size_t)tw,
+                   bm.pixels + (size_t)y * (size_t)bm.w, (size_t)bm.w);
+        }
+        out->pal8 = idx;
+        out->bpp = 8;
+        goto geom;
+    }
     pad = (uint16_t *)calloc((size_t)tw * (size_t)th, 2);
     if (pad == NULL) {
         bitmap_free(&bm);
@@ -168,6 +258,9 @@ decode:
             pad[y * tw + x] = pack1555(r, g, b, nocolorkey);
         }
     }
+    out->argb1555 = pad;
+    out->bpp = 16;
+geom:
     out->w = bm.w;
     out->h = bm.h;
     out->tw = tw;
@@ -184,7 +277,6 @@ decode:
             seq->cy = out->cy;
         }
     }
-    out->argb1555 = pad;
     out->tex = NULL;
     bitmap_free(&bm);
     if (bmp_owned) {
@@ -310,6 +402,8 @@ void sprite_drop_cpu(struct SpriteFrame *f)
     }
     free(f->argb1555);
     f->argb1555 = NULL;
+    free(f->pal8);
+    f->pal8 = NULL;
 }
 
 int sprite_upload_needed(const struct SpriteFrame *f)
@@ -321,13 +415,33 @@ int sprite_upload_needed(const struct SpriteFrame *f)
     if (f->tex != NULL) {
         return 0;
     }
-    if (f->argb1555 == NULL) {
+    if (!sprite_has_cpu(f)) {
         return -1;
     }
     return 1;
 }
 
 #ifdef _arch_dreamcast
+/* PAL8 frames use palette bank 0 (main palette, entry 0 transparent). */
+static int sprite_txr_fmt(const struct SpriteFrame *f)
+{
+    return f->bpp == 8 ? (int)(PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(0))
+                       : (int)PVR_TXRFMT_ARGB1555;
+}
+
+void sprite_pal_init_pvr(void)
+{
+    int i;
+
+    pvr_set_pal_format(PVR_PAL_ARGB1555);
+    for (i = 0; i < 256; i++) {
+        uint8_t r = g_main_pal[i * 3], g = g_main_pal[i * 3 + 1],
+                b = g_main_pal[i * 3 + 2];
+
+        pvr_set_pal_entry((uint32_t)i, pack1555(r, g, b, 0));
+    }
+}
+
 int sprite_upload_pvr(struct SpriteFrame *f)
 {
     pvr_ptr_t tex;
@@ -338,11 +452,16 @@ int sprite_upload_pvr(struct SpriteFrame *f)
         return need;
     }
     sprite_evict_pvr(f);
-    tex = pvr_mem_malloc((size_t)f->tw * (size_t)f->th * 2u);
+    tex = pvr_mem_malloc(sprite_tex_bytes(f));
     if (tex == NULL) {
         return -1;
     }
-    pvr_txr_load_ex(f->argb1555, tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
+    if (f->bpp == 8 && f->pal8 != NULL) {
+        /* Paletted textures must be twiddled; KOS twiddles 8bpp here. */
+        pvr_txr_load_ex(f->pal8, tex, f->tw, f->th, PVR_TXRLOAD_8BPP);
+    } else {
+        pvr_txr_load_ex(f->argb1555, tex, f->tw, f->th, PVR_TXRLOAD_16BPP);
+    }
     f->tex = tex;
     return 0;
 }
@@ -368,7 +487,7 @@ static void sprite_draw_pvr_clip(const struct SpriteFrame *f, float x, float y,
         return;
     }
     /* 1-bit alpha: punch-through list. TR still writes A=0 as black. */
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, sprite_txr_fmt(f), f->tw, f->th,
                      (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
     cxt.gen.alpha = PVR_ALPHA_ENABLE;
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
@@ -454,7 +573,7 @@ void sprite_blit_pvr(const struct SpriteFrame *f, float dx, float dy, float z)
     if (f == NULL || f->tex == NULL || f->w < 1 || f->h < 1) {
         return;
     }
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, sprite_txr_fmt(f), f->tw, f->th,
                      (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
     cxt.gen.alpha = PVR_ALPHA_ENABLE;
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
@@ -502,7 +621,7 @@ void sprite_blit_pvr_src(const struct SpriteFrame *f, float dx, float dy,
     if (f == NULL || f->tex == NULL || sr <= sl || sb <= st) {
         return;
     }
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555, f->tw, f->th,
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, sprite_txr_fmt(f), f->tw, f->th,
                      (pvr_ptr_t)f->tex, PVR_FILTER_NONE);
     cxt.gen.alpha = PVR_ALPHA_ENABLE;
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
