@@ -120,8 +120,6 @@ static void clamp_cur(void)
 
 int inv_load(struct SeqInfo *seqs)
 {
-    int f, ok = 0;
-
     inv_free();
     g_seqs = seqs;
     g_pic = 2;
@@ -129,14 +127,43 @@ int inv_load(struct SeqInfo *seqs)
     if (seqs == NULL) {
         return -1;
     }
+    /* Menu art (seq 423, ~1.1 MB VRAM) loads on open: inv_menu_load. The
+     * weapon/magic icons stay resident; the status HUD draws them. */
+    sync_icons();
+    return 0;
+}
+
+int inv_menu_load(void)
+{
+    int f, ok = 0;
+
     for (f = 1; f <= 5; f++) {
-        if (load_fr(seqs, DINK_INV_SEQ, f, &g_menu[f]) == 0) {
+        if (g_menu[f].tex != NULL || g_menu[f].argb1555 != NULL ||
+            load_fr(g_seqs, DINK_INV_SEQ, f, &g_menu[f]) == 0) {
             ok++;
         }
     }
-    sync_icons();
     printf("inv gfx menu=%d/5\n", ok);
-    return ok >= 5 ? 0 : -1;
+    return ok == 5 ? 0 : -1;
+}
+
+int inv_menu_nframes(void)
+{
+    return 5;
+}
+
+struct SpriteFrame *inv_menu_slot(int i)
+{
+    return i >= 0 && i < 5 ? &g_menu[i + 1] : NULL;
+}
+
+void inv_menu_release(void)
+{
+    int f;
+
+    for (f = 0; f < 6; f++) {
+        sprite_frame_free(&g_menu[f]);
+    }
 }
 
 void inv_free(void)
@@ -300,20 +327,11 @@ void inv_tick(uint32_t prev, uint32_t buttons, int now_ms)
 }
 
 #ifdef _arch_dreamcast
+/* Icons only (resident; the HUD draws them). Menu art is overlay.c. */
 int inv_upload_pvr(void)
 {
-    int i, n = 0;
+    int i;
 
-    for (i = 1; i <= 5; i++) {
-        if (g_menu[i].tex != NULL) {
-            n++;
-            continue;
-        }
-        if (g_menu[i].argb1555 != NULL && sprite_upload_pvr(&g_menu[i]) == 0) {
-            sprite_drop_cpu(&g_menu[i]);
-            n++;
-        }
-    }
     for (i = 0; i < DINK_INV_ICON_N; i++) {
         if (g_icon[i].fr.tex != NULL) {
             continue;
@@ -323,7 +341,7 @@ int inv_upload_pvr(void)
             sprite_drop_cpu(&g_icon[i].fr);
         }
     }
-    return n >= 5 ? 0 : -1;
+    return 0;
 }
 
 static void blit_item(int magic, int idx0, int seq, int frame, float z)

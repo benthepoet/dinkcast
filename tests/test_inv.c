@@ -149,6 +149,9 @@ int main(void)
            "armed fists");
 
     expect(inv_load(seqs) == 0, "inv_load");
+    /* Menu art is overlay VRAM: not loaded until the inventory opens. */
+    expect(inv_menu_frame(1) == NULL, "seq 423 not resident at load");
+    expect(inv_menu_load() == 0, "inv_menu_load");
     fr = inv_menu_frame(1);
     expect(fr != NULL && fr->w > 0 && fr->h > 0, "seq 423 fr 1");
     expect(fr->w == 600 && fr->h == 400, "menu-01 600x400");

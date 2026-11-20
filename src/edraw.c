@@ -547,6 +547,32 @@ size_t edraw_vram_room(struct EdGfx *g, int *n, struct SeqInfo *seqs,
     return freed;
 }
 
+size_t edraw_vram_evictable(struct EdGfx *g, int n, struct SeqInfo *seqs)
+{
+    if (g == NULL || seqs == NULL) {
+        return 0;
+    }
+    return vram_evictable_bytes(g, n, seqs, 0, 0);
+}
+
+size_t edraw_vram_free_one(struct EdGfx *g, int *n, struct SeqInfo *seqs)
+{
+    size_t b;
+    int v;
+
+    if (g == NULL || n == NULL || seqs == NULL) {
+        return 0;
+    }
+    v = vram_victim(g, *n, seqs, 0, 0);
+    if (v < 0) {
+        return 0;
+    }
+    b = tex_size(&g[v].fr);
+    printf("edraw vram evict seq=%d fr=%d (overlay)\n", g[v].seq, g[v].frame);
+    remove_at(g, n, v);
+    return b;
+}
+
 static int find_index(const struct EdGfx *g, int got, int seq, int frame)
 {
     int i;

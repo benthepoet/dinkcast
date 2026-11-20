@@ -26,6 +26,12 @@
 void inv_cell_xy(int magic, int idx0, int *x, int *y);
 int inv_load(struct SeqInfo *seqs);
 void inv_free(void);
+/* Menu art (seq 423 frames 1..5) is overlay VRAM only while the inventory
+ * shows (overlay.c). Icons stay resident: the status HUD draws them. */
+int inv_menu_load(void); /* CPU; 0 = all 5 frames */
+void inv_menu_release(void);
+int inv_menu_nframes(void);
+struct SpriteFrame *inv_menu_slot(int i);
 void inv_reset(void);
 void inv_sync_icons(void);
 void inv_open(int now_ms);

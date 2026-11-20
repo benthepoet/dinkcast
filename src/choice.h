@@ -35,6 +35,13 @@ void choice_layout(int last, int cur, const int *h, int newy,
 
 int choice_load(struct SeqInfo *seqs);
 void choice_free(void);
+/* Arrows stay resident (boot). The box (seq 30 frames 2..4) is overlay
+ * VRAM only while a choice is up (overlay.c). */
+int choice_arrows_load(struct SeqInfo *seqs);
+int choice_box_load(void);
+void choice_box_release(void);
+int choice_box_nframes(void);
+struct SpriteFrame *choice_box_frame(int i);
 struct SpriteFrame *choice_frame(int seq, int frame);
 void choice_tick(int now_ms);
 int choice_curf(void);

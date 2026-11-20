@@ -98,7 +98,7 @@ Keep a `mem_log()` that prints these counters every screen load. **14.4** owns t
 |---|---|---|---|
 | `bmp_decode` | 1.5 MB | Main | Transient BMP unpack; **free before next big load**. Never two slurps at once. Peak during one decode is this pool **plus** current `file_blob` + `cpu_pixels`; cap check is **after** the unpack is freed. Name the peak in `mem_log` (`mem peak`). |
 | `file_blob` | **≤ 4.5 MB peak** | Main | Session `dink_blob_get` (dir.ff, tilesheet BMP, story, ini). Peak = Always + **this** Screen’s packs + **Prev** packs. Steady ≈ Always + Prev (Screen packs stay until two screens old). **Not** “every pack ≥80 KB forever.” `hard.dat` is an open `FILE*`, **not** this pool. |
-| `cpu_pixels` | **≤ 2.0 MB** | Main | Decoded sprite ARGB1555 in `EdGfx` + sticky kill/Dink frames. Cap is **bytes**, not only 96 slots. **14.4c** owns play-path eviction of those pixels (Always/Screen/Sticky class victims, not recency; Prev is packs only). Choice overlay (seq 30) and inventory overlay (seq 423) are **VRAM after upload** — free those CPU pixels; do not count 640 KB / ~1 MiB twice. |
+| `cpu_pixels` | **≤ 2.0 MB** | Main | Decoded sprite ARGB1555 in `EdGfx` + sticky kill/Dink frames. Cap is **bytes**, not only 96 slots. **14.4c** owns play-path eviction of those pixels (Always/Screen/Sticky class victims, not recency; Prev is packs only). Choice overlay (seq 30) and inventory overlay (seq 423) are **VRAM after upload** — free those CPU pixels; do not count 640 KB / ~1 MiB twice. They are VRAM **only while shown** (load on open before the scene, free on close; Flycast 2026-11-20: choice 713 KB + inventory menu 1.11 MB were resident while closed). Inventory icons stay (the status HUD draws them). |
 | `ts_rgb` | **≤ 1.25 MB** | Main | Decoded tilesheet RGB565 LRU. Byte cap, not “8 sheets.” Duck vis 2 uses Ts01+Ts02+Ts03 (~1.17 MB if all three stay decoded). Keep at most what fits; extra sheets stay as BMP in `file_blob` until 14.5. |
 | CPU atlas | 512 KB | BSS | Tile stamp buffer (`g_atlas_pix`). Do not calloc on swap. Count in `mem peak`. |
 | `dink_dat` | ≤ 64 KB | Main | Parsed world table (768 × a few ints) |
@@ -122,8 +122,8 @@ Four classes. `mem_log` prints bytes per class every swap. **Official freeware s
 
 | Set | Pack bytes (approx) | Notes |
 |---|---|---|
-| Always | **~2.03 MB** | idle+walk+push+hit+textbox **+ menu** (`graphics/inter/menu/` ~825 KB). Walk seqs **71–74 and 76–79**, not 75 (`botl-b`). Arrows 456/457 are **loose BMPs** (~38 KB), not a `dir.ff`. `dink.ini` ~45 KB and preloaded `story/` count here. Inventory seq 423 frame 1 is **VRAM after upload** (~1 MiB 1024×512 ARGB1555, same pad class as title_tex); then free CPU. |
-| House vis 0 | **1.18 MB** packs; **~0.96 MB** used-frame POT1555 | mom+innwalls+details+food/paper/shiny. Choice overlay **640 KB** is VRAM, not this row. |
+| Always | **~2.03 MB** | idle+walk+push+hit+textbox **+ menu** (`graphics/inter/menu/` ~825 KB). Walk seqs **71–74 and 76–79**, not 75 (`botl-b`). Arrows 456/457 are **loose BMPs** (~38 KB), not a `dir.ff`. `dink.ini` ~45 KB and preloaded `story/` count here. Inventory seq 423 frame 1 is **VRAM after upload** (~1 MiB 1024×512 ARGB1555, same pad class as title_tex) while the inventory shows; then free CPU. Closed: no VRAM. |
+| House vis 0 | **1.18 MB** packs; **~0.96 MB** used-frame POT1555 | mom+innwalls+details+food/paper/shiny. Choice overlay (~713 KB measured, frames 2–4) is VRAM only while a choice is up, not this row. |
 | Outdoor 439 | **1.51 MB** | **home 676 KB + trees 423 KB** live here, not in the start house. |
 | Duck 441 vis 2 | **1.34 MB** packs; Ts01–03 RGB565 **~1.17 MB** if all three decoded | |
 | 408 savebot/girl | **1.54 MB** | `s1-gate` `preload_seq`/`create_sprite` → `people/girl/dir.ff` **188 KB**. Map.dat-only catalog misses this. |

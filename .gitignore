@@ -86,3 +86,4 @@ __pycache__/
 tests/test_iolog
 tests/test_pspr
 tests/test_edraw_vram
+tests/test_overlay

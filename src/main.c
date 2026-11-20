@@ -31,6 +31,7 @@
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
 #include "save.h"
+#include "overlay.h"
 #include "pspr.h"
 #include "sprite.h"
 #include "start_map.h"
@@ -92,6 +93,51 @@ static size_t dink_vram_room(size_t need)
         return 0;
     }
     return edraw_vram_room(g_edg, &g_ned, g_seqs_play, need);
+}
+
+/* Overlay VRAM (choice box ~0.7 MB, inventory menu ~1.1 MB) only while
+ * shown (overlay.c). Hooks make room like edraw (#155). */
+static struct SeqInfo *g_overlay_seqs;
+
+static size_t ov_screen_evictable(void)
+{
+    return g_overlay_seqs != NULL && g_edg != NULL
+               ? edraw_vram_evictable(g_edg, g_ned, g_overlay_seqs)
+               : 0u;
+}
+
+static size_t ov_screen_free_one(void)
+{
+    return g_overlay_seqs != NULL && g_edg != NULL
+               ? edraw_vram_free_one(g_edg, &g_ned, g_overlay_seqs)
+               : 0u;
+}
+
+static const struct OverlayOps g_choice_ops = {
+    choice_box_load, choice_box_release, choice_box_nframes,
+    choice_box_frame,
+};
+static const struct OverlayOps g_inv_ops = {
+    inv_menu_load, inv_menu_release, inv_menu_nframes, inv_menu_slot,
+};
+static struct Overlay g_ov_choice = {"choice", &g_choice_ops, OVERLAY_OFF};
+static struct Overlay g_ov_inv = {"inv", &g_inv_ops, OVERLAY_OFF};
+
+/* Before pvr_scene_begin: the last scene finished at the top of the tick. */
+static void overlay_sync(struct SeqInfo *seqs)
+{
+#ifdef _arch_dreamcast
+    int c0 = g_ov_choice.state, i0 = g_ov_inv.state;
+
+    g_overlay_seqs = seqs;
+    overlay_sync_one(&g_ov_choice, dinkc_vm_choice_n() > 0);
+    overlay_sync_one(&g_ov_inv, inv_showing());
+    if (g_ov_choice.state != c0 || g_ov_inv.state != i0) {
+        mem_vram_note("overlay");
+    }
+#else
+    (void)seqs;
+#endif
 }
 
 static void inv_show_cmd(int on)
@@ -642,7 +688,9 @@ static int title_pick_and_apply(struct SeqInfo *seqs, struct Player *pl,
             title_show_splash();
             g_show_splash = 0;
         }
+        mem_vram_note("pre-startmenu");
         pick = startmenu_present_pvr(seqs);
+        mem_vram_note("startmenu");
         if (pick == STARTMENU_QUIT) {
             printf("start-4 click kill_game\n");
             g_show_splash = 1;
@@ -781,6 +829,7 @@ int main(int argc, char **argv)
 
         (void)st;
         printf("leave_title\n");
+        mem_vram_note("leave_title");
     }
     {
         int rec;
@@ -888,9 +937,21 @@ int main(int argc, char **argv)
                 edraw_set_vram_relief(pspr_trim_for);
                 pspr_set_vram_relief(dink_vram_room);
                 dinkc_cmd_bind_inv(inv_show_cmd);
-                if (choice_load(seqs) != 0) {
-                    printf("choice gfx load fail\n");
+                /* Arrows stay resident; the box loads on open (overlay). */
+                if (choice_arrows_load(seqs) != 0) {
+                    printf("choice arrows load fail\n");
                 }
+#ifdef _arch_dreamcast
+                {
+                    static const struct OverlayVram ov = {
+                        sprite_upload_pvr, sprite_vram_avail,
+                        ov_screen_evictable, ov_screen_free_one,
+                        pspr_trim_for,
+                    };
+
+                    overlay_set_vram(&ov);
+                }
+#endif
             }
             {
                 struct HardMask mask;
@@ -935,6 +996,7 @@ int main(int argc, char **argv)
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
+                mem_vram_note("pre-font");
                 if (font_init() == 0) {
                     printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),
                            font_atlas_h(), font_atlas_bytes());
@@ -942,6 +1004,7 @@ int main(int argc, char **argv)
                         printf("saybox upload fail\n");
                     }
                 }
+                mem_vram_note("saybox");
                 if (seqs != NULL && inv_load(seqs) != 0) {
                     printf("inv gfx load fail\n");
                 }
@@ -981,6 +1044,7 @@ int main(int argc, char **argv)
                         }
                         stamp_one_editor(&mask, seqs, si);
                     }
+                mem_vram_note("pre-tiles");
                 if (tiles_upload_pvr(&g_atlas) != 0) {
                     hud("TILE UPLOAD FAIL", NULL, msg);
                     pspr_clear();
@@ -991,9 +1055,11 @@ int main(int argc, char **argv)
                         vid_waitvbl();
                     }
                 }
+                mem_vram_note("tiles");
                 if (edraw_upload_pvr(g_edg, g_ned) != 0) {
                     printf("edraw upload none\n");
                 }
+                mem_vram_note("edraw");
                 if (seqs != NULL) {
                     dfr = pspr_get(seqs, player_pic_seq(&pl),
                                    player_pic_frame(&pl));
@@ -1001,17 +1067,18 @@ int main(int argc, char **argv)
                 last_seq = player_pic_seq(&pl);
                 last_frame = player_pic_frame(&pl);
                 printf("play walk %d,%d seq %d\n", pl.x, pl.y, pl.seq);
-                if (choice_upload_pvr() != 0) {
-                    printf("choice upload fail\n");
-                }
-                if (inv_upload_pvr() != 0) {
-                    printf("inv upload fail\n");
-                }
+                mem_vram_note("dink");
+                /* Icons and choice arrows; menu art and the choice box
+                 * load on open (overlay). */
+                (void)inv_upload_pvr();
+                (void)choice_upload_pvr();
+                mem_vram_note("inv icons + arrows");
                 if (status_upload_pvr() != 0) {
                     printf("status upload fail\n");
                 } else {
                     status_drop_cpu();
                 }
+                mem_vram_note("status");
                 spr_restore("pre-attach");
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
                        g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
@@ -1243,9 +1310,7 @@ int main(int argc, char **argv)
                         pad_just_pressed(prev_buttons, buttons, DINK_PAD_Y)) {
                         inv_open(now_ms);
 #ifdef _arch_dreamcast
-                        if (inv_upload_pvr() != 0) {
-                            printf("inv upload fail\n");
-                        }
+                        (void)inv_upload_pvr(); /* new icons */
 #endif
                     } else if (have && !paused && pl.freeze == 0 &&
                         pl.nocontrol == 0 &&
@@ -1482,6 +1547,7 @@ int main(int argc, char **argv)
                             last_gen = pspr_gen();
                         }
                     }
+                    overlay_sync(seqs);
                     pvr_scene_begin();
                     pvr_list_begin(PVR_LIST_OP_POLY);
                     tiles_draw_pvr(&g_atlas);

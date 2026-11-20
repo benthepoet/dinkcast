@@ -15,6 +15,9 @@
 
 /* 14.4b: Always/Screen/Prev. mem refuse over file_blob cap during swap. */
 void mem_note_peak(size_t n);
+/* Diagnostic: "vram <tag> free=N used=D" where D is the drop since the
+ * previous note (which upload owns which VRAM). */
+void mem_vram_note(const char *tag);
 void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
              int sheets);
 /* Milliseconds. Host CLOCK_MONOTONIC; Dreamcast timer_ms_gettime64. */

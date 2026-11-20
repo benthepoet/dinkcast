@@ -150,6 +150,12 @@ void choice_layout(int last, int cur, const int *h, int newy,
     out->view_hi = last;
 }
 
+/* Loaded: CPU pixels before upload, texture after (CPU dropped). */
+static int frame_has(const struct SpriteFrame *f)
+{
+    return f->argb1555 != NULL || f->tex != NULL;
+}
+
 static int load_fr(struct SeqInfo *seqs, int seq, int frame,
                    struct SpriteFrame *dst)
 {
@@ -164,28 +170,80 @@ static int load_fr(struct SeqInfo *seqs, int seq, int frame,
     return 0;
 }
 
-int choice_load(struct SeqInfo *seqs)
+static struct SeqInfo *g_seqs;
+
+/* Arrows (seq 456/457, small) stay resident; the box (seq 30 frames 2..4,
+ * ~0.7 MB) is VRAM only while a choice is up (overlay). */
+int choice_arrows_load(struct SeqInfo *seqs)
 {
     int f, ok = 0;
 
-    choice_free();
+    g_seqs = seqs;
+    if (seqs == NULL) {
+        return -1;
+    }
+    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
+        if (load_fr(seqs, DINK_CHOICE_AROWL, f, &g_arowl[f]) == 0 &&
+            load_fr(seqs, DINK_CHOICE_AROWR, f, &g_arowr[f]) == 0) {
+            ok++;
+        }
+    }
+    printf("choice gfx arrows=%d/%d\n", ok, DINK_CHOICE_ARROW_MAX);
+    return ok == DINK_CHOICE_ARROW_MAX ? 0 : -1;
+}
+
+int choice_box_load(void)
+{
+    int f, ok = 0;
+
+    if (g_seqs == NULL) {
+        return -1;
+    }
+    for (f = 2; f <= 4; f++) {
+        if (g_box[f].tex != NULL || g_box[f].argb1555 != NULL ||
+            load_fr(g_seqs, DINK_CHOICE_SEQ, f, &g_box[f]) == 0) {
+            ok++;
+        }
+    }
+    return ok == 3 ? 0 : -1;
+}
+
+void choice_box_release(void)
+{
+    int f;
+
+    for (f = 0; f < 5; f++) {
+        sprite_frame_free(&g_box[f]);
+    }
+}
+
+int choice_box_nframes(void)
+{
+    return 3;
+}
+
+struct SpriteFrame *choice_box_frame(int i)
+{
+    return i >= 0 && i < 3 ? &g_box[i + 2] : NULL;
+}
+
+/* Start menu Continue: everything, outside the play loop. */
+int choice_load(struct SeqInfo *seqs)
+{
+    int ok;
+
     g_curf = 0;
     g_timer = 0;
     if (seqs == NULL) {
         return -1;
     }
-    for (f = 2; f <= 4; f++) {
-        if (load_fr(seqs, DINK_CHOICE_SEQ, f, &g_box[f]) == 0) {
-            ok++;
-        }
+    g_seqs = seqs;
+    if (!frame_has(&g_arowl[1])) {
+        (void)choice_arrows_load(seqs);
     }
-    for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        (void)load_fr(seqs, DINK_CHOICE_AROWL, f, &g_arowl[f]);
-        (void)load_fr(seqs, DINK_CHOICE_AROWR, f, &g_arowr[f]);
-    }
-    printf("choice gfx box=%d arrows=%d/%d\n", ok, DINK_CHOICE_ARROW_MAX,
-           DINK_CHOICE_ARROW_MAX);
-    return ok == 3 ? 0 : -1;
+    ok = choice_box_load();
+    printf("choice gfx box=%s\n", ok == 0 ? "ok" : "partial");
+    return ok;
 }
 
 void choice_free(void)
@@ -204,16 +262,17 @@ void choice_free(void)
 struct SpriteFrame *choice_frame(int seq, int frame)
 {
     if (seq == DINK_CHOICE_SEQ && frame >= 2 && frame <= 4) {
-        return g_box[frame].argb1555 != NULL ? &g_box[frame] : NULL;
+        return frame_has(&g_box[frame]) ? &g_box[frame] : NULL;
     }
     if (seq == DINK_CHOICE_AROWL && frame >= 1 && frame <= DINK_CHOICE_ARROW_MAX) {
-        return g_arowl[frame].argb1555 != NULL ? &g_arowl[frame] : NULL;
+        return frame_has(&g_arowl[frame]) ? &g_arowl[frame] : NULL;
     }
     if (seq == DINK_CHOICE_AROWR && frame >= 1 && frame <= DINK_CHOICE_ARROW_MAX) {
-        return g_arowr[frame].argb1555 != NULL ? &g_arowr[frame] : NULL;
+        return frame_has(&g_arowr[frame]) ? &g_arowr[frame] : NULL;
     }
     return NULL;
 }
+
 
 void choice_tick(int now_ms)
 {
@@ -240,16 +299,20 @@ int choice_upload_pvr(void)
     int f, n = 0;
 
     for (f = 2; f <= 4; f++) {
-        if (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0) {
+        if (g_box[f].tex != NULL ||
+            (g_box[f].argb1555 != NULL && sprite_upload_pvr(&g_box[f]) == 0)) {
+            sprite_drop_cpu(&g_box[f]);
             n++;
         }
     }
     for (f = 1; f <= DINK_CHOICE_ARROW_MAX; f++) {
-        if (g_arowl[f].argb1555 != NULL) {
-            (void)sprite_upload_pvr(&g_arowl[f]);
+        if (g_arowl[f].argb1555 != NULL &&
+            sprite_upload_pvr(&g_arowl[f]) == 0) {
+            sprite_drop_cpu(&g_arowl[f]);
         }
-        if (g_arowr[f].argb1555 != NULL) {
-            (void)sprite_upload_pvr(&g_arowr[f]);
+        if (g_arowr[f].argb1555 != NULL &&
+            sprite_upload_pvr(&g_arowr[f]) == 0) {
+            sprite_drop_cpu(&g_arowr[f]);
         }
     }
     return n == 3 ? 0 : -1;
