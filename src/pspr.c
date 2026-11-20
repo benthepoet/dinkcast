@@ -209,7 +209,9 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
     {
         int relief = 0;
 
-        while (g_ops->upload(&s->fr) != 0) {
+        /* Short of VRAM: make room before trying (a failed pvr_mem_malloc
+         * logs on KOS). */
+        while (vram_avail() < s->bytes || g_ops->upload(&s->fr) != 0) {
             int v = victim(seq);
 
             if (v >= 0 && v != slot) {

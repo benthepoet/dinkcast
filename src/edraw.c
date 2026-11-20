@@ -606,7 +606,9 @@ static int upload_with_room(struct EdGfx *g, int *got, struct SeqInfo *seqs,
         if (hit->tex != NULL || hit->argb1555 == NULL) {
             break;
         }
-        if (g_upload(hit) == 0) {
+        /* Short of VRAM: make room before trying (a failed pvr_mem_malloc
+         * logs on KOS and costs SCIF time). */
+        if (sprite_vram_avail() >= need && g_upload(hit) == 0) {
             break;
         }
         /* Edraw victims only when they (with free VRAM) cover it: do not

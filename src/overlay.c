@@ -38,7 +38,7 @@ int overlay_upload_with_room(struct SpriteFrame *f)
     }
     need = (size_t)f->tw * (size_t)f->th * 2u;
     for (tries = 0; tries < 256; tries++) {
-        if (g_v.upload(f) == 0) {
+        if ((g_v.avail == NULL || g_v.avail() >= need) && g_v.upload(f) == 0) {
             sprite_drop_cpu(f);
             return 0;
         }
