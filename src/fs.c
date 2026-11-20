@@ -50,9 +50,57 @@ unsigned dink_io_now_us(void)
 #endif
 }
 
+#if defined(_arch_dreamcast) && !defined(DINK_LOG_SYNC)
+#include <assert.h>
+/* Play-path stdout batching: every printf during gameplay (edraw load,
+ * evictions, script logs) lands in RAM and goes to SCIF once per tick at
+ * the top of the loop, inside dink_io_flush's timed window. Menus and boot
+ * stay line-buffered (a static 1 KB buffer: setvbuf(NULL) would malloc on
+ * every switch). KOS dbglog (pvr_mem, fs, maple, assert text) writes to
+ * fd 1 directly, so within a tick it prints before that tick's printfs.
+ * A failed assert flushes first (handler below); a hang in a tick still
+ * loses that tick's lines: build with -DDINK_LOG_SYNC to keep stdout
+ * line-buffered while chasing one. If a tick prints more than 16 KB,
+ * newlib writes the full buffer mid-tick (backlog_max shows how close). */
+static char g_play_stdout[16384];
+static char g_line_stdout[1024];
+static assert_handler_t g_prev_assert;
+static int g_assert_hooked;
+
+static void flush_then_assert(const char *file, int line, const char *expr,
+                              const char *msg, const char *func)
+{
+    fflush(stdout);
+    if (g_prev_assert != NULL) {
+        g_prev_assert(file, line, expr, msg, func);
+    }
+}
+#endif
+
 void dink_io_set_play(int on)
 {
-    g_io_play = on ? 1 : 0;
+    on = on ? 1 : 0;
+    if (on == g_io_play) {
+        return;
+    }
+    if (!on) {
+        dink_io_flush(); /* timed: drains the batched tick */
+    }
+    g_io_play = on;
+#if defined(_arch_dreamcast) && !defined(DINK_LOG_SYNC)
+    if (!g_assert_hooked) {
+        g_prev_assert = assert_set_handler(flush_then_assert);
+        g_assert_hooked = 1;
+    }
+    /* newlib setvbuf flushes first; the buffer is empty here (flushed
+     * above or line-buffered since the last switch). Both buffers are
+     * static: no heap churn per tick. */
+    if (on) {
+        setvbuf(stdout, g_play_stdout, _IOFBF, sizeof(g_play_stdout));
+    } else {
+        setvbuf(stdout, g_line_stdout, _IOLBF, sizeof(g_line_stdout));
+    }
+#endif
 }
 
 int dink_io_play(void)
@@ -92,16 +140,16 @@ int dink_io_pending(void)
 }
 
 static unsigned g_log_pending; /* flush us since the last tick */
+/* Log drain since boot (never reset; summaries reset g_io mid-tick) and
+ * its value at the start of this tick: dink_io_work excludes drains that
+ * happen inside a tick (a script load_screen / draw_screen). */
+static unsigned g_log_total, g_tick_log0;
 
 void dink_io_flush(void)
 {
     int i, n = g_io_nring;
-    unsigned t0;
+    unsigned t0 = dink_io_now_us(), d;
 
-    if (n == 0 && g_io_dropped == 0) {
-        return;
-    }
-    t0 = dink_io_now_us();
     for (i = 0; i < g_io_nring; i++) {
         printf("ioplay %s\n", g_io_ring[i]);
     }
@@ -110,13 +158,26 @@ void dink_io_flush(void)
         printf("ioplay dropped=%u (ring %d)\n", g_io_dropped, DINK_IO_RING);
         g_io_dropped = 0;
     }
+    /* Batched play-path printfs (see dink_io_set_play) drain here too. */
+#ifdef _arch_dreamcast
     {
-        unsigned d = dink_io_now_us() - t0;
+        /* newlib FILE: bytes waiting in the buffer. */
+        unsigned backlog = (unsigned)(stdout->_p - stdout->_bf._base);
 
-        g_log_pending += d;
-        g_io.log_us += d;
-        g_io.logged += (unsigned)n;
+        if (stdout->_bf._base != NULL && backlog > g_io.backlog_max) {
+            g_io.backlog_max = backlog;
+        }
     }
+#endif
+    fflush(stdout);
+    d = dink_io_now_us() - t0;
+    g_log_total += d;
+    if (d > g_io.drain_max_us) {
+        g_io.drain_max_us = d;
+    }
+    g_log_pending += d;
+    g_io.log_us += d;
+    g_io.logged += (unsigned)n;
 }
 
 void dink_io_note(const char *op, const char *what, size_t bytes, unsigned us)
@@ -202,6 +263,7 @@ void dink_io_stats(struct DinkIoStats *out)
 static unsigned g_tick_last;
 static int g_tick_have;
 
+
 void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex)
 {
     if (!dink_io_play()) {
@@ -226,6 +288,7 @@ void dink_io_note_vram(unsigned free_b, unsigned screen_tex, unsigned dink_tex)
 
 void dink_io_tick(unsigned now_us)
 {
+    g_tick_log0 = g_log_total;
     if (!dink_io_play()) {
         g_tick_have = 0;
         return;
@@ -253,6 +316,23 @@ void dink_io_tick(unsigned now_us)
     g_tick_last = now_us;
     g_tick_have = 1;
     g_log_pending = 0;
+}
+
+void dink_io_work(unsigned us)
+{
+    unsigned logd = g_log_total - g_tick_log0;
+
+    if (!dink_io_play()) {
+        return;
+    }
+    us = us > logd ? us - logd : 0u; /* no log drain in "work" */
+    g_io.work_n++;
+    if (us > 16667u) {
+        g_io.work_over16++;
+    }
+    if (us > g_io.work_max_us) {
+        g_io.work_max_us = us;
+    }
 }
 
 void dink_io_note_vram_upload(unsigned free_b)
@@ -306,9 +386,13 @@ void dink_io_summary(int map)
         }
         if (g_io.ticks > 0) {
             printf("ioplay ticks map=%d n=%u over20ms=%u over34ms=%u "
-                   "max_us=%u log_us=%u logged=%u\n",
+                   "max_us=%u log_us=%u logged=%u drain_max_us=%u "
+                   "backlog_max=%u work_n=%u work_over16ms=%u "
+                   "work_max_us=%u\n",
                    map, g_io.ticks, g_io.ticks_over20, g_io.ticks_over34,
-                   g_io.tick_max_us, g_io.log_us, g_io.logged);
+                   g_io.tick_max_us, g_io.log_us, g_io.logged,
+                   g_io.drain_max_us, g_io.backlog_max, g_io.work_n,
+                   g_io.work_over16, g_io.work_max_us);
         }
     }
     memset(&g_io, 0, sizeof(g_io));

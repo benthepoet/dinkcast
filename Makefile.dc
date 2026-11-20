@@ -8,6 +8,12 @@ OBJS = src/main.o src/twiddle.o src/pspr.o src/overlay.o src/fs.o src/le.o src/b
 	src/font.o src/saybox.o src/choice.o src/inv.o src/status.o src/screen.o src/brains.o src/mem.o src/residency.o src/fade.o src/audio.o
 
 KOS_CFLAGS += -Isrc
+# `make docker-cdi DINK_LOG_SYNC=1`: keep stdout line-buffered during play
+# (no per-tick batching) to chase a hang; fs.o rebuilds when it changes.
+DINK_LOG_SYNC ?= 0
+ifeq ($(DINK_LOG_SYNC),1)
+KOS_CFLAGS += -DDINK_LOG_SYNC
+endif
 # Do not -DDINK_DATA_DEFAULT from local.mk: that path is a host tree
 # (slashes/quotes break kos-cc) and does not exist on the Dreamcast.
 # Runtime probe is /pc/dink, /cd/dink, then getenv("DINK_DATA").
@@ -19,6 +25,12 @@ include $(KOS_BASE)/Makefile.rules
 # EditorSprite lives in mapscr.h. Incremental `kos-cc` without this leaves
 # script.o/talk.o on the 60-byte layout after warp fields (preload unique=0).
 $(OBJS): Makefile.dc src/fs.h src/mapscr.h src/ini.h src/player.h src/sprite.h src/pspr.h src/twiddle.h src/overlay.h src/brains.h src/dinkc_cmd.h src/choice.h src/inv.h src/status.h src/mem.h src/residency.h src/edraw.h src/save.h src/startmenu.h src/tiles.h src/title.h src/hard.h src/fade.h src/audio.h
+
+build/logsync.$(DINK_LOG_SYNC).stamp: | build
+	rm -f build/logsync.*.stamp
+	touch $@
+
+src/fs.o: build/logsync.$(DINK_LOG_SYNC).stamp
 
 $(TARGET): $(OBJS) | build
 	kos-cc -o $@ $(OBJS)

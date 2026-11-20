@@ -33,6 +33,7 @@ docker run --rm \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp \
     -e DINK_DATA=/dink \
+    -e DINK_LOG_SYNC="${DINK_LOG_SYNC:-0}" \
     -v "$ROOT:/src" \
     -v "$DATA:/dink:ro" \
     -w /src \
