@@ -259,6 +259,33 @@ unsigned sprite_pvr_free_gen(void)
     return g_pvr_free_gen;
 }
 
+static size_t (*g_vram_avail_fn)(void);
+
+void sprite_set_vram_avail(size_t (*fn)(void))
+{
+    g_vram_avail_fn = fn;
+}
+
+size_t sprite_vram_avail(void)
+{
+    if (g_vram_avail_fn != NULL) {
+        return g_vram_avail_fn();
+    }
+#ifdef _arch_dreamcast
+    return (size_t)pvr_mem_available();
+#else
+    return (size_t)-1; /* host: no PVR; only the free gen gates retries */
+#endif
+}
+
+int sprite_vram_retry_ok(size_t need, unsigned gen_at_refuse)
+{
+    /* Total free is not the largest block (fragmentation), so also require
+     * that something was freed since the refusal: bounded retries. */
+    return sprite_pvr_free_gen() != gen_at_refuse &&
+           sprite_vram_avail() >= need;
+}
+
 void sprite_evict_pvr(struct SpriteFrame *f)
 {
     if (f != NULL && f->tex != NULL) {

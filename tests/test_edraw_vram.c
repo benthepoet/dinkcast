@@ -61,8 +61,16 @@ static int fake_upload(struct SpriteFrame *f)
     return 0;
 }
 
-static size_t fake_relief(void)
+static size_t fake_avail(void)
 {
+    size_t u = vram_used();
+
+    return u >= g_budget ? 0u : g_budget - u;
+}
+
+static size_t fake_relief(size_t need)
+{
+    (void)need;
     g_relief_calls++;
     g_budget += g_relief_give;
     return g_relief_give;
@@ -152,6 +160,7 @@ int main(void)
     CHECK(edraw_find(g, n, 351, 2) == NULL && edraw_find(g, n, 353, 2) == NULL);
 
     edraw_set_upload(fake_upload);
+    sprite_set_vram_avail(fake_avail);
     upload_all(seqs);
     for (i = 0; i < n; i++) {
         CHECK(g[i].fr.tex != NULL && g[i].fr.argb1555 == NULL);
@@ -235,6 +244,52 @@ int main(void)
     CHECK(g_relief_calls == 2); /* asked once, gave nothing, refused */
     edraw_set_vram_relief(NULL);
 
+    /* 5. Victims that cannot cover the need are not evicted (no emptying
+     *    the screen for a frame that is refused anyway); edraw_vram_room
+     *    frees least recently drawn first and only when it can cover. */
+    {
+        int a = -1, b = -1, before;
+
+        touch_all(seqs);
+        /* Two innwalls frames go unlive on different ticks: a older. */
+        for (i = 0; i < n; i++) {
+            if (g[i].seq == 31 && tex_bytes(&g[i].fr) >= 16384u) {
+                if (a < 0) {
+                    a = i;
+                } else if (b < 0) {
+                    b = i;
+                }
+            }
+        }
+        CHECK(a >= 0 && b >= 0);
+        {
+            int as = g[a].seq, af = g[a].frame, bs = g[b].seq, bf = g[b].frame;
+
+            edraw_live_begin(g, n, seqs); /* tick T: b drawn, a not */
+            for (i = 0; i < n; i++) {
+                if (i != a) {
+                    edraw_live_touch(g, n, g[i].seq, g[i].frame);
+                }
+            }
+            edraw_live_begin(g, n, seqs); /* tick T+1: neither drawn */
+            for (i = 0; i < n; i++) {
+                if (!(g[i].seq == as && g[i].frame == af) &&
+                    !(g[i].seq == bs && g[i].frame == bf)) {
+                    edraw_live_touch(g, n, g[i].seq, g[i].frame);
+                }
+            }
+            g_budget = vram_used();
+            before = n;
+            CHECK(edraw_vram_room(g, &n, seqs, (size_t)1 << 24) == 0);
+            CHECK(n == before); /* cannot cover: nothing freed */
+            CHECK(edraw_vram_room(g, &n, seqs, 1u) > 0);
+            CHECK(n == before - 1);
+            CHECK(edraw_find(g, n, as, af) == NULL); /* older went first */
+            CHECK(edraw_find(g, n, bs, bf) != NULL);
+        }
+    }
+
+    sprite_set_vram_avail(NULL);
     edraw_set_upload(NULL);
     edraw_free(g, n);
     free(seqs);

@@ -40,6 +40,7 @@ static const struct PsprOps g_default_ops = {
     default_upload,
     sprite_frame_free,
     sprite_pvr_free_gen,
+    sprite_vram_avail,
 };
 static const struct PsprOps *g_ops = &g_default_ops;
 
@@ -47,32 +48,47 @@ static const struct PsprOps *g_ops = &g_default_ops;
 static int g_ref_seq[DINK_PSPR_REFUSE];
 static int g_ref_fr[DINK_PSPR_REFUSE];
 static unsigned g_ref_gen[DINK_PSPR_REFUSE];
+static size_t g_ref_need[DINK_PSPR_REFUSE];
 static int g_nref, g_ref_next;
+static size_t (*g_relief)(size_t need);
 
 static unsigned vram_gen(void)
 {
     return g_ops->vram_gen != NULL ? g_ops->vram_gen() : 0u;
 }
 
+static size_t vram_avail(void)
+{
+    return g_ops->vram_avail != NULL ? g_ops->vram_avail() : (size_t)-1;
+}
+
+void pspr_set_vram_relief(size_t (*fn)(size_t need))
+{
+    g_relief = fn;
+}
+
+/* 1 = still refused: nothing freed since, or not enough VRAM free. */
 static int refused(int seq, int frame)
 {
     int i;
 
     for (i = 0; i < g_nref; i++) {
         if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
-            return g_ref_gen[i] == vram_gen();
+            return g_ref_gen[i] == vram_gen() ||
+                   vram_avail() < g_ref_need[i];
         }
     }
     return 0;
 }
 
-static void refuse_note(int seq, int frame)
+static void refuse_note(int seq, int frame, size_t need)
 {
     int i;
 
     for (i = 0; i < g_nref; i++) {
         if (g_ref_seq[i] == seq && g_ref_fr[i] == frame) {
             g_ref_gen[i] = vram_gen();
+            g_ref_need[i] = need;
             return;
         }
     }
@@ -85,6 +101,7 @@ static void refuse_note(int seq, int frame)
     g_ref_seq[i] = seq;
     g_ref_fr[i] = frame;
     g_ref_gen[i] = vram_gen();
+    g_ref_need[i] = need;
 }
 
 
@@ -187,20 +204,32 @@ struct SpriteFrame *pspr_get(struct SeqInfo *seqs, int seq, int frame)
     s->bytes = frame_bytes(&fr);
     s->fr = fr;
     g_bytes += s->bytes;
-    /* Out of VRAM: give back other Dink frames, oldest first. */
-    while (g_ops->upload(&s->fr) != 0) {
-        int v = victim(seq);
+    /* Out of VRAM: give back other Dink frames, oldest first; then ask
+     * the screen (non-live edraw textures) once; then refuse. */
+    {
+        int relief = 0;
 
-        if (v < 0 || v == slot) {
-            /* Keep drawing the last good frame; do not hold CPU pixels
-             * that no pool counts. */
+        while (g_ops->upload(&s->fr) != 0) {
+            int v = victim(seq);
+
+            if (v >= 0 && v != slot) {
+                evict(v, seq, "vram");
+                continue;
+            }
+            if (!relief && g_relief != NULL && g_relief(s->bytes) > 0) {
+                relief = 1;
+                continue;
+            }
             printf("mem refuse pool=sprite_tex dink seq=%d fr=%d bytes=%u\n",
                    seq, frame, (unsigned)s->bytes);
-            slot_free(slot);
-            refuse_note(seq, frame);
+            {
+                size_t need = s->bytes;
+
+                slot_free(slot);
+                refuse_note(seq, frame, need);
+            }
             return NULL;
         }
-        evict(v, seq, "vram");
     }
     g_last = slot;
     for (i = 0; i < DINK_PSPR_SLOTS; i++) {
@@ -253,6 +282,24 @@ size_t pspr_trim(void)
         }
     }
     return before - g_bytes;
+}
+
+size_t pspr_trim_for(size_t need)
+{
+    size_t can = 0;
+    int keep = g_last >= 0 ? g_slot[g_last].seq : 0;
+    int i;
+
+    for (i = 0; i < DINK_PSPR_SLOTS; i++) {
+        if (g_slot[i].seq != 0 && i != g_last &&
+            (g_slot[i].seq != keep || g_slot[i].stale)) {
+            can += g_slot[i].bytes;
+        }
+    }
+    if (vram_avail() >= need || vram_avail() + can < need) {
+        return 0; /* not needed, or would not be enough */
+    }
+    return pspr_trim();
 }
 
 void pspr_clear(void)

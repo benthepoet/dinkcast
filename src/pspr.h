@@ -27,6 +27,7 @@ struct PsprOps {
     int (*upload)(struct SpriteFrame *f); /* 0 ok; DC drops CPU after */
     void (*free_frame)(struct SpriteFrame *f);
     unsigned (*vram_gen)(void); /* sprite_pvr_free_gen: bumps on any free */
+    size_t (*vram_avail)(void); /* sprite_vram_avail */
 };
 
 /* Tests only. NULL restores sprite_load_seq_frame / PVR upload / free. */
@@ -48,9 +49,15 @@ void pspr_forget_seq(int seq);
 /* Changes on forget: the caller re-gets even if seq/frame did not change. */
 unsigned pspr_gen(void);
 
-/* Screen swap / VRAM relief: free every frame except the current seq's.
- * GPU must be idle. Returns bytes freed. */
+/* Screen swap: free every frame except the current seq's (and the drawn
+ * one). GPU must be idle. Returns bytes freed. */
 size_t pspr_trim(void);
+/* edraw relief: pspr_trim only if VRAM is short of need and the trim
+ * would cover it. */
+size_t pspr_trim_for(size_t need);
+/* Before refusing a Dink frame for VRAM: fn(need) frees other users'
+ * VRAM (edraw_vram_room: non-live Screen textures), once. */
+void pspr_set_vram_relief(size_t (*fn)(size_t need));
 
 /* Free every frame. GPU must be idle. */
 void pspr_clear(void);

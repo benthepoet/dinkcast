@@ -252,7 +252,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-19 | Catalog `sp_base_attack` all dirs (bar guard seq 728) | #152 |
 | 2026-11-19 | Playtest Open (2026-09-07 log): `is_script_attached`, `sp_sound`, bar blood skip, 31/458/725 | #152 |
 | 2026-11-19 | Dink frames kept (`pspr`): walk/idle no longer re-read, decode and upload on every frame change (`ioplay` 723 reloads, 4.1 s on Flycast). Plan 8.3 256 KB facing set; current seq never evicted; other Dink seqs LRU over cap or on VRAM fail | #154 |
-| 2026-11-20 | 14.4c `sprite_tex`: upload out of VRAM frees non-live Screen tex (cached pack, largest first), then Dink other seqs, then `mem refuse pool=sprite_tex` remembered until a tex is freed (bar fight 2026-11-19: 434 `pvr_mem`, seq 724 reloaded 68×, Dink 99 refusals). Replaces #153 | this PR |
+| 2026-11-20 | 14.4c `sprite_tex`: upload out of VRAM frees non-live Screen tex (cached pack, largest first), least recently drawn first, then Dink other seqs (and Dink asks edraw), then `mem refuse pool=sprite_tex` remembered until a tex is freed and VRAM covers it (bar fight 2026-11-19: 434 `pvr_mem`, seq 724 reloaded 68×, Dink 99 refusals). Replaces #153 | #155 |
 
 ## Bites
 
@@ -300,7 +300,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 14.1–14.2 | Edge + warp swap | source | no fade; `loc==0` clamp; `parm_seq` wait #71 |
 | 14.3 | Leak check 20 crossings | source | host ping-pong 439↔441; `file_blob`/`always`/`ts_rgb` ≤ 4 KB after warm; `swap_ms` (Flycast may be ~0). Hardware delay is ODE/burn |
 | 14.4 | Residency catalog + policy | source | spec #79. **14.4a** #81. **14.4b** packs #82. **14.4c** pixels #90. Tilesheet slurp uses the same Prev `dir.ff` drop as packs (376 `ts41` after 408) |
-| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). DC Screen drops CPU after PVR so unused loop frames do not refuse. Flycast punch still the human check. VRAM (`sprite_tex`) victims: non-live Screen tex with a cached pack, then Dink other seqs; refuse is remembered until a tex frees (this PR) |
+| 14.4c | Pixel working set | source | Always/Screen/Sticky victims; `cpu_pixels` bytes not 96 slots. Host: Ethel 117/123 + full-table ensure. Enter-path remakes Screen live before `create_sprite` `load_frame` (439 crowd). Brain 6 is current+next (not `nfr`; house vis 1 161). DC Screen drops CPU after PVR so unused loop frames do not refuse. Flycast punch still the human check. VRAM (`sprite_tex`) victims: non-live Screen tex with a cached pack, then Dink other seqs; refuse is remembered until a tex frees and VRAM covers it (#155) |
 | 14.5 | Distill frames (gated) | source | campaign used-frame union on disc (#84–#86). Heavy-screen `file_blob` over cap until **14.6** |
 | 14.6 | Per-frame `dir.ff` reads | source | Enter-path TOC + `FILE*`; `file_blob` charges `ff_toc_bytes` not the pack. Play-path `SEEK_SET` / skip, no `fopen`. Catalog charges TOC |
 | 15.1 | Brains | source | `update_frame` switch; all 0–17 motion; #65 |
