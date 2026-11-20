@@ -51,7 +51,9 @@ int main(void)
     static const int sz[][2] = {{8, 8},     {16, 8},    {8, 16},
                                 {64, 64},   {256, 256}, {128, 512},
                                 {512, 128}, {64, 1024}, {1024, 512},
-                                {512, 512}, {32, 256}};
+                                {512, 512}, {32, 256},  {8, 1024},
+                                {1024, 8},  {1024, 1024}, {256, 8},
+                                {8, 256}};
     int i, fails = 0;
 
     srand(1234);
@@ -68,7 +70,8 @@ int main(void)
         }
         ref_8bpp(s8, a, (uint32_t)w, (uint32_t)h);
         twiddle_8bpp(s8, b, w, h);
-        if (memcmp(a, b, n) != 0) { /* 8bpp: n bytes = n/2 words */
+        /* Whole buffer: a stray write past the texture also fails. */
+        if (memcmp(a, b, n * 2) != 0) {
             printf("FAIL 8bpp %dx%d\n", w, h);
             fails++;
         }
@@ -86,6 +89,11 @@ int main(void)
         free(b);
     }
     if (fails) {
+        return 1;
+    }
+    if (twiddle_size_ok(2048, 8) || twiddle_size_ok(8, 4) ||
+        !twiddle_size_ok(1024, 8) || twiddle_size_ok(24, 8)) {
+        printf("FAIL twiddle_size_ok\n");
         return 1;
     }
     printf("OK test_twiddle (%d sizes, 8bpp + 16bpp match KOS)\n", i);

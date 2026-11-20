@@ -456,6 +456,12 @@ static void sprite_twiddle_load(const struct SpriteFrame *f, pvr_ptr_t tex)
     uint16_t *dst = bytes <= sizeof(g_twid_scratch) ? g_twid_scratch
                                                      : (uint16_t *)tex;
 
+    if (!twiddle_size_ok(f->tw, f->th)) { /* > 1024 (a D-Mod): KOS loop */
+        pvr_txr_load_ex(pal ? (const void *)f->pal8 : (const void *)f->argb1555,
+                        tex, f->tw, f->th,
+                        pal ? PVR_TXRLOAD_8BPP : PVR_TXRLOAD_16BPP);
+        return;
+    }
     if (pal) {
         twiddle_8bpp(f->pal8, dst, f->tw, f->th);
     } else {

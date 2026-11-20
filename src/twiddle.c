@@ -31,6 +31,12 @@ static int log2i(int v)
     return s;
 }
 
+int twiddle_size_ok(int w, int h)
+{
+    return w >= 8 && h >= 8 && w <= 1024 && h <= 1024 && (w & (w - 1)) == 0 &&
+           (h & (h - 1)) == 0;
+}
+
 void twiddle_16bpp(const uint16_t *src, uint16_t *dst, int w, int h)
 {
     int min = w < h ? w : h, mask = min - 1, sh = log2i(min);
