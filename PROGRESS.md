@@ -261,6 +261,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | PAL8 tile atlas: tilesheets on the main palette cache as 8-bit (half `ts_rgb`), the atlas is 256 KB PAL8 BSS (was 512 KB RGB565) uploaded twiddled and drawn with palette bank 1 (opaque); an off-palette sheet converts the atlas to RGB565 | #161 |
 | 2026-11-20 | Animation lookahead: after the tick's draws, load the next one or two frames of animating sprites and Dink while the tick is under 6 ms (max 2 per tick), spare room only (no eviction, no refusal memo; failed prefetch remembered until a tex frees). `ioplay frame who=prefetch` / `prefetch-dink` | #162 |
 | 2026-11-20 | START Continue slot choice calls `audio_music_poll` each frame so `1003.mid` does not loop the AICA 16 KiB slice | #165 |
+| 2026-11-20 | Damage numbers use the bitmap box (`w/5`, `h/3`) from FreeDink `draw_damage`, not the hardbox | this PR |
 | 2026-11-20 | `load_game` stops the music stream before the slot is applied (FreeDink `StopMidi`). `music==0` no longer keeps START `1003.mid` across the loaded screen | #166 |
 | 2026-11-20 | Inventory open polls the music stream between seq 423 frame loads. Overlay uploads only pump the AICA from RAM | #167 |
 | 2026-11-20 | Save open/read/write pumps the music stream (Continue, `&savegameinfo`, save and load) | #170 |

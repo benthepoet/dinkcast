@@ -20,6 +20,18 @@ static int g_hit_slot;
 static int g_hit_from;
 static int *g_missile_dmg;
 
+static int frame_box_80x90(int seq, int frame, int *w, int *h, int *cx, int *cy)
+{
+    if (seq != 40 || frame != 1) {
+        return 0;
+    }
+    *w = 80;
+    *h = 90;
+    *cx = 35;
+    *cy = 80;
+    return 1;
+}
+
 static int on_missile_damage(int slot, const char *proc)
 {
     if (proc == NULL || strcmp(proc, "DAMAGE") != 0) {
@@ -540,6 +552,29 @@ int main(void)
                "push seq");
     }
     hard_mask_free(&mask);
+
+    /* FreeDink draw_damage: bitmap box, not the hardbox. 80x90, offset 35,80. */
+    {
+        int slot, i, fx = 0, fy = 0, fnum = 0, saw = 0;
+
+        brains_reset();
+        brains_bind_screen(NULL);
+        brains_bind_frame_box(frame_box_80x90);
+        slot = brains_create(200, 200, 16, 40, 1);
+        expect(slot > 1, "floater host");
+        expect(brains_hurt(slot, 5) == 5, "floater damage");
+        brains_draw_damage(slot, NULL);
+        for (i = 2; i <= 99; i++) {
+            if (brains_floater_num(i, &fx, &fy, &fnum)) {
+                saw = 1;
+                break;
+            }
+        }
+        expect(saw && fnum == 5, "floater 5");
+        expect(fx == 200 - 35 + 80 / 5, "floater x bitmap/5");
+        expect(fy == 200 - 80 - 90 / 3, "floater y bitmap/3");
+        brains_bind_frame_box(NULL);
+    }
 
     printf("OK test_hurt\n");
     return 0;

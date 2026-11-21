@@ -75,6 +75,9 @@ int brains_slot_disabled(int slot);
 int brains_slot_nodraw(int slot);
 /* brain 8 hit/exp floater. 1 if this slot should draw a number. */
 int brains_floater_num(int slot, int *x, int *y, int *num);
+/* FreeDink k[frame].box and xoffset/yoffset. 1 if the bitmap is known. */
+void brains_bind_frame_box(int (*fn)(int seq, int frame, int *w, int *h,
+                                      int *cx, int *cy));
 /* FreeDink draw_damage / random_blood. */
 void brains_draw_damage(int slot, const struct SeqInfo *seqs);
 void brains_random_blood(int mx, int my, int sprite);
