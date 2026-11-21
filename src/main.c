@@ -1238,6 +1238,7 @@ int main(int argc, char **argv)
                 player_bind_damage_draw(on_dink_damage);
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
+                saybox_bind_alive(script_sprite_alive);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
                 mem_vram_note("pre-font");
@@ -1505,17 +1506,14 @@ int main(int argc, char **argv)
                         inv_tick(prev_buttons, buttons, now_ms);
                     } else if (have && pl.freeze != 0 && pl.nocontrol == 0 &&
                                !dinkc_vm_waiting_choice() &&
-                               dinkc_vm_last_talk() &&
+                               dinkc_vm_talk_script() &&
                                pad_just_pressed(prev_buttons, buttons,
                                                 DINK_PAD_A)) {
                         /* FreeDink human_brain: nocontrol returns first, a
                          * choice wins, then ACTION_TALK while frozen kills
                          * play.last_talk's text only. Unfrozen A is talk.
                          * B is attack; say_stop_npc does not set last_talk. */
-                        dinkc_vm_advance_last_talk();
-                        if (!dinkc_vm_waiting_say()) {
-                            saybox_clear();
-                        }
+                        dinkc_vm_press_talk(now_ms);
                     } else if (have && dinkc_vm_waiting_choice()) {
                         if (pad_just_pressed(prev_buttons, buttons,
                                              DINK_PAD_UP) ||
@@ -1613,6 +1611,18 @@ int main(int argc, char **argv)
                             saybox_set(magic_miss_line((rand() % 6) + 1), 1);
                         }
                     }
+                    if (have && (pad_just_pressed(prev_buttons, buttons,
+                                                  DINK_PAD_A) ||
+                                 pad_just_pressed(prev_buttons, buttons,
+                                                  DINK_PAD_B) ||
+                                 pad_just_pressed(prev_buttons, buttons,
+                                                  DINK_PAD_X) ||
+                                 pad_just_pressed(prev_buttons, buttons,
+                                                  DINK_PAD_Y) ||
+                                 pad_just_pressed(prev_buttons, buttons,
+                                                  DINK_PAD_START))) {
+                        dinkc_vm_advance_button();
+                    }
                     prev_buttons = have ? buttons : 0;
                     if (dinkc_var_get("&update_status", DINKC_GLOBAL_SCOPE, 1) ==
                         1) {
@@ -1629,13 +1639,8 @@ int main(int argc, char **argv)
                     }
                     /* Stopped game: no say timeout, no thaw (FreeDink
                      * update_frame returns before text sprites run). */
-                    if (!frozen && saybox_tick(now_ms)) {
-                        int ei, en = saybox_expired_n();
-
-                        for (ei = 0; ei < en; ei++) {
-                            dinkc_vm_advance_say_fiber(
-                                saybox_expired_fiber(ei));
-                        }
+                    if (!frozen) {
+                        dinkc_vm_pump_say(now_ms);
                     }
                     if (!frozen) {
                         dinkc_cmd_thaw_if_idle();

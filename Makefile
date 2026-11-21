@@ -91,8 +91,8 @@ tests/test_font: tests/test_font.c src/font.c src/font.h src/font_glyphs.inc
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_font.c src/font.c
 	./$@
 
-tests/test_saybox: tests/test_saybox.c src/saybox.c src/font.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_saybox.c src/saybox.c src/font.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c
+tests/test_saybox: tests/test_saybox.c src/saybox.c src/font.c src/fade.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_saybox.c src/saybox.c src/font.c src/fade.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c
 	./$@
 
 tests/test_choice: tests/test_choice.c src/choice.c src/font.c src/sprite.c src/ini.c src/ff.c src/bmp.c src/le.c src/fs.c src/residency.c

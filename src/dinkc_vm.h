@@ -21,6 +21,7 @@ enum DinkcState {
     DINKC_WAIT_EXT,
     DINKC_WAIT_BMP,
     DINKC_WAIT_FADE,
+    DINKC_WAIT_BUTTON, /* wait_for_button */
     DINKC_IDLE /* armed item script: ARM finished, USE/DISARM still locate */
 };
 
@@ -81,10 +82,16 @@ void dinkc_vm_tick(int now_ms);
 void dinkc_vm_note_last_talk(int fiber);
 int dinkc_vm_last_talk(void);
 void dinkc_vm_advance_say(void);
-/* Resume one say_stop fiber. 0 if that slot is not waiting. */
+/* Resume one say_stop fiber if it is still waiting on a line. */
 void dinkc_vm_advance_say_fiber(int slot);
-/* FreeDink ACTION_TALK: only play.last_talk, not say_stop_npc. */
-void dinkc_vm_advance_last_talk(void);
+/* saybox_tick then resume only the fibers whose lines expired. */
+void dinkc_vm_pump_say(int now_ms);
+/* ACTION_TALK: expire every line this script created, then pump. */
+void dinkc_vm_press_talk(int now_ms);
+/* 1 if play.last_talk's script is still alive (not only while WAIT_SAY). */
+int dinkc_vm_talk_script(void);
+/* wait_for_button. */
+void dinkc_vm_advance_button(void);
 int dinkc_vm_waiting_say(void);
 void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);

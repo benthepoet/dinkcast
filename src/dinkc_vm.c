@@ -704,6 +704,8 @@ static void fiber_kill(struct Fiber *f)
     int i, slot;
 
     slot = (int)(f - g_f);
+    /* The line stays. Its callback must not resume whoever reuses the slot. */
+    saybox_forget_script(slot);
     if (g_last_talk == slot) {
         g_last_talk = 0;
     }
@@ -871,6 +873,8 @@ static void run_fiber_body(struct Fiber *f, int now_ms)
                 g_ch_n = 0;
                 g_ch_owner = 0;
                 choice_meta_clear();
+                /* dinkc.cpp choice_start: kill_text_owned_by(1). */
+                saybox_kill_owner(1);
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
                     int ok = 1;
@@ -991,6 +995,11 @@ static void run_fiber_body(struct Fiber *f, int now_ms)
                 if (yld == 1) {
                     f->state = DINKC_WAIT_SAY;
                     printf("dinkc yield say\n");
+                    return;
+                }
+                if (yld == 8) {
+                    f->state = DINKC_WAIT_BUTTON;
+                    printf("dinkc yield button\n");
                     return;
                 }
                 if (yld == 6) {
@@ -1600,14 +1609,6 @@ int dinkc_vm_last_talk(void)
     return i;
 }
 
-static void finish_talk(int slot)
-{
-    if (g_last_talk == slot &&
-        (!g_f[slot].used || g_f[slot].state != DINKC_WAIT_SAY)) {
-        g_last_talk = 0;
-    }
-}
-
 void dinkc_vm_advance_say_fiber(int slot)
 {
     if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used ||
@@ -1615,7 +1616,6 @@ void dinkc_vm_advance_say_fiber(int slot)
         return;
     }
     run_fiber(&g_f[slot], g_f[slot].wait_until);
-    finish_talk(slot);
 }
 
 void dinkc_vm_advance_say(void)
@@ -1625,22 +1625,53 @@ void dinkc_vm_advance_say(void)
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_SAY) {
             run_fiber(&g_f[i], g_f[i].wait_until);
-            finish_talk(i);
         }
     }
 }
 
-void dinkc_vm_advance_last_talk(void)
+void dinkc_vm_pump_say(int now_ms)
 {
-    int i = dinkc_vm_last_talk();
+    int ei, en;
 
-    /* Drop the bubble before the script can say the next line. */
-    (void)saybox_dismiss_talk();
-    if (i < 1) {
+    if (!saybox_tick(now_ms)) {
         return;
     }
-    run_fiber(&g_f[i], g_f[i].wait_until);
-    finish_talk(i);
+    en = saybox_expired_n();
+    for (ei = 0; ei < en; ei++) {
+        dinkc_vm_advance_say_fiber(saybox_expired_fiber(ei));
+    }
+}
+
+int dinkc_vm_talk_script(void)
+{
+    int i = g_last_talk;
+
+    if (i < 1 || i > DINKC_MAX_LIVE || !g_f[i].used) {
+        return 0;
+    }
+    return i;
+}
+
+void dinkc_vm_press_talk(int now_ms)
+{
+    int script = dinkc_vm_talk_script();
+
+    if (script < 1) {
+        return;
+    }
+    saybox_expire_script(script, now_ms);
+    dinkc_vm_pump_say(now_ms);
+}
+
+void dinkc_vm_advance_button(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BUTTON) {
+            run_fiber(&g_f[i], g_f[i].wait_until);
+        }
+    }
 }
 
 int dinkc_vm_waiting_say(void)

@@ -69,7 +69,7 @@ int main(void)
                                             (n1 * DINK_FONT_CELL) / 2,
                "hcenter wrap line 1");
     }
-    saybox_set("hi", 0);
+    saybox_set("hi", 1);
     expect(saybox_x() == 334 - DINK_SAY_XOFF, "sprite 0 is Dink");
     /* print_text_wrap hcenter: box left + 150/2 - line_w/2. "hi" is 16px. */
     expect(saybox_line_x("hi") == (334 - DINK_SAY_XOFF) + DINK_SAY_BOX_W / 2 -

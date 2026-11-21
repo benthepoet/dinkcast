@@ -1017,7 +1017,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
             printf("say %s\n", line);
             if (is_cmd(name, "say")) {
-                saybox_set(line, spr);
+                saybox_set_from(line, spr, g_fiber);
             } else if (!saybox_stop(line, spr, g_fiber,
                                     is_cmd(name, "say_stop_npc"))) {
                 /* say_stop_npc while this sprite is already talking. */
@@ -1046,7 +1046,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
             printf("say_xy %s %d %d\n", line, x, y);
             saybox_clear_callback(g_fiber);
-            saybox_set_xy(line, x, y);
+            saybox_set_xy_from(line, x, y, g_fiber);
         }
         return 1;
     }
@@ -1268,7 +1268,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "wait_for_button")) {
         printf("wait_for_button\n");
         if (yield != NULL) {
-            *yield = 1;
+            *yield = 8;
         }
         return 1;
     }
@@ -1373,7 +1373,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             g_restart();
         }
         if (yield != NULL) {
-            *yield = 1;
+            *yield = 3;
         }
         return 1;
     }
@@ -1449,7 +1449,8 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             *ret = 0;
         }
         if (yield != NULL) {
-            *yield = 1;
+            /* FreeDink: kill_cur_item stops the script. */
+            *yield = 3;
         }
         return 1;
     }
