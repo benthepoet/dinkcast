@@ -1238,6 +1238,7 @@ int main(int argc, char **argv)
                 player_bind_damage_draw(on_dink_damage);
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
+                saybox_bind_alive(script_sprite_alive);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
                 mem_vram_note("pre-font");
@@ -1357,7 +1358,7 @@ int main(int argc, char **argv)
                     startpause_reset();
                     for (;;) {
                         uint32_t buttons = 0;
-                        int have, pdir, paused, frozen = 0;
+                        int have, pdir, paused, frozen = 0, say_a = 0;
 
                         /* Diagnostic: menu/restart/swap are not play-path
                          * until the gameplay section below; print last
@@ -1476,6 +1477,12 @@ int main(int argc, char **argv)
                     audio_music_poll();
                     have = (pad_poll_port0(&buttons) == 0);
                     paused = startpause_open();
+                    /* wait_for_button eats the edge (sjoy.button = 0)
+                     * before talk, attack, or the menus see it. */
+                    if (have && dinkc_vm_eat_button((unsigned)prev_buttons,
+                                                    (unsigned)buttons)) {
+                        prev_buttons = buttons;
+                    }
                     if (have && status_map_active()) {
 #ifdef _arch_dreamcast
                         (void)status_upload_pvr();
@@ -1505,17 +1512,15 @@ int main(int argc, char **argv)
                         inv_tick(prev_buttons, buttons, now_ms);
                     } else if (have && pl.freeze != 0 && pl.nocontrol == 0 &&
                                !dinkc_vm_waiting_choice() &&
-                               dinkc_vm_last_talk() &&
+                               dinkc_vm_talk_script() &&
                                pad_just_pressed(prev_buttons, buttons,
                                                 DINK_PAD_A)) {
                         /* FreeDink human_brain: nocontrol returns first, a
                          * choice wins, then ACTION_TALK while frozen kills
                          * play.last_talk's text only. Unfrozen A is talk.
                          * B is attack; say_stop_npc does not set last_talk. */
-                        dinkc_vm_advance_last_talk();
-                        if (!dinkc_vm_waiting_say()) {
-                            saybox_clear();
-                        }
+                        dinkc_vm_press_talk(now_ms);
+                        say_a = 1;
                     } else if (have && dinkc_vm_waiting_choice()) {
                         if (pad_just_pressed(prev_buttons, buttons,
                                              DINK_PAD_UP) ||
@@ -1627,11 +1632,10 @@ int main(int argc, char **argv)
                     if (!frozen) {
                         dinkc_vm_tick(now_ms);
                     }
-                    /* Stopped game: no say timeout, no thaw (FreeDink
-                     * update_frame returns before text sprites run). */
-                    if (!frozen && saybox_tick(now_ms) &&
-                        dinkc_vm_waiting_say()) {
-                        dinkc_vm_advance_say();
+                    /* One saybox_tick this frame. Frozen play skips the
+                     * timer, except the A press that just expired lines. */
+                    if (!frozen || say_a) {
+                        dinkc_vm_pump_say(now_ms);
                     }
                     if (!frozen) {
                         dinkc_cmd_thaw_if_idle();

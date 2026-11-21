@@ -69,7 +69,7 @@ int main(void)
                                             (n1 * DINK_FONT_CELL) / 2,
                "hcenter wrap line 1");
     }
-    saybox_set("hi", 0);
+    saybox_set("hi", 1);
     expect(saybox_x() == 334 - DINK_SAY_XOFF, "sprite 0 is Dink");
     /* print_text_wrap hcenter: box left + 150/2 - line_w/2. "hi" is 16px. */
     expect(saybox_line_x("hi") == (334 - DINK_SAY_XOFF) + DINK_SAY_BOX_W / 2 -
@@ -176,8 +176,13 @@ int main(void)
     expect(saybox_tick(100) == 0 && saybox_active(), "ethel start");
     expect(saybox_tick(100 + DINK_SAY_TEXT_MIN) == 0 && saybox_active(),
            "ethel not yet");
-    expect(saybox_tick(100 + DINK_SAY_TEXT_MIN + 1) == 1 && !saybox_active(),
-           "ethel expire");
+    /* The say_xy line is another text sprite. Ethel expiring does not
+     * clear it (FreeDink kill is per sprite). */
+    expect(saybox_tick(100 + DINK_SAY_TEXT_MIN + 1) == 1 && saybox_active(),
+           "ethel expire leaves say_xy");
+    expect(strcmp(saybox_text(),
+                  "Try loading a saved game that exists, friend.") == 0,
+           "say_xy still up");
     printf("OK test_saybox\n");
     return 0;
 }

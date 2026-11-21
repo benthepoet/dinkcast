@@ -2,7 +2,9 @@
 #include "dinkc_vm.h"
 
 #include "choice.h"
+#include "pad.h"
 #include "dinkc_cmd.h"
+#include "saybox.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
 #include "fade.h"
@@ -703,6 +705,8 @@ static void fiber_kill(struct Fiber *f)
     int i, slot;
 
     slot = (int)(f - g_f);
+    /* The line stays. Its callback must not resume whoever reuses the slot. */
+    saybox_forget_script(slot);
     if (g_last_talk == slot) {
         g_last_talk = 0;
     }
@@ -870,6 +874,8 @@ static void run_fiber_body(struct Fiber *f, int now_ms)
                 g_ch_n = 0;
                 g_ch_owner = 0;
                 choice_meta_clear();
+                /* dinkc.cpp choice_start: kill_text_owned_by(1). */
+                saybox_kill_owner(1);
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
                     int ok = 1;
@@ -990,6 +996,11 @@ static void run_fiber_body(struct Fiber *f, int now_ms)
                 if (yld == 1) {
                     f->state = DINKC_WAIT_SAY;
                     printf("dinkc yield say\n");
+                    return;
+                }
+                if (yld == 8) {
+                    f->state = DINKC_WAIT_BUTTON;
+                    printf("dinkc yield button\n");
                     return;
                 }
                 if (yld == 6) {
@@ -1599,6 +1610,15 @@ int dinkc_vm_last_talk(void)
     return i;
 }
 
+void dinkc_vm_advance_say_fiber(int slot)
+{
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used ||
+        g_f[slot].state != DINKC_WAIT_SAY) {
+        return;
+    }
+    run_fiber(&g_f[slot], g_f[slot].wait_until);
+}
+
 void dinkc_vm_advance_say(void)
 {
     int i;
@@ -1610,17 +1630,126 @@ void dinkc_vm_advance_say(void)
     }
 }
 
-void dinkc_vm_advance_last_talk(void)
+void dinkc_vm_pump_say(int now_ms)
 {
-    int i = dinkc_vm_last_talk();
+    int ei, en;
 
-    if (i < 1) {
+    if (!saybox_tick(now_ms)) {
         return;
     }
-    run_fiber(&g_f[i], g_f[i].wait_until);
-    if (!g_f[i].used || g_f[i].state != DINKC_WAIT_SAY) {
-        g_last_talk = 0;
+    en = saybox_expired_n();
+    for (ei = 0; ei < en; ei++) {
+        dinkc_vm_advance_say_fiber(saybox_expired_fiber(ei));
     }
+}
+
+int dinkc_vm_talk_script(void)
+{
+    int i = g_last_talk;
+
+    if (i < 1 || i > DINKC_MAX_LIVE || !g_f[i].used) {
+        return 0;
+    }
+    return i;
+}
+
+void dinkc_vm_press_talk(int now_ms)
+{
+    int script = dinkc_vm_talk_script();
+
+    if (script < 1) {
+        return;
+    }
+    /* Expire only. The frame's single saybox_tick (pump_say) runs
+     * the callbacks. A second tick the same frame would re-enter. */
+    saybox_expire_script(script, now_ms);
+}
+
+static int waiting_button(void)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BUTTON) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* update_frame.cpp wait4b: dirs first, then buttons overwrite.
+ * Last action in that order wins. 0 if nothing new was pressed. */
+static int pad_edge(unsigned prev, unsigned now, unsigned bit)
+{
+    return (now & bit) != 0 && (prev & bit) == 0;
+}
+
+int dinkc_vm_button_code(unsigned prev, unsigned now)
+{
+    int code = 0;
+
+    if (pad_edge(prev, now, DINK_PAD_RIGHT)) {
+        code = 16;
+    }
+    if (pad_edge(prev, now, DINK_PAD_LEFT)) {
+        code = 14;
+    }
+    if (pad_edge(prev, now, DINK_PAD_UP)) {
+        code = 18;
+    }
+    if (pad_edge(prev, now, DINK_PAD_DOWN)) {
+        code = 12;
+    }
+    if (pad_edge(prev, now, DINK_PAD_B)) {
+        code = 1; /* ACTION_ATTACK */
+    }
+    if (pad_edge(prev, now, DINK_PAD_A)) {
+        code = 2; /* ACTION_TALK */
+    }
+    if (pad_edge(prev, now, DINK_PAD_X)) {
+        code = 3; /* ACTION_MAGIC */
+    }
+    if (pad_edge(prev, now, DINK_PAD_Y)) {
+        code = 4; /* ACTION_INVENTORY */
+    }
+    if (pad_edge(prev, now, DINK_PAD_START)) {
+        code = 5; /* ACTION_MENU */
+    }
+    if (pad_edge(prev, now, DINK_PAD_L)) {
+        code = 6; /* ACTION_MAP */
+    }
+    return code;
+}
+
+void dinkc_vm_advance_button(int button)
+{
+    int i;
+
+    if (button == 0) {
+        return;
+    }
+    /* update_frame: *presult = wait4b.button, then run_script. */
+    dinkc_var_set("&result", button, DINKC_GLOBAL_SCOPE, 1);
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BUTTON) {
+            run_fiber(&g_f[i], g_f[i].wait_until);
+        }
+    }
+}
+
+int dinkc_vm_eat_button(unsigned prev, unsigned now)
+{
+    int code;
+
+    if (!waiting_button()) {
+        return 0;
+    }
+    code = dinkc_vm_button_code(prev, now);
+    if (code == 0) {
+        return 0;
+    }
+    dinkc_vm_advance_button(code);
+    return 1;
 }
 
 int dinkc_vm_waiting_say(void)

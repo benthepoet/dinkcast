@@ -6,6 +6,7 @@
 #include "hard.h"
 #include "mapscr.h"
 #include "player.h"
+#include "pad.h"
 #include "saybox.h"
 #include "save.h"
 
@@ -184,7 +185,8 @@ int main(void)
     dinkc_vm_tick(1000);
     expect(dinkc_vm_waiting_say() == 1, "tick does not skip say");
     expect(dinkc_vm_last_talk() == slot, "say_stop last_talk");
-    dinkc_vm_advance_say();
+    dinkc_vm_press_talk(1000);
+    dinkc_vm_pump_say(1000);
     expect(dinkc_vm_live() == 0, "A ends say_stop");
 
     {
@@ -198,10 +200,54 @@ int main(void)
         expect(dinkc_vm_last_talk() == 0, "npc not last_talk");
         expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 9,
                "npc still waiting");
-        dinkc_vm_advance_last_talk();
+        dinkc_vm_press_talk(0);
         expect(dinkc_vm_waiting_say() == 1, "A does not skip npc");
-        dinkc_vm_advance_say();
+        dinkc_vm_pump_say(0);
+        dinkc_vm_pump_say(2701);
         expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 9, "ttl ends npc");
+    }
+
+    {
+        /* Bar: bartender say_stop and S2-MAN2 say_stop_npc are separate
+         * text sprites. Expiring one resumes only that script. */
+        const char *bar =
+            "void main(void) { say_stop(\"I don't much like you.\", 1); "
+            "&gold = 1; }";
+        const char *man =
+            "void main(void) { say_stop_npc(\"`0Fight!!!\", 3); &defense = 1; }";
+        const char *busy =
+            "void main(void) { say(\"hi\", 2); }";
+        const char *again =
+            "void main(void) { say_stop_npc(\"`#My feet hurt..\", 2); "
+            "&magic = 4; }";
+        int nb, ei;
+
+        dinkc_var_init();
+        dinkc_vm_reset();
+        saybox_clear();
+        slot = dinkc_vm_start(bar, strlen(bar), 4);
+        expect(saybox_tick(0) == 0, "arm bartender");
+        nb = dinkc_vm_start(man, strlen(man), 3);
+        expect(nb > 0 && dinkc_vm_waiting_say(), "both talking");
+        expect(saybox_tick(1) == 0, "arm old man");
+        expect(strcmp(saybox_text(), "Fight!!!") == 0, "newest is the old man");
+        dinkc_vm_pump_say(2701);
+        (void)ei;
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "bartender continues");
+        expect(dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1) != 1,
+               "old man still waiting");
+        expect(strcmp(saybox_text(), "Fight!!!") == 0, "his line stays");
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        dinkc_vm_start(busy, strlen(busy), 2);
+        slot = dinkc_vm_start(again, strlen(again), 5);
+        expect(dinkc_vm_live() == 0, "say_stop_npc no-op while sprite talks");
+        expect(dinkc_var_get("&magic", DINKC_GLOBAL_SCOPE, 1) == 4,
+               "wench script continues");
+        expect(strcmp(saybox_text(), "hi") == 0, "first line kept");
     }
 
     {
@@ -215,9 +261,164 @@ int main(void)
         slot = dinkc_vm_start(sxy, strlen(sxy), 1000);
         expect(dinkc_vm_waiting_say() == 1, "say_stop_xy yield");
         expect(dinkc_vm_last_talk() == slot, "say_stop_xy last_talk");
-        dinkc_vm_advance_last_talk();
+        dinkc_vm_press_talk(0);
+        dinkc_vm_pump_say(0);
         expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 11,
                "A skips say_stop_xy");
+    }
+
+    {
+        /* A resumes the talk script. Its next say stays up, and so does
+         * another script's line. */
+        const char *talker =
+            "void main(void) { say_stop(\"Let's play.\", 1); "
+            "say(\"Attack him!\", 2); }";
+        const char *ambient =
+            "void main(void) { say(\"ambient\", 3); }";
+        const char *aside =
+            "void main(void) { say_stop(\"main\", 1); say(\"aside\", 8); "
+            "wait(5000); &gold = 2; }";
+        const char *second =
+            "void main(void) { say_stop(\"two\", 1); &defense = 2; }";
+        const char *first =
+            "void main(void) { say_stop(\"one\", 1); &gold = 6; }";
+        const char *btn =
+            "void main(void) { wait_for_button(); &gold = 4; }";
+        const char *bomb =
+            "void main(void) { kill_cur_item(); &gold = 3; }";
+        const char *die =
+            "void main(void) { say_stop(\"ow\", 5); &gold = 8; }";
+        const char *reuse =
+            "void main(void) { wait_for_button(); &strength = 9; }";
+        int other, i;
+
+        dinkc_var_init();
+        dinkc_vm_reset();
+        saybox_clear();
+        slot = dinkc_vm_start(talker, strlen(talker), 4);
+        dinkc_vm_start(ambient, strlen(ambient), 9);
+        dinkc_vm_press_talk(10);
+        dinkc_vm_pump_say(10);
+        saybox_kill_owner(2);
+        expect(strcmp(saybox_text(), "ambient") == 0, "other line stays");
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(talker, strlen(talker), 4);
+        dinkc_vm_press_talk(10);
+        dinkc_vm_pump_say(10);
+        expect(strcmp(saybox_text(), "Attack him!") == 0, "next say stays");
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(aside, strlen(aside), 4);
+        dinkc_vm_press_talk(10);
+        dinkc_vm_pump_say(10);
+        expect(strcmp(saybox_text(), "aside") == 0, "say after say_stop");
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MS, "then wait");
+        dinkc_vm_press_talk(20);
+        dinkc_vm_pump_say(20);
+        expect(!saybox_active(), "A skips the following say");
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_MS, "wait still running");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 2,
+               "wait not skipped");
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(first, strlen(first), 4);
+        other = dinkc_vm_start(second, strlen(second), 5);
+        expect(strcmp(saybox_text(), "two") == 0, "second say_stop");
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_SAY, "first not resumed");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 6,
+               "killed line has no callback");
+        expect(dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1) != 2,
+               "second still waiting");
+        (void)other;
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(btn, strlen(btn), 1000);
+        expect(dinkc_vm_state(slot) == DINKC_WAIT_BUTTON, "wait_for_button");
+        expect(!dinkc_vm_waiting_say(), "button is not say");
+        expect(dinkc_vm_button_code(0, DINK_PAD_A) == 2, "A is talk");
+        expect(dinkc_vm_eat_button(0, DINK_PAD_A) == 1, "button eats A");
+        expect(dinkc_vm_eat_button(0, DINK_PAD_A) == 0, "edge already taken");
+        expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 2,
+               "result is ACTION_TALK");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 4, "button");
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(bomb, strlen(bomb), 1000);
+        expect(!dinkc_vm_used(slot), "kill_cur_item stops");
+        expect(!dinkc_vm_waiting_say(), "item not waiting say");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 3,
+               "item script stopped");
+
+        /* S3-ST2: say_xy returns the text id, &last_text matches, and
+         * sp_kill(&text, 0) keeps the sign up. */
+        {
+            const char *sign =
+                "void main(void) {\n"
+                "  int &text = say_xy(\"The best in bows\", 18, 23);\n"
+                "  sp_kill(&text, 0);\n"
+                "}\n";
+            int id;
+
+            dinkc_vm_reset();
+            saybox_clear();
+            dinkc_var_init();
+            dinkc_vm_start(sign, strlen(sign), 1000);
+            id = dinkc_var_get("&last_text", DINKC_GLOBAL_SCOPE, 1);
+            expect(id >= 400, "say_xy id");
+            expect(saybox_active(), "sign is up");
+            dinkc_vm_pump_say(0);
+            dinkc_vm_pump_say(100000);
+            expect(saybox_active(), "sp_kill 0 keeps the sign");
+            expect(strcmp(saybox_text(), "The best in bows") == 0, "sign text");
+        }
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        g_dead_spr = 5;
+        saybox_bind_alive(alive_but);
+        slot = dinkc_vm_start(die, strlen(die), 5);
+        dinkc_vm_pump_say(0);
+        expect(!saybox_active(), "dead owner drops the line");
+        expect(dinkc_vm_waiting_say(), "dead owner does not resume");
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) != 8,
+               "no callback on owner death");
+        saybox_bind_alive(NULL);
+        g_dead_spr = 0;
+        (void)slot;
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        slot = dinkc_vm_start(die, strlen(die), 6);
+        dinkc_vm_kill(slot);
+        expect(saybox_active(), "line stays after fiber kill");
+        other = dinkc_vm_start(reuse, strlen(reuse), 6);
+        dinkc_vm_pump_say(0);
+        dinkc_vm_pump_say(2701);
+        expect(dinkc_var_get("&strength", DINKC_GLOBAL_SCOPE, 1) != 9,
+               "old line does not resume the new fiber");
+        (void)other;
+
+        saybox_clear();
+        for (i = 1; i <= 32; i++) {
+            expect(saybox_stop("kept", i + 1, i, 1) == 1, "fill say");
+        }
+        expect(saybox_stop("overflow", 80, 40, 1) == 1, "33rd returns");
+        expect(strcmp(saybox_text(), "overflow") != 0, "33rd refused");
+        saybox_set("screen", 1);
+        saybox_clear();
+        expect(!saybox_active(), "draw_screen clears lines");
     }
 
     {

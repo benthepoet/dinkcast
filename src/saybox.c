@@ -16,13 +16,30 @@
 #include <dc/pvr.h>
 #endif
 
+#define SAY_LINES 32
+
+struct SayLine {
+    int on;
+    int owner;
+    int xy;
+    int x, y;
+    int color;
+    int fiber;  /* say_stop callback; 0 for plain say */
+    int script; /* creating fiber, kept after the callback is cleared */
+    int born;
+    int kill_ttl, kill_start, kill_armed;
+    char text[200];
+};
+
 static const struct MapScreen *g_scr;
 static struct Player *g_pl;
 static int (*g_live_xy)(int slot, int *x, int *y);
-static char g_text[200];
-static int g_on, g_owner, g_x, g_y, g_color;
-static int g_kill_ttl, g_kill_start, g_kill_armed;
-static int g_xy;
+static int (*g_alive)(int slot);
+static int g_born;
+static struct SayLine g_line[SAY_LINES];
+static int g_cur = -1;
+static int g_exp[SAY_LINES];
+static int g_nexp;
 
 /* FreeDink gfx_fonts.cpp gfx_fonts_init_colors. Index 0 unused. */
 static const uint32_t g_font_argb[16] = {
@@ -85,6 +102,11 @@ void saybox_bind_live_xy(int (*fn)(int slot, int *x, int *y))
     g_live_xy = fn;
 }
 
+void saybox_bind_alive(int (*fn)(int slot))
+{
+    g_alive = fn;
+}
+
 static void owner_xy(int sprite, int *x, int *y)
 {
     *x = 100;
@@ -107,36 +129,127 @@ static void owner_xy(int sprite, int *x, int *y)
     }
 }
 
-static int say_box_w(void)
+static void retarget(void);
+
+static struct SayLine *focus(void)
 {
-    if (g_xy) {
+    if (g_cur < 0 || g_cur >= SAY_LINES || !g_line[g_cur].on) {
+        return NULL;
+    }
+    return &g_line[g_cur];
+}
+
+static int say_box_w(const struct SayLine *ln)
+{
+    if (ln->xy) {
         return DINK_SAY_PLAYX;
     }
-    return g_owner == 1000 ? DINK_SAY_PLAYX - 20 : DINK_SAY_BOX_W;
+    return ln->owner == 1000 ? DINK_SAY_PLAYX - 20 : DINK_SAY_BOX_W;
 }
 
 /* text_brain then text_draw rect: owner.x-75, clamp ≥1, then if right
- * edge > 620 shift left. */
-static void saybox_place(void)
+ * edge > 620 shift left. Narrator and say_xy stay where they were born. */
+static void place_line(struct SayLine *ln)
 {
     int ox, oy, boxw;
 
-    if (!g_on || g_owner == 1000) {
+    if (ln == NULL || !ln->on || ln->owner == 1000 || ln->xy) {
         return;
     }
-    owner_xy(g_owner, &ox, &oy);
-    g_x = ox - DINK_SAY_XOFF;
-    g_y = oy - DINK_SAY_YOFF;
-    if (g_x < 1) {
-        g_x = 1;
+    owner_xy(ln->owner, &ox, &oy);
+    ln->x = ox - DINK_SAY_XOFF;
+    ln->y = oy - DINK_SAY_YOFF;
+    if (ln->x < 1) {
+        ln->x = 1;
     }
-    if (g_y < 1) {
-        g_y = 1;
+    if (ln->y < 1) {
+        ln->y = 1;
     }
     boxw = DINK_SAY_BOX_W;
-    if (g_x + boxw > DINK_SAY_PLAYX) {
-        g_x -= (g_x + boxw - DINK_SAY_PLAYX);
+    if (ln->x + boxw > DINK_SAY_PLAYX) {
+        ln->x -= (ln->x + boxw - DINK_SAY_PLAYX);
     }
+}
+
+static void place_all(void)
+{
+    int i;
+
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on) {
+            place_line(&g_line[i]);
+        }
+    }
+}
+
+static int line_owned(int sprite)
+{
+    int i;
+
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on && g_line[i].owner == sprite) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* kill_text_owned_by: remove the sprite, do not run its callback.
+ * Owner 1000 is included (dc_say_stop on a narrator). */
+void saybox_kill_owner(int sprite)
+{
+    int i;
+
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on && g_line[i].owner == sprite) {
+            g_line[i].on = 0;
+            if (g_cur == i) {
+                g_cur = -1;
+            }
+        }
+    }
+    retarget();
+}
+
+static void retarget(void)
+{
+    int i;
+
+    if (focus() != NULL) {
+        return;
+    }
+    g_cur = -1;
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on) {
+            g_cur = i;
+        }
+    }
+}
+
+static int alloc_line(void)
+{
+    int i, oldest = -1, age = 0;
+
+    for (i = 0; i < SAY_LINES; i++) {
+        if (!g_line[i].on) {
+            return i;
+        }
+    }
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].fiber != 0) {
+            continue;
+        }
+        if (oldest < 0 || g_line[i].born < age) {
+            oldest = i;
+            age = g_line[i].born;
+        }
+    }
+    if (oldest < 0) {
+        printf("say full\n");
+        return -1;
+    }
+    g_line[oldest].on = 0;
+    return oldest;
 }
 
 /* FreeDink text_draw: strip leading `X color pairs. */
@@ -204,108 +317,312 @@ static void wrap_line(char *s, int max_px)
     }
 }
 
-static void saybox_arm(const char *text, int boxw)
+/* Above FreeDink MAX_SPRITES_AT_ONCE (300) so sp_kill of a text id
+ * does not land on a live sprite. */
+#define SAY_ID_BASE 400
+
+static int g_last_id;
+
+static int id_of(int slot)
 {
-    wrap_line(g_text, boxw);
-    g_on = 1;
-    /* add_text_sprite: strlen of the DinkC string (color prefix counts). */
-    g_kill_ttl = (int)strlen(text != NULL ? text : "") * DINK_SAY_TEXT_TIMER;
-    if (g_kill_ttl < DINK_SAY_TEXT_MIN) {
-        g_kill_ttl = DINK_SAY_TEXT_MIN;
+    return slot < 0 ? 0 : SAY_ID_BASE + slot;
+}
+
+static int add_line(const char *raw, int owner, int xy, int x, int y,
+                    int fiber, int script)
+{
+    struct SayLine *ln;
+    int slot, boxw, ox, oy;
+
+    slot = alloc_line();
+    if (slot < 0) {
+        g_last_id = 0;
+        return -1;
     }
-    g_kill_start = 0;
-    g_kill_armed = 0;
+    ln = &g_line[slot];
+    memset(ln, 0, sizeof(*ln));
+    ln->on = 1;
+    ln->owner = owner;
+    ln->xy = xy;
+    ln->fiber = fiber;
+    ln->script = script;
+    ln->born = ++g_born;
+    strip_color(raw, ln->text, sizeof(ln->text), &ln->color);
+    if (xy) {
+        ln->x = x;
+        ln->y = y;
+        boxw = DINK_SAY_PLAYX;
+    } else if (owner == 1000) {
+        owner_xy(owner, &ox, &oy);
+        ln->x = ox;
+        ln->y = oy;
+        boxw = DINK_SAY_PLAYX - 20;
+    } else {
+        boxw = DINK_SAY_BOX_W;
+    }
+    wrap_line(ln->text, boxw);
+    /* add_text_sprite: strlen of the DinkC string (color prefix counts). */
+    ln->kill_ttl = (int)strlen(raw != NULL ? raw : "") * DINK_SAY_TEXT_TIMER;
+    if (ln->kill_ttl < DINK_SAY_TEXT_MIN) {
+        ln->kill_ttl = DINK_SAY_TEXT_MIN;
+    }
+    g_cur = slot;
+    g_last_id = id_of(slot);
+    place_line(ln);
+    return slot;
+}
+
+int saybox_last_id(void)
+{
+    return g_last_id;
+}
+
+/* dc_sp_kill on the id say returned. ttl < 1 stays up (live_sprite
+ * only expires kill_ttl > 0). 1 if id is a live text line. */
+int saybox_set_ttl(int id, int ttl)
+{
+    int slot = id - SAY_ID_BASE;
+
+    if (slot < 0 || slot >= SAY_LINES || !g_line[slot].on) {
+        return 0;
+    }
+    g_line[slot].kill_ttl = ttl;
+    return 1;
+}
+
+void saybox_clear_callback(int fiber)
+{
+    int i;
+
+    if (fiber < 1) {
+        return;
+    }
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on && g_line[i].fiber == fiber) {
+            g_line[i].fiber = 0;
+        }
+    }
+}
+
+/* Fiber is gone. Drop its callback and its script id so a reused slot
+ * is not treated as the author of the leftover line. */
+void saybox_forget_script(int script)
+{
+    int i;
+
+    saybox_clear_callback(script);
+    if (script < 1) {
+        return;
+    }
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on && g_line[i].script == script) {
+            g_line[i].script = 0;
+        }
+    }
+}
+
+static int bad_sprite(int sprite)
+{
+    if (sprite != 0) {
+        return 0;
+    }
+    printf("dinkc say: invalid sprite 0\n");
+    return 1;
+}
+
+int saybox_set_from(const char *text, int sprite, int script)
+{
+    g_last_id = 0;
+    if (bad_sprite(sprite)) {
+        return 0;
+    }
+    /* dc_say: narrator does not kill an existing owner-1000 line. */
+    if (sprite != 1000) {
+        saybox_kill_owner(sprite);
+    }
+    (void)add_line(text, sprite, 0, 0, 0, 0, script);
+    retarget();
+    return g_last_id;
 }
 
 void saybox_set(const char *text, int sprite)
 {
-    int ox, oy, boxw;
+    saybox_set_from(text, sprite, 0);
+}
 
-    g_xy = 0;
-    g_owner = sprite;
-    if (g_owner == 0) {
-        g_owner = 1;
-    }
-    strip_color(text, g_text, sizeof(g_text), &g_color);
-    boxw = DINK_SAY_BOX_W;
-    if (g_owner == 1000) {
-        owner_xy(g_owner, &ox, &oy);
-        boxw = DINK_SAY_PLAYX - 20;
-        g_x = ox;
-        g_y = oy;
-    }
-    saybox_arm(text, boxw);
-    saybox_place();
+int saybox_set_xy_from(const char *text, int x, int y, int script)
+{
+    g_last_id = 0;
+    /* say_text_xy: add_text_sprite at (mx,my), text_owner 1000. */
+    (void)add_line(text, 1000, 1, x, y, 0, script);
+    return g_last_id;
 }
 
 void saybox_set_xy(const char *text, int x, int y)
 {
-    /* say_text_xy: add_text_sprite at (mx,my), text_owner 1000. */
-    g_xy = 1;
-    g_owner = 1000;
-    strip_color(text, g_text, sizeof(g_text), &g_color);
-    g_x = x;
-    g_y = y;
-    saybox_arm(text, DINK_SAY_PLAYX);
+    saybox_set_xy_from(text, x, y, 0);
+}
+
+int saybox_stop(const char *text, int sprite, int fiber, int npc)
+{
+    g_last_id = 0;
+    if (bad_sprite(sprite)) {
+        return 0;
+    }
+    /* dc_say_stop_npc: no-op if this sprite is already talking. */
+    if (npc && line_owned(sprite)) {
+        return 0;
+    }
+    if (!npc) {
+        /* Includes owner 1000 (narrator / say_xy). */
+        saybox_kill_owner(sprite);
+        if (sprite != 1) {
+            saybox_kill_owner(1);
+        }
+    }
+    saybox_clear_callback(fiber);
+    (void)add_line(text, sprite, 0, 0, 0, fiber, fiber);
+    return 1;
+}
+
+int saybox_stop_xy(const char *text, int x, int y, int fiber)
+{
+    g_last_id = 0;
+    saybox_clear_callback(fiber);
+    (void)add_line(text, 1000, 1, x, y, fiber, fiber);
+    return 1;
+}
+
+void saybox_expire_script(int script, int now_ms)
+{
+    int i;
+
+    if (script < 1) {
+        return;
+    }
+    for (i = 0; i < SAY_LINES; i++) {
+        if (!g_line[i].on || g_line[i].script != script) {
+            continue;
+        }
+        g_line[i].kill_armed = 1;
+        g_line[i].kill_ttl = 1;
+        g_line[i].kill_start = now_ms - 2;
+    }
 }
 
 int saybox_tick(int now_ms)
 {
-    if (!g_on || g_kill_ttl < 1) {
+    int i, any = 0;
+
+    g_nexp = 0;
+    for (i = 0; i < SAY_LINES; i++) {
+        struct SayLine *ln = &g_line[i];
+
+        if (!ln->on) {
+            continue;
+        }
+        /* text_brain: owner gone → drop the line, do not run the
+         * callback. The script stays in WAIT_SAY (FreeDink hangs too).
+         * kill_ttl < 1 would be a permanent sign; we still drop it. */
+        if (ln->owner != 0 && ln->owner != 1000 && g_alive != NULL &&
+            !g_alive(ln->owner)) {
+            ln->on = 0;
+            ln->fiber = 0;
+            if (g_cur == i) {
+                g_cur = -1;
+            }
+            any = 1;
+            continue;
+        }
+        if (ln->kill_ttl < 1) {
+            continue;
+        }
+        /* FreeDink kill_start==0; our now_ms can be 0 so keep a flag. */
+        if (!ln->kill_armed) {
+            ln->kill_start = now_ms;
+            ln->kill_armed = 1;
+            continue;
+        }
+        if (ln->kill_start + ln->kill_ttl < now_ms) {
+            if (ln->fiber > 0 && g_nexp < SAY_LINES) {
+                g_exp[g_nexp++] = ln->fiber;
+            }
+            ln->on = 0;
+            if (g_cur == i) {
+                g_cur = -1;
+            }
+            any = 1;
+        }
+    }
+    retarget();
+    return any;
+}
+
+int saybox_expired_n(void)
+{
+    return g_nexp;
+}
+
+int saybox_expired_fiber(int i)
+{
+    if (i < 0 || i >= g_nexp) {
         return 0;
     }
-    /* FreeDink kill_start==0; our now_ms can be 0 so keep a flag. */
-    if (!g_kill_armed) {
-        g_kill_start = now_ms;
-        g_kill_armed = 1;
-        return 0;
-    }
-    if (g_kill_start + g_kill_ttl < now_ms) {
-        saybox_clear();
-        return 1;
-    }
-    return 0;
+    return g_exp[i];
 }
 
 void saybox_clear(void)
 {
-    g_on = 0;
-    g_owner = 0;
-    g_xy = 0;
-    g_text[0] = '\0';
-    g_kill_ttl = 0;
-    g_kill_start = 0;
-    g_kill_armed = 0;
+    memset(g_line, 0, sizeof(g_line));
+    g_cur = -1;
+    g_nexp = 0;
 }
 
 int saybox_active(void)
 {
-    return g_on;
+    int i;
+
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 const char *saybox_text(void)
 {
-    return g_text;
+    struct SayLine *ln = focus();
+
+    return ln != NULL ? ln->text : "";
 }
 
 int saybox_x(void)
 {
-    saybox_place();
-    return g_x;
+    struct SayLine *ln;
+
+    place_all();
+    ln = focus();
+    return ln != NULL ? ln->x : 0;
 }
 
 int saybox_y(void)
 {
-    saybox_place();
-    return g_y;
+    struct SayLine *ln;
+
+    place_all();
+    ln = focus();
+    return ln != NULL ? ln->y : 0;
 }
 
 int saybox_line_x(const char *line)
 {
+    struct SayLine *ln;
     int cell, w, n = 0, boxw;
     const char *p = line != NULL ? line : "";
 
-    saybox_place();
+    place_all();
+    ln = focus();
     cell = font_advance('A');
     if (cell < 1) {
         cell = DINK_FONT_CELL;
@@ -314,13 +631,15 @@ int saybox_line_x(const char *line)
         n++;
     }
     w = n * cell;
-    boxw = say_box_w();
-    return g_x + boxw / 2 - w / 2;
+    boxw = ln != NULL ? say_box_w(ln) : DINK_SAY_BOX_W;
+    return (ln != NULL ? ln->x : 0) + boxw / 2 - w / 2;
 }
 
 int saybox_color(void)
 {
-    return g_color;
+    struct SayLine *ln = focus();
+
+    return ln != NULL ? ln->color : 14;
 }
 
 /* FreeDink text_draw: 50 px box, hcenter, then the glyph 1 px left of the rect. */
@@ -365,29 +684,58 @@ void saybox_evict(void)
     }
 }
 
-static void draw_ch(float x, float y, float z, int ch, uint32_t argb)
+/* One header per draw. Cap quads so 32 full lines cannot blow the
+ * 512 KiB TA buffer. 400 glyphs × 5 (outline + fill) stays under it.
+ * A busy bar is about 6 × 40. */
+#define SAY_GLYPH_CAP 2000 /* 400 characters × outline + fill */
+
+static int g_glyphs;
+static int g_glyph_logged;
+static int g_hdr_ok;
+static pvr_poly_hdr_t g_hdr;
+
+static void say_draw_begin(void)
 {
     pvr_poly_cxt_t cxt;
-    pvr_poly_hdr_t hdr;
-    pvr_vertex_t vert;
-    int col, row;
-    float u0, v0, u1, v1, cell;
 
-    if (g_tex == NULL || font_glyph_cell(ch, &col, &row) == 0) {
+    g_glyphs = 0;
+    g_glyph_logged = 0;
+    g_hdr_ok = 0;
+    if (g_tex == NULL) {
         return;
     }
-    cell = (float)DINK_FONT_CELL;
-    u0 = (float)(col * DINK_FONT_CELL) / (float)DINK_FONT_ATLAS_W;
-    v0 = (float)(row * DINK_FONT_CELL) / (float)DINK_FONT_ATLAS_H;
-    u1 = u0 + cell / (float)DINK_FONT_ATLAS_W;
-    v1 = v0 + cell / (float)DINK_FONT_ATLAS_H;
     pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555,
                      DINK_FONT_ATLAS_W, DINK_FONT_ATLAS_H, (pvr_ptr_t)g_tex,
                      PVR_FILTER_NONE);
     cxt.gen.alpha = PVR_ALPHA_ENABLE;
     cxt.txr.alpha = PVR_TXRALPHA_ENABLE;
-    pvr_poly_compile(&hdr, &cxt);
-    pvr_prim(&hdr, sizeof(hdr));
+    pvr_poly_compile(&g_hdr, &cxt);
+    pvr_prim(&g_hdr, sizeof(g_hdr));
+    g_hdr_ok = 1;
+}
+
+static void draw_ch(float x, float y, float z, int ch, uint32_t argb)
+{
+    pvr_vertex_t vert;
+    int col, row;
+    float u0, v0, u1, v1, cell;
+
+    if (!g_hdr_ok || font_glyph_cell(ch, &col, &row) == 0) {
+        return;
+    }
+    if (g_glyphs >= SAY_GLYPH_CAP) {
+        if (!g_glyph_logged) {
+            printf("say glyphs capped\n");
+            g_glyph_logged = 1;
+        }
+        return;
+    }
+    g_glyphs++;
+    cell = (float)DINK_FONT_CELL;
+    u0 = (float)(col * DINK_FONT_CELL) / (float)DINK_FONT_ATLAS_W;
+    v0 = (float)(row * DINK_FONT_CELL) / (float)DINK_FONT_ATLAS_H;
+    u1 = u0 + cell / (float)DINK_FONT_ATLAS_W;
+    v1 = v0 + cell / (float)DINK_FONT_ATLAS_H;
     vert.oargb = 0;
     vert.z = z;
     vert.argb = argb;
@@ -415,19 +763,20 @@ static void draw_ch(float x, float y, float z, int ch, uint32_t argb)
     pvr_prim(&vert, sizeof(vert));
 }
 
-void saybox_draw_pvr(float z)
+static void draw_line_text(const struct SayLine *ln, float z)
 {
     const char *p;
     float x, y;
     uint32_t fg, bg;
+    int saved = g_cur;
 
-    if (!g_on || g_tex == NULL) {
+    if (ln == NULL || !ln->on) {
         return;
     }
-    saybox_place();
-    p = g_text;
-    y = (float)g_y;
-    fg = saybox_text_argb(g_color, fade_brightness());
+    g_cur = (int)(ln - g_line);
+    p = ln->text;
+    y = (float)ln->y;
+    fg = saybox_text_argb(ln->color, fade_brightness());
     bg = 0xFF080E15u;
     while (*p != '\0') {
         x = (float)saybox_line_x(p);
@@ -436,7 +785,9 @@ void saybox_draw_pvr(float z)
             draw_ch(x + 1.0f, y, z, (unsigned char)*p, bg);
             draw_ch(x, y - 1.0f, z, (unsigned char)*p, bg);
             draw_ch(x, y + 1.0f, z, (unsigned char)*p, bg);
-            draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
+            /* Smaller than the 0.002 birth step so a later line's
+             * outline is not covered by an earlier line's fill. */
+            draw_ch(x, y, z + 0.001f, (unsigned char)*p, fg);
             x += (float)font_advance((unsigned char)*p);
             p++;
         }
@@ -444,6 +795,42 @@ void saybox_draw_pvr(float z)
             p++;
         }
         y += (float)DINK_FONT_CELL;
+    }
+    g_cur = saved;
+}
+
+/* Rank by birth so a later line draws above an earlier one. The step
+ * stays inside the 0.1 gap under the choice menu (3.8) and inventory
+ * (4.0): 32 * 0.002 + the 0.01 fill lift is under 0.1. */
+static float line_z(float z, int i)
+{
+    int j, rank = 0;
+
+    for (j = 0; j < SAY_LINES; j++) {
+        if (!g_line[j].on || j == i) {
+            continue;
+        }
+        if (g_line[j].born < g_line[i].born ||
+            (g_line[j].born == g_line[i].born && j < i)) {
+            rank++;
+        }
+    }
+    return z + (float)rank * 0.002f;
+}
+
+void saybox_draw_pvr(float z)
+{
+    int i;
+
+    if (g_tex == NULL) {
+        return;
+    }
+    place_all();
+    say_draw_begin();
+    for (i = 0; i < SAY_LINES; i++) {
+        if (g_line[i].on) {
+            draw_line_text(&g_line[i], line_z(z, i));
+        }
     }
 }
 
@@ -457,6 +844,7 @@ void saybox_draw_num_pvr(int x, int y, int num, float z, int exp)
     if (g_tex == NULL) {
         return;
     }
+    say_draw_begin();
     snprintf(buf, sizeof(buf), "%d", num);
     if (y < 0) {
         y = 0;
@@ -549,6 +937,9 @@ void saybox_draw_choices_pvr(float z)
         sprite_blit_pvr(fr, (float)(DINK_CHOICE_PX + 169 + 180),
                         (float)(DINK_CHOICE_PY + 1), z);
     }
+    /* Box blits each send their own header. Re-emit the font header
+     * after them or the title and lines sample the choice texture. */
+    say_draw_begin();
     if (dinkc_vm_choice_title()[0] != '\0') {
         uint32_t tfg;
         int col = dinkc_vm_choice_color();
