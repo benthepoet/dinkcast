@@ -203,7 +203,10 @@ static void on_blood(int slot)
 }
 
 /* FreeDink human_brain draw_damage(1): Dink's frame is the one drawn last
- * (getpic: pseq/pframe), held by pspr in *g_play_dfr, not the editor cache. */
+ * (getpic: pseq/pframe), held by pspr in *g_play_dfr, not the editor cache.
+ * *g_play_dfr must always be pspr's pinned g_last slot (never evicted). The
+ * floater's owner is 1 in FreeDink numbering (Dink), not g_b[1]; nothing
+ * reads brain_parm on text sprites. */
 static void on_dink_damage(const struct Player *p, int damage)
 {
     const struct SpriteFrame *f =

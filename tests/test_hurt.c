@@ -3,6 +3,7 @@
 #include "saybox.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
+#include "dinkc_vm.h"
 #include "hit.h"
 #include "hurt.h"
 #include "mapscr.h"
@@ -657,6 +658,31 @@ int main(void)
             }
         }
         expect(saw && fx == 300 && fy == 210, "unknown frame: 40 above");
+        /* DinkC hurt(1, n) on Dink: post-defense damage, one number. */
+        {
+            static const char hs[] = "void main(void)\n{\n  hurt(1, 5);\n}\n";
+            int lifev;
+
+            brains_reset();
+            dinkc_vm_reset();
+            /* make_global keeps an existing slot's value: set explicitly. */
+            dinkc_var_make_global("&life", 20);
+            dinkc_var_make_global("&defense", 3);
+            dinkc_var_set("&life", 20, DINKC_GLOBAL_SCOPE, 1);
+            dinkc_var_set("&defense", 3, DINKC_GLOBAL_SCOPE, 1);
+            memset(&dp, 0, sizeof(dp));
+            dp.x = 300;
+            dp.y = 250;
+            dinkc_cmd_bind_player(&dp);
+            g_dd_calls = 0;
+            g_dd_life = NULL;
+            (void)dinkc_vm_start(hs, strlen(hs), 0);
+            lifev = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+            expect(g_dd_calls == 1 && g_dd_dmg == 2,
+                   "DinkC hurt(1,5) def 3: one number, 2");
+            expect(lifev == 18, "DinkC hurt took 2 life");
+            dinkc_cmd_bind_player(NULL);
+        }
         player_bind_damage_draw(NULL);
         g_dd_life = NULL;
     }
