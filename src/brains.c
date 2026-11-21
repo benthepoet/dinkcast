@@ -267,6 +267,10 @@ static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
     } else {
         y -= 40;
     }
+    /* FreeDink text_draw damage branch: y < 0 becomes 0. */
+    if (y < 0) {
+        y = 0;
+    }
     slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
     if (slot < 1) {
         return;
