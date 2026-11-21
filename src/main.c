@@ -1629,9 +1629,13 @@ int main(int argc, char **argv)
                     }
                     /* Stopped game: no say timeout, no thaw (FreeDink
                      * update_frame returns before text sprites run). */
-                    if (!frozen && saybox_tick(now_ms) &&
-                        dinkc_vm_waiting_say()) {
-                        dinkc_vm_advance_say();
+                    if (!frozen && saybox_tick(now_ms)) {
+                        int ei, en = saybox_expired_n();
+
+                        for (ei = 0; ei < en; ei++) {
+                            dinkc_vm_advance_say_fiber(
+                                saybox_expired_fiber(ei));
+                        }
                     }
                     if (!frozen) {
                         dinkc_cmd_thaw_if_idle();

@@ -81,6 +81,8 @@ void dinkc_vm_tick(int now_ms);
 void dinkc_vm_note_last_talk(int fiber);
 int dinkc_vm_last_talk(void);
 void dinkc_vm_advance_say(void);
+/* Resume one say_stop fiber. 0 if that slot is not waiting. */
+void dinkc_vm_advance_say_fiber(int slot);
 /* FreeDink ACTION_TALK: only play.last_talk, not say_stop_npc. */
 void dinkc_vm_advance_last_talk(void);
 int dinkc_vm_waiting_say(void);

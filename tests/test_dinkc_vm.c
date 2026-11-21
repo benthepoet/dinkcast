@@ -205,6 +205,51 @@ int main(void)
     }
 
     {
+        /* Bar: bartender say_stop and S2-MAN2 say_stop_npc are separate
+         * text sprites. Expiring one resumes only that script. */
+        const char *bar =
+            "void main(void) { say_stop(\"I don't much like you.\", 1); "
+            "&gold = 1; }";
+        const char *man =
+            "void main(void) { say_stop_npc(\"`0Fight!!!\", 3); &defense = 1; }";
+        const char *busy =
+            "void main(void) { say(\"hi\", 2); }";
+        const char *again =
+            "void main(void) { say_stop_npc(\"`#My feet hurt..\", 2); "
+            "&magic = 4; }";
+        int nb, ei;
+
+        dinkc_var_init();
+        dinkc_vm_reset();
+        saybox_clear();
+        slot = dinkc_vm_start(bar, strlen(bar), 4);
+        expect(saybox_tick(0) == 0, "arm bartender");
+        nb = dinkc_vm_start(man, strlen(man), 3);
+        expect(nb > 0 && dinkc_vm_waiting_say(), "both talking");
+        expect(saybox_tick(1) == 0, "arm old man");
+        expect(strcmp(saybox_text(), "Fight!!!") == 0, "newest is the old man");
+        expect(saybox_tick(2701) == 1, "bartender timer");
+        for (ei = 0; ei < saybox_expired_n(); ei++) {
+            dinkc_vm_advance_say_fiber(saybox_expired_fiber(ei));
+        }
+        expect(dinkc_var_get("&gold", DINKC_GLOBAL_SCOPE, 1) == 1,
+               "bartender continues");
+        expect(dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1) != 1,
+               "old man still waiting");
+        expect(strcmp(saybox_text(), "Fight!!!") == 0, "his line stays");
+
+        dinkc_vm_reset();
+        saybox_clear();
+        dinkc_var_init();
+        dinkc_vm_start(busy, strlen(busy), 2);
+        slot = dinkc_vm_start(again, strlen(again), 5);
+        expect(dinkc_vm_live() == 0, "say_stop_npc no-op while sprite talks");
+        expect(dinkc_var_get("&magic", DINKC_GLOBAL_SCOPE, 1) == 4,
+               "wench script continues");
+        expect(strcmp(saybox_text(), "hi") == 0, "first line kept");
+    }
+
+    {
         /* FreeDink dc_say_stop_xy sets play.last_talk (S1-LTR, START-3). */
         const char *sxy =
             "void main(void) { say_stop_xy(\"`%Dear Dink\", 20, 300); "

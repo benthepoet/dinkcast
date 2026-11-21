@@ -3,6 +3,7 @@
 
 #include "choice.h"
 #include "dinkc_cmd.h"
+#include "saybox.h"
 #include "dinkc_lex.h"
 #include "dinkc_var.h"
 #include "fade.h"
@@ -1599,6 +1600,24 @@ int dinkc_vm_last_talk(void)
     return i;
 }
 
+static void finish_talk(int slot)
+{
+    if (g_last_talk == slot &&
+        (!g_f[slot].used || g_f[slot].state != DINKC_WAIT_SAY)) {
+        g_last_talk = 0;
+    }
+}
+
+void dinkc_vm_advance_say_fiber(int slot)
+{
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used ||
+        g_f[slot].state != DINKC_WAIT_SAY) {
+        return;
+    }
+    run_fiber(&g_f[slot], g_f[slot].wait_until);
+    finish_talk(slot);
+}
+
 void dinkc_vm_advance_say(void)
 {
     int i;
@@ -1606,6 +1625,7 @@ void dinkc_vm_advance_say(void)
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_SAY) {
             run_fiber(&g_f[i], g_f[i].wait_until);
+            finish_talk(i);
         }
     }
 }
@@ -1614,13 +1634,13 @@ void dinkc_vm_advance_last_talk(void)
 {
     int i = dinkc_vm_last_talk();
 
+    /* Drop the bubble before the script can say the next line. */
+    (void)saybox_dismiss_talk();
     if (i < 1) {
         return;
     }
     run_fiber(&g_f[i], g_f[i].wait_until);
-    if (!g_f[i].used || g_f[i].state != DINKC_WAIT_SAY) {
-        g_last_talk = 0;
-    }
+    finish_talk(i);
 }
 
 int dinkc_vm_waiting_say(void)

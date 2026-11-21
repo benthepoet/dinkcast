@@ -21,11 +21,26 @@
 
 void saybox_bind(const struct MapScreen *scr, struct Player *pl);
 void saybox_bind_live_xy(int (*fn)(int slot, int *x, int *y));
+/* FreeDink dc_say: one text sprite per call. Owner != 1000 replaces
+ * that sprite's current line only. */
 void saybox_set(const char *text, int sprite);
 /* FreeDink say_text_xy: text_owner 1000, box at (x,y) size 620×400. */
 void saybox_set_xy(const char *text, int x, int y);
-/* FreeDink live_sprite_is_expired: 1 if this tick killed the line. */
+/* Drop say_stop callbacks for this fiber. The line stays (kill_returning_stuff). */
+void saybox_clear_callback(int fiber);
+/* FreeDink dc_say_stop / dc_say_stop_npc. 1 if the script must yield.
+ * npc is a no-op when that sprite already has a line, and does not
+ * become play.last_talk. */
+int saybox_stop(const char *text, int sprite, int fiber, int npc);
+/* FreeDink dc_say_stop_xy: last_talk, no kill of other owners. */
+int saybox_stop_xy(const char *text, int x, int y, int fiber);
+/* Remove the last_talk line without resuming. Returns its fiber, or 0. */
+int saybox_dismiss_talk(void);
+/* FreeDink live_sprite_is_expired: 1 if this tick killed at least one line.
+ * Callbacks are saybox_expired_fiber, not every waiting script. */
 int saybox_tick(int now_ms);
+int saybox_expired_n(void);
+int saybox_expired_fiber(int i);
 void saybox_clear(void);
 int saybox_active(void);
 const char *saybox_text(void);
