@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "audio.h"
+#include "bgbake.h"
 #include "brains.h"
 #include "dinkc_cmd.h"
 #include "fs.h"
@@ -462,6 +463,122 @@ int main(void)
                "dc_sp_speed changedir mx");
         brains_reset();
     }
+    /* FreeDink game_place_sprites removes type 0/2 rows after drawing and
+     * stamping them. Map 145 (review §3.2): 90 background rows left 9
+     * slots for blood, damage numbers, missiles and create_sprite. */
+    {
+        static struct EditorSprite rows[101];
+        static struct BgRow bg[100];
+        static struct MapScreen m145;
+        struct World w;
+        int n, free0 = 0, free1 = 0, made = 0, i;
+
+        /* Synthetic: warp and type-1 rows stay; other vision stays. */
+        memset(rows, 0, sizeof(rows));
+        rows[2].active = 1; rows[2].type = 0;
+        rows[3].active = 1; rows[3].type = 2;
+        rows[4].active = 1; rows[4].type = 0; rows[4].is_warp = 1;
+        rows[5].active = 1; rows[5].type = 1;
+        rows[6].active = 1; rows[6].type = 0; rows[6].vision = 3;
+        n = bg_bake(rows, 0, bg, 100);
+        expect(n == 2 && bg[0].ed == 2 && bg[1].ed == 3, "bake type 0 and 2");
+        expect(!rows[2].active && !rows[3].active, "baked rows freed");
+        expect(rows[4].active && rows[5].active && rows[6].active,
+               "warp, live and other-vision rows kept");
+        /* fill_back_sprites on draw_hard_map reads the editor rows: a
+         * baked row still stamps (until an editor_type kill), type 1 and
+         * hard != 0 do not. */
+        {
+            struct EditorSprite e;
+
+            memset(&e, 0, sizeof(e));
+            e.active = 1;
+            e.type = 0;
+            e.hard = 0;
+            expect(bg_stamps_back(&e, 0), "background row stamps");
+            e.active = 0;
+            expect(!bg_stamps_back(&e, 0), "editor_type kill: no stamp");
+            e.active = 1;
+            e.hard = 1;
+            expect(!bg_stamps_back(&e, 0), "hard 1: no stamp");
+            e.hard = 0;
+            e.type = 1;
+            expect(!bg_stamps_back(&e, 0), "type 1 is fill_hard_sprites");
+            e.type = 2;
+            e.vision = 4;
+            expect(!bg_stamps_back(&e, 0) && bg_stamps_back(&e, 4),
+                   "vision filter");
+        }
+
+        if (dink_fs_init() == 0 && world_load(&w) == 0 && w.loc[145] >= 1 &&
+            map_load_record((int)w.loc[145], &m145) == 0) {
+            for (i = 2; i <= 99; i++) {
+                free0 += !m145.sprite[i].active;
+            }
+            n = bg_bake(m145.sprite, 0, bg, 100);
+            for (i = 2; i <= 99; i++) {
+                free1 += !m145.sprite[i].active;
+            }
+            expect(n == 90 && free0 == 9 && free1 == 98,
+                   "map 145: 90 baked, free slots 9 -> 98");
+            brains_bind_screen(&m145);
+            brains_reset();
+            while (brains_create(100, 100, 0, 0, 1) > 0 && made < 200) {
+                made++;
+            }
+            expect(made == 98, "map 145: create_sprite gets 98 slots");
+            /* A created sprite on a baked row has no editor number
+             * (FreeDink add_sprite: sp_index 0), so a pickup's
+             * editor_type(sp_editor_num(&current_sprite), 1) cannot delete
+             * the background object that owned that row. */
+            {
+                int yld = 0, rv = -1, a1[1];
+
+                dinkc_cmd_bind_slot_created(brains_slot_created);
+                a1[0] = 2;
+                (void)dinkc_cmd("sp_editor_num", a1, 1, "", "", &yld, &rv);
+                expect(brains_slot_created(2) && rv == 0,
+                       "sp_editor_num of a created sprite is 0");
+                dinkc_cmd_bind_slot_created(NULL);
+            }
+            brains_reset();
+            brains_bind_screen(NULL);
+            /* Every stock screen keeps at least 33 free after the bake
+             * (map 536: 66 type-1 ducks, nothing to bake). */
+            {
+                int scr, worst = 99, wmap = 0;
+
+                for (scr = 1; scr < 769; scr++) {
+                    int f = 0, v;
+
+                    if (w.loc[scr] < 1 ||
+                        map_load_record((int)w.loc[scr], &m145) != 0) {
+                        continue;
+                    }
+                    for (v = 0; v <= 9; v++) {
+                        static struct EditorSprite cp[101];
+                        int k;
+
+                        memcpy(cp, m145.sprite, sizeof(cp));
+                        (void)bg_bake(cp, v, bg, 100);
+                        f = 0;
+                        for (k = 2; k <= 99; k++) {
+                            f += !cp[k].active;
+                        }
+                        if (f < worst) {
+                            worst = f;
+                            wmap = scr;
+                        }
+                    }
+                }
+                printf("bake floor %d free (map %d)\n", worst, wmap);
+                expect(worst >= 33, "every screen keeps >= 33 free slots");
+            }
+        } else {
+            printf("skip map 145 (no DINK_DATA)\n");
+        }
+    }
+
     printf("OK test_brains\n");
     return 0;
 }

@@ -619,11 +619,38 @@ int dinkc_cmd_last_map(void)
     return g_last_map > 0 ? g_last_map : 1;
 }
 
+static int (*g_slot_created)(int slot);
+static void spmap_apply(struct EditorSprite *rows, int player_map,
+                        int skip_created);
+
+void dinkc_cmd_bind_slot_created(int (*fn)(int slot))
+{
+    g_slot_created = fn;
+}
+
+static int slot_created(int slot)
+{
+    return g_slot_created != NULL && g_slot_created(slot);
+}
+
 void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
+{
+    if (scr != NULL) {
+        spmap_apply(scr->sprite, player_map, 1);
+    }
+}
+
+void dinkc_cmd_apply_spmap_rows(struct EditorSprite *rows, int player_map)
+{
+    spmap_apply(rows, player_map, 0);
+}
+
+static void spmap_apply(struct EditorSprite *rows, int player_map,
+                        int skip_created)
 {
     int i;
 
-    if (scr == NULL || player_map < 1 || player_map >= DINK_WORLD_SLOTS) {
+    if (rows == NULL || player_map < 1 || player_map >= DINK_WORLD_SLOTS) {
         return;
     }
     /* FreeDink fix_dead_sprites: types 6/7/8 expire then type=0. */
@@ -647,37 +674,39 @@ void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map)
     for (i = 1; i <= 99; i++) {
         unsigned char t = g_spmap_type[player_map][i];
 
-        if (t == 0) {
+        /* FreeDink update_play_changes only edits editor rows; a created
+         * sprite mirrored into row i has no editor index (sp_index 0). */
+        if (t == 0 || (skip_created && slot_created(i))) {
             continue;
         }
         /* FreeDink update_play_changes: screen load and draw_hard_sprite.
          * Types 6/7/8 also clear active; timers that restore them are 17. */
         if (t == 1 || t == 6 || t == 7 || t == 8) {
-            scr->sprite[i].active = 0;
+            rows[i].active = 0;
         }
         if (t == 3) {
-            scr->sprite[i].type = 0;
-            scr->sprite[i].hard = 1;
+            rows[i].type = 0;
+            rows[i].hard = 1;
         }
         if (t == 2) {
-            scr->sprite[i].type = 1;
-            scr->sprite[i].hard = 1;
+            rows[i].type = 1;
+            rows[i].hard = 1;
         }
         if (t == 4) {
-            scr->sprite[i].type = 1;
-            scr->sprite[i].hard = 0;
+            rows[i].type = 1;
+            rows[i].hard = 0;
         }
         if (t == 5) {
-            scr->sprite[i].type = 0;
-            scr->sprite[i].hard = 0;
+            rows[i].type = 0;
+            rows[i].hard = 0;
         }
         if (g_spmap_seq[player_map][i] != 0) {
-            scr->sprite[i].seq = g_spmap_seq[player_map][i];
+            rows[i].seq = g_spmap_seq[player_map][i];
         }
         if (g_spmap_frame[player_map][i] != 0) {
-            scr->sprite[i].frame = (int32_t)g_spmap_frame[player_map][i];
+            rows[i].frame = (int32_t)g_spmap_frame[player_map][i];
         }
-        scr->sprite[i].script[0] = '\0';
+        rows[i].script[0] = '\0';
     }
 }
 
@@ -1816,9 +1845,12 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "sp_editor_num") || is_cmd(name, "sp")) {
-        /* Live sprite == editor slot until 15. */
+        /* Live sprite == editor slot until 15. FreeDink add_sprite zeroes
+         * sp_index, so a created sprite has no editor number (0): its slot
+         * may be a baked background row, and editor_type(that, 1) from a
+         * pickup script would delete the background object for good. */
         if (ret != NULL) {
-            *ret = spr_slot(a0);
+            *ret = slot_created(a0) ? 0 : spr_slot(a0);
         }
         return 1;
     }

@@ -2056,7 +2056,8 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         if (g_b[i].live) {
             continue;
         }
-        /* add_sprite_dumb skips spr[].active. Type 0 stays in g_scr. */
+        /* Active editor rows are reserved; baked background rows (bg_bake)
+         * are inactive here, so their slots are free, as in FreeDink. */
         if (g_map != NULL && g_map->sprite[i].active) {
             continue;
         }
@@ -2087,6 +2088,10 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         g_b[i].base_die = -1;
         return i;
     }
+    /* FreeDink add_sprite also fails when full; say so (blood, damage
+     * numbers, missiles and create_sprite would vanish silently). */
+    printf("brains_create full: brain %d seq %d at %d,%d\n", brain, pseq, x,
+           y);
     return 0;
 }
 

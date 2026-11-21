@@ -9,6 +9,7 @@
 
 #include "audio.h"
 #include "boot.h"
+#include "bgbake.h"
 #include "brains.h"
 #include "choice.h"
 #include "dinkdat.h"
@@ -53,6 +54,12 @@
 static struct World g_world;
 static struct MapScreen g_scr;
 static struct EditorSprite *g_spr_ok;
+/* The editor rows as loaded (map.dat + spmap): g_spr_ok is rebuilt from
+ * this on every draw_screen, then background rows are baked out of it. */
+static struct EditorSprite *g_spr_ed;
+/* Baked background rows (bgbake.h): freed from the live table. */
+static struct BgRow g_bg[100];
+static int g_nbg;
 static struct TileAtlas g_atlas;
 static struct HardMap g_hard;
 static struct EdGfx *g_edg;
@@ -165,11 +172,14 @@ static void give_start_fists(void)
 
 static int spr_ok_ready(void)
 {
-    if (g_spr_ok != NULL) {
+    if (g_spr_ok != NULL && g_spr_ed != NULL) {
         return 0;
     }
+    free(g_spr_ok);
+    free(g_spr_ed);
     g_spr_ok = (struct EditorSprite *)malloc(101u * sizeof(*g_spr_ok));
-    return g_spr_ok == NULL ? -1 : 0;
+    g_spr_ed = (struct EditorSprite *)malloc(101u * sizeof(*g_spr_ed));
+    return g_spr_ok == NULL || g_spr_ed == NULL ? -1 : 0;
 }
 
 static void spr_snap(const char *tag)
@@ -178,6 +188,10 @@ static void spr_snap(const char *tag)
         return;
     }
     memcpy(g_spr_ok, g_scr.sprite, 101u * sizeof(*g_spr_ok));
+    if (g_spr_ed != NULL) {
+        memcpy(g_spr_ed, g_scr.sprite, 101u * sizeof(*g_spr_ed));
+    }
+    g_nbg = 0;
     printf("snap %s sprite1 seq=%d y=%d act=%d\n", tag,
            (int)g_spr_ok[1].seq, (int)g_spr_ok[1].y, (int)g_spr_ok[1].active);
 }
@@ -191,6 +205,36 @@ static void spr_restore(const char *tag)
     printf("restore %s sprite1 seq=%d y=%d act=%d script=%s\n", tag,
            (int)g_scr.sprite[1].seq, (int)g_scr.sprite[1].y,
            (int)g_scr.sprite[1].active, g_scr.sprite[26].script);
+}
+
+/* draw_screen start: back to the editor rows (all visions, background
+ * rows included) so frames, hardness and the bake see the whole screen. */
+static void spr_unbake(const char *tag)
+{
+    if (g_spr_ok == NULL || g_spr_ed == NULL) {
+        return;
+    }
+    memcpy(g_spr_ok, g_spr_ed, 101u * sizeof(*g_spr_ok));
+    g_nbg = 0;
+    spr_restore(tag);
+}
+
+/* After hardness is stamped and frames are loaded, before brains_enter:
+ * move this vision's non-warp background rows out of the live table. */
+static void spr_bake(int vision)
+{
+    int i, nfree = 0;
+
+    if (g_spr_ok == NULL || g_spr_ed == NULL) {
+        return;
+    }
+    memcpy(g_spr_ok, g_spr_ed, 101u * sizeof(*g_spr_ok));
+    g_nbg = bg_bake(g_spr_ok, vision, g_bg, (int)(sizeof(g_bg) / sizeof(g_bg[0])));
+    for (i = 2; i <= 99; i++) {
+        nfree += !g_spr_ok[i].active;
+    }
+    memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
+    printf("bake bg=%d free_slots=%d\n", g_nbg, nfree);
 }
 
 static void on_blood(int slot)
@@ -242,23 +286,25 @@ static int play_frame_box(int seq, int frame, int *w, int *h, int *cx, int *cy)
     return 1;
 }
 
-static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si)
+/* Stamp one editor row's hardness (FreeDink add_hardness(sprite, 100 + j)
+ * for warps, 1 otherwise). es may be a live row or a baked background row. */
+static void stamp_editor_row(struct HardMask *mask, struct SeqInfo *seqs,
+                             const struct EditorSprite *es, int si)
 {
     struct SpriteFrame *ef;
     int hl, ht, hr, hb, cx, cy, hid, seq, fr, type;
 
-    seq = (int)g_scr.sprite[si].seq;
-    fr = (int)g_scr.sprite[si].frame < 1 ? 1 : (int)g_scr.sprite[si].frame;
+    seq = (int)es->seq;
+    fr = (int)es->frame < 1 ? 1 : (int)es->frame;
     if (seq < 1 || seq >= DINK_MAX_SEQ) {
         return;
     }
-    type = (int)g_scr.sprite[si].type;
-    hid = g_scr.sprite[si].is_warp ? 100 + si : 1;
+    type = (int)es->type;
+    hid = es->is_warp ? 100 + si : 1;
     ef = edraw_find(g_edg, g_ned, seq, fr);
     if (ef != NULL) {
-        hard_stamp_editor(mask, (int)g_scr.sprite[si].x,
-                          (int)g_scr.sprite[si].y, type, hid, 1, ef->hl, ef->ht,
-                          ef->hr, ef->hb);
+        hard_stamp_editor(mask, (int)es->x, (int)es->y, type, hid, 1, ef->hl,
+                          ef->ht, ef->hr, ef->hb);
         return;
     }
     /* Type 0/1: no invisible furniture. Type 2 still uses SET_SPRITE_INFO. */
@@ -266,32 +312,59 @@ static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si
         return;
     }
     ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr, &hb);
-    hard_stamp_editor(mask, (int)g_scr.sprite[si].x, (int)g_scr.sprite[si].y,
-                      type, hid, 0, hl, ht, hr, hb);
+    hard_stamp_editor(mask, (int)es->x, (int)es->y, type, hid, 0, hl, ht, hr,
+                      hb);
+}
+
+static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si)
+{
+    stamp_editor_row(mask, seqs, &g_scr.sprite[si], si);
 }
 
 static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 {
-    int si;
+    int si, vis = script_play_vision();
 
-    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes,
-     * fill_whole_hard, fill_hard_sprites, fill_back_sprites. */
-    dinkc_cmd_apply_spmap(&g_scr, dinkc_var_get("&player_map",
-                                                DINKC_GLOBAL_SCOPE, 1));
+    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes
+     * (editor rows only), fill_whole_hard, fill_hard_sprites (live spr[]),
+     * fill_back_sprites (editor rows, type != 1). Drawing is not touched:
+     * live sprites and baked background keep their pixels until the next
+     * draw_screen, as FreeDink's background buffer does. */
+    if (g_spr_ed != NULL) {
+        dinkc_cmd_apply_spmap_rows(g_spr_ed,
+                                   dinkc_var_get("&player_map",
+                                                 DINKC_GLOBAL_SCOPE, 1));
+    }
     if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
         return;
     }
     for (si = 1; si <= 100; si++) {
-        if (!editor_sprite_on_vision(&g_scr.sprite[si],
-                                     script_play_vision()) ||
-            g_scr.sprite[si].hard != 0 || brains_slot_hard(si) != 0) {
-            continue;
+        const struct EditorSprite *ed =
+            g_spr_ed != NULL ? &g_spr_ed[si] : &g_scr.sprite[si];
+
+        if (brains_slot_live(si)) {
+            /* fill_hard_sprites: the live sprite where it is now (row
+             * mirror), editor type/hard/active as the spmap left them; a
+             * created sprite has no editor row (its own mirror). */
+            struct EditorSprite live = g_scr.sprite[si];
+
+            if (!brains_slot_created(si)) {
+                live.active = ed->active;
+                live.type = ed->type;
+                live.hard = ed->hard;
+            }
+            if (editor_sprite_on_vision(&live, vis) && live.hard == 0 &&
+                brains_slot_hard(si) == 0 &&
+                hard_stamp_editor_slot((int)live.type, 1)) {
+                stamp_editor_row(mask, seqs, &live, si);
+            }
         }
-        if (!hard_stamp_editor_slot((int)g_scr.sprite[si].type,
-                                    brains_slot_live(si))) {
-            continue;
+        /* fill_back_sprites: background rows from the editor table, baked
+         * or not (a created sprite may sit in a baked row's slot). */
+        if ((!brains_slot_live(si) || brains_slot_created(si)) &&
+            bg_stamps_back(ed, vis)) {
+            stamp_editor_row(mask, seqs, ed, si);
         }
-        stamp_one_editor(mask, seqs, si);
     }
 }
 
@@ -629,7 +702,7 @@ static int play_draw_screen(int sprite)
     dinkc_vm_kill_all();
     dinkc_cmd_thaw_if_idle();
     saybox_clear();
-    spr_restore("draw_screen");
+    spr_unbake("draw_screen");
     script_bind_screen(&g_scr);
     script_bind_note_script(brains_set_script);
     if (g_play_pl != NULL) {
@@ -644,6 +717,7 @@ static int play_draw_screen(int sprite)
                                 script_play_vision());
     }
     spr_restore("draw-post-edraw");
+    /* (g_spr_ok is unbaked here: background frames load and stamp.) */
     printf("edraw unique %d\n", g_ned);
     if (g_play_mask != NULL) {
         for (nstamp = 1; nstamp <= 100; nstamp++) {
@@ -713,7 +787,7 @@ static int play_draw_screen(int sprite)
                player_pic_seq(g_play_pl), pspr_count(),
                (unsigned)pspr_bytes(), pspr_misses());
     }
-    spr_restore("draw-pre-attach");
+    spr_bake(script_play_vision());
     brains_enter(&g_scr, script_play_vision());
     brains_apply(&g_scr);
     if (seqs != NULL) {
@@ -1153,6 +1227,7 @@ int main(int argc, char **argv)
                 hit_bind_push(script_on_push);
                 hit_bind_touch(script_on_touch);
                 brains_bind_kill(script_on_kill);
+                dinkc_cmd_bind_slot_created(brains_slot_created);
                 brains_bind_reuse(dinkc_vm_sprite_reused);
                 dinkc_vm_bind_sprite_alive(script_sprite_alive);
                 brains_bind_proc(script_try_proc);
@@ -1248,6 +1323,7 @@ int main(int argc, char **argv)
                 }
                 mem_vram_note("status");
                 spr_restore("pre-attach");
+                spr_bake(script_play_vision());
                 printf("pre-attach spr26 script=%s type=%d act=%d\n",
                        g_scr.sprite[26].script, (int)g_scr.sprite[26].type,
                        (int)g_scr.sprite[26].active);
@@ -1586,6 +1662,17 @@ int main(int argc, char **argv)
                                 }
                                 edraw_ensure_draw_frame(seqs, sq, fr, 0);
                             }
+                            for (ei = 0; ei < g_nbg; ei++) {
+                                const struct EditorSprite *bes = &g_bg[ei].es;
+
+                                if (bes->type != 0 ||
+                                    !editor_sprite_draw(bes,
+                                                        script_play_vision())) {
+                                    continue;
+                                }
+                                edraw_ensure_draw_frame(seqs, (int)bes->seq,
+                                                        (int)bes->frame, 0);
+                            }
                             for (ei = 1; ei <= 99; ei++) {
                                 if (!brains_seq_frame(ei, &sq, &fr)) {
                                     continue;
@@ -1766,18 +1853,47 @@ int main(int argc, char **argv)
                     pvr_list_finish();
                     pvr_list_begin(PVR_LIST_PT_POLY);
                     {
-                        struct DrawSpr {
+                        /* Static: 100 rows + 100 baked background + Dink
+                         * is ~11 KB, too much for the KOS thread stack. */
+                        static struct DrawSpr {
                             int rank, x, y, bg, size, slot;
                             int al, at, ar, ab;
                             struct SpriteFrame *fr;
-                        } draw[101];
+                        } draw[202];
                         int nd = 0, a, b;
 
                         if (g_spr_ok != NULL) {
                         memcpy(g_scr.sprite, g_spr_ok, 101u * sizeof(*g_spr_ok));
                     }
                         brains_apply(&g_scr);
-                        for (si = 1; si <= 100 && nd < 100; si++) {
+                        /* Baked background rows: under everything. */
+                        for (si = 0; si < g_nbg && nd < 200; si++) {
+                            const struct EditorSprite *es = &g_bg[si].es;
+                            struct SpriteFrame *ef;
+                            int fr = (int)es->frame < 1 ? 1 : (int)es->frame;
+
+                            if (es->type != 0 ||
+                                !editor_sprite_draw(es, script_play_vision())) {
+                                continue;
+                            }
+                            ef = edraw_find(g_edg, g_ned, (int)es->seq, fr);
+                            if (ef == NULL) {
+                                continue;
+                            }
+                            draw[nd].rank = editor_sprite_rank_y(es);
+                            draw[nd].x = (int)es->x;
+                            draw[nd].y = (int)es->y;
+                            draw[nd].bg = 1;
+                            draw[nd].slot = g_bg[si].ed;
+                            draw[nd].size = (int)es->size;
+                            draw[nd].al = (int)es->alt_l;
+                            draw[nd].at = (int)es->alt_t;
+                            draw[nd].ar = (int)es->alt_r;
+                            draw[nd].ab = (int)es->alt_b;
+                            draw[nd].fr = ef;
+                            nd++;
+                        }
+                        for (si = 1; si <= 100 && nd < 200; si++) {
                             int seq, fr;
                             struct SpriteFrame *ef;
 
@@ -1813,7 +1929,7 @@ int main(int argc, char **argv)
                             draw[nd].fr = ef;
                             nd++;
                         }
-                        if (dfr != NULL && nd < 100) {
+                        if (dfr != NULL && nd < 201) {
                             draw[nd].rank = pl.y;
                             draw[nd].x = pl.x;
                             draw[nd].y = pl.y;

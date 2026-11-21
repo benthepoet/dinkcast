@@ -7,6 +7,7 @@
 struct Player;
 struct SeqInfo;
 struct MapScreen;
+struct EditorSprite;
 
 void dinkc_cmd_bind_player(struct Player *p);
 /* FreeDink stop_entire_game: 1 while set and a choice is up (only the
@@ -121,6 +122,12 @@ int dinkc_cmd_weapon_use(void);
 int dinkc_cmd_magic_use(void);
 void dinkc_cmd_reset_inv(void);
 void dinkc_cmd_apply_spmap(struct MapScreen *scr, int player_map);
+/* Same, on editor rows[1..99] (no created-slot skip: the editor table). The
+ * MapScreen form is the live table and skips rows holding created sprites. */
+void dinkc_cmd_apply_spmap_rows(struct EditorSprite *rows, int player_map);
+/* brains_slot_created: created sprites have no editor index (FreeDink
+ * sp_index 0) for sp_editor_num / sp / update_play_changes. */
+void dinkc_cmd_bind_slot_created(int (*fn)(int slot));
 void dinkc_cmd_bind_blood(void (*fn)(int slot));
 void dinkc_cmd_bind_hard_redraw(void (*fn)(void));
 int dinkc_cmd_hard_redraw_take(void);
