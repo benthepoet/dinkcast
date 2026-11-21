@@ -1145,6 +1145,121 @@ int main(void)
         expect(dinkc_cmd_hard_redraw_take() == 1, "s1-h1-4 draw_hard_map");
     }
 
+    /* FreeDink MAX_SCRIPTS 200 = 199 live (map 536: 31 scripted sprites). Instances
+     * of one script share one copy of its source and tokens. */
+    {
+        static const char duck[] =
+            "void main(void)\n{\n  int &q = 1;\n}\n"
+            "void hit(void)\n{\n  &q = 2;\n}\n";
+        static const char rock[] = "void main(void)\n{\n  int &r = 3;\n}\n";
+        int k, ok = 1, first = 0, last = 0;
+
+        dinkc_vm_reset();
+        expect(dinkc_vm_code_count() == 0, "no code after reset");
+        for (k = 0; k < DINKC_MAX_LIVE - 1; k++) {
+            int sl = dinkc_vm_start_keep(duck, strlen(duck), 2 + k % 98,
+                                         "main");
+
+            if (sl <= 0) {
+                ok = 0;
+            }
+            if (k == 0) {
+                first = sl;
+            }
+            last = sl;
+        }
+        expect(ok, "198 instances of one script start");
+        expect(dinkc_vm_code_count() == 1, "one shared copy");
+        expect(dinkc_vm_start_keep(rock, strlen(rock), 99, "main") > 0,
+               "199th: a second script");
+        expect(dinkc_vm_code_count() == 2, "two distinct scripts");
+        expect(dinkc_vm_code_bytes() < 4096, "code sized to the scripts");
+        expect(dinkc_vm_start_keep(duck, strlen(duck), 1, "main") < 0,
+               "200th refused (vm full)");
+        /* A shared instance still runs its own procs (locate). */
+        expect(dinkc_vm_locate(last, "hit") == last, "locate on shared code");
+        dinkc_vm_kill(first);
+        expect(dinkc_vm_code_count() == 2, "code kept while others use it");
+        expect(dinkc_vm_start_keep(duck, strlen(duck), 1, "main") > 0,
+               "slot reused");
+        dinkc_vm_kill_all();
+        expect(dinkc_vm_code_count() == 0 && dinkc_vm_code_bytes() == 0,
+               "all code freed");
+    }
+
+    /* Refcount edges: a start whose proc is missing releases its ref; two
+     * instances of one file (as a same-file proc or timer callback starts
+     * from its owner's src) share the code, and it outlives the first. */
+    {
+        static const char two[] =
+            "void main(void)\n{\n  wait(100);\n}\n"
+            "void other(void)\n{\n  wait(100);\n}\n";
+        int p, ch;
+
+        dinkc_vm_reset();
+        expect(dinkc_vm_start_keep(two, strlen(two), 5, "nope") < 0,
+               "missing proc refused");
+        expect(dinkc_vm_code_count() == 0, "failed start released code");
+        p = dinkc_vm_start_proc(two, strlen(two), 5, "main");
+        ch = dinkc_vm_start_proc(two, strlen(two), 5, "other");
+        expect(p > 0 && ch > 0 && dinkc_vm_code_count() == 1,
+               "parent and child share one copy");
+        dinkc_vm_kill(p);
+        expect(dinkc_vm_used(ch) && dinkc_vm_code_count() == 1,
+               "child keeps the code after the parent dies");
+        dinkc_vm_kill(ch);
+        expect(dinkc_vm_code_count() == 0, "last ref frees the code");
+    }
+
+    /* Two scripts build choices: the later one owns the menu (FreeDink);
+     * the earlier waiter is never resumed with the other's lines. */
+    {
+        static const char ca[] =
+            "void main(void)\n{\n  choice_start();\n  \"A one\"\n"
+            "  \"A two\"\n  choice_end();\n  int &ga = &result;\n}\n";
+        static const char cb[] =
+            "void main(void)\n{\n  choice_start();\n  \"B one\"\n"
+            "  \"B two\"\n  \"B three\"\n  choice_end();\n}\n";
+        int a, b;
+
+        dinkc_vm_reset();
+        a = dinkc_vm_start_proc(ca, strlen(ca), 5, "main");
+        expect(a > 0 && dinkc_vm_waiting_choice() && dinkc_vm_choice_n() == 2,
+               "A's menu up");
+        b = dinkc_vm_start_proc(cb, strlen(cb), 6, "main");
+        expect(b > 0 && dinkc_vm_choice_n() == 3 &&
+                   strcmp(dinkc_vm_choice_line(1), "B one") == 0,
+               "B owns the menu");
+        dinkc_vm_choice_pick(3);
+        expect(dinkc_var_get("&result", DINKC_GLOBAL_SCOPE, 1) == 3,
+               "B got its 3rd line");
+        expect(!dinkc_vm_waiting_choice(), "A not resumed with B's menu");
+        expect(dinkc_vm_state(a) == DINKC_WAIT_CHOICE, "A left orphaned");
+        dinkc_vm_kill(a);
+        expect(!dinkc_vm_waiting_choice(), "no owner after kill");
+    }
+
+    /* A choice whose lines all fail clears the earlier menu (FreeDink
+     * game_choice_clear) instead of leaving a blank menu that eats input. */
+    {
+        static const char ca[] =
+            "void main(void)\n{\n  choice_start();\n  \"A one\"\n"
+            "  \"A two\"\n  choice_end();\n}\n";
+        static const char cz[] =
+            "void main(void)\n{\n  choice_start();\n  (0 == 1) \"never\"\n"
+            "  choice_end();\n}\n";
+        int a;
+
+        dinkc_vm_reset();
+        a = dinkc_vm_start_proc(ca, strlen(ca), 5, "main");
+        expect(a > 0 && dinkc_vm_waiting_choice(), "A's menu up");
+        (void)dinkc_vm_start_proc(cz, strlen(cz), 6, "main");
+        expect(!dinkc_vm_waiting_choice() && dinkc_vm_choice_n() == 0,
+               "empty choice drops the earlier menu");
+        dinkc_vm_choice_pick(1);
+        expect(dinkc_vm_state(a) == DINKC_WAIT_CHOICE, "A not resumed");
+    }
+
     printf("OK test_dinkc_vm\n");
     return 0;
 }

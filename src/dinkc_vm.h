@@ -4,8 +4,10 @@
 
 #include <stddef.h>
 
-#define DINKC_MAX_LIVE 20
-#define DINKC_LOCALS 256
+/* FreeDink dinkc.h MAX_SCRIPTS 200 with slot 0 unused: 199 live (slots
+ * 1..199). Instances share one copy of each script's source and tokens
+ * (refcounted), so the cap costs ~100 B per slot. */
+#define DINKC_MAX_LIVE 199
 #define DINKC_TICK_MS 16 /* 60 Hz */
 #define DINKC_OPS_CAP 2000
 
@@ -71,6 +73,9 @@ void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);
 void dinkc_vm_choice_done(void);
 int dinkc_vm_live(void);
+/* Distinct scripts held (shared by their instances) and their bytes. */
+int dinkc_vm_code_count(void);
+size_t dinkc_vm_code_bytes(void);
 int dinkc_vm_state(int slot);
 
 #endif

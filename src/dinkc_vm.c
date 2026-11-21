@@ -9,6 +9,7 @@
 #include "save.h"
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,20 +26,30 @@ struct Fiber {
     int depth;
     int ip;
     int ntok;
-    int locals[DINKC_LOCALS];
     int arg[8];
-    int nchoice;
-    int choice_cur;
-    int choice_ret[20];
-    char choice_line[20][80];
     int keep;
     char name[32];
-    char *src;
+    /* Borrowed from the shared code entry (never written after setup). */
+    const char *src;
     size_t srclen;
-    struct DinkcTok *tok;
+    const struct DinkcTok *tok;
+    struct DinkcCode *code;
 };
 
-#define CB_N 20
+/* One copy of each distinct script's source and tokens, shared by every
+ * instance (27 s4-duck sprites on map 536 hold one copy, not 27). Tokens
+ * are sized to the script, not DINKC_MAX_TOK. */
+struct DinkcCode {
+    int refs;
+    size_t n;
+    uint32_t hash;
+    char *src;
+    struct DinkcTok *tok;
+    int ntok;
+};
+
+/* FreeDink dinkc.cpp MAX_CALLBACKS. */
+#define CB_N 100
 static struct {
     int active;
     int owner;
@@ -49,6 +60,15 @@ static struct {
 } g_cb[CB_N];
 
 static struct Fiber g_f[DINKC_MAX_LIVE + 1];
+static struct DinkcCode g_code[DINKC_MAX_LIVE + 1];
+static struct DinkcTok g_tok_scratch[DINKC_MAX_TOK]; /* lex once, copy exact */
+/* FreeDink keeps one choice menu (game state, not per script). */
+static int g_ch_n, g_ch_cur, g_ch_ret[20];
+/* Slot of the fiber the menu belongs to (the latest choice_start), 0 =
+ * none. FreeDink: a later script's choice owns the menu; an earlier one
+ * still waiting is left orphaned, never resumed with another's lines. */
+static int g_ch_owner;
+static char g_ch_line[20][80];
 static struct Fiber *g_running;
 static int g_ops_ovf;
 static int g_now_ms;
@@ -486,31 +506,114 @@ static int tok_is(const struct DinkcTok *t, const char *w)
     return 1;
 }
 
-static int fill_toks(struct Fiber *f)
+static uint32_t code_hash(const char *src, size_t n)
+{
+    uint32_t h = 2166136261u; /* FNV-1a */
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        h = (h ^ (uint8_t)src[i]) * 16777619u;
+    }
+    return h;
+}
+
+int dinkc_vm_code_count(void)
+{
+    int i, n = 0;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        n += g_code[i].refs > 0;
+    }
+    return n;
+}
+
+size_t dinkc_vm_code_bytes(void)
+{
+    size_t b = 0;
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_code[i].refs > 0) {
+            b += g_code[i].n + 1 +
+                 sizeof(struct DinkcTok) * (size_t)g_code[i].ntok;
+        }
+    }
+    return b;
+}
+
+static void code_release(struct DinkcCode *c)
+{
+    if (c == NULL || c->refs <= 0) {
+        return;
+    }
+    if (--c->refs == 0) {
+        free(c->src);
+        free(c->tok);
+        memset(c, 0, sizeof(*c));
+    }
+}
+
+/* Share an existing copy of this script, or copy + lex it once. */
+static int acquire_code(struct Fiber *f, const char *src, size_t n)
 {
     struct DinkcLex lx;
     struct DinkcTok t;
-    int rc;
+    struct DinkcCode *c = NULL;
+    uint32_t h = code_hash(src, n);
+    int i, rc, nt = 0;
 
-    f->ntok = 0;
-    dinkc_lex_init(&lx, f->src, f->srclen);
-    f->tok = (struct DinkcTok *)malloc(sizeof(struct DinkcTok) * DINKC_MAX_TOK);
-    if (f->tok == NULL) {
-        return -1;
-    }
-    for (;;) {
-        rc = dinkc_lex_next(&lx, &t);
-        if (rc == 1) {
-            return 0;
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_code[i].refs > 0 && g_code[i].n == n && g_code[i].hash == h &&
+            memcmp(g_code[i].src, src, n) == 0) {
+            c = &g_code[i];
+            break;
         }
-        if (rc < 0) {
+    }
+    if (c == NULL) {
+        for (i = 1; i <= DINKC_MAX_LIVE && g_code[i].refs > 0; i++) {
+        }
+        if (i > DINKC_MAX_LIVE) {
             return -1;
         }
-        if (f->ntok >= DINKC_MAX_TOK) {
+        c = &g_code[i];
+        c->src = (char *)malloc(n + 1);
+        if (c->src == NULL) {
             return -1;
         }
-        f->tok[f->ntok++] = t;
+        memcpy(c->src, src, n);
+        c->src[n] = '\0';
+        dinkc_lex_init(&lx, c->src, n);
+        for (;;) {
+            rc = dinkc_lex_next(&lx, &t);
+            if (rc == 1) {
+                break;
+            }
+            if (rc < 0 || nt >= DINKC_MAX_TOK) {
+                free(c->src);
+                c->src = NULL;
+                return -1;
+            }
+            g_tok_scratch[nt++] = t;
+        }
+        c->tok = (struct DinkcTok *)malloc(sizeof(struct DinkcTok) *
+                                           (size_t)(nt > 0 ? nt : 1));
+        if (c->tok == NULL) {
+            free(c->src);
+            c->src = NULL;
+            return -1;
+        }
+        memcpy(c->tok, g_tok_scratch, sizeof(struct DinkcTok) * (size_t)nt);
+        c->ntok = nt;
+        c->n = n;
+        c->hash = h;
     }
+    c->refs++;
+    f->code = c;
+    f->src = c->src;
+    f->srclen = c->n;
+    f->tok = c->tok;
+    f->ntok = c->ntok;
+    return 0;
 }
 
 static int find_proc(struct Fiber *f, const char *proc)
@@ -588,6 +691,9 @@ static void fiber_kill(struct Fiber *f)
     if (g_last_talk == slot) {
         g_last_talk = 0;
     }
+    if (g_ch_owner == slot) {
+        g_ch_owner = 0;
+    }
     if (f->used) {
         dinkc_var_kill_scope(slot);
         for (i = 1; i < CB_N; i++) {
@@ -596,8 +702,7 @@ static void fiber_kill(struct Fiber *f)
             }
         }
     }
-    free(f->src);
-    free(f->tok);
+    code_release(f->code);
     memset(f, 0, sizeof(*f));
 }
 
@@ -710,7 +815,10 @@ static void run_fiber(struct Fiber *f, int now_ms)
 
                 parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
                            sizeof(sarg2));
-                f->nchoice = 0;
+                /* FreeDink dinkc_get_choices: game_choice_clear() first, so
+                 * an earlier menu is dropped even if this one ends empty. */
+                g_ch_n = 0;
+                g_ch_owner = 0;
                 choice_meta_clear();
                 while (f->ip < f->ntok &&
                        !tok_is(&f->tok[f->ip], "choice_end")) {
@@ -769,7 +877,7 @@ static void run_fiber(struct Fiber *f, int now_ms)
 
                         retnum++;
                         copy_tok(&f->tok[f->ip], line, sizeof(line));
-                        if (ok && f->nchoice < 20) {
+                        if (ok && g_ch_n < 20) {
                             const char *p = line;
                             size_t ln = strlen(line);
 
@@ -784,16 +892,16 @@ static void run_fiber(struct Fiber *f, int now_ms)
                             if (ln > 79) {
                                 ln = 79;
                             }
-                            memcpy(f->choice_line[f->nchoice], p, ln);
-                            f->choice_line[f->nchoice][ln] = '\0';
-                            if (strcmp(f->choice_line[f->nchoice],
+                            memcpy(g_ch_line[g_ch_n], p, ln);
+                            g_ch_line[g_ch_n][ln] = '\0';
+                            if (strcmp(g_ch_line[g_ch_n],
                                        "&savegameinfo") == 0) {
-                                save_info_line(retnum, f->choice_line[f->nchoice],
-                                               sizeof(f->choice_line[0]));
+                                save_info_line(retnum, g_ch_line[g_ch_n],
+                                               sizeof(g_ch_line[0]));
                             }
-                            f->choice_ret[f->nchoice] = retnum;
-                            f->nchoice++;
-                            printf("choice %d %s\n", retnum, f->choice_line[f->nchoice - 1]);
+                            g_ch_ret[g_ch_n] = retnum;
+                            g_ch_n++;
+                            printf("choice %d %s\n", retnum, g_ch_line[g_ch_n - 1]);
                         }
                         f->ip++;
                         eat_semi(f);
@@ -805,13 +913,14 @@ static void run_fiber(struct Fiber *f, int now_ms)
                     f->ip++;
                     skip_call(f);
                 }
-                if (f->nchoice == 0) {
+                if (g_ch_n == 0) {
                     printf("dinkc choice empty\n");
                     continue;
                 }
-                f->choice_cur = 1;
+                g_ch_cur = 1;
                 f->state = DINKC_WAIT_CHOICE;
-                printf("dinkc yield choice n=%d\n", f->nchoice);
+                g_ch_owner = fiber_slot(f);
+                printf("dinkc yield choice n=%d\n", g_ch_n);
                 return;
             }
             parse_args(f, args, &nargs, sarg, sizeof(sarg), sarg2,
@@ -1145,26 +1254,21 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
         }
     }
     if (s > DINKC_MAX_LIVE) {
-        printf("dinkc vm full\n");
+        printf("dinkc vm full (%d scripts, %d distinct, %u B)\n",
+               DINKC_MAX_LIVE, dinkc_vm_code_count(),
+               (unsigned)dinkc_vm_code_bytes());
         return -1;
     }
     f = &g_f[s];
     memset(f, 0, sizeof(*f));
-    f->src = (char *)malloc(n + 1);
-    if (f->src == NULL) {
+    if (acquire_code(f, src, n) != 0) {
+        memset(f, 0, sizeof(*f));
         return -1;
     }
-    memcpy(f->src, src, n);
-    f->src[n] = '\0';
-    f->srclen = n;
     f->sprite = sprite;
     f->used = 1;
     f->keep = keep ? 1 : 0;
     f->depth = 1;
-    if (fill_toks(f) != 0) {
-        fiber_kill(f);
-        return -1;
-    }
     ip = find_proc(f, proc);
     if (ip < 0) {
         printf("dinkc vm no %s\n", proc != NULL ? proc : "main");
@@ -1280,6 +1384,7 @@ void dinkc_vm_reset(void)
         fiber_kill(&g_f[i]);
     }
     memset(g_cb, 0, sizeof(g_cb));
+    g_ch_owner = 0;
     g_ops_ovf = 0;
     dinkc_var_init();
     g_var_ready = 1;
@@ -1393,12 +1498,9 @@ int dinkc_vm_waiting_bmp(void)
 
 static struct Fiber *choice_fiber(void)
 {
-    int i;
-
-    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
-            return &g_f[i];
-        }
+    if (g_ch_owner >= 1 && g_ch_owner <= DINKC_MAX_LIVE &&
+        g_f[g_ch_owner].used && g_f[g_ch_owner].state == DINKC_WAIT_CHOICE) {
+        return &g_f[g_ch_owner];
     }
     return NULL;
 }
@@ -1444,7 +1546,7 @@ int dinkc_vm_choice_n(void)
     struct Fiber *f = choice_fiber();
 
     if (f != NULL) {
-        return f->nchoice;
+        return g_ch_n;
     }
     return g_sa_on ? g_sa_n : 0;
 }
@@ -1454,7 +1556,7 @@ int dinkc_vm_choice_cur(void)
     struct Fiber *f = choice_fiber();
 
     if (f != NULL) {
-        return f->choice_cur;
+        return g_ch_cur;
     }
     return g_sa_on ? g_sa_cur : 0;
 }
@@ -1465,10 +1567,10 @@ const char *dinkc_vm_choice_line(int vis1)
     int i = vis1 - 1;
 
     if (f != NULL) {
-        if (i < 0 || i >= f->nchoice) {
+        if (i < 0 || i >= g_ch_n) {
             return "";
         }
-        return f->choice_line[i];
+        return g_ch_line[i];
     }
     if (!g_sa_on || i < 0 || i >= g_sa_n) {
         return "";
@@ -1496,9 +1598,9 @@ void dinkc_vm_choice_move(int delta)
     struct Fiber *f = choice_fiber();
     int n, c, *cur;
 
-    if (f != NULL && f->nchoice > 0) {
-        n = f->nchoice;
-        cur = &f->choice_cur;
+    if (f != NULL && g_ch_n > 0) {
+        n = g_ch_n;
+        cur = &g_ch_cur;
     } else if (g_sa_on && g_sa_n > 0) {
         n = g_sa_n;
         cur = &g_sa_cur;
@@ -1517,43 +1619,32 @@ void dinkc_vm_choice_move(int delta)
 
 void dinkc_vm_choice_pick(int result)
 {
-    int i;
+    struct Fiber *f = choice_fiber();
+    int vis = result, off;
 
     /* result is 1-based visible index; &result is official line number. */
-    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
-            int vis = result;
-            int off;
-
-            if (vis < 1) {
-                vis = 1;
-            }
-            if (vis > g_f[i].nchoice) {
-                vis = g_f[i].nchoice;
-            }
-            off = vis - 1;
-            if (off >= 0 && off < g_f[i].nchoice) {
-                dinkc_var_set("&result", g_f[i].choice_ret[off],
-                              DINKC_GLOBAL_SCOPE, 1);
-            } else {
-                dinkc_var_set("&result", 0, DINKC_GLOBAL_SCOPE, 1);
-            }
-            run_fiber(&g_f[i], g_f[i].wait_until);
-            return;
-        }
+    if (f == NULL) {
+        return;
     }
+    if (vis < 1) {
+        vis = 1;
+    }
+    if (vis > g_ch_n) {
+        vis = g_ch_n;
+    }
+    off = vis - 1;
+    if (off >= 0 && off < g_ch_n) {
+        dinkc_var_set("&result", g_ch_ret[off], DINKC_GLOBAL_SCOPE, 1);
+    } else {
+        dinkc_var_set("&result", 0, DINKC_GLOBAL_SCOPE, 1);
+    }
+    g_ch_owner = 0;
+    run_fiber(f, f->wait_until);
 }
 
 int dinkc_vm_waiting_choice(void)
 {
-    int i;
-
-    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
-        if (g_f[i].used && g_f[i].state == DINKC_WAIT_CHOICE) {
-            return 1;
-        }
-    }
-    return 0;
+    return choice_fiber() != NULL;
 }
 
 void dinkc_vm_choice_done(void)

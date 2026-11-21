@@ -535,8 +535,8 @@ DinkC is **concurrent**. Each attached script is a fiber:
 | `move_stop` | Wait until at dest |
 | `choice` | Wait for menu |
 
-- `struct Script { ip; locals[256]; wait_until; sprite; state; }`.
-- **Max 20 live scripts** (start conservative; FreeDink allows more — raise when a stock screen needs it).
+- `struct Script { ip; wait_until; sprite; state; code; }`: locals live in the shared `dinkc_var` table (FreeDink `MAX_VARS` 250, globals and every script's locals), not in the script.
+- **199 live scripts** (FreeDink `MAX_SCRIPTS` 200, slot 0 unused) and **100 callbacks** (`MAX_CALLBACKS`). Instances share one refcounted copy of each script's source and tokens (#169): map 536 runs 30 scripts from 4 distinct files. One global choice menu, owned by the latest `choice_start`.
 - 60 Hz: tick all runnable scripts, budget **2 ms** SH-4; overflow → log.
 
 **Host check:** script `void main(void) { wait(1); }` completes in a fake 60 Hz loop.

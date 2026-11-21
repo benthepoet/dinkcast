@@ -1299,6 +1299,10 @@ int main(int argc, char **argv)
                                 edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes() +
                                     status_cpu_bytes(),
                                 g_ned, tiles_cache_bytes(), tiles_cache_sheets());
+                        /* DinkC: live scripts and their shared code (§1.2). */
+                        printf("mem dinkc live=%d code_n=%d code_bytes=%u\n",
+                               dinkc_vm_live(), dinkc_vm_code_count(),
+                               (unsigned)dinkc_vm_code_bytes());
                         printf("swap_ms %u\n", mem_now_ms() - swap_t0);
                         swap = 0;
                         continue;

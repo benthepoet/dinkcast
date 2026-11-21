@@ -45,6 +45,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 
 | Picture | Host lock |
 |---|---|
+| 200 DinkC scripts: map 536 (27 ducks + rock/statue/secret), 192 (17 slimes + 4 thorns), 352 (15 gold + potions/heart) — every sprite hits/talks/dies; no `dinkc vm full` in the log | `test_dinkc_vm` (199 instances share one copy; 201st refused). Flycast stamp Open. |
 | In-play Start pause: Continue / Title on the choice overlay | `test_dinkc_vm` `open_pause` Continue/Title. Flycast stamp Open. |
 | Holes warp (`S1-HOLE*` `load_screen` + `draw_screen`) | Host #105. Flycast stamp Open. |
 | Gossip/shop `goto` does not fall through (`S1-LG.c` / `S2-OUT.c`) | Host #102. Flycast stamp Open. |
