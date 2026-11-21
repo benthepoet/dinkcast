@@ -144,8 +144,8 @@ never +100/+104/+108; `src/brains.c:1631-1632 brains_enter` hardcodes
 
 ### 6. DinkC command table (full 186-binding diff; details in pass notes)
 Stock-campaign-used and missing/stubbed:
-- `compare_sprite_script` missing — used by `S4-ROCK.c`, `S4-SEC1.c`, `S5-SEC1.c`
-  (secrets never trigger).
+- ~~`compare_sprite_script` missing~~ bound in #172 (scripts carry their file
+  name) — `S4-ROCK.c`, `S4-SEC1.c`, `S5-SEC1.c` bomb secrets.
 - `fill_screen` stubbed (`dinkc_cmd.c:1437`) — `S1-LTR.c` letter scene (main quest),
   `S2-BAR.c`, `S2-CAVE2.c`, `S2-MDOOR.c`, `START.c` show live pixels instead of
   black. [known: "instant" per PROGRESS; full impact is visual blackout]
@@ -153,9 +153,9 @@ Stock-campaign-used and missing/stubbed:
   after explosions.
 - `sp_kill_wait` stubbed (`dinkc_cmd.c:1546`) — 10 item scripts; NPCs stuck in
   talk-wait after weapon use.
-- `set_dink_speed` missing (§2). `free_magic` missing — `S6-VEND.c` vendor slot
-  check. `run_script_by_number`/`is_script_attached` missing — `DAM-FIRE.c`/
-  `DAM-SFB.c` burn chains dead. `stopmidi` is `audio_music_stop` (`S1-BUL`, `DINFO`).
+- `set_dink_speed` missing (§2). `free_magic` bound in #172 (8 slots, Dink 1.08;
+  FreeDink's mitem[-1] read not grafted) — `S6-VEND.c`. `run_script_by_number`/
+  `is_script_attached` bound in #172 — `DAM-FIRE.c`/`DAM-SFB.c` burn chains. `stopmidi` is `audio_music_stop` (`S1-BUL`, `DINFO`).
 - **`sp()`/`sp_editor_num` are identity stubs** — FreeDink `dc_sp` searches live
   sprites by `sp_index`, returns 0 when absent; `dinkc_cmd.c:1561` echoes the
   argument. Dead-sprite quest checks never fire. **Downgraded P2 (see Response):

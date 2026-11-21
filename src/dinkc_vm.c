@@ -68,6 +68,8 @@ static int g_ch_n, g_ch_cur, g_ch_ret[20];
  * none. FreeDink: a later script's choice owns the menu; an earlier one
  * still waiting is left orphaned, never resumed with another's lines. */
 static int g_ch_owner;
+/* FreeDink rinfo->name: the file the next start came from (load_script). */
+static char g_name_next[32];
 static char g_ch_line[20][80];
 static struct Fiber *g_running;
 static int g_ops_ovf;
@@ -515,6 +517,19 @@ static uint32_t code_hash(const char *src, size_t n)
         h = (h ^ (uint8_t)src[i]) * 16777619u;
     }
     return h;
+}
+
+void dinkc_vm_name_next(const char *file)
+{
+    snprintf(g_name_next, sizeof(g_name_next), "%s", file != NULL ? file : "");
+}
+
+const char *dinkc_vm_name(int slot)
+{
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
+        return NULL;
+    }
+    return g_f[slot].name;
 }
 
 int dinkc_vm_code_count(void)
@@ -966,7 +981,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
             }
             /* FreeDink: ident( is a same-file proc (S2-OUT buybomb). */
             if (find_proc(f, cname) >= 0) {
-                int ch = start_fiber_args(f->src, f->srclen, f->sprite, cname,
+                int ch;
+
+                /* Same rinfo in FreeDink: the child keeps the file name. */
+                snprintf(g_name_next, sizeof(g_name_next), "%s", f->name);
+                ch = start_fiber_args(f->src, f->srclen, f->sprite, cname,
                                           0, args, nargs);
 
                 if (ch > 0) {
@@ -1227,6 +1246,7 @@ void dinkc_vm_tick_callbacks(int now_ms)
             struct Fiber *own = &g_f[g_cb[k].owner];
 
             g_cb[k].timer = 0;
+            snprintf(g_name_next, sizeof(g_name_next), "%s", own->name);
             (void)dinkc_vm_start_proc(own->src, own->srclen, own->sprite,
                                       g_cb[k].proc);
         }
@@ -1237,6 +1257,11 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
                             const char *proc, int keep, const int *args,
                             int nargs)
 {
+    char fname[32];
+
+    /* Take the pending name now so a failed start cannot leak it. */
+    snprintf(fname, sizeof(fname), "%s", g_name_next);
+    g_name_next[0] = '\0';
     int s, ip;
     struct Fiber *f;
 
@@ -1276,7 +1301,11 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
         return -1;
     }
     f->ip = ip;
-    snprintf(f->name, sizeof(f->name), "slot%d", s);
+    if (fname[0] != '\0') {
+        snprintf(f->name, sizeof(f->name), "%s", fname);
+    } else {
+        snprintf(f->name, sizeof(f->name), "slot%d", s);
+    }
     if (args != NULL && nargs > 0) {
         int i, ncp = nargs < 8 ? nargs : 8;
 

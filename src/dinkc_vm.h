@@ -73,6 +73,12 @@ void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);
 void dinkc_vm_choice_done(void);
 int dinkc_vm_live(void);
+/* FreeDink rinfo->name: name the next started script after its file
+ * (script.c calls this before each start). Same-file procs and timer
+ * callbacks inherit their parent's name. */
+void dinkc_vm_name_next(const char *file);
+/* File name of a live script, NULL if the slot is dead. */
+const char *dinkc_vm_name(int slot);
 /* Distinct scripts held (shared by their instances) and their bytes. */
 int dinkc_vm_code_count(void);
 size_t dinkc_vm_code_bytes(void);

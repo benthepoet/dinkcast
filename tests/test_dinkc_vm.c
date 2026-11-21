@@ -1260,6 +1260,56 @@ int main(void)
         expect(dinkc_vm_state(a) == DINKC_WAIT_CHOICE, "A not resumed");
     }
 
+    /* Campaign bindings (review §4.1): DAM-FIRE is_script_attached +
+     * run_script_by_number "DIE"; S4-ROCK compare_sprite_script against
+     * the bomb's script name; S1-NTREE scripts_used; S6-VEND free_magic;
+     * S7-HELL get_burn. */
+    {
+        static const char bomb[] =
+            "void main(void)\n{\n  wait(100);\n}\n"
+            "void die(void)\n{\n  &gd = 5;\n}\n";
+        static const char rock[] =
+            "void main(void)\n{\n"
+            "  &gr = compare_sprite_script(7, \"DAM-BOMN\");\n"
+            "  &gn = compare_sprite_script(7, \"dam-bom\");\n"
+            "  &gs = is_script_attached(7);\n"
+            "  &gz = is_script_attached(9);\n"
+            "  &gu = scripts_used();\n"
+            "  &gb = get_burn();\n"
+            "  &gm = free_magic();\n"
+            "  run_script_by_number(&gs, \"die\");\n"
+            "}\n";
+        int sb;
+
+        dinkc_vm_reset();
+        dinkc_var_make_global("&gr", -1);
+        dinkc_var_make_global("&gn", -1);
+        dinkc_var_make_global("&gs", -1);
+        dinkc_var_make_global("&gz", -1);
+        dinkc_var_make_global("&gu", -1);
+        dinkc_var_make_global("&gb", -1);
+        dinkc_var_make_global("&gm", -1);
+        dinkc_var_make_global("&gd", 0);
+        dinkc_vm_name_next("dam-bomn");
+        sb = dinkc_vm_start_keep(bomb, strlen(bomb), 7, "main");
+        expect(sb > 0 && strcmp(dinkc_vm_name(sb), "dam-bomn") == 0,
+               "script keeps its file name");
+        dinkc_vm_name_next("s4-rock");
+        expect(dinkc_vm_start_keep(rock, strlen(rock), 8, "main") > 0,
+               "rock runs");
+#define G(n) dinkc_var_get(n, DINKC_GLOBAL_SCOPE, 1)
+        expect(G("&gr") == 1, "compare_sprite_script match (any case)");
+        expect(G("&gn") == 0, "compare_sprite_script other name");
+        expect(G("&gs") == sb, "is_script_attached = script number");
+        expect(G("&gz") == 0, "is_script_attached none");
+        expect(G("&gu") == 2, "scripts_used");
+        expect(G("&gb") == 1, "get_burn is 1");
+        expect(G("&gm") == 8, "free_magic: 8 empty slots");
+        expect(G("&gd") == 5, "run_script_by_number ran die()");
+#undef G
+        expect(dinkc_vm_name(999) == NULL, "dead slot has no name");
+    }
+
     printf("OK test_dinkc_vm\n");
     return 0;
 }
