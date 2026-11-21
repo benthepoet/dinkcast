@@ -44,6 +44,18 @@ On the PR write `orchestrator:` as a label, not an `@` ping.
 - If `gh pr merge` returns **403** (`mergePullRequest` / “Resource not accessible by personal access token”), **stop**. Comment on the PR that the human must merge in the UI. Do not push `master`.
 - Do not force-push `master`. Force-push a feature branch only to replace a rebase you own, and only before others have based work on it.
 
+### Worktrees (several agents at once)
+
+Several agents (Claude, Grok, Kimi, subagents) work at the same time. **Each branch gets its own git worktree.** Nobody switches branches or commits in someone else's tree.
+
+- **The main checkout (`~/Source/dinkcast`) belongs to the human.** It is the playtest tree. Agents do not `git checkout`, commit, stash, reset or clean there; they read-only it at most.
+- **New work:** `git fetch origin && git worktree add -b <branch> ../dinkcast-wt/<slug> origin/master`, then `cp ../dinkcast/local.mk ../dinkcast-wt/<slug>/` (gitignored, `DINK_DATA`). Work, build (`make host`, `make docker-cdi`; Docker mounts that tree) and commit only inside it.
+- **Reviewers** use their own throwaway worktree of the PR head (`git worktree add ../dinkcast-wt/review-<pr> origin/<branch>`) and remove it when done.
+- **One branch, one worktree, one owner.** Git refuses a second checkout of a branch: do not `--force` it. To fix someone else's PR, comment on the PR; only its owner commits.
+- **Stage explicit paths** (`git add <files>`), never `git add -A` / `commit -a`: other agents' untracked files can sit in any tree.
+- **Clean up:** after the PR merges, the owner runs `git worktree remove ../dinkcast-wt/<slug>` (and `git worktree prune`). Do not remove a worktree you do not own; list it and ask.
+- `build/` and `build/emu.log` are per worktree. When the human playtests a branch, they check it out in the main checkout; read `build/emu.log` there.
+
 ```
 master
   └── bite/3.4-title-quad          # PR #N
