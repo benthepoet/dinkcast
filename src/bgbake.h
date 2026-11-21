@@ -19,4 +19,10 @@ struct BgRow {
  * the table by editor index). Returns the number moved. */
 int bg_bake(struct EditorSprite *rows, int vision, struct BgRow *out, int cap);
 
+/* FreeDink fill_back_sprites: an editor row whose hardness is stamped from
+ * the editor table itself (active, on this vision, not type 1, hard == 0).
+ * Used on draw_hard_map with the spmap-updated editor rows; live sprites
+ * go through fill_hard_sprites instead. */
+int bg_stamps_back(const struct EditorSprite *es, int vision);
+
 #endif

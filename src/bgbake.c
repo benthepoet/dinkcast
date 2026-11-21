@@ -1,6 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "bgbake.h"
 
+int bg_stamps_back(const struct EditorSprite *es, int vision)
+{
+    return es != NULL && es->active && editor_sprite_on_vision(es, vision) &&
+           es->type != 1 && es->hard == 0;
+}
+
 int bg_bake(struct EditorSprite *rows, int vision, struct BgRow *out, int cap)
 {
     int i, n = 0;

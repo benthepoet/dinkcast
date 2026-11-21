@@ -323,42 +323,48 @@ static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si
 
 static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 {
-    int si;
+    int si, vis = script_play_vision();
 
-    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes,
-     * fill_whole_hard, fill_hard_sprites, fill_back_sprites. */
-    /* update_play_changes edits the editor rows, so baked background rows
-     * (fill_back_sprites) see editor_type kills too: re-bake from them. */
+    /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes
+     * (editor rows only), fill_whole_hard, fill_hard_sprites (live spr[]),
+     * fill_back_sprites (editor rows, type != 1). Drawing is not touched:
+     * live sprites and baked background keep their pixels until the next
+     * draw_screen, as FreeDink's background buffer does. */
     if (g_spr_ed != NULL) {
         dinkc_cmd_apply_spmap_rows(g_spr_ed,
                                    dinkc_var_get("&player_map",
                                                  DINKC_GLOBAL_SCOPE, 1));
-        spr_bake(script_play_vision());
-        brains_apply(&g_scr);
     }
-    dinkc_cmd_apply_spmap(&g_scr, dinkc_var_get("&player_map",
-                                                DINKC_GLOBAL_SCOPE, 1));
     if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
         return;
     }
     for (si = 1; si <= 100; si++) {
-        if (!editor_sprite_on_vision(&g_scr.sprite[si],
-                                     script_play_vision()) ||
-            g_scr.sprite[si].hard != 0 || brains_slot_hard(si) != 0) {
-            continue;
+        const struct EditorSprite *ed =
+            g_spr_ed != NULL ? &g_spr_ed[si] : &g_scr.sprite[si];
+
+        if (brains_slot_live(si)) {
+            /* fill_hard_sprites: the live sprite where it is now (row
+             * mirror), editor type/hard/active as the spmap left them; a
+             * created sprite has no editor row (its own mirror). */
+            struct EditorSprite live = g_scr.sprite[si];
+
+            if (!brains_slot_created(si)) {
+                live.active = ed->active;
+                live.type = ed->type;
+                live.hard = ed->hard;
+            }
+            if (editor_sprite_on_vision(&live, vis) && live.hard == 0 &&
+                brains_slot_hard(si) == 0 &&
+                hard_stamp_editor_slot((int)live.type, 1)) {
+                stamp_editor_row(mask, seqs, &live, si);
+            }
         }
-        if (!hard_stamp_editor_slot((int)g_scr.sprite[si].type,
-                                    brains_slot_live(si))) {
-            continue;
+        /* fill_back_sprites: background rows from the editor table, baked
+         * or not (a created sprite may sit in a baked row's slot). */
+        if ((!brains_slot_live(si) || brains_slot_created(si)) &&
+            bg_stamps_back(ed, vis)) {
+            stamp_editor_row(mask, seqs, ed, si);
         }
-        stamp_one_editor(mask, seqs, si);
-    }
-    /* Baked background rows (fill_back_sprites): hard == 0 only. */
-    for (si = 0; si < g_nbg; si++) {
-        if (g_bg[si].es.hard != 0) {
-            continue;
-        }
-        stamp_editor_row(mask, seqs, &g_bg[si].es, g_bg[si].ed);
     }
 }
 

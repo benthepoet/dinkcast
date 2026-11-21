@@ -485,6 +485,30 @@ int main(void)
         expect(!rows[2].active && !rows[3].active, "baked rows freed");
         expect(rows[4].active && rows[5].active && rows[6].active,
                "warp, live and other-vision rows kept");
+        /* fill_back_sprites on draw_hard_map reads the editor rows: a
+         * baked row still stamps (until an editor_type kill), type 1 and
+         * hard != 0 do not. */
+        {
+            struct EditorSprite e;
+
+            memset(&e, 0, sizeof(e));
+            e.active = 1;
+            e.type = 0;
+            e.hard = 0;
+            expect(bg_stamps_back(&e, 0), "background row stamps");
+            e.active = 0;
+            expect(!bg_stamps_back(&e, 0), "editor_type kill: no stamp");
+            e.active = 1;
+            e.hard = 1;
+            expect(!bg_stamps_back(&e, 0), "hard 1: no stamp");
+            e.hard = 0;
+            e.type = 1;
+            expect(!bg_stamps_back(&e, 0), "type 1 is fill_hard_sprites");
+            e.type = 2;
+            e.vision = 4;
+            expect(!bg_stamps_back(&e, 0) && bg_stamps_back(&e, 4),
+                   "vision filter");
+        }
 
         if (dink_fs_init() == 0 && world_load(&w) == 0 && w.loc[145] >= 1 &&
             map_load_record((int)w.loc[145], &m145) == 0) {
