@@ -304,6 +304,20 @@ int saybox_color(void)
     return g_color;
 }
 
+/* FreeDink text_draw: 50 px box, hcenter, then the glyph 1 px left of the rect. */
+int saybox_num_x(int x, int num)
+{
+    char buf[16];
+    const char *p;
+    int w = 0;
+
+    snprintf(buf, sizeof(buf), "%d", num);
+    for (p = buf; *p != '\0'; p++) {
+        w += font_advance((unsigned char)*p);
+    }
+    return x + 25 - w / 2 - 1;
+}
+
 #ifdef _arch_dreamcast
 int saybox_upload(void)
 {
@@ -425,7 +439,10 @@ void saybox_draw_num_pvr(int x, int y, int num, float z)
         return;
     }
     snprintf(buf, sizeof(buf), "%d", num);
-    cx = (float)x;
+    if (y < 0) {
+        y = 0;
+    }
+    cx = (float)saybox_num_x(x, num);
     fg = saybox_argb(14);
     bg = 0xFF080E15u;
     for (p = buf; *p != '\0'; p++) {
