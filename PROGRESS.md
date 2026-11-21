@@ -277,6 +277,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-21 | Sprite slots (review §3.2): background rows (type 0/2, non-warp) are baked out of the live table at each draw_screen, as FreeDink game_place_sprites removes them after drawing and stamping; drawn every frame from a fixed list and stamped again on draw_hard_map. Map 145 goes from 9 to 98 free slots for blood, damage numbers, missiles and create_sprite; a full table now logs `brains_create full` | #177 |
 | 2026-11-21 | Diagnostics: looping sprite sounds (`sp_sound`, editor sound) log start/skip/fail, steal, KOS channel reuse and halt (`sfx loop …`), and `sp_sound` logs its channel. Requester heard no SAVEBOT hum after #176; reproduce before a fix | #185 |
 | 2026-11-21 | Floater colors match `text_draw`: damage is white `{255,255,255}`, experience (`brain_parm` 5000) is yellow color 14 and sits 30 px higher (`add_exp_force`). Dialogue and both floaters turn white while brightness is below 256 | #180 |
+| 2026-11-21 | Talk lines are separate text sprites (FreeDink brain 8): each `say_stop` / `say_stop_npc` has its own timer and resumes only that script. `say_stop_npc` does nothing if that sprite is already talking and does not become `last_talk`. A while frozen dismisses `last_talk` only. Bar ambient lines (S2-WENCH, S2-MAN2, S2-BAR) no longer replace or gate the bartender | #179 |
 
 ## Bites
 
