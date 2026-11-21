@@ -1857,6 +1857,10 @@ void brains_apply(struct MapScreen *scr)
             }
             scr->sprite[i].seq = s->pseq;
             scr->sprite[i].frame = s->pframe;
+            /* FreeDink screen_rank: the sprite's own que (sp_que, blood
+             * at owner y + 1), not the row's. Editor sprites keep their
+             * row que (g_b.que is not seeded from it). */
+            scr->sprite[i].que = s->que;
         }
         scr->sprite[i].x = s->x;
         scr->sprite[i].y = s->y;

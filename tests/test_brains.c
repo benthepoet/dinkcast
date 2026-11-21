@@ -602,6 +602,9 @@ int main(void)
         expect(ms.sprite[sl].seq == 0 && ms.sprite[sl].alt_r == 0 &&
                    ms.sprite[sl].que == 0 && ms.sprite[sl].script[0] == '\0',
                "floater row carries no stale seq, clip, que or script");
+        (void)brains_change_prop(sl, DINKC_SP_QUE, 55);
+        brains_apply(&ms);
+        expect(ms.sprite[sl].que == 55, "created sprite's own que mirrored");
         brains_reset();
         brains_bind_screen(NULL);
     }
