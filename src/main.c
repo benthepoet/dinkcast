@@ -172,9 +172,11 @@ static void give_start_fists(void)
 
 static int spr_ok_ready(void)
 {
-    if (g_spr_ok != NULL) {
+    if (g_spr_ok != NULL && g_spr_ed != NULL) {
         return 0;
     }
+    free(g_spr_ok);
+    free(g_spr_ed);
     g_spr_ok = (struct EditorSprite *)malloc(101u * sizeof(*g_spr_ok));
     g_spr_ed = (struct EditorSprite *)malloc(101u * sizeof(*g_spr_ed));
     return g_spr_ok == NULL || g_spr_ed == NULL ? -1 : 0;
@@ -325,6 +327,15 @@ static void stamp_editor_hard(struct HardMask *mask, struct SeqInfo *seqs)
 
     /* FreeDink dc_draw_hard_map / draw_hard_sprite: update_play_changes,
      * fill_whole_hard, fill_hard_sprites, fill_back_sprites. */
+    /* update_play_changes edits the editor rows, so baked background rows
+     * (fill_back_sprites) see editor_type kills too: re-bake from them. */
+    if (g_spr_ed != NULL) {
+        dinkc_cmd_apply_spmap_rows(g_spr_ed,
+                                   dinkc_var_get("&player_map",
+                                                 DINKC_GLOBAL_SCOPE, 1));
+        spr_bake(script_play_vision());
+        brains_apply(&g_scr);
+    }
     dinkc_cmd_apply_spmap(&g_scr, dinkc_var_get("&player_map",
                                                 DINKC_GLOBAL_SCOPE, 1));
     if (mask == NULL || hard_stamp_tiles(&g_hard, &g_scr, mask) != 0) {
@@ -1210,6 +1221,7 @@ int main(int argc, char **argv)
                 hit_bind_push(script_on_push);
                 hit_bind_touch(script_on_touch);
                 brains_bind_kill(script_on_kill);
+                dinkc_cmd_bind_slot_created(brains_slot_created);
                 brains_bind_reuse(dinkc_vm_sprite_reused);
                 dinkc_vm_bind_sprite_alive(script_sprite_alive);
                 brains_bind_proc(script_try_proc);

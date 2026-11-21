@@ -503,8 +503,53 @@ int main(void)
                 made++;
             }
             expect(made == 98, "map 145: create_sprite gets 98 slots");
+            /* A created sprite on a baked row has no editor number
+             * (FreeDink add_sprite: sp_index 0), so a pickup's
+             * editor_type(sp_editor_num(&current_sprite), 1) cannot delete
+             * the background object that owned that row. */
+            {
+                int yld = 0, rv = -1, a1[1];
+
+                dinkc_cmd_bind_slot_created(brains_slot_created);
+                a1[0] = 2;
+                (void)dinkc_cmd("sp_editor_num", a1, 1, "", "", &yld, &rv);
+                expect(brains_slot_created(2) && rv == 0,
+                       "sp_editor_num of a created sprite is 0");
+                dinkc_cmd_bind_slot_created(NULL);
+            }
             brains_reset();
             brains_bind_screen(NULL);
+            /* Every stock screen keeps at least 33 free after the bake
+             * (map 536: 66 type-1 ducks, nothing to bake). */
+            {
+                int scr, worst = 99, wmap = 0;
+
+                for (scr = 1; scr < 769; scr++) {
+                    int f = 0, v;
+
+                    if (w.loc[scr] < 1 ||
+                        map_load_record((int)w.loc[scr], &m145) != 0) {
+                        continue;
+                    }
+                    for (v = 0; v <= 9; v++) {
+                        static struct EditorSprite cp[101];
+                        int k;
+
+                        memcpy(cp, m145.sprite, sizeof(cp));
+                        (void)bg_bake(cp, v, bg, 100);
+                        f = 0;
+                        for (k = 2; k <= 99; k++) {
+                            f += !cp[k].active;
+                        }
+                        if (f < worst) {
+                            worst = f;
+                            wmap = scr;
+                        }
+                    }
+                }
+                printf("bake floor %d free (map %d)\n", worst, wmap);
+                expect(worst >= 33, "every screen keeps >= 33 free slots");
+            }
         } else {
             printf("skip map 145 (no DINK_DATA)\n");
         }
