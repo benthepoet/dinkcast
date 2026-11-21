@@ -245,26 +245,22 @@ static void add_kill_sprite(struct BrainSpr *s, const struct SeqInfo *seqs)
     add_exp_if_player(s);
 }
 
-static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
+/* FreeDink draw_damage(h) (brain.cpp): add_sprite at spr[h], minus the
+ * frame's xoffset/yoffset, then + box.right/5 and - box.bottom/3. box is
+ * the bitmap (w, h), not the hardbox. w < 1: frame unknown, sit 40 above. */
+void brains_draw_damage_box(int x, int y, int w, int h, int cx, int cy,
+                            int damage, int owner)
 {
-    int slot, x, y, seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+    int slot;
 
-    (void)seqs;
-    if (s == NULL || s->damage <= 0) {
+    if (damage <= 0) {
         return;
     }
-    x = s->x;
-    y = s->y;
-    seq = s->pseq > 0 ? s->pseq : s->seq;
-    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
-    /* FreeDink draw_damage: xoffset/yoffset, then box.right/5 and
-     * box.bottom/3. box is the bitmap, not the hardbox. */
-    if (seq > 0 && g_frame_box != NULL &&
-        g_frame_box(seq, fr, &bw, &bh, &cx, &cy) && bw > 0 && bh > 0) {
+    if (w > 0 && h > 0) {
         x -= cx;
         y -= cy;
-        x += bw / 5;
-        y -= bh / 3;
+        x += w / 5;
+        y -= h / 3;
     } else {
         y -= 40;
     }
@@ -278,14 +274,31 @@ static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
     }
     g_b[slot].speed = 1;
     g_b[slot].hard = 1;
-    g_b[slot].brain_parm = spr_i(s);
+    g_b[slot].brain_parm = owner;
     g_b[slot].my = -1;
     g_b[slot].mx = 0;
     g_b[slot].kill_ttl = 1000;
     g_b[slot].dir = 8;
-    g_b[slot].damage = s->damage;
+    g_b[slot].damage = damage;
     g_b[slot].seq = 0;
     g_b[slot].pseq = 0;
+}
+
+static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
+{
+    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+
+    (void)seqs;
+    if (s == NULL || s->damage <= 0) {
+        return;
+    }
+    seq = s->pseq > 0 ? s->pseq : s->seq;
+    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
+    if (!(seq > 0 && g_frame_box != NULL &&
+          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
+        bw = 0;
+    }
+    brains_draw_damage_box(s->x, s->y, bw, bh, cx, cy, s->damage, spr_i(s));
 }
 
 void brains_draw_damage(int slot, const struct SeqInfo *seqs)

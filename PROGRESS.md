@@ -271,6 +271,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-21 | AGENTS.md: one git worktree per branch under `MAIN-wt/` (absolute `git -C` commands, `local.mk` copied), main checkout is the human playtest tree (detached checkout of the PR head), reviewers use detached worktrees, explicit staging, owner removes worktree + branch after merge (several agents at once) | #171 |
 | 2026-11-21 | Damage numbers use the bitmap box (`w/5`, `h/3`) and are centered in FreeDink's 50 px box | #172 |
 | 2026-11-21 | DinkC bindings (review §4.1, part 1): `compare_sprite_script` (S4-ROCK/S4-SEC1/S5-SEC1 bomb secrets; scripts now carry their file name like FreeDink `rinfo->name`), `is_script_attached` + `run_script_by_number` (DAM-FIRE/DAM-SFB tree `DIE`), `scripts_used` (S1-NTREE), `free_magic` (S6-VEND), `get_burn` (S7-HELL/MIL, always 1). Policy (FreeDink): a script with no `main` stays attached to its sprite (DAM-BOMN); scripts of dead sprites are swept each tick (`kill_scripts_with_inactive_sprites`); a reused sprite slot starts with no script | #173 |
+| 2026-11-21 | Dink shows a damage number when hurt (FreeDink `human_brain` → `draw_damage(1)`, before `&life` drops): placed from his own drawn frame (pspr), not the editor-sprite cache; shared `brains_draw_damage_box` with enemies | this PR |
 
 ## Bites
 

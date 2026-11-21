@@ -82,13 +82,24 @@ int player_hurt(struct Player *p, int damage)
     return num;
 }
 
+static void (*g_on_damage)(const struct Player *p, int damage);
+
+void player_bind_damage_draw(void (*fn)(const struct Player *p, int damage))
+{
+    g_on_damage = fn;
+}
+
 int player_apply_life(struct Player *p, int *life)
 {
     if (p == NULL || life == NULL) {
         return 0;
     }
     if (p->damage > 0) {
-        /* FreeDink human_brain: grunt 15 or 16 after *plife -= damage. */
+        /* FreeDink human_brain: draw_damage(h) first, then the grunt
+         * 15 or 16 after *plife -= damage. */
+        if (g_on_damage != NULL) {
+            g_on_damage(p, p->damage);
+        }
         if ((rand() % 2) + 1 == 1) {
             (void)audio_playsound(15, 25050, 2000, 0, 0);
         } else {

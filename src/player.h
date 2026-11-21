@@ -52,6 +52,9 @@ int player_hurt(struct Player *p, int damage);
 int player_apply_life(struct Player *p, int *life);
 /* FreeDink getpic(1): seq if >0 else pseq / pframe. */
 int player_pic_seq(const struct Player *p);
+/* FreeDink human_brain draw_damage(1): called by player_apply_life with the
+ * damage about to come off &life, before it is cleared. */
+void player_bind_damage_draw(void (*fn)(const struct Player *p, int damage));
 int player_pic_frame(const struct Player *p);
 
 #endif

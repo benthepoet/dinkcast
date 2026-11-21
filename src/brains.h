@@ -82,6 +82,11 @@ void brains_bind_frame_box(int (*fn)(int seq, int frame, int *w, int *h,
                                       int *cx, int *cy));
 /* FreeDink draw_damage / random_blood. */
 void brains_draw_damage(int slot, const struct SeqInfo *seqs);
+/* FreeDink draw_damage for any sprite (Dink too): (x, y) is the sprite,
+ * w/h/cx/cy its current frame's bitmap and offsets (w < 1 = unknown).
+ * Spawns the brain-8 floater; owner is the hurt sprite. */
+void brains_draw_damage_box(int x, int y, int w, int h, int cx, int cy,
+                            int damage, int owner);
 void brains_random_blood(int mx, int my, int sprite);
 
 #endif
