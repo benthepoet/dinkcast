@@ -276,6 +276,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-21 | DinkC bindings part 2 (review §4.1): `set_dink_speed` (herb boots; FreeDink game_compute_speed 3 → 3 px, 2 → 6 px; load resets to 3), `stop_entire_game` (LRAISE: only the choice runs, then it clears), `dink_can_walk_off_screen` (S2-CULG; load resets), `sp_sound` (SAVEBOT/FIRE looped on the sprite). Hurt timing: DinkC `hurt(1, n)` only queues damage; the main loop is the single apply site (human_brain), skipped during a scripted move, warp, stop_entire_game or menus | #176 |
 | 2026-11-21 | Sprite slots (review §3.2): background rows (type 0/2, non-warp) are baked out of the live table at each draw_screen, as FreeDink game_place_sprites removes them after drawing and stamping; drawn every frame from a fixed list and stamped again on draw_hard_map. Map 145 goes from 9 to 98 free slots for blood, damage numbers, missiles and create_sprite; a full table now logs `brains_create full` | #177 |
 | 2026-11-21 | Diagnostics: looping sprite sounds (`sp_sound`, editor sound) log start/skip/fail, steal, KOS channel reuse and halt (`sfx loop …`), and `sp_sound` logs its channel. Requester heard no SAVEBOT hum after #176; reproduce before a fix | #185 |
+| 2026-11-21 | Floater colors match `text_draw`: damage is white `{255,255,255}`, experience (`brain_parm` 5000) is yellow color 14 and sits 30 px higher (`add_exp_force`). Dialogue and both floaters turn white while brightness is below 256 | #180 |
 
 ## Bites
 
