@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
+#include "audio.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
 #include "dinkc_vm.h"
@@ -388,7 +389,12 @@ int main(void)
                "slot empty token");
         expect(strcmp(dinkc_vm_choice_line(2), "Nevermind") == 0, "nevermind");
         dinkc_vm_choice_pick(2);
-        dinkc_vm_choice_open_saves();
+        {
+            unsigned polls = audio_music_polls();
+
+            dinkc_vm_choice_open_saves();
+            expect(audio_music_polls() == polls + 10, "poll per save slot");
+        }
         expect(dinkc_vm_choice_n() == 11, "start-2 ten plus nevermind");
         expect(dinkc_vm_choice_cur() == 1, "save cur1");
         expect(strstr(dinkc_vm_choice_line(1), "Slot 1") != NULL, "slot1 line");

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "dinkc_vm.h"
 
+#include "audio.h"
 #include "choice.h"
 #include "dinkc_cmd.h"
 #include "dinkc_lex.h"
@@ -1513,6 +1514,8 @@ void dinkc_vm_choice_open_saves(void)
     g_sa_n = 0;
     for (i = 1; i <= DINK_SAVE_SLOTS && g_sa_n < 20; i++) {
         save_info_line(i, g_sa_line[g_sa_n], sizeof(g_sa_line[0]));
+        /* VMU reads block. The slot screen has not started polling yet. */
+        audio_music_poll();
         g_sa_n++;
     }
     if (g_sa_n < 20) {
