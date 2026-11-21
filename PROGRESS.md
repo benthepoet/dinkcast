@@ -268,6 +268,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | Diagnostic: play-path stdout batched (16 KB, full buffering while `dink_io_play`, line-buffered in menus/boot) and drained once per tick inside the timed `dink_io_flush`, so every gameplay printf is excluded from `ioplay ticks` like ioplay's own lines; fatal `hud()` flushes | #164 |
 | 2026-11-20 | `test_iolog`: start a tick before the tick-work block (it inherited the drain of the flushes since the last tick, the summary's and an empty one, 0–1 µs on host, and failed ~3 in 20 runs after #164; 0/500 now). Test only | #168 |
 | 2026-11-20 | DinkC capacity to FreeDink: 199 live scripts (`MAX_SCRIPTS` 200, slot 0 unused; was 20) and 100 callbacks (`MAX_CALLBACKS`, was 20). Instances share one refcounted copy of each script's source and tokens (tokens sized to the script, not a 64 KB array each); the choice menu is one global as in FreeDink; unused 1 KB `locals` dropped. Map 536 (31 scripted sprites), 192 (21), 352 (20 + weapon) fit (host-checked; Flycast Open). Choice menu owned by the latest `choice_start`; `out of var space` logged | #169 |
+| 2026-11-21 | AGENTS.md: one git worktree per branch under `MAIN-wt/` (absolute `git -C` commands, `local.mk` copied), main checkout is the human playtest tree (detached checkout of the PR head), reviewers use detached worktrees, explicit staging, owner removes worktree + branch after merge (several agents at once) | #171 |
 
 ## Bites
 
