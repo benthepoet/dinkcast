@@ -76,7 +76,18 @@ static int g_disc_hold;
 static char g_pending[32];
 #ifdef _arch_dreamcast
 static uint8_t g_ring[MUSIC_RING] __attribute__((aligned(32)));
-static int16_t g_bounce[8192] __attribute__((aligned(32)));
+/* AICA stream buffer per channel: KOS SND_STREAM_BUFFER_MAX (64 KiB, the
+ * cap snd_stream_init sets). 16-bit PCM at 22050 Hz = 1.49 s of music that
+ * keeps playing while the SH-4 is stuck in one blocking read (a VMU slot
+ * read is 365-416 ms on Flycast; 16 KiB was 0.37 s and skipped). AICA cost:
+ * 64 KiB x 2 channels = 128 KiB (was 32 KiB), inside plan §1.2 bgm_ring. */
+#define MUSIC_STREAM_BYTES (64u * 1024u)
+/* snd_stream_start prefills each half in one call: buffer/2 per channel x
+ * 2 channels = one full buffer. A smaller bounce would leave the rest of
+ * the half holding the previous song's audio. */
+static int16_t g_bounce[MUSIC_STREAM_BYTES / 2] __attribute__((aligned(32)));
+_Static_assert(sizeof(g_bounce) >= (MUSIC_STREAM_BYTES / 2u) * 2u,
+               "bounce must hold one KOS fill (buffer/2 x 2 channels)");
 /* Disc chunk lives in BSS. 16 KiB ADPCM + 32 KiB PCM on the thread stack
  * panics (KOS ~32–64 KiB): emu.log Data address error after sfx bytes. */
 static uint8_t g_mbuf[MUSIC_CHUNK / 2] __attribute__((aligned(32)));
@@ -481,7 +492,7 @@ int audio_init(void)
         printf("audio stream init fail\n");
         snd_init();
     } else {
-        g_sh = snd_stream_alloc(music_cb, 16 * 1024);
+        g_sh = snd_stream_alloc(music_cb, MUSIC_STREAM_BYTES);
         if (g_sh == SND_STREAM_INVALID) {
             printf("audio stream alloc fail\n");
         } else {
@@ -900,7 +911,7 @@ void audio_music_poll(void)
 
     /* Fill on the 60 Hz thread *before* snd_stream_poll. Cap fills so a
      * hitch cannot stall a frame on GD-ROM. Skip fread while a screen
-     * swap owns the drive (AICA loops its 16 KiB buffer if we starve). */
+     * swap owns the drive (AICA loops its 64 KiB buffer if we starve). */
     if (audio_music_refill_allowed()) {
         while (g_mfp != NULL && g_used < (int)MUSIC_WATER && nfill < 8) {
             int before = g_used;
