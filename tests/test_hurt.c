@@ -551,8 +551,16 @@ int main(void)
     {
         int yld = 0, rv = 0, args[2] = {1, 3};
 
+        int lf;
+
         expect(dinkc_cmd("hurt", args, 2, "", "", &yld, &rv) == 1, "hurt cmd");
-        expect(dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1) == 7, "hurt life");
+        /* FreeDink dc_hurt queues spr[1].damage; human_brain applies it. */
+        expect(dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1) == 10 &&
+                   pl.damage == 3,
+               "hurt queued, not applied");
+        lf = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+        (void)player_apply_life(&pl, &lf);
+        expect(lf == 7 && pl.damage == 0, "hurt life on apply");
     }
     life = 2;
     pl.damage = 5;
@@ -677,14 +685,87 @@ int main(void)
             g_dd_calls = 0;
             g_dd_life = NULL;
             (void)dinkc_vm_start(hs, strlen(hs), 0);
+            expect(g_dd_calls == 0 && dp.damage == 2 &&
+                       dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1) == 20,
+                   "DinkC hurt(1,5) def 3: queued 2, nothing drawn yet");
+            /* main.c's single apply site (human_brain). */
             lifev = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+            (void)player_apply_life(&dp, &lifev);
             expect(g_dd_calls == 1 && g_dd_dmg == 2,
-                   "DinkC hurt(1,5) def 3: one number, 2");
-            expect(lifev == 18, "DinkC hurt took 2 life");
+                   "apply: one number, 2");
+            expect(lifev == 18, "apply took 2 life");
             dinkc_cmd_bind_player(NULL);
         }
         player_bind_damage_draw(NULL);
         g_dd_life = NULL;
+    }
+
+    /* Part 2 bindings: set_dink_speed (game_compute_speed table, 0
+     * ignored), stop_entire_game (only while a choice is up),
+     * dink_can_walk_off_screen, sp_sound (change_sprite). */
+    {
+        int yld = 0, rv = 0, a[2], slot;
+
+        player_reset_dink_speed();
+        expect(player_walk_speed() == 3, "dinkspeed 3 -> 3 px");
+        a[0] = 2;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        expect(player_dink_speed() == 2 && player_walk_speed() == 6,
+               "herb boots: dinkspeed 2 -> 6 px");
+        a[0] = 0;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        expect(player_dink_speed() == 2, "set_dink_speed(0) ignored (1.08)");
+        a[0] = 1;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        expect(player_walk_speed() == 12, "dinkspeed 1 -> 12 px");
+        a[0] = 7;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        expect(player_walk_speed() == 1, "dinkspeed >= 4 -> 1 px");
+        player_reset_dink_speed();
+        expect(player_walk_speed() == 3, "load_game reset to 3");
+
+        a[0] = 1;
+        (void)dinkc_cmd("stop_entire_game", a, 1, "", "", &yld, &rv);
+        expect(dinkc_cmd_stop_entire_game(1) == 1, "stopped while choice up");
+        expect(dinkc_cmd_stop_entire_game(1) == 1, "still stopped");
+        expect(dinkc_cmd_stop_entire_game(0) == 0, "choice gone: clears");
+        expect(dinkc_cmd_stop_entire_game(1) == 0, "stays cleared");
+
+        expect(!dinkc_cmd_walk_off_screen(), "walk off default 0");
+        a[0] = 1;
+        (void)dinkc_cmd("dink_can_walk_off_screen", a, 1, "", "", &yld, &rv);
+        expect(dinkc_cmd_walk_off_screen(), "S2-CULG walk off on");
+        a[0] = 0;
+        (void)dinkc_cmd("dink_can_walk_off_screen", a, 1, "", "", &yld, &rv);
+        expect(!dinkc_cmd_walk_off_screen(), "walk off off");
+
+        brains_reset();
+        brains_bind_screen(NULL);
+        dinkc_cmd_bind_sprite_change(brains_change_prop);
+        slot = brains_create(100, 100, 0, 30, 1);
+        a[0] = slot;
+        a[1] = 34;
+        (void)dinkc_cmd("sp_sound", a, 2, "", "", &yld, &rv);
+        expect(brains_change_prop(slot, DINKC_SP_SOUND, -1) == 34,
+               "sp_sound sets the sprite's sound (SAVEBOT 34)");
+        expect(DINKC_SP_SOUND != DINKC_SP_ATTACK_HIT_SOUND,
+               "sound and attack_hit_sound are distinct props");
+        a[1] = 9;
+        (void)dinkc_cmd("sp_attack_hit_sound", a, 2, "", "", &yld, &rv);
+        expect(brains_change_prop(slot, DINKC_SP_SOUND, -1) == 34,
+               "sp_attack_hit_sound leaves sp_sound alone");
+
+        /* New game / restart: FreeDink defaults. */
+        a[0] = 2;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        a[0] = 1;
+        (void)dinkc_cmd("dink_can_walk_off_screen", a, 1, "", "", &yld, &rv);
+        (void)dinkc_cmd("stop_entire_game", a, 1, "", "", &yld, &rv);
+        dinkc_cmd_new_game();
+        expect(player_walk_speed() == 3 && !dinkc_cmd_walk_off_screen() &&
+                   dinkc_cmd_stop_entire_game(1) == 0,
+               "new game resets speed, walk-off, stop");
+        dinkc_cmd_bind_sprite_change(NULL);
     }
 
     printf("OK test_hurt\n");

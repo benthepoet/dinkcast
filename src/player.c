@@ -70,6 +70,47 @@ void player_init(struct Player *p)
     p->attack_hit_sound_speed = 0;
 }
 
+/* FreeDink dinkspeed (game_state.cpp, default 3; load_game resets it). */
+static int g_dinkspeed = 3;
+
+void player_set_dink_speed(int speed)
+{
+    /* dc_set_dink_speed, dversion >= 108: 0 is ignored. */
+    if (speed != 0) {
+        g_dinkspeed = speed;
+    }
+}
+
+void player_reset_dink_speed(void)
+{
+    g_dinkspeed = 3;
+}
+
+int player_dink_speed(void)
+{
+    return g_dinkspeed;
+}
+
+/* FreeDink game_compute_speed: dinkspeed -> spr[1].speed (pixels per
+ * frame), times base_timing / 4 (1 at 60 Hz). 2 (herb boots) is 6. */
+int player_walk_speed(void)
+{
+    int sp;
+
+    if (g_dinkspeed <= 0) {
+        sp = 0;
+    } else if (g_dinkspeed == 1) {
+        sp = 12;
+    } else if (g_dinkspeed == 2) {
+        sp = 6;
+    } else if (g_dinkspeed == 3) {
+        sp = 3;
+    } else {
+        sp = 1;
+    }
+    return sp;
+}
+
 int player_hurt(struct Player *p, int damage)
 {
     int num;
@@ -343,10 +384,11 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         dir_delta(pad_dir, &dx, &dy);
         /* FreeDink changedir: diag mx/my = speed - speed/3; then 1px move(). */
         {
-            int steps = DINK_SPEED;
+            int sp = player_walk_speed();
+            int steps = sp;
 
             if (dx != 0 && dy != 0) {
-                steps = DINK_SPEED - DINK_SPEED / 3;
+                steps = sp - sp / 3;
             }
             for (i = 0; i < steps; i++) {
                 nx = p->x + dx;

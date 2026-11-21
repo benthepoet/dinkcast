@@ -1136,6 +1136,7 @@ int main(int argc, char **argv)
                 /* Keep the hard.dat FILE*; do not slurp 2 MiB again on swap. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
+                dinkc_cmd_new_game();
                 dinkc_cmd_bind_sprite_freeze(brains_set_freeze);
                 dinkc_cmd_bind_sprite_change(brains_change_prop);
                 dinkc_cmd_bind_create(brains_create);
@@ -1279,7 +1280,7 @@ int main(int argc, char **argv)
                     startpause_reset();
                     for (;;) {
                         uint32_t buttons = 0;
-                        int have, pdir, paused;
+                        int have, pdir, paused, frozen = 0;
 
                         /* Diagnostic: menu/restart/swap are not play-path
                          * until the gameplay section below; print last
@@ -1290,6 +1291,10 @@ int main(int argc, char **argv)
                     if (need_menu) {
                         /* Boot/place_sprites runs before START; halt hearth. */
                         audio_halt_loops();
+                        /* Title -> New game starts from FreeDink defaults
+                         * (MAIN.c set_dink_speed(3) is not run here);
+                         * Continue's load_game resets them too. */
+                        dinkc_cmd_new_game();
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
                         brains_place_sounds();
                         inv_sync_icons();
@@ -1319,6 +1324,7 @@ int main(int argc, char **argv)
                         inv_reset();
                         player_init(&pl);
                         dinkc_cmd_bind_player(&pl);
+                        dinkc_cmd_new_game();
                         hit_bind_player(&pl);
                         script_clear_dink_die();
                         player_map = DINK_START_PLAYER_MAP;
@@ -1535,13 +1541,26 @@ int main(int argc, char **argv)
                         1) {
                         status_update(now_ms);
                     }
+                    /* FreeDink update_frame: while stop_entire_game is set
+                     * and a choice is up, only the choice runs (no
+                     * sprites, Dink, callbacks or waits). */
+                    frozen = dinkc_cmd_stop_entire_game(
+                        dinkc_vm_waiting_choice());
                     dinkc_vm_set_now(now_ms);
-                    dinkc_vm_tick(now_ms);
-                    if (saybox_tick(now_ms) && dinkc_vm_waiting_say()) {
+                    if (!frozen) {
+                        dinkc_vm_tick(now_ms);
+                    }
+                    /* Stopped game: no say timeout, no thaw (FreeDink
+                     * update_frame returns before text sprites run). */
+                    if (!frozen && saybox_tick(now_ms) &&
+                        dinkc_vm_waiting_say()) {
                         dinkc_vm_advance_say();
                     }
-                    dinkc_cmd_thaw_if_idle();
-                    if (seqs != NULL && !inv_showing() && !status_map_active()) {
+                    if (!frozen) {
+                        dinkc_cmd_thaw_if_idle();
+                    }
+                    if (seqs != NULL && !inv_showing() && !status_map_active() &&
+                        !frozen) {
                         pl.defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE,
                                                    1);
                         brains_tick(&g_scr, seqs, &mask, now_ms,
@@ -1591,7 +1610,7 @@ int main(int argc, char **argv)
                                       : screen_process_warp();
 
                         if (!inv_showing() && !status_map_active() &&
-                            !paused) {
+                            !paused && !frozen) {
                             dinkc_vm_resume_move();
                         }
                         if (wed > 0) {
@@ -1608,7 +1627,7 @@ int main(int argc, char **argv)
                                 screen_warp_clear();
                             }
                         } else if (!inv_showing() && !status_map_active() &&
-                                   !paused) {
+                                   !paused && !frozen) {
                             player_step(&pl, pdir, &mask, seqs, now_ms, &g_scr);
                             hit_touch_list(pl.x, pl.y, now_ms, g_edg, g_ned,
                                            seqs);
@@ -1634,7 +1653,10 @@ int main(int argc, char **argv)
                                                              pseq);
                                 }
                             }
+                            /* FreeDink did_player_cross_screen: off while
+                             * dink_can_walk_off_screen(1) (S2-CULG). */
                             if (pl.freeze == 0 &&
+                                !dinkc_cmd_walk_off_screen() &&
                                 screen_try_cross(&g_world, &player_map, &pl)) {
                                 dinkc_cmd_note_map(player_map,
                                                    (int)g_world.indoor[player_map]);
@@ -1670,7 +1692,13 @@ int main(int argc, char **argv)
                                 }
                             }
                         }
-                        {
+                        /* FreeDink human_brain is the only place Dink's
+                         * queued damage comes off &life (and draws the
+                         * number). It does not run during a scripted move,
+                         * a warp, a frozen game, or with menus up. */
+                        if (!pl.move_active && wed == 0 && !frozen &&
+                            !inv_showing() && !status_map_active() &&
+                            !paused) {
                             int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE,
                                                      1);
 

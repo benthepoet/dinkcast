@@ -48,6 +48,12 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
 int player_walk_pad(int pad_dir, int freeze, int choice_active);
 /* FreeDink hurt_thing on spr[1]. Adds to .damage. */
 int player_hurt(struct Player *p, int damage);
+/* FreeDink dinkspeed: set_dink_speed (0 ignored), load_game resets to 3.
+ * player_walk_speed is the game_compute_speed pixels per tick. */
+void player_set_dink_speed(int speed);
+void player_reset_dink_speed(void);
+int player_dink_speed(void);
+int player_walk_speed(void);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */
 int player_apply_life(struct Player *p, int *life);
 /* FreeDink getpic(1): seq if >0 else pseq / pframe. */

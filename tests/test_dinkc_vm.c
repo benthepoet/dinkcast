@@ -533,7 +533,10 @@ int main(void)
         dinkc_vm_reset();
         slot = dinkc_vm_start(wave, strlen(wave), 1);
         expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 5, "exp");
-        expect(dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1) == 7, "hurt");
+        /* dc_hurt on Dink queues damage; human_brain (main) applies it. */
+        expect(dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1) == 10 &&
+                   pl.damage == 3,
+               "hurt queued");
         expect(dinkc_vm_live() == 0, "stop kills");
         (void)slot;
     }

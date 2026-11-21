@@ -241,6 +241,10 @@ static const struct {
     {"add_item", 0},
     {"free_items", 0},
     {"free_magic", 0},
+    {"set_dink_speed", 0},
+    {"stop_entire_game", 0},
+    {"dink_can_walk_off_screen", 0},
+    {"sp_sound", 0},
     {"compare_sprite_script", 0},
     {"is_script_attached", 0},
     {"run_script_by_number", 0},
@@ -360,6 +364,32 @@ static int dump_wanted(void)
     const char *e = getenv("DINKC_DUMP_FNS");
 
     return e != NULL && e[0] != '\0' && e[0] != '0';
+}
+
+/* FreeDink game_engine.cpp globals. */
+static int g_stop_entire_game;
+static int g_walk_off_screen;
+
+int dinkc_cmd_stop_entire_game(int choice_active)
+{
+    /* update_frame: while set, only the choice runs; once no choice is
+     * up the flag clears and the frame redraws. */
+    if (g_stop_entire_game == 1 && !choice_active) {
+        g_stop_entire_game = 0;
+    }
+    return g_stop_entire_game == 1;
+}
+
+int dinkc_cmd_walk_off_screen(void)
+{
+    return g_walk_off_screen == 1;
+}
+
+void dinkc_cmd_new_game(void)
+{
+    g_stop_entire_game = 0;
+    g_walk_off_screen = 0;
+    player_reset_dink_speed();
 }
 
 void dinkc_cmd_thaw_if_idle(void)
@@ -1239,19 +1269,22 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             return 1;
         }
         if (spr_is_dink(a0)) {
-            int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
-
             if (g_pl != NULL) {
+                /* FreeDink dc_hurt -> hurt_thing only adds to
+                 * spr[1].damage; human_brain takes &life and draws the
+                 * number on its next run, which a cutscene (move_active,
+                 * warp, stop_entire_game) defers. main.c applies it. */
                 g_pl->defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE, 1);
                 (void)player_hurt(g_pl, a1);
-                (void)player_apply_life(g_pl, &life);
             } else if (a1 > 0) {
+                int life = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+
                 life -= a1;
                 if (life < 0) {
                     life = 0;
                 }
+                dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
             }
-            dinkc_var_set("&life", life, DINKC_GLOBAL_SCOPE, 1);
         } else if (g_hurt != NULL) {
             int n = g_hurt(a0, a1);
 
@@ -1364,6 +1397,18 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (yield != NULL) {
             *yield = 1;
         }
+        return 1;
+    }
+    if (is_cmd(name, "set_dink_speed")) {
+        player_set_dink_speed(a0);
+        return 1;
+    }
+    if (is_cmd(name, "stop_entire_game")) {
+        g_stop_entire_game = a0;
+        return 1;
+    }
+    if (is_cmd(name, "dink_can_walk_off_screen")) {
+        g_walk_off_screen = a0;
         return 1;
     }
     if (is_cmd(name, "free_magic")) {
@@ -1734,6 +1779,16 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "sp_frame_delay")) {
         return change_sp(a0, DINKC_SP_FRAME_DELAY, nargs, a1, ret);
     }
+    if (is_cmd(name, "sp_sound")) {
+        /* dc_sp_sound: change_sprite, then if > 0 play it looped on the
+         * sprite (SoundPlayEffect(sound, 22050, 0, sprite, 1)). */
+        int rc = change_sp(a0, DINKC_SP_SOUND, nargs, a1, ret);
+
+        if (nargs >= 2 && a1 > 0 && a0 >= 1) {
+            (void)audio_playsound(a1, 22050, 0, a0, 1);
+        }
+        return rc;
+    }
     if (is_cmd(name, "sp_nodraw")) {
         return change_sp(a0, DINKC_SP_NODRAW, nargs, a1, ret);
     }
@@ -1931,6 +1986,14 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             *ret = ok == 0 ? 1 : 0;
         }
         if (ok == 0) {
+            /* FreeDink load_game: spr[1].damage = 0, walk_off_screen = 0,
+             * dinkspeed = 3. */
+            g_walk_off_screen = 0;
+            g_stop_entire_game = 0;
+            player_reset_dink_speed();
+            if (g_pl != NULL) {
+                g_pl->damage = 0;
+            }
             (void)dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, NULL, NULL);
             (void)dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, NULL, NULL);
             dinkc_var_set("&update_status", 1, DINKC_GLOBAL_SCOPE, 1);
