@@ -274,6 +274,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-21 | Music stream buffer 16 → 64 KiB per channel (KOS `SND_STREAM_BUFFER_MAX`): a guaranteed ~0.74 s of music through a blocking read instead of ~0.19 s (KOS refills at half). Flycast VMU reads were 365–416 ms per filled slot and still skipped on Continue. Bounce buffer 16 → 64 KiB so the KOS start prefill is filled whole; mono fills alternate halves (DMA race). AICA 32 → 128 KiB, main RAM +48 KiB BSS | #174 |
 | 2026-11-21 | Dink shows a damage number when hurt (FreeDink `human_brain` → `draw_damage(1)`, before `&life` drops): placed from his own drawn frame (pspr), not the editor-sprite cache; shared `brains_draw_damage_box` with enemies | #175 |
 | 2026-11-21 | DinkC bindings part 2 (review §4.1): `set_dink_speed` (herb boots; FreeDink game_compute_speed 3 → 3 px, 2 → 6 px; load resets to 3), `stop_entire_game` (LRAISE: only the choice runs, then it clears), `dink_can_walk_off_screen` (S2-CULG; load resets), `sp_sound` (SAVEBOT/FIRE looped on the sprite). Hurt timing: DinkC `hurt(1, n)` only queues damage; the main loop is the single apply site (human_brain), skipped during a scripted move, warp, stop_entire_game or menus | #176 |
+| 2026-11-21 | Audio fidelity audit: extensionless numeric MIDI can kill its working CD fallback, unowned repeats survive screen draws, every track loops despite FreeDink defaulting to play-once, the official SFX bank is over the 512 KiB cap with stereo under-accounting, UI cues and several DinkC audio controls are missing — [AUDIO-FIDELITY-2026-11-21.md](docs/AUDIO-FIDELITY-2026-11-21.md). Analysis only | #181 |
 
 ## Bites
 
@@ -373,8 +374,8 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | Start-house sprites (8.6) | ~95% | Flycast accepted; SH-4 stack/align in GOTCHAS |
 | Talk/hit + opening-village DinkC | ~75–80% | Interpreter live; coverage is the pole |
 | Weapons / magic / inventory / HUD | ~95% | V6 accepted; bow still instant-100 |
-| Full campaign + every MIDI | ~55–65% | Long tail |
-| Real hardware / AICA / VMU | unknown | Not run |
+| Full campaign + every MIDI | ~55–65% | Long tail; numeric CD fallback and track/loop lifecycle gaps found in audio audit |
+| Real hardware / AICA / VMU | unknown | Not run; official SFX payload exceeds the planned 512 KiB cap and stereo is under-counted |
 
 ### Log
 
@@ -439,3 +440,4 @@ Judgment of **can this ship**, not a burn-down. Percents are not CI. Update the 
 | 2026-08-23 (v0.3.0) | **~90%** | Requester stamped START + VMU + playtest #117. Audio **12** / **14.6** still gated. |
 | 2026-08-30 (v0.4.0) | **~92%** | Requester stamped AICA **12**. Title `1003.mid`, house `dance.mid`, edge pump. **14.6** gated. |
 | 2026-09-06 (v0.5.0) | **~94%** | Requester stamped **14.6**. Catalog peak ~1.52 MB. House fire keeps loop tex. |
+| 2026-11-21 (audio audit) | **~94%** (unmoved) | New fidelity risks documented, not fixed: numeric CD fallback can go silent, unowned SFX loops outlive their map, all MIDI loops by default, and the official SFX bank exceeds its cap with stereo under-accounting. Analysis only; no new hardware/AICA run. |
