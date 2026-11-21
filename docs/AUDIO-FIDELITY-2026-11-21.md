@@ -76,7 +76,7 @@ The command table has `playsound`, `playmidi`, `stopmidi`, and `stopcd`, but no 
 
 FreeDink `update_sound` stops a repeating owner channel when either `spr[owner].sound == 0` or the owner is inactive (`sfx.cpp:534-583`). Dinkcast checks only `!g_b[i].live` in `brains_tick` (`src/brains.c:1839-1854`). `sp_sound` starts a new loop for a positive value but does not halt the old voice for zero (`src/dinkc_cmd.c:1782-1790`). The old loop therefore continues until sprite death, a global loop halt, or shutdown.
 
-Stock `FIRE.c` and `SAVEBOT.c` only set positive sounds, so this is primarily a DinkC/D-Mod correctness gap. A robust fix should stop the previous owner voice on **every** sound-id change before starting the new id, rather than adding a zero-only special case.
+Stock `FIRE.c` and `SAVEBOT.c` only set positive sounds, so this is primarily a DinkC/D-Mod correctness gap. A robust fix should reproduce `update_sound`'s zero check and stop the owner voice when the id becomes zero; it should not invent a different positive-to-positive replacement policy.
 
 ### 8. Music-bank failures can still produce a successful, incomplete disc build
 
