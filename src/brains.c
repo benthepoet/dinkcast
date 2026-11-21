@@ -87,6 +87,7 @@ struct BrainSpr {
 };
 
 static struct BrainSpr g_b[101];
+static void (*g_on_reuse)(int slot); /* brains_create took a dead slot */
 static const struct MapScreen *g_map;
 static int g_unimpl;
 static void (*g_on_kill)(int slot, const char *proc);
@@ -2036,6 +2037,11 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         if (g_map != NULL && g_map->sprite[i].active) {
             continue;
         }
+        /* FreeDink add_sprite zeroes spr[] (script = 0): the dead owner's
+         * scripts must not pass to the new sprite. */
+        if (g_on_reuse != NULL) {
+            g_on_reuse(i);
+        }
         memset(&g_b[i], 0, sizeof(g_b[i]));
         g_b[i].live = 1;
         g_b[i].created = 1;
@@ -2084,6 +2090,11 @@ int brains_moving(int slot)
 int brains_unimpl_count(void)
 {
     return g_unimpl;
+}
+
+void brains_bind_reuse(void (*fn)(int slot))
+{
+    g_on_reuse = fn;
 }
 
 void brains_bind_kill(void (*fn)(int slot, const char *proc))

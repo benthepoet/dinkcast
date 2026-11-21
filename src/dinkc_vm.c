@@ -747,6 +747,9 @@ static void run_fiber(struct Fiber *f, int now_ms)
 {
     if (g_run_depth < RUN_STACK) {
         g_run_stack[g_run_depth] = fiber_slot(f);
+    } else if (g_run_depth == RUN_STACK) {
+        printf("dinkc run stack over %d: nested runs not guarded\n",
+               RUN_STACK);
     }
     g_run_depth++;
     run_fiber_body(f, now_ms);
@@ -1405,6 +1408,13 @@ int dinkc_vm_locate(int slot, const char *proc)
     if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
         return -1;
     }
+    if (fiber_on_stack(slot)) {
+        /* Re-locating a fiber executing up the C stack would rewind it
+         * under its own frame (run_script_by_number, start_named). */
+        printf("dinkc locate %s: slot %d is running, skipped\n",
+               proc != NULL ? proc : "", slot);
+        return -1;
+    }
     f = &g_f[slot];
     ip = find_proc(f, proc);
     if (ip < 0) {
@@ -1440,6 +1450,65 @@ void dinkc_vm_kill_sprite(int sprite)
             fiber_kill(&g_f[i]);
         }
     }
+}
+
+static int (*g_sprite_alive)(int sprite);
+
+void dinkc_vm_bind_sprite_alive(int (*fn)(int sprite))
+{
+    g_sprite_alive = fn;
+}
+
+/* FreeDink kill_scripts_with_inactive_sprites (dinkc.cpp:988), run each
+ * frame from update_frame: a script whose sprite (> 0, != 1000) is no
+ * longer active dies. Fibers executing up the C stack are left to finish. */
+static void sweep_dead_sprites(void)
+{
+    int i;
+
+    if (g_sprite_alive == NULL) {
+        return;
+    }
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        int sp = g_f[i].sprite;
+
+        if (!g_f[i].used || sp <= 0 || sp == 1000 || fiber_on_stack(i)) {
+            continue;
+        }
+        if (!g_sprite_alive(sp)) {
+            printf("dinkc kill %s: sprite %d is dead\n", g_f[i].name, sp);
+            fiber_kill(&g_f[i]);
+        }
+    }
+}
+
+void dinkc_vm_sprite_reused(int sprite)
+{
+    int i;
+
+    /* FreeDink add_sprite zeroes spr[], so the new sprite has no script.
+     * Kill the dead owner's scripts; one still executing (it created the
+     * sprite) is detached instead and ends when it returns. */
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (!g_f[i].used || g_f[i].sprite != sprite) {
+            continue;
+        }
+        if (fiber_on_stack(i)) {
+            g_f[i].keep = 0;
+        } else {
+            fiber_kill(&g_f[i]);
+        }
+    }
+}
+
+int dinkc_vm_busy(void)
+{
+    int i, n = 0;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        n += g_f[i].used && g_f[i].state != DINKC_IDLE;
+    }
+    return n;
 }
 
 void dinkc_vm_set_now(int now_ms)
@@ -1490,6 +1559,7 @@ void dinkc_vm_tick(int now_ms)
 {
     int i;
 
+    sweep_dead_sprites();
     g_now_ms = now_ms;
     dinkc_cmd_set_now(now_ms);
     dinkc_vm_tick_callbacks(now_ms);

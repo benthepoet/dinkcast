@@ -43,6 +43,8 @@ int brains_moving(int slot);
 int brains_unimpl_count(void);
 /* 15.2 combat. DIE / add_exp callbacks (optional). */
 void brains_bind_kill(void (*fn)(int slot, const char *proc));
+/* brains_create took a dead slot (FreeDink add_sprite zeroes spr.script). */
+void brains_bind_reuse(void (*fn)(int slot));
 void brains_bind_exp(void (*fn)(int num));
 void brains_bind_player(struct Player *p);
 int brains_hurt(int slot, int damage);

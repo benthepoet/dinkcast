@@ -364,7 +364,8 @@ static int dump_wanted(void)
 
 void dinkc_cmd_thaw_if_idle(void)
 {
-    if (g_pl != NULL && g_pl->freeze > 0 && dinkc_vm_live() == 0) {
+    /* Attached idle scripts (talk-only signs, armed items) never thaw. */
+    if (g_pl != NULL && g_pl->freeze > 0 && dinkc_vm_busy() == 0) {
         printf("freeze orphan %d -> 0\n", g_pl->freeze);
         g_pl->freeze = 0;
     }
@@ -1420,13 +1421,10 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "run_script_by_number")) {
-        /* FreeDink: if (locate(n, proc)) run_script(n). Locating a fiber
-         * that is executing up the C stack (the caller, or a parent
-         * waiting on it) would rewind it under its own frame. */
-        if (a0 == g_fiber || dinkc_vm_running(a0)) {
-            printf("dinkc run_script_by_number: %d %s is running, skipped\n",
-                   a0, str != NULL ? str : "");
-        } else if (str != NULL && dinkc_vm_used(a0)) {
+        /* FreeDink: if (locate(n, proc)) run_script(n). dinkc_vm_locate
+         * refuses a fiber executing up the C stack (the caller, or a
+         * parent waiting on it). */
+        if (str != NULL && dinkc_vm_used(a0)) {
             (void)dinkc_vm_locate(a0, str);
         }
         return 1;

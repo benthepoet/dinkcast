@@ -39,6 +39,13 @@ int dinkc_vm_attach(const char *src, size_t n, int sprite);
 int dinkc_vm_sprite_keep(int sprite);
 /* 1 while the slot's fiber is executing somewhere up the C stack. */
 int dinkc_vm_running(int slot);
+/* FreeDink kill_scripts_with_inactive_sprites: each tick, scripts whose
+ * sprite (> 0, != 1000) the callback reports dead are killed. */
+void dinkc_vm_bind_sprite_alive(int (*fn)(int sprite));
+/* A dead sprite slot was reused (FreeDink add_sprite zeroes spr.script). */
+void dinkc_vm_sprite_reused(int sprite);
+/* Fibers not IDLE (running or waiting): live minus attached-idle. */
+int dinkc_vm_busy(void);
 void dinkc_vm_set_args(int slot, const int *args, int n);
 int dinkc_vm_arg(int slot, int n1);
 int dinkc_vm_used(int slot);

@@ -144,6 +144,13 @@ static void expect(int cond, const char *msg)
     }
 }
 
+static int g_dead_spr;
+
+static int alive_but(int sprite)
+{
+    return sprite != g_dead_spr;
+}
+
 int main(void)
 {
     const char *wait1 = "void main(void) { wait(1); }";
@@ -1352,6 +1359,38 @@ int main(void)
         expect(p == 1, "parent is slot 1");
         expect(dinkc_var_get("&gp", DINKC_GLOBAL_SCOPE, 1) == 2,
                "running parent not rewound by its child");
+    }
+
+    /* FreeDink kill_scripts_with_inactive_sprites + add_sprite zeroing:
+     * a dead sprite's attached script dies on the next tick, and a reused
+     * slot reports no script (no bomb inheritance). Idle attached scripts
+     * do not count as busy (freeze-orphan thaw). */
+    {
+        static const char bomb[] = "void damage(void)\n{\n  &gk = 1;\n}\n";
+        static const char sign[] = "void talk(void)\n{\n  &gk = 2;\n}\n";
+        int sb, ss;
+
+        dinkc_vm_reset();
+        dinkc_vm_tick(0);
+        dinkc_var_make_global("&gk", 0);
+        dinkc_vm_name_next("dam-bomn");
+        sb = dinkc_vm_attach(bomb, strlen(bomb), 7);
+        dinkc_vm_name_next("sign");
+        ss = dinkc_vm_attach(sign, strlen(sign), 8);
+        expect(sb > 0 && ss > 0 && dinkc_vm_busy() == 0 &&
+                   dinkc_vm_live() == 2,
+               "idle attached scripts are live, not busy");
+        g_dead_spr = 7;
+        dinkc_vm_bind_sprite_alive(alive_but);
+        dinkc_vm_tick(16);
+        expect(!dinkc_vm_used(sb) && dinkc_vm_sprite_keep(7) == 0,
+               "dead sprite's script swept");
+        expect(dinkc_vm_used(ss), "live sprite's script kept");
+        dinkc_vm_sprite_reused(8);
+        expect(dinkc_vm_sprite_keep(8) == 0 && !dinkc_vm_used(ss),
+               "reused slot has no script");
+        dinkc_vm_bind_sprite_alive(NULL);
+        g_dead_spr = 0;
     }
 
     printf("OK test_dinkc_vm\n");
