@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 static int is_cmd(const char *a, const char *b)
 {
@@ -239,6 +240,12 @@ static const struct {
     {"kill_game", 0},
     {"add_item", 0},
     {"free_items", 0},
+    {"free_magic", 0},
+    {"compare_sprite_script", 0},
+    {"is_script_attached", 0},
+    {"run_script_by_number", 0},
+    {"scripts_used", 0},
+    {"get_burn", 0},
     {"count_item", 0},
     {"count_magic", 0},
     {"kill_this_item", 0},
@@ -357,7 +364,8 @@ static int dump_wanted(void)
 
 void dinkc_cmd_thaw_if_idle(void)
 {
-    if (g_pl != NULL && g_pl->freeze > 0 && dinkc_vm_live() == 0) {
+    /* Attached idle scripts (talk-only signs, armed items) never thaw. */
+    if (g_pl != NULL && g_pl->freeze > 0 && dinkc_vm_busy() == 0) {
         printf("freeze orphan %d -> 0\n", g_pl->freeze);
         g_pl->freeze = 0;
     }
@@ -1355,6 +1363,83 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         }
         if (yield != NULL) {
             *yield = 1;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "free_magic")) {
+        int i, n = 0;
+
+        /* Dink 1.08 free_magic: inactive play.mitem[1..8]. (FreeDink
+         * dc_free_magic reads mitem[i-1] for i=0..7, i.e. mitem[-1]; that
+         * out-of-bounds read is not grafted: all 8 magic slots count.) */
+        for (i = 0; i < 8; i++) {
+            if (!g_mitem[i].active) {
+                n++;
+            }
+        }
+        if (ret != NULL) {
+            *ret = n;
+        }
+        return 1;
+    }
+    /* FreeDink STOP_IF_BAD_SPRITE: 1..MAX_SPRITES_AT_ONCE-1 (300). */
+    if (is_cmd(name, "compare_sprite_script")) {
+        const char *sn;
+        int slot;
+
+        if (ret != NULL) {
+            *ret = 0;
+        }
+        if (a0 <= 0 || a0 >= 300) {
+            printf("dinkc compare_sprite_script: invalid sprite %d\n", a0);
+            return 1;
+        }
+        slot = dinkc_vm_sprite_keep(a0);
+        if (slot == 0) {
+            printf("dinkc compare_sprite_script: sprite %d has no script\n",
+                   a0);
+            return 1;
+        }
+        /* FreeDink compare(): case-insensitive name match. */
+        sn = dinkc_vm_name(slot);
+        if (sn != NULL && str != NULL && strcasecmp(sn, str) == 0 &&
+            ret != NULL) {
+            *ret = 1;
+        }
+        return 1;
+    }
+    if (is_cmd(name, "is_script_attached")) {
+        if (a0 <= 0 || a0 >= 300) {
+            printf("dinkc is_script_attached: invalid sprite %d\n", a0);
+            return 1;
+        }
+        /* FreeDink: spr[sprite].script (0 = none): the attached script
+         * only, never a transient hit/talk/external fiber. */
+        if (ret != NULL) {
+            *ret = dinkc_vm_sprite_keep(a0);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "run_script_by_number")) {
+        /* FreeDink: if (locate(n, proc)) run_script(n). dinkc_vm_locate
+         * refuses a fiber executing up the C stack (the caller, or a
+         * parent waiting on it). */
+        if (str != NULL && dinkc_vm_used(a0)) {
+            (void)dinkc_vm_locate(a0, str);
+        }
+        return 1;
+    }
+    if (is_cmd(name, "scripts_used")) {
+        /* FreeDink: rinfo[1..MAX_SCRIPTS) in use. */
+        if (ret != NULL) {
+            *ret = dinkc_vm_live();
+        }
+        return 1;
+    }
+    if (is_cmd(name, "get_burn")) {
+        /* FreeDink dc_get_burn: always 1. */
+        if (ret != NULL) {
+            *ret = 1;
         }
         return 1;
     }

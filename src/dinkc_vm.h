@@ -31,6 +31,21 @@ int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
 int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc);
 /* Run proc on a keep fiber (FreeDink locate). */
 int dinkc_vm_locate(int slot, const char *proc);
+/* FreeDink load_script + spr.script: the sprite's resident script. Runs
+ * MAIN if present; with no MAIN it stays attached IDLE so procs locate on
+ * it and compare_sprite_script sees it. */
+int dinkc_vm_attach(const char *src, size_t n, int sprite);
+/* FreeDink spr[sprite].script: the attached (keep) script only, 0 if none. */
+int dinkc_vm_sprite_keep(int sprite);
+/* 1 while the slot's fiber is executing somewhere up the C stack. */
+int dinkc_vm_running(int slot);
+/* FreeDink kill_scripts_with_inactive_sprites: each tick, scripts whose
+ * sprite (> 0, != 1000) the callback reports dead are killed. */
+void dinkc_vm_bind_sprite_alive(int (*fn)(int sprite));
+/* A dead sprite slot was reused (FreeDink add_sprite zeroes spr.script). */
+void dinkc_vm_sprite_reused(int sprite);
+/* Fibers not IDLE (running or waiting): live minus attached-idle. */
+int dinkc_vm_busy(void);
 void dinkc_vm_set_args(int slot, const int *args, int n);
 int dinkc_vm_arg(int slot, int n1);
 int dinkc_vm_used(int slot);
@@ -73,6 +88,12 @@ void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);
 void dinkc_vm_choice_done(void);
 int dinkc_vm_live(void);
+/* FreeDink rinfo->name: name the next started script after its file
+ * (script.c calls this before each start). Same-file procs and timer
+ * callbacks inherit their parent's name. */
+void dinkc_vm_name_next(const char *file);
+/* File name of a live script, NULL if the slot is dead. */
+const char *dinkc_vm_name(int slot);
 /* Distinct scripts held (shared by their instances) and their bytes. */
 int dinkc_vm_code_count(void);
 size_t dinkc_vm_code_bytes(void);

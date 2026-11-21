@@ -68,7 +68,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Fireball tree fire (`DAM-FIRE` seq 20): noticeable delay before the burn animation | Diagnose first: `grep -E 'ioplay|edraw skip|edraw full skip|mem refuse' build/emu.log` (seq 20/70 frame loads after enter; the delay may not be I/O). `preload_seq` decodes frame 1 only. `ioplay` does not cover inv/status/choice/startmenu uploads, `fclose`, or VMU writes. 2026-11-19 `ioplay` (map 283): `preload_seq` frame 1 was dropped by two swaps, so all 30 seq 20 + 16 seq 70 frames load in play; ~48 ms per seq 20 frame (disc ~2, decode ~13, PVR upload ~33), ~90 ms on the first tick; `pvr_mem` out of VRAM from seq 20 fr 16 (frames 16–29 not drawn). Since then: #155 (room-making), #159 (PAL8 halves seq 20 to ~1.4 MB), #162 (lookahead loads the next frames in spare tick time). Re-check the whole fire draws and starts without the hitch. |
 | Bar table `say_stop_npc` does not steal punch (B) or fireball (X); Y/L work during it; A still skips Dink/Maria `say_stop` while frozen | `test_dinkc_vm` npc not last_talk; say_stop_xy last_talk. Flycast stamp Open. |
 | Bar table: an NPC `say_stop_npc` line can be overwritten by Dink's miss line or own say (one shared saybox, not FreeDink brain-8 text sprites) | Known V5 shape (GRAFT-AUDIT §10). Watch for skipped gossip lines. Follow-up: START pause still gated on any `WAIT_SAY`. |
-| `is_script_attached` + `run_script_by_number` on fireball tree (`DAM-FIRE` `DIE`) | Log 2026-09-07 `dinkc unimplemented is_script_attached` after seq 70/20. Unimplemented is 0 so generic burn only. |
+| `is_script_attached` + `run_script_by_number` on fireball tree (`DAM-FIRE` `DIE`) | Log 2026-09-07 `dinkc unimplemented is_script_attached` after seq 70/20. Unimplemented is 0 so generic burn only. Bound (#173, host `test_dinkc_vm`): `is_script_attached` = the sprite's script, `run_script_by_number` locates `DIE` on it. Flycast stamp Open. |
 | `sp_sound` (quiet gap; CAMPAIGN-AUDIT) | Log `dinkc unimplemented sp_sound`. Not silent skip of the script file. |
 | PAL8 sprites: every sprite, Dink, items, inventory menu/icons, choice box, START menu buttons and the status map marks look identical to before (colours, white key edges, no garbage/stripes = twiddle or bank error); `pal8 on` in the log; bar `vram_free` higher, fewer `pvr_mem` | `test_pal8` (0 pixel mismatches vs ARGB1555). Flycast stamp Open. |
 | Bar fight after the Dink combat set (in the bar, from `load_screen ready map 34`): Dink frame loads ≤ 150 (was 437), `pspr evict ... (cap)` ≤ 60 (was 278), `pvr_mem` ≤ 10 (was 251), no `mem refuse` | `test_pspr` combat set. Flycast stamp Open. |
@@ -147,7 +147,7 @@ Log: `dinkc unimplemented free_items` then the full line, many times. Unimplemen
 
 FreeDink `dc_free_items` (`dinkc_bindings.cpp`) is a count of inactive `play.item[0..NB_ITEMS)` (`NB_ITEMS` 16). Grafted. Host lock: `test_inv`. `free_magic` is the 8-slot analog (not this pickup).
 
-`scripts_used` is also unimplemented (`s1-ntree` `hit` cap at 170). It returned 0 so nuts still spawned. Adjacent, not the pickup fail.
+`scripts_used` (`s1-ntree` `hit` cap at 170) now returns the live script count (#173). It returned 0 before, so nuts still spawned. Adjacent, not the pickup fail.
 
 Pickup confirmed in Flycast 2026-08-22.
 

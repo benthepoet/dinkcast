@@ -68,6 +68,8 @@ static int g_ch_n, g_ch_cur, g_ch_ret[20];
  * none. FreeDink: a later script's choice owns the menu; an earlier one
  * still waiting is left orphaned, never resumed with another's lines. */
 static int g_ch_owner;
+/* FreeDink rinfo->name: the file the next start came from (load_script). */
+static char g_name_next[32];
 static char g_ch_line[20][80];
 static struct Fiber *g_running;
 static int g_ops_ovf;
@@ -517,6 +519,19 @@ static uint32_t code_hash(const char *src, size_t n)
     return h;
 }
 
+void dinkc_vm_name_next(const char *file)
+{
+    snprintf(g_name_next, sizeof(g_name_next), "%s", file != NULL ? file : "");
+}
+
+const char *dinkc_vm_name(int slot)
+{
+    if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
+        return NULL;
+    }
+    return g_f[slot].name;
+}
+
 int dinkc_vm_code_count(void)
 {
     int i, n = 0;
@@ -706,7 +721,42 @@ static void fiber_kill(struct Fiber *f)
     memset(f, 0, sizeof(*f));
 }
 
+static void run_fiber_body(struct Fiber *f, int now_ms);
+
+/* Slots of fibers currently executing on the C stack (nested runs:
+ * same-file child, run_script_by_number, callbacks from a command). A
+ * fiber in here must not be re-located: its caller frame would resume
+ * over the new ip. */
+#define RUN_STACK 32
+static int g_run_stack[RUN_STACK];
+static int g_run_depth;
+
+static int fiber_on_stack(int slot)
+{
+    int i;
+
+    for (i = 0; i < g_run_depth && i < RUN_STACK; i++) {
+        if (g_run_stack[i] == slot) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void run_fiber(struct Fiber *f, int now_ms)
+{
+    if (g_run_depth < RUN_STACK) {
+        g_run_stack[g_run_depth] = fiber_slot(f);
+    } else if (g_run_depth == RUN_STACK) {
+        printf("dinkc run stack over %d: nested runs not guarded\n",
+               RUN_STACK);
+    }
+    g_run_depth++;
+    run_fiber_body(f, now_ms);
+    g_run_depth--;
+}
+
+static void run_fiber_body(struct Fiber *f, int now_ms)
 {
     int ops = 0;
 
@@ -966,7 +1016,11 @@ static void run_fiber(struct Fiber *f, int now_ms)
             }
             /* FreeDink: ident( is a same-file proc (S2-OUT buybomb). */
             if (find_proc(f, cname) >= 0) {
-                int ch = start_fiber_args(f->src, f->srclen, f->sprite, cname,
+                int ch;
+
+                /* Same rinfo in FreeDink: the child keeps the file name. */
+                snprintf(g_name_next, sizeof(g_name_next), "%s", f->name);
+                ch = start_fiber_args(f->src, f->srclen, f->sprite, cname,
                                           0, args, nargs);
 
                 if (ch > 0) {
@@ -1227,6 +1281,7 @@ void dinkc_vm_tick_callbacks(int now_ms)
             struct Fiber *own = &g_f[g_cb[k].owner];
 
             g_cb[k].timer = 0;
+            snprintf(g_name_next, sizeof(g_name_next), "%s", own->name);
             (void)dinkc_vm_start_proc(own->src, own->srclen, own->sprite,
                                       g_cb[k].proc);
         }
@@ -1237,8 +1292,13 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
                             const char *proc, int keep, const int *args,
                             int nargs)
 {
+    char fname[32];
     int s, ip;
     struct Fiber *f;
+
+    /* Take the pending name now so a failed start cannot leak it. */
+    snprintf(fname, sizeof(fname), "%s", g_name_next);
+    g_name_next[0] = '\0';
 
     if (src == NULL || n == 0) {
         return -1;
@@ -1270,13 +1330,26 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
     f->keep = keep ? 1 : 0;
     f->depth = 1;
     ip = find_proc(f, proc);
+    if (ip < 0 && keep == 2) {
+        /* FreeDink load_script keeps a script with no MAIN loaded and
+         * attached (DAM-BOMN has only damage()); procs locate on it. */
+        snprintf(f->name, sizeof(f->name), "%s",
+                 fname[0] != '\0' ? fname : "resident");
+        f->keep = 1;
+        f->state = DINKC_IDLE;
+        return s;
+    }
     if (ip < 0) {
         printf("dinkc vm no %s\n", proc != NULL ? proc : "main");
         fiber_kill(f);
         return -1;
     }
     f->ip = ip;
-    snprintf(f->name, sizeof(f->name), "slot%d", s);
+    if (fname[0] != '\0') {
+        snprintf(f->name, sizeof(f->name), "%s", fname);
+    } else {
+        snprintf(f->name, sizeof(f->name), "slot%d", s);
+    }
     if (args != NULL && nargs > 0) {
         int i, ncp = nargs < 8 ? nargs : 8;
 
@@ -1305,12 +1378,41 @@ int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc)
     return start_fiber(src, n, sprite, proc, 1);
 }
 
+int dinkc_vm_attach(const char *src, size_t n, int sprite)
+{
+    return start_fiber(src, n, sprite, "main", 2);
+}
+
+int dinkc_vm_sprite_keep(int sprite)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].keep && g_f[i].sprite == sprite) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+int dinkc_vm_running(int slot)
+{
+    return fiber_on_stack(slot);
+}
+
 int dinkc_vm_locate(int slot, const char *proc)
 {
     struct Fiber *f;
     int ip;
 
     if (slot < 1 || slot > DINKC_MAX_LIVE || !g_f[slot].used) {
+        return -1;
+    }
+    if (fiber_on_stack(slot)) {
+        /* Re-locating a fiber executing up the C stack would rewind it
+         * under its own frame (run_script_by_number, start_named). */
+        printf("dinkc locate %s: slot %d is running, skipped\n",
+               proc != NULL ? proc : "", slot);
         return -1;
     }
     f = &g_f[slot];
@@ -1348,6 +1450,65 @@ void dinkc_vm_kill_sprite(int sprite)
             fiber_kill(&g_f[i]);
         }
     }
+}
+
+static int (*g_sprite_alive)(int sprite);
+
+void dinkc_vm_bind_sprite_alive(int (*fn)(int sprite))
+{
+    g_sprite_alive = fn;
+}
+
+/* FreeDink kill_scripts_with_inactive_sprites (dinkc.cpp:988), run each
+ * frame from update_frame: a script whose sprite (> 0, != 1000) is no
+ * longer active dies. Fibers executing up the C stack are left to finish. */
+static void sweep_dead_sprites(void)
+{
+    int i;
+
+    if (g_sprite_alive == NULL) {
+        return;
+    }
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        int sp = g_f[i].sprite;
+
+        if (!g_f[i].used || sp <= 0 || sp == 1000 || fiber_on_stack(i)) {
+            continue;
+        }
+        if (!g_sprite_alive(sp)) {
+            printf("dinkc kill %s: sprite %d is dead\n", g_f[i].name, sp);
+            fiber_kill(&g_f[i]);
+        }
+    }
+}
+
+void dinkc_vm_sprite_reused(int sprite)
+{
+    int i;
+
+    /* FreeDink add_sprite zeroes spr[], so the new sprite has no script.
+     * Kill the dead owner's scripts; one still executing (it created the
+     * sprite) is detached instead and ends when it returns. */
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (!g_f[i].used || g_f[i].sprite != sprite) {
+            continue;
+        }
+        if (fiber_on_stack(i)) {
+            g_f[i].keep = 0;
+        } else {
+            fiber_kill(&g_f[i]);
+        }
+    }
+}
+
+int dinkc_vm_busy(void)
+{
+    int i, n = 0;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        n += g_f[i].used && g_f[i].state != DINKC_IDLE;
+    }
+    return n;
 }
 
 void dinkc_vm_set_now(int now_ms)
@@ -1398,6 +1559,7 @@ void dinkc_vm_tick(int now_ms)
 {
     int i;
 
+    sweep_dead_sprites();
     g_now_ms = now_ms;
     dinkc_cmd_set_now(now_ms);
     dinkc_vm_tick_callbacks(now_ms);

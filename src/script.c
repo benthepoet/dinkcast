@@ -40,6 +40,7 @@ static int bind_external(int sprite, const char *file, const char *proc,
         printf("dinkc external miss %s\n", file != NULL ? file : "");
         return 0;
     }
+    dinkc_vm_name_next(file);
     slot = dinkc_vm_start_proc(buf, n, sprite, proc);
     if (slot > 0 && args != NULL && nargs > 2) {
         dinkc_vm_set_args(slot, args + 2, nargs - 2);
@@ -59,6 +60,7 @@ static int bind_spawn(const char *file)
         printf("dinkc spawn miss %s\n", file != NULL ? file : "");
         return 0;
     }
+    dinkc_vm_name_next(file);
     slot = dinkc_vm_start_keep(buf, n, 1000, "main");
     dinkc_free(buf);
     if (slot < 1) {
@@ -137,8 +139,9 @@ static int start_main(const char *name, int sprite)
     if (dinkc_load(name, &buf, &n) != 0) {
         return -1;
     }
-    if (dinkc_vm_start_keep(buf, n, sprite, "main") < 0) {
-        printf("dinkc attach no main %s spr=%d\n", name, sprite);
+    dinkc_vm_name_next(name);
+    if (dinkc_vm_attach(buf, n, sprite) < 0) {
+        printf("dinkc attach fail %s spr=%d\n", name, sprite);
         dinkc_free(buf);
         return -1;
     }
@@ -205,6 +208,7 @@ static int start_named(int sprite, const char *file, const char *proc)
         }
     }
     dinkc_vm_kill_sprite(sprite);
+    dinkc_vm_name_next(file);
     if (dinkc_vm_start_proc(buf, n, sprite, proc) < 0) {
         printf("dinkc %s no proc %s\n", proc, file);
         dinkc_free(buf);
@@ -230,6 +234,7 @@ int script_item_pickup(const char *name)
         return -1;
     }
     /* Do not kill_sprite(1000): that is the armed weapon keep fiber. */
+    dinkc_vm_name_next(name);
     if (dinkc_vm_start_proc(buf, n, 1000, "pickup") < 0) {
         dinkc_free(buf);
         return -1;
@@ -251,6 +256,7 @@ int script_item_arm(const char *name)
         printf("dinkc arm miss %s\n", name);
         return 0;
     }
+    dinkc_vm_name_next(name);
     slot = dinkc_vm_start_keep(buf, n, 1000, "arm");
     dinkc_free(buf);
     if (slot < 1) {

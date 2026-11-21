@@ -877,6 +877,18 @@ static void game_add_exp(int num)
     dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
 }
 
+/* FreeDink spr[].active for kill_scripts_with_inactive_sprites: Dink (1)
+ * is always active; brain slots 2..100 are live or not. Ids 101..999 are
+ * treated as alive (FreeDink would sweep them; Dinkcast has no sprites
+ * there, so only a script on a bogus id is spared). 1000 is exempt. */
+static int script_sprite_alive(int sprite)
+{
+    if (sprite == 1 || sprite > 100) {
+        return 1;
+    }
+    return brains_slot_live(sprite);
+}
+
 int main(int argc, char **argv)
 {
     struct TitleStill title;
@@ -1119,6 +1131,8 @@ int main(int argc, char **argv)
                 hit_bind_push(script_on_push);
                 hit_bind_touch(script_on_touch);
                 brains_bind_kill(script_on_kill);
+                brains_bind_reuse(dinkc_vm_sprite_reused);
+                dinkc_vm_bind_sprite_alive(script_sprite_alive);
                 brains_bind_proc(script_try_proc);
                 brains_bind_exp(game_add_exp);
                 brains_bind_player(&pl);
