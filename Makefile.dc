@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Dreamcast ELF (Bite 0.2). Invoke via `make dc` with KOS_BASE set.
 TARGET = build/dinkcast.elf
-OBJS = src/main.o src/twiddle.o src/pspr.o src/overlay.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/title.o src/pad.o \
+OBJS = src/main.o src/bgbake.o src/twiddle.o src/pspr.o src/overlay.o src/fs.o src/le.o src/bmp.o src/rgb565.o src/dinkdat.o src/title.o src/pad.o \
 	src/world.o src/mapscr.o src/tiles.o src/ff.o src/ini.o src/hard.o src/sprite.o \
 	src/player.o src/edraw.o src/talk.o src/hit.o src/hurt.o src/script.o src/dinkc_file.o \
 	src/dinkc_lex.o src/dinkc_parse.o src/dinkc_vm.o src/dinkc_var.o src/dinkc_cmd.o src/save.o src/startmenu.o \
@@ -24,7 +24,7 @@ include $(KOS_BASE)/Makefile.rules
 
 # EditorSprite lives in mapscr.h. Incremental `kos-cc` without this leaves
 # script.o/talk.o on the 60-byte layout after warp fields (preload unique=0).
-$(OBJS): Makefile.dc src/fs.h src/mapscr.h src/ini.h src/player.h src/sprite.h src/pspr.h src/twiddle.h src/overlay.h src/brains.h src/dinkc_cmd.h src/choice.h src/inv.h src/status.h src/mem.h src/residency.h src/edraw.h src/save.h src/startmenu.h src/tiles.h src/title.h src/hard.h src/fade.h src/audio.h
+$(OBJS): Makefile.dc src/bgbake.h src/fs.h src/mapscr.h src/ini.h src/player.h src/sprite.h src/pspr.h src/twiddle.h src/overlay.h src/brains.h src/dinkc_cmd.h src/choice.h src/inv.h src/status.h src/mem.h src/residency.h src/edraw.h src/save.h src/startmenu.h src/tiles.h src/title.h src/hard.h src/fade.h src/audio.h
 
 build/logsync.$(DINK_LOG_SYNC).stamp: | build
 	rm -f build/logsync.*.stamp

@@ -2087,6 +2087,10 @@ int brains_create(int x, int y, int brain, int pseq, int pframe)
         g_b[i].base_die = -1;
         return i;
     }
+    /* FreeDink add_sprite also fails when full; say so (blood, damage
+     * numbers, missiles and create_sprite would vanish silently). */
+    printf("brains_create full: brain %d seq %d at %d,%d\n", brain, pseq, x,
+           y);
     return 0;
 }
 

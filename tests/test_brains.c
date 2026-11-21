@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "audio.h"
+#include "bgbake.h"
 #include "brains.h"
 #include "dinkc_cmd.h"
 #include "fs.h"
@@ -462,6 +463,53 @@ int main(void)
                "dc_sp_speed changedir mx");
         brains_reset();
     }
+    /* FreeDink game_place_sprites removes type 0/2 rows after drawing and
+     * stamping them. Map 145 (review §3.2): 90 background rows left 9
+     * slots for blood, damage numbers, missiles and create_sprite. */
+    {
+        static struct EditorSprite rows[101];
+        static struct BgRow bg[100];
+        static struct MapScreen m145;
+        struct World w;
+        int n, free0 = 0, free1 = 0, made = 0, i;
+
+        /* Synthetic: warp and type-1 rows stay; other vision stays. */
+        memset(rows, 0, sizeof(rows));
+        rows[2].active = 1; rows[2].type = 0;
+        rows[3].active = 1; rows[3].type = 2;
+        rows[4].active = 1; rows[4].type = 0; rows[4].is_warp = 1;
+        rows[5].active = 1; rows[5].type = 1;
+        rows[6].active = 1; rows[6].type = 0; rows[6].vision = 3;
+        n = bg_bake(rows, 0, bg, 100);
+        expect(n == 2 && bg[0].ed == 2 && bg[1].ed == 3, "bake type 0 and 2");
+        expect(!rows[2].active && !rows[3].active, "baked rows freed");
+        expect(rows[4].active && rows[5].active && rows[6].active,
+               "warp, live and other-vision rows kept");
+
+        if (dink_fs_init() == 0 && world_load(&w) == 0 && w.loc[145] >= 1 &&
+            map_load_record((int)w.loc[145], &m145) == 0) {
+            for (i = 2; i <= 99; i++) {
+                free0 += !m145.sprite[i].active;
+            }
+            n = bg_bake(m145.sprite, 0, bg, 100);
+            for (i = 2; i <= 99; i++) {
+                free1 += !m145.sprite[i].active;
+            }
+            expect(n == 90 && free0 == 9 && free1 == 98,
+                   "map 145: 90 baked, free slots 9 -> 98");
+            brains_bind_screen(&m145);
+            brains_reset();
+            while (brains_create(100, 100, 0, 0, 1) > 0 && made < 200) {
+                made++;
+            }
+            expect(made == 98, "map 145: create_sprite gets 98 slots");
+            brains_reset();
+            brains_bind_screen(NULL);
+        } else {
+            printf("skip map 145 (no DINK_DATA)\n");
+        }
+    }
+
     printf("OK test_brains\n");
     return 0;
 }
