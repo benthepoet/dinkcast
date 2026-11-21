@@ -46,6 +46,7 @@ Add a **Confirmed** row only when the requester has seen the picture and said it
 | Picture | Host lock |
 |---|---|
 | Background bake (#177): every screen draws the same background objects (rocks, fences, houses) as before, hardness unchanged, and warps work; map 145 combat shows blood and damage numbers; `emu.log` has `bake bg=N free_slots=M` per screen and no `brains_create full` | `test_brains` (synthetic + map 145: 90 baked, 9 → 98 free). Flycast Open. |
+| Barrel/box smash after #177: hit a barrel → the smash animation plays, then it lies flat and is walkable; leave and re-enter → still flat, walkable | `draw_hard_map` is hardness-only (editor rows); no host test of the live branch. Flycast Open. |
 | 200 DinkC scripts: map 536 (27 ducks + rock/statue/secret), 192 (17 slimes + 4 thorns), 352 (15 gold + potions/heart) — every sprite hits/talks/dies; no `dinkc vm full` in the log | `test_dinkc_vm` (199 instances share one copy; 201st refused). Flycast stamp Open. |
 | In-play Start pause: Continue / Title on the choice overlay | `test_dinkc_vm` `open_pause` Continue/Title. Flycast stamp Open. |
 | Holes warp (`S1-HOLE*` `load_screen` + `draw_screen`) | Host #105. Flycast stamp Open. |
