@@ -79,7 +79,7 @@ never +100/+104/+108; `src/brains.c:1631-1632 brains_enter` hardcodes
   `live_sprite.cpp:137,186` vs `brains.c:359-367`; `DINKC_SP_NOCONTROL` (24) falls
   through `brains_change_prop` returning -1 silently (also violates "log
   unimplemented DinkC"). (missing)
-- **`set_dink_speed` binding absent** (`dinkc_bindings.cpp:569`) — used by stock
+- ~~**`set_dink_speed` binding absent**~~ bound in #176 (`dinkc_bindings.cpp:569`) — used by stock
   `MAIN.c` and `item-bt.c` (herb boots give no speed boost). (missing) [known]
 - Fixed 16 ms timestep vs `base_timing = fps_final/3` is a deliberate 60 Hz
   adaptation; identical math at 60 Hz, dilates game time under load. (simplified, P2)
@@ -153,7 +153,7 @@ Stock-campaign-used and missing/stubbed:
   after explosions.
 - `sp_kill_wait` stubbed (`dinkc_cmd.c:1546`) — 10 item scripts; NPCs stuck in
   talk-wait after weapon use.
-- `set_dink_speed` missing (§2). `free_magic` bound in #173 (8 slots, Dink 1.08;
+- `set_dink_speed` bound in #176 (§2). `free_magic` bound in #173 (8 slots, Dink 1.08;
   FreeDink's mitem[-1] read not grafted) — `S6-VEND.c`. `run_script_by_number`/
   `is_script_attached` bound in #173 — `DAM-FIRE.c`/`DAM-SFB.c` burn chains. `stopmidi` is `audio_music_stop` (`S1-BUL`, `DINFO`).
 - **`sp()`/`sp_editor_num` are identity stubs** — FreeDink `dc_sp` searches live
@@ -210,7 +210,7 @@ Stock-campaign-used and missing/stubbed:
   LEAVING a screen; respawn types 6/7/8 count from departure. Dinkcast stamps only
   when `editor_type(6/7/8)` is set (`dinkc_cmd.c:1606`), never on leave/warp/load;
   not in the save blob. Monsters return too early after a long linger. (diverged)
-- **`dink_can_walk_off_screen` / walk_off_screen missing** (`freedink.cpp:137`,
+- ~~**`dink_can_walk_off_screen` / walk_off_screen missing**~~ bound in #176 (`freedink.cpp:137`,
   `dinkc_bindings.cpp:1174`) — ending-sequence walk-off cutscenes trigger unwanted
   screen changes. Stock campaign uses this. (missing)
 
@@ -240,7 +240,7 @@ Stock-campaign-used and missing/stubbed:
   `saybox.c:157-186`/`choice.c:15-47` use `chars × advance('A')` and don't insert a
   break for overlong words (draw past the 150 px box). Choice page splits land at
   different points than FreeDink. (simplified)
-- `stop_entire_game` missing (used by `LRAISE.c`). (missing)
+- `stop_entire_game` bound in #176 (used by `LRAISE.c`): only the choice runs while set.
 
 ### 11. Inventory / stats / HUD / save
 - **Correction (2026-11-19, PR #150):** the magic-recharge item below is wrong. FreeDink calls `update_status_all` only inside its 100 ms block (`update_frame.cpp:231-237`), so Dinkcast's 100 ms gate in `status_update` is the faithful graft. Do not speed it up.
@@ -342,7 +342,7 @@ Severity is inflated; several items would regress playtest-accepted pictures.
 - Hardness **2** flattened to 1 (`hard_sample` boolean; stamp `1`). Shore push / flying-over-water wrong. **High walk/push regression.**
 - Flying `automove` skips **all** hardness; missiles can pass walls. Same cluster.
 - Missile hit contract weaker (no HIT/DAMAGE/notouch/blood; missile `live=0`).
-- `set_dink_speed` missing (`MAIN.c`, herb boots `item-bt.c`). Walk stays `DINK_SPEED 3`.
+- `set_dink_speed` bound in #176 (`MAIN.c`, herb boots `item-bt.c`): game_compute_speed table (3 → 3 px, 2 → 6 px).
 - User-defined `void foo()` → `k_fn` / unimplemented. Interpreter hole; **high `wait`/`external` regression** if grafted wrong.
 - `fill_screen` / `kill_shadow` / `sp_kill_wait` stubs. Letter fade was **accepted without** a real black fill — implementing `fill_screen` now can regress that.
 - `compare_sprite_script` missing (`S4-ROCK.c` / `S4-SEC1.c` / `S5-SEC1.c`). Later secrets, not village.

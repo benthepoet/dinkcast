@@ -2004,6 +2004,8 @@ int brains_change_prop(int slot, int prop, int val)
         p = &s->frame_delay;
     } else if (prop == DINKC_SP_NODRAW) {
         p = &s->nodraw;
+    } else if (prop == DINKC_SP_SOUND) {
+        p = &s->sound;
     } else if (prop == DINKC_SP_NOTOUCH) {
         p = &s->notouch;
     } else if (prop == DINKC_SP_FOLLOW) {

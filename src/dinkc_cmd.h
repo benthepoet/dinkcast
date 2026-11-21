@@ -9,6 +9,11 @@ struct SeqInfo;
 struct MapScreen;
 
 void dinkc_cmd_bind_player(struct Player *p);
+/* FreeDink stop_entire_game: 1 while set and a choice is up (only the
+ * choice runs); clears itself once no choice is active. */
+int dinkc_cmd_stop_entire_game(int choice_active);
+/* FreeDink walk_off_screen: 1 = did_player_cross_screen does nothing. */
+int dinkc_cmd_walk_off_screen(void);
 void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 /* prop: change_sprite. val -1 = read (except kill). */
 #define DINKC_SP_BRAIN 1
@@ -51,6 +56,7 @@ void dinkc_cmd_bind_sprite_freeze(void (*fn)(int slot, int on));
 #define DINKC_SP_DISABLED 38
 #define DINKC_SP_FRAME_DELAY 39
 #define DINKC_SP_NODRAW 40
+#define DINKC_SP_SOUND 41
 #define DINKC_SP_ATTACK_HIT_SOUND 41
 #define DINKC_SP_ATTACK_HIT_SOUND_SPEED 42
 void dinkc_cmd_bind_sprite_change(int (*fn)(int slot, int prop, int val));
