@@ -1840,6 +1840,11 @@ void brains_apply(struct MapScreen *scr)
             continue;
         }
         if (s->created) {
+            /* FreeDink add_sprite zeroes spr[]: a created sprite owns
+             * nothing of the row it was mirrored into (a dead sprite's
+             * seq, or since #177 a baked background row's seq, alt clip
+             * and que rode along with damage numbers). Start clean. */
+            memset(&scr->sprite[i], 0, sizeof(scr->sprite[i]));
             scr->sprite[i].active = 1;
             scr->sprite[i].type = 1;
             scr->sprite[i].vision = 0;
@@ -1850,6 +1855,8 @@ void brains_apply(struct MapScreen *scr)
                 scr->sprite[i].script[sizeof(scr->sprite[i].script) - 1u] =
                     '\0';
             }
+            scr->sprite[i].seq = s->pseq;
+            scr->sprite[i].frame = s->pframe;
         }
         scr->sprite[i].x = s->x;
         scr->sprite[i].y = s->y;

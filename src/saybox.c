@@ -149,6 +149,15 @@ static int say_box_w(const struct SayLine *ln)
 
 /* text_brain then text_draw rect: owner.x-75, clamp ≥1, then if right
  * edge > 620 shift left. Narrator and say_xy stay where they were born. */
+/* FreeDink text_brain: a line whose owner sprite is no longer active is
+ * removed before it is drawn (not moved to a default point). Narrator
+ * (1000) and screen (0) lines have no owner sprite. */
+static int line_owner_gone(const struct SayLine *ln)
+{
+    return ln->owner != 0 && ln->owner != 1000 && g_alive != NULL &&
+           !g_alive(ln->owner);
+}
+
 static void place_line(struct SayLine *ln)
 {
     int ox, oy, boxw;
@@ -524,8 +533,7 @@ int saybox_tick(int now_ms)
         /* text_brain: owner gone → drop the line, do not run the
          * callback. The script stays in WAIT_SAY (FreeDink hangs too).
          * kill_ttl < 1 would be a permanent sign; we still drop it. */
-        if (ln->owner != 0 && ln->owner != 1000 && g_alive != NULL &&
-            !g_alive(ln->owner)) {
+        if (line_owner_gone(ln)) {
             ln->on = 0;
             ln->fiber = 0;
             if (g_cur == i) {
@@ -828,7 +836,10 @@ void saybox_draw_pvr(float z)
     place_all();
     say_draw_begin();
     for (i = 0; i < SAY_LINES; i++) {
-        if (g_line[i].on) {
+        /* Said and orphaned in the same tick (S1-FMONS die(): say on
+         * &current_sprite, then kill_sprite): the next tick drops it; do
+         * not draw it at owner_xy's (100, 100) fallback meanwhile. */
+        if (g_line[i].on && !line_owner_gone(&g_line[i])) {
             draw_line_text(&g_line[i], line_z(z, i));
         }
     }
