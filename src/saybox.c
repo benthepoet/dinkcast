@@ -760,6 +760,25 @@ static void draw_line_text(const struct SayLine *ln, float z)
     g_cur = saved;
 }
 
+/* Rank by birth so a later line draws above an earlier one. The step
+ * stays inside the 0.1 gap under the choice menu (3.8) and inventory
+ * (4.0): 32 * 0.002 + the 0.01 fill lift is under 0.1. */
+static float line_z(float z, int i)
+{
+    int j, rank = 0;
+
+    for (j = 0; j < SAY_LINES; j++) {
+        if (!g_line[j].on || j == i) {
+            continue;
+        }
+        if (g_line[j].born < g_line[i].born ||
+            (g_line[j].born == g_line[i].born && j < i)) {
+            rank++;
+        }
+    }
+    return z + (float)rank * 0.002f;
+}
+
 void saybox_draw_pvr(float z)
 {
     int i;
@@ -771,8 +790,7 @@ void saybox_draw_pvr(float z)
     say_draw_begin();
     for (i = 0; i < SAY_LINES; i++) {
         if (g_line[i].on) {
-            /* Later line wins where boxes overlap (FreeDink sprite order). */
-            draw_line_text(&g_line[i], z + (float)i * 0.02f);
+            draw_line_text(&g_line[i], line_z(z, i));
         }
     }
 }
@@ -866,7 +884,6 @@ void saybox_draw_choices_pvr(float z)
     if (n < 1) {
         return;
     }
-    say_draw_begin();
     fr = choice_frame(DINK_CHOICE_SEQ, 2);
     if (fr != NULL) {
         sprite_blit_pvr(fr, (float)DINK_CHOICE_PX, (float)DINK_CHOICE_PY, z);
@@ -881,6 +898,9 @@ void saybox_draw_choices_pvr(float z)
         sprite_blit_pvr(fr, (float)(DINK_CHOICE_PX + 169 + 180),
                         (float)(DINK_CHOICE_PY + 1), z);
     }
+    /* Box blits each send their own header. Re-emit the font header
+     * after them or the title and lines sample the choice texture. */
+    say_draw_begin();
     if (dinkc_vm_choice_title()[0] != '\0') {
         uint32_t tfg;
         int col = dinkc_vm_choice_color();
