@@ -182,12 +182,15 @@ static void change_dir_to_diag(int *dir)
     }
 }
 
-static void spawn_exp_at(int x, int y, int w, int h, int cx, int cy, int num)
+/* draw_damage anchor, then extra_y (add_exp_force uses 30). parm is the
+ * text sprite's brain_parm: hurt owner, or 5000 for experience. */
+static int spawn_text_floater(int x, int y, int w, int h, int cx, int cy,
+                              int extra_y, int num, int parm)
 {
     int slot;
 
     if (num <= 0) {
-        return;
+        return 0;
     }
     if (w > 0 && h > 0) {
         x -= cx;
@@ -197,18 +200,17 @@ static void spawn_exp_at(int x, int y, int w, int h, int cx, int cy, int num)
     } else {
         y -= 40;
     }
-    /* add_exp_force: another 30 px above the damage anchor. */
-    y -= 30;
+    y -= extra_y;
     if (y < 0) {
         y = 0;
     }
     slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
     if (slot < 1) {
-        return;
+        return 0;
     }
     g_b[slot].speed = 1;
     g_b[slot].hard = 1;
-    g_b[slot].brain_parm = 5000;
+    g_b[slot].brain_parm = parm;
     g_b[slot].my = -1;
     g_b[slot].mx = 0;
     g_b[slot].kill_ttl = 1000;
@@ -216,22 +218,35 @@ static void spawn_exp_at(int x, int y, int w, int h, int cx, int cy, int num)
     g_b[slot].damage = num;
     g_b[slot].seq = 0;
     g_b[slot].pseq = 0;
+    return slot;
+}
+
+static void frame_wh(const struct BrainSpr *s, int *w, int *h, int *cx,
+                     int *cy)
+{
+    int seq, fr;
+
+    *w = 0;
+    *h = 0;
+    *cx = 0;
+    *cy = 0;
+    seq = s->pseq > 0 ? s->pseq : s->seq;
+    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
+    if (seq > 0 && g_frame_box != NULL &&
+        g_frame_box(seq, fr, w, h, cx, cy) != 1) {
+        *w = 0;
+    }
 }
 
 static void add_exp_if_player(struct BrainSpr *s)
 {
-    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+    int cx, cy, bw, bh;
 
     if (s->last_hit != 1 || s->exp <= 0) {
         return;
     }
-    seq = s->pseq > 0 ? s->pseq : s->seq;
-    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
-    if (!(seq > 0 && g_frame_box != NULL &&
-          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
-        bw = 0;
-    }
-    spawn_exp_at(s->x, s->y, bw, bh, cx, cy, s->exp);
+    frame_wh(s, &bw, &bh, &cx, &cy);
+    (void)spawn_text_floater(s->x, s->y, bw, bh, cx, cy, 30, s->exp, 5000);
     if (g_on_exp != NULL) {
         g_on_exp(s->exp);
     }
@@ -299,53 +314,18 @@ static void add_kill_sprite(struct BrainSpr *s, const struct SeqInfo *seqs)
 void brains_draw_damage_box(int x, int y, int w, int h, int cx, int cy,
                             int damage, int owner)
 {
-    int slot;
-
-    if (damage <= 0) {
-        return;
-    }
-    if (w > 0 && h > 0) {
-        x -= cx;
-        y -= cy;
-        x += w / 5;
-        y -= h / 3;
-    } else {
-        y -= 40;
-    }
-    /* FreeDink text_draw damage branch: y < 0 becomes 0. */
-    if (y < 0) {
-        y = 0;
-    }
-    slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
-    if (slot < 1) {
-        return;
-    }
-    g_b[slot].speed = 1;
-    g_b[slot].hard = 1;
-    g_b[slot].brain_parm = owner;
-    g_b[slot].my = -1;
-    g_b[slot].mx = 0;
-    g_b[slot].kill_ttl = 1000;
-    g_b[slot].dir = 8;
-    g_b[slot].damage = damage;
-    g_b[slot].seq = 0;
-    g_b[slot].pseq = 0;
+    (void)spawn_text_floater(x, y, w, h, cx, cy, 0, damage, owner);
 }
 
 static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
 {
-    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+    int cx, cy, bw, bh;
 
     (void)seqs;
     if (s == NULL || s->damage <= 0) {
         return;
     }
-    seq = s->pseq > 0 ? s->pseq : s->seq;
-    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
-    if (!(seq > 0 && g_frame_box != NULL &&
-          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
-        bw = 0;
-    }
+    frame_wh(s, &bw, &bh, &cx, &cy);
     brains_draw_damage_box(s->x, s->y, bw, bh, cx, cy, s->damage, spr_i(s));
 }
 
@@ -2418,19 +2398,19 @@ int brains_slot_nodraw(int slot)
 void brains_spawn_exp(int slot, int num)
 {
     struct BrainSpr *s;
-    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+    int cx, cy, bw, bh;
 
+    /* Deliberate: FreeDink add_exp_force does not check active, so a
+     * dead in-range slot still floats at its old x/y. We require live.
+     * kill_sprite leaves x/y, but the next brains_create memsets the
+     * slot, and slot 1 is Dink (not g_b[1]). Stock 1.08 never calls
+     * add_exp on a dead sprite or on sprite 1. */
     if (slot < 1 || slot > 100 || !g_b[slot].live || num <= 0) {
         return;
     }
     s = &g_b[slot];
-    seq = s->pseq > 0 ? s->pseq : s->seq;
-    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
-    if (!(seq > 0 && g_frame_box != NULL &&
-          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
-        bw = 0;
-    }
-    spawn_exp_at(s->x, s->y, bw, bh, cx, cy, num);
+    frame_wh(s, &bw, &bh, &cx, &cy);
+    (void)spawn_text_floater(s->x, s->y, bw, bh, cx, cy, 30, num, 5000);
 }
 
 int brains_floater_exp(int slot)

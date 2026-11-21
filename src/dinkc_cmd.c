@@ -1330,17 +1330,25 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "add_exp")) {
-        int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
+        /* FreeDink 1.08 dc_add_exp: STOP_IF_BAD_SPRITE (1..299), then
+         * add_exp_force, which does nothing when num <= 0 (no &exp
+         * change, no floater). */
+        if (a1 <= 0 || a1 >= 300) {
+            printf("dinkc add_exp: invalid sprite %d\n", a1);
+            return 1;
+        }
+        if (a0 > 0) {
+            int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
 
-        /* FreeDink 1.08 dc_add_exp: add_exp_force, any live sprite. */
-        if (a0 > 0 && g_exp_floater != NULL) {
-            g_exp_floater(a1, a0);
+            if (g_exp_floater != NULL) {
+                g_exp_floater(a1, a0);
+            }
+            exp += a0;
+            if (exp > 99999) {
+                exp = 99999;
+            }
+            dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
         }
-        exp += a0;
-        if (exp > 99999) {
-            exp = 99999;
-        }
-        dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
         return 1;
     }
     if (is_cmd(name, "sp_exp")) {

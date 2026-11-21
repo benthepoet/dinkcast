@@ -781,6 +781,57 @@ int main(void)
         dinkc_cmd_bind_sprite_change(NULL);
     }
 
+    /* DinkC add_exp → brains_spawn_exp (the main.c bind). */
+    brains_reset();
+    brains_bind_frame_box(frame_box_80x90);
+    dinkc_cmd_bind_exp_floater(brains_spawn_exp);
+    dinkc_var_set("&exp", 10, DINKC_GLOBAL_SCOPE, 1);
+    {
+        int slot = brains_create(200, 300, 9, 40, 1);
+        int yld = 0, rv = 0, args[2];
+        int i, n = 0, fy = 0, fnum = 0;
+
+        expect(slot > 1, "add_exp sprite");
+        args[0] = 7;
+        args[1] = slot;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp 7");
+        expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 17, "exp 17");
+        for (i = 2; i <= 99; i++) {
+            int x, y, num;
+
+            if (!brains_floater_exp(i)) {
+                continue;
+            }
+            n++;
+            expect(brains_floater_num(i, &x, &y, &num), "exp floater xy");
+            fy = y;
+            fnum = num;
+        }
+        /* 80x90 frame, offsets 35,80: damage y = 300-80-30 = 190, exp -30. */
+        expect(n == 1 && fnum == 7 && fy == 160, "add_exp floater 30 above");
+        args[0] = 0;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp 0");
+        args[0] = -3;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp -3");
+        args[0] = 4;
+        args[1] = 0;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp sprite 0");
+        args[1] = 300;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp sprite 300");
+        expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 17,
+               "bad add_exp leaves exp");
+        n = 0;
+        for (i = 2; i <= 99; i++) {
+            n += brains_floater_exp(i);
+        }
+        expect(n == 1, "bad add_exp spawns nothing");
+    }
+
     printf("OK test_hurt\n");
     return 0;
 }
