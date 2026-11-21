@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "audio.h"
+#include "save.h"
 
 #include "fs.h"
 #include "le.h"
@@ -499,6 +500,7 @@ int audio_init(void)
             printf("audio skip slot %d %s\n", k_start[i].id, k_start[i].file);
         }
     }
+    save_set_pump(audio_music_poll);
     g_on = 1;
     printf("audio sfx bytes=%zu slots=%d cap=%u\n", g_bytes, g_nslot,
            (unsigned)AICA_SFX_CAP);
@@ -512,6 +514,7 @@ int audio_init(void)
 
 void audio_shutdown(void)
 {
+    save_set_pump(NULL);
 #ifdef _arch_dreamcast
     int i;
     if (g_on) {
