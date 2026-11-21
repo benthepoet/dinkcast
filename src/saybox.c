@@ -317,6 +317,17 @@ static void wrap_line(char *s, int max_px)
     }
 }
 
+/* Above FreeDink MAX_SPRITES_AT_ONCE (300) so sp_kill of a text id
+ * does not land on a live sprite. */
+#define SAY_ID_BASE 400
+
+static int g_last_id;
+
+static int id_of(int slot)
+{
+    return slot < 0 ? 0 : SAY_ID_BASE + slot;
+}
+
 static int add_line(const char *raw, int owner, int xy, int x, int y,
                     int fiber, int script)
 {
@@ -325,6 +336,7 @@ static int add_line(const char *raw, int owner, int xy, int x, int y,
 
     slot = alloc_line();
     if (slot < 0) {
+        g_last_id = 0;
         return -1;
     }
     ln = &g_line[slot];
@@ -355,8 +367,27 @@ static int add_line(const char *raw, int owner, int xy, int x, int y,
         ln->kill_ttl = DINK_SAY_TEXT_MIN;
     }
     g_cur = slot;
+    g_last_id = id_of(slot);
     place_line(ln);
     return slot;
+}
+
+int saybox_last_id(void)
+{
+    return g_last_id;
+}
+
+/* dc_sp_kill on the id say returned. ttl < 1 stays up (live_sprite
+ * only expires kill_ttl > 0). 1 if id is a live text line. */
+int saybox_set_ttl(int id, int ttl)
+{
+    int slot = id - SAY_ID_BASE;
+
+    if (slot < 0 || slot >= SAY_LINES || !g_line[slot].on) {
+        return 0;
+    }
+    g_line[slot].kill_ttl = ttl;
+    return 1;
 }
 
 void saybox_clear_callback(int fiber)
@@ -399,10 +430,11 @@ static int bad_sprite(int sprite)
     return 1;
 }
 
-void saybox_set_from(const char *text, int sprite, int script)
+int saybox_set_from(const char *text, int sprite, int script)
 {
+    g_last_id = 0;
     if (bad_sprite(sprite)) {
-        return;
+        return 0;
     }
     /* dc_say: narrator does not kill an existing owner-1000 line. */
     if (sprite != 1000) {
@@ -410,6 +442,7 @@ void saybox_set_from(const char *text, int sprite, int script)
     }
     (void)add_line(text, sprite, 0, 0, 0, 0, script);
     retarget();
+    return g_last_id;
 }
 
 void saybox_set(const char *text, int sprite)
@@ -417,10 +450,12 @@ void saybox_set(const char *text, int sprite)
     saybox_set_from(text, sprite, 0);
 }
 
-void saybox_set_xy_from(const char *text, int x, int y, int script)
+int saybox_set_xy_from(const char *text, int x, int y, int script)
 {
+    g_last_id = 0;
     /* say_text_xy: add_text_sprite at (mx,my), text_owner 1000. */
     (void)add_line(text, 1000, 1, x, y, 0, script);
+    return g_last_id;
 }
 
 void saybox_set_xy(const char *text, int x, int y)
@@ -430,6 +465,7 @@ void saybox_set_xy(const char *text, int x, int y)
 
 int saybox_stop(const char *text, int sprite, int fiber, int npc)
 {
+    g_last_id = 0;
     if (bad_sprite(sprite)) {
         return 0;
     }
@@ -451,6 +487,7 @@ int saybox_stop(const char *text, int sprite, int fiber, int npc)
 
 int saybox_stop_xy(const char *text, int x, int y, int fiber)
 {
+    g_last_id = 0;
     saybox_clear_callback(fiber);
     (void)add_line(text, 1000, 1, x, y, fiber, fiber);
     return 1;
@@ -748,7 +785,9 @@ static void draw_line_text(const struct SayLine *ln, float z)
             draw_ch(x + 1.0f, y, z, (unsigned char)*p, bg);
             draw_ch(x, y - 1.0f, z, (unsigned char)*p, bg);
             draw_ch(x, y + 1.0f, z, (unsigned char)*p, bg);
-            draw_ch(x, y, z + 0.01f, (unsigned char)*p, fg);
+            /* Smaller than the 0.002 birth step so a later line's
+             * outline is not covered by an earlier line's fill. */
+            draw_ch(x, y, z + 0.001f, (unsigned char)*p, fg);
             x += (float)font_advance((unsigned char)*p);
             p++;
         }

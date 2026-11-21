@@ -900,6 +900,14 @@ static int change_sp(int slot, int prop, int nargs, int setv, int *ret)
     int *p = NULL;
     int v;
 
+    /* Text ids are not live sprites. dc_sp_kill sets kill_ttl on the
+     * text sprite say() returned (S3-ST2: sp_kill(&text, 0)). */
+    if (prop == DINKC_SP_KILL && saybox_set_ttl(slot, val)) {
+        if (ret != NULL) {
+            *ret = val;
+        }
+        return 1;
+    }
     if (spr_is_dink(slot) && g_pl != NULL && !slot1_is_editor(slot)) {
         if (prop == DINKC_SP_X) {
             p = &g_pl->x;
@@ -1014,14 +1022,26 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         {
             char line[200];
 
+            int id;
+
             dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
             printf("say %s\n", line);
             if (is_cmd(name, "say")) {
-                saybox_set_from(line, spr, g_fiber);
+                id = saybox_set_from(line, spr, g_fiber);
             } else if (!saybox_stop(line, spr, g_fiber,
                                     is_cmd(name, "say_stop_npc"))) {
-                /* say_stop_npc while this sprite is already talking. */
+                /* say_stop_npc while this sprite is already talking.
+                 * dc_say_stop_npc returns 0 and does not touch &last_text. */
                 return 1;
+            } else {
+                id = saybox_last_id();
+            }
+            /* add_text_sprite writes *plast_text. dc_say returns it. */
+            if (id > 0) {
+                dinkc_var_set("&last_text", id, DINKC_GLOBAL_SCOPE, 1);
+            }
+            if (ret != NULL) {
+                *ret = id;
             }
         }
         if (yield != NULL && !is_cmd(name, "say")) {
@@ -1043,10 +1063,18 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         {
             char line[200];
 
+            int id;
+
             dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
             printf("say_xy %s %d %d\n", line, x, y);
             saybox_clear_callback(g_fiber);
-            saybox_set_xy_from(line, x, y, g_fiber);
+            id = saybox_set_xy_from(line, x, y, g_fiber);
+            if (id > 0) {
+                dinkc_var_set("&last_text", id, DINKC_GLOBAL_SCOPE, 1);
+            }
+            if (ret != NULL) {
+                *ret = id;
+            }
         }
         return 1;
     }
@@ -1055,9 +1083,18 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         int y = nargs >= 3 ? a2 : a1;
         char line[200];
 
+        int id;
+
         dinkc_var_expand(line, sizeof(line), str, g_fiber, g_cmd_sprite);
         printf("say_stop_xy %s %d %d\n", line, x, y);
         saybox_stop_xy(line, x, y, g_fiber);
+        id = saybox_last_id();
+        if (id > 0) {
+            dinkc_var_set("&last_text", id, DINKC_GLOBAL_SCOPE, 1);
+        }
+        if (ret != NULL) {
+            *ret = id;
+        }
         if (yield != NULL) {
             *yield = 1;
         }

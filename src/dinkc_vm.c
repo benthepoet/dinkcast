@@ -2,6 +2,7 @@
 #include "dinkc_vm.h"
 
 #include "choice.h"
+#include "pad.h"
 #include "dinkc_cmd.h"
 #include "saybox.h"
 #include "dinkc_lex.h"
@@ -1659,19 +1660,96 @@ void dinkc_vm_press_talk(int now_ms)
     if (script < 1) {
         return;
     }
+    /* Expire only. The frame's single saybox_tick (pump_say) runs
+     * the callbacks. A second tick the same frame would re-enter. */
     saybox_expire_script(script, now_ms);
-    dinkc_vm_pump_say(now_ms);
 }
 
-void dinkc_vm_advance_button(void)
+static int waiting_button(void)
 {
     int i;
 
     for (i = 1; i <= DINKC_MAX_LIVE; i++) {
         if (g_f[i].used && g_f[i].state == DINKC_WAIT_BUTTON) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* update_frame.cpp wait4b: dirs first, then buttons overwrite.
+ * Last action in that order wins. 0 if nothing new was pressed. */
+static int pad_edge(unsigned prev, unsigned now, unsigned bit)
+{
+    return (now & bit) != 0 && (prev & bit) == 0;
+}
+
+int dinkc_vm_button_code(unsigned prev, unsigned now)
+{
+    int code = 0;
+
+    if (pad_edge(prev, now, DINK_PAD_RIGHT)) {
+        code = 16;
+    }
+    if (pad_edge(prev, now, DINK_PAD_LEFT)) {
+        code = 14;
+    }
+    if (pad_edge(prev, now, DINK_PAD_UP)) {
+        code = 18;
+    }
+    if (pad_edge(prev, now, DINK_PAD_DOWN)) {
+        code = 12;
+    }
+    if (pad_edge(prev, now, DINK_PAD_B)) {
+        code = 1; /* ACTION_ATTACK */
+    }
+    if (pad_edge(prev, now, DINK_PAD_A)) {
+        code = 2; /* ACTION_TALK */
+    }
+    if (pad_edge(prev, now, DINK_PAD_X)) {
+        code = 3; /* ACTION_MAGIC */
+    }
+    if (pad_edge(prev, now, DINK_PAD_Y)) {
+        code = 4; /* ACTION_INVENTORY */
+    }
+    if (pad_edge(prev, now, DINK_PAD_START)) {
+        code = 5; /* ACTION_MENU */
+    }
+    if (pad_edge(prev, now, DINK_PAD_L)) {
+        code = 6; /* ACTION_MAP */
+    }
+    return code;
+}
+
+void dinkc_vm_advance_button(int button)
+{
+    int i;
+
+    if (button == 0) {
+        return;
+    }
+    /* update_frame: *presult = wait4b.button, then run_script. */
+    dinkc_var_set("&result", button, DINKC_GLOBAL_SCOPE, 1);
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].state == DINKC_WAIT_BUTTON) {
             run_fiber(&g_f[i], g_f[i].wait_until);
         }
     }
+}
+
+int dinkc_vm_eat_button(unsigned prev, unsigned now)
+{
+    int code;
+
+    if (!waiting_button()) {
+        return 0;
+    }
+    code = dinkc_vm_button_code(prev, now);
+    if (code == 0) {
+        return 0;
+    }
+    dinkc_vm_advance_button(code);
+    return 1;
 }
 
 int dinkc_vm_waiting_say(void)

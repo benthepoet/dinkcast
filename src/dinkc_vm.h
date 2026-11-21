@@ -86,12 +86,17 @@ void dinkc_vm_advance_say(void);
 void dinkc_vm_advance_say_fiber(int slot);
 /* saybox_tick then resume only the fibers whose lines expired. */
 void dinkc_vm_pump_say(int now_ms);
-/* ACTION_TALK: expire every line this script created, then pump. */
+/* ACTION_TALK: mark that script's lines expired. pump_say runs them. */
 void dinkc_vm_press_talk(int now_ms);
 /* 1 if play.last_talk's script is still alive (not only while WAIT_SAY). */
 int dinkc_vm_talk_script(void);
-/* wait_for_button. */
-void dinkc_vm_advance_button(void);
+/* FreeDink wait4b button id from a pad edge, or 0. */
+int dinkc_vm_button_code(unsigned prev, unsigned now);
+/* Set &result and resume wait_for_button. button 0 does nothing. */
+void dinkc_vm_advance_button(int button);
+/* If a script is in wait_for_button and a pad edge is new, resume it
+ * and return 1 so the same edge is not also talk or attack. */
+int dinkc_vm_eat_button(unsigned prev, unsigned now);
 int dinkc_vm_waiting_say(void);
 void dinkc_vm_advance_bmp(void);
 int dinkc_vm_waiting_bmp(void);

@@ -27,10 +27,16 @@ void saybox_bind_alive(int (*fn)(int slot));
  * that sprite's current line only. script is the creating fiber
  * (add_text_sprite's script), 0 if none. */
 void saybox_set(const char *text, int sprite);
-void saybox_set_from(const char *text, int sprite, int script);
+/* Text-sprite id (400 + slot), or 0 if the line was not created.
+ * FreeDink returns the sprite from add_text_sprite and stores it in
+ * &last_text. */
+int saybox_set_from(const char *text, int sprite, int script);
+int saybox_last_id(void);
+/* dc_sp_kill: 1 if id is a live text line. */
+int saybox_set_ttl(int id, int ttl);
 /* FreeDink say_text_xy: text_owner 1000, box at (x,y) size 620×400. */
 void saybox_set_xy(const char *text, int x, int y);
-void saybox_set_xy_from(const char *text, int x, int y, int script);
+int saybox_set_xy_from(const char *text, int x, int y, int script);
 /* Drop say_stop callbacks for this fiber. The line stays (kill_returning_stuff). */
 void saybox_clear_callback(int fiber);
 void saybox_forget_script(int script);
