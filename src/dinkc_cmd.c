@@ -385,6 +385,13 @@ int dinkc_cmd_walk_off_screen(void)
     return g_walk_off_screen == 1;
 }
 
+void dinkc_cmd_new_game(void)
+{
+    g_stop_entire_game = 0;
+    g_walk_off_screen = 0;
+    player_reset_dink_speed();
+}
+
 void dinkc_cmd_thaw_if_idle(void)
 {
     /* Attached idle scripts (talk-only signs, armed items) never thaw. */
@@ -1777,7 +1784,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
          * sprite (SoundPlayEffect(sound, 22050, 0, sprite, 1)). */
         int rc = change_sp(a0, DINKC_SP_SOUND, nargs, a1, ret);
 
-        if (nargs >= 2 && a1 > 0 && a0 > 1) {
+        if (nargs >= 2 && a1 > 0 && a0 >= 1) {
             (void)audio_playsound(a1, 22050, 0, a0, 1);
         }
         return rc;
@@ -1979,9 +1986,14 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             *ret = ok == 0 ? 1 : 0;
         }
         if (ok == 0) {
-            /* FreeDink load_game: walk_off_screen = 0, dinkspeed = 3. */
+            /* FreeDink load_game: spr[1].damage = 0, walk_off_screen = 0,
+             * dinkspeed = 3. */
             g_walk_off_screen = 0;
+            g_stop_entire_game = 0;
             player_reset_dink_speed();
+            if (g_pl != NULL) {
+                g_pl->damage = 0;
+            }
             (void)dinkc_cmd("arm_weapon", NULL, 0, NULL, NULL, NULL, NULL);
             (void)dinkc_cmd("arm_magic", NULL, 0, NULL, NULL, NULL, NULL);
             dinkc_var_set("&update_status", 1, DINKC_GLOBAL_SCOPE, 1);

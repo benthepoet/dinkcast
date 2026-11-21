@@ -1136,6 +1136,7 @@ int main(int argc, char **argv)
                 /* Keep the hard.dat FILE*; do not slurp 2 MiB again on swap. */
                 player_init(&pl);
                 dinkc_cmd_bind_player(&pl);
+                dinkc_cmd_new_game();
                 dinkc_cmd_bind_sprite_freeze(brains_set_freeze);
                 dinkc_cmd_bind_sprite_change(brains_change_prop);
                 dinkc_cmd_bind_create(brains_create);
@@ -1290,6 +1291,10 @@ int main(int argc, char **argv)
                     if (need_menu) {
                         /* Boot/place_sprites runs before START; halt hearth. */
                         audio_halt_loops();
+                        /* Title -> New game starts from FreeDink defaults
+                         * (MAIN.c set_dink_speed(3) is not run here);
+                         * Continue's load_game resets them too. */
+                        dinkc_cmd_new_game();
                         (void)title_pick_and_apply(seqs, &pl, &player_map);
                         brains_place_sounds();
                         inv_sync_icons();
@@ -1319,6 +1324,7 @@ int main(int argc, char **argv)
                         inv_reset();
                         player_init(&pl);
                         dinkc_cmd_bind_player(&pl);
+                        dinkc_cmd_new_game();
                         hit_bind_player(&pl);
                         script_clear_dink_die();
                         player_map = DINK_START_PLAYER_MAP;
@@ -1544,10 +1550,15 @@ int main(int argc, char **argv)
                     if (!frozen) {
                         dinkc_vm_tick(now_ms);
                     }
-                    if (saybox_tick(now_ms) && dinkc_vm_waiting_say()) {
+                    /* Stopped game: no say timeout, no thaw (FreeDink
+                     * update_frame returns before text sprites run). */
+                    if (!frozen && saybox_tick(now_ms) &&
+                        dinkc_vm_waiting_say()) {
                         dinkc_vm_advance_say();
                     }
-                    dinkc_cmd_thaw_if_idle();
+                    if (!frozen) {
+                        dinkc_cmd_thaw_if_idle();
+                    }
                     if (seqs != NULL && !inv_showing() && !status_map_active() &&
                         !frozen) {
                         pl.defense = dinkc_var_get("&defense", DINKC_GLOBAL_SCOPE,
@@ -1599,7 +1610,7 @@ int main(int argc, char **argv)
                                       : screen_process_warp();
 
                         if (!inv_showing() && !status_map_active() &&
-                            !paused) {
+                            !paused && !frozen) {
                             dinkc_vm_resume_move();
                         }
                         if (wed > 0) {

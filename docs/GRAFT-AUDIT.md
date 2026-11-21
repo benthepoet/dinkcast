@@ -210,7 +210,7 @@ Stock-campaign-used and missing/stubbed:
   LEAVING a screen; respawn types 6/7/8 count from departure. Dinkcast stamps only
   when `editor_type(6/7/8)` is set (`dinkc_cmd.c:1606`), never on leave/warp/load;
   not in the save blob. Monsters return too early after a long linger. (diverged)
-- ~~**`dink_can_walk_off_screen` / walk_off_screen missing**~~ bound in #176 (`freedink.cpp:137`,
+- ~~**`dink_can_walk_off_screen` / walk_off_screen missing**~~ bound in #176 — note: Dinkcast also skips `screen_try_cross` while Dink is frozen (`pl.freeze == 0` in main.c); FreeDink `did_player_cross_screen` has no freeze gate (update_frame only checks `spr[1].active && brain == 1`). S2-CULG freezes Dink, so the stock walk-off never crossed in Dinkcast either; the gate is an open divergence (`freedink.cpp:137`,
   `dinkc_bindings.cpp:1174`) — ending-sequence walk-off cutscenes trigger unwanted
   screen changes. Stock campaign uses this. (missing)
 

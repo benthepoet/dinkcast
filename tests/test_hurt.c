@@ -748,6 +748,23 @@ int main(void)
         (void)dinkc_cmd("sp_sound", a, 2, "", "", &yld, &rv);
         expect(brains_change_prop(slot, DINKC_SP_SOUND, -1) == 34,
                "sp_sound sets the sprite's sound (SAVEBOT 34)");
+        expect(DINKC_SP_SOUND != DINKC_SP_ATTACK_HIT_SOUND,
+               "sound and attack_hit_sound are distinct props");
+        a[1] = 9;
+        (void)dinkc_cmd("sp_attack_hit_sound", a, 2, "", "", &yld, &rv);
+        expect(brains_change_prop(slot, DINKC_SP_SOUND, -1) == 34,
+               "sp_attack_hit_sound leaves sp_sound alone");
+
+        /* New game / restart: FreeDink defaults. */
+        a[0] = 2;
+        (void)dinkc_cmd("set_dink_speed", a, 1, "", "", &yld, &rv);
+        a[0] = 1;
+        (void)dinkc_cmd("dink_can_walk_off_screen", a, 1, "", "", &yld, &rv);
+        (void)dinkc_cmd("stop_entire_game", a, 1, "", "", &yld, &rv);
+        dinkc_cmd_new_game();
+        expect(player_walk_speed() == 3 && !dinkc_cmd_walk_off_screen() &&
+                   dinkc_cmd_stop_entire_game(1) == 0,
+               "new game resets speed, walk-off, stop");
         dinkc_cmd_bind_sprite_change(NULL);
     }
 
