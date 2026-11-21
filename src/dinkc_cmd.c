@@ -1816,7 +1816,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         if (nargs >= 2 && a1 > 0 && a0 >= 1) {
             int ch = audio_playsound(a1, 22050, 0, a0, 1);
 
-            printf("sp_sound spr=%d sound=%d ch=%d\n", a0, a1, ch);
+            printf("sp_sound spr=%d sound=%d ret=%d (ch+1, 0 = not played)\n", a0, a1, ch);
         }
         return rc;
     }

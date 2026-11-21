@@ -668,16 +668,22 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
     g_v[v].loop = repeat ? 1 : 0;
     g_v[v].age = g_age++;
     if (repeat) {
-        printf("sfx loop start sound=%d owner=%d voice=%d ch=%d\n", sound,
+        printf("sfx loop start sound=%d file=%s bytes=%u freq=%d owner=%d "
+               "voice=%d ch=%d\n",
+               sound, g_s[sound].file, (unsigned)g_s[sound].bytes, min,
                sound3d, v, ch);
-    } else {
+    }
+    {
         int i;
 
-        /* Diagnostic: KOS picked a channel a tracked loop is still on. */
+        /* Diagnostic: KOS find_free_channel is round-robin and does not
+         * know a channel is still playing; a stereo sound also takes
+         * ch + 1. Any new sound (one-shot or loop) on a loop's channel. */
         for (i = 0; i < DINK_VOICES; i++) {
-            if (i != v && g_v[i].used && g_v[i].loop && g_v[i].ch == ch) {
-                printf("sfx loop ch reused ch=%d by sound=%d owner=%d\n", ch,
-                       sound, g_v[i].owner);
+            if (i != v && g_v[i].used && g_v[i].loop &&
+                (g_v[i].ch == ch || g_v[i].ch == ch + 1)) {
+                printf("sfx loop ch reused ch=%d by sound=%d owner=%d\n",
+                       g_v[i].ch, sound, g_v[i].owner);
             }
         }
     }
