@@ -606,6 +606,12 @@ static int steal_voice(void)
             best = i;
         }
     }
+    /* Diagnostic: a looping sprite sound (sp_sound, editor sound) lost to
+     * a newer one-shot. One-shot voices are never freed when they end. */
+    if (g_v[best].loop) {
+        printf("sfx loop stolen voice=%d ch=%d owner=%d\n", best,
+               g_v[best].ch, g_v[best].owner);
+    }
 #ifdef _arch_dreamcast
     snd_sfx_stop(g_v[best].ch);
 #endif
@@ -624,6 +630,12 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
     (void)plus;
     (void)sound3d;
     if (!g_on || sound < 1 || sound >= DINK_SFX_SLOTS || !g_s[sound].loaded) {
+        if (repeat) {
+            printf("sfx loop skip sound=%d owner=%d on=%d loaded=%d\n", sound,
+                   sound3d, g_on,
+                   (sound >= 1 && sound < DINK_SFX_SLOTS) ? g_s[sound].loaded
+                                                          : -1);
+        }
         return 0;
     }
     v = steal_voice();
@@ -640,6 +652,9 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
     }
     ch = snd_sfx_play_ex(&play);
     if (ch < 0) {
+        if (repeat) {
+            printf("sfx loop play fail sound=%d owner=%d\n", sound, sound3d);
+        }
         return 0;
     }
 #else
@@ -652,6 +667,20 @@ int audio_playsound(int sound, int min, int plus, int sound3d, int repeat)
     g_v[v].owner = sound3d;
     g_v[v].loop = repeat ? 1 : 0;
     g_v[v].age = g_age++;
+    if (repeat) {
+        printf("sfx loop start sound=%d owner=%d voice=%d ch=%d\n", sound,
+               sound3d, v, ch);
+    } else {
+        int i;
+
+        /* Diagnostic: KOS picked a channel a tracked loop is still on. */
+        for (i = 0; i < DINK_VOICES; i++) {
+            if (i != v && g_v[i].used && g_v[i].loop && g_v[i].ch == ch) {
+                printf("sfx loop ch reused ch=%d by sound=%d owner=%d\n", ch,
+                       sound, g_v[i].owner);
+            }
+        }
+    }
     return ch + 1;
 }
 
@@ -675,6 +704,9 @@ void audio_halt_owner(int sprite)
         if (!g_v[i].used || g_v[i].owner != sprite) {
             continue;
         }
+        if (g_v[i].loop) {
+            printf("sfx loop halt owner=%d ch=%d\n", sprite, g_v[i].ch);
+        }
 #ifdef _arch_dreamcast
         snd_sfx_stop(g_v[i].ch);
 #endif
@@ -692,6 +724,7 @@ void audio_halt_loops(void)
         if (!g_v[i].used || !g_v[i].loop) {
             continue;
         }
+        printf("sfx loop halt all owner=%d ch=%d\n", g_v[i].owner, g_v[i].ch);
 #ifdef _arch_dreamcast
         snd_sfx_stop(g_v[i].ch);
 #endif
