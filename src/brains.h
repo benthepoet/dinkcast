@@ -77,6 +77,10 @@ int brains_slot_disabled(int slot);
 int brains_slot_nodraw(int slot);
 /* brain 8 hit/exp floater. 1 if this slot should draw a number. */
 int brains_floater_num(int slot, int *x, int *y, int *num);
+/* 1 if that floater is experience (FreeDink brain_parm 5000), not damage. */
+int brains_floater_exp(int slot);
+/* FreeDink add_exp_force: same anchor as draw_damage, then 30 px higher. */
+void brains_spawn_exp(int slot, int num);
 /* FreeDink k[frame].box and xoffset/yoffset. 1 if the bitmap is known. */
 void brains_bind_frame_box(int (*fn)(int seq, int frame, int *w, int *h,
                                       int *cx, int *cy));

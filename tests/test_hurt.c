@@ -152,11 +152,17 @@ int main(void)
     expect(!brains_slot_live(5), "npc gone");
     expect(g_exp_add == 7, "exp last_hit 1");
     {
-        int i, corpse = 0, fx, fy, fnum, dmg = 0;
+        int i, corpse = 0, fx, fy, fnum, dmg = 0, dmgy = 0, expn = 0, expy = 0;
 
         for (i = 2; i <= 99; i++) {
             if (brains_floater_num(i, &fx, &fy, &fnum)) {
-                dmg = fnum;
+                if (brains_floater_exp(i)) {
+                    expn = fnum;
+                    expy = fy;
+                } else {
+                    dmg = fnum;
+                    dmgy = fy;
+                }
             }
             if (brains_slot_created(i) && brains_slot_live(i) &&
                 brains_slot_brain(i) != 8) {
@@ -164,6 +170,8 @@ int main(void)
             }
         }
         expect(dmg == 5, "draw_damage number");
+        expect(expn == 7, "exp floater 7");
+        expect(expy == dmgy - 30, "exp 30 above damage");
         expect(corpse != 0, "corpse created");
     }
 
@@ -611,6 +619,11 @@ int main(void)
         /* text_draw: 50 px box, hcenter, glyph 1 px left. Cell is 8. */
         expect(saybox_num_x(fx, 5) == fx + 25 - 8 / 2 - 1, "one digit");
         expect(saybox_num_x(fx, 10) == fx + 25 - 16 / 2 - 1, "two digits");
+        expect(saybox_num_argb(0, 256) == 0xFFFFFFFFu, "damage white");
+        expect(saybox_num_argb(1, 256) == 0xFFFFFF02u, "exp yellow");
+        expect(saybox_num_argb(1, 255) == 0xFFFFFFFFu, "fade forces white");
+        expect(saybox_text_argb(14, 256) == 0xFFFFFF02u, "speech yellow");
+        expect(saybox_text_argb(3, 100) == 0xFFFFFFFFu, "speech fade white");
         brains_bind_frame_box(frame_box_tall);
         slot = brains_create(10, 10, 16, 41, 1);
         expect(brains_hurt(slot, 1) == 1, "clamp damage");
@@ -766,6 +779,57 @@ int main(void)
                    dinkc_cmd_stop_entire_game(1) == 0,
                "new game resets speed, walk-off, stop");
         dinkc_cmd_bind_sprite_change(NULL);
+    }
+
+    /* DinkC add_exp → brains_spawn_exp (the main.c bind). */
+    brains_reset();
+    brains_bind_frame_box(frame_box_80x90);
+    dinkc_cmd_bind_exp_floater(brains_spawn_exp);
+    dinkc_var_set("&exp", 10, DINKC_GLOBAL_SCOPE, 1);
+    {
+        int slot = brains_create(200, 300, 9, 40, 1);
+        int yld = 0, rv = 0, args[2];
+        int i, n = 0, fy = 0, fnum = 0;
+
+        expect(slot > 1, "add_exp sprite");
+        args[0] = 7;
+        args[1] = slot;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp 7");
+        expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 17, "exp 17");
+        for (i = 2; i <= 99; i++) {
+            int x, y, num;
+
+            if (!brains_floater_exp(i)) {
+                continue;
+            }
+            n++;
+            expect(brains_floater_num(i, &x, &y, &num), "exp floater xy");
+            fy = y;
+            fnum = num;
+        }
+        /* 80x90 frame, offsets 35,80: damage y = 300-80-30 = 190, exp -30. */
+        expect(n == 1 && fnum == 7 && fy == 160, "add_exp floater 30 above");
+        args[0] = 0;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp 0");
+        args[0] = -3;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp -3");
+        args[0] = 4;
+        args[1] = 0;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp sprite 0");
+        args[1] = 300;
+        expect(dinkc_cmd("add_exp", args, 2, "", "", &yld, &rv) == 1,
+               "add_exp sprite 300");
+        expect(dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 17,
+               "bad add_exp leaves exp");
+        n = 0;
+        for (i = 2; i <= 99; i++) {
+            n += brains_floater_exp(i);
+        }
+        expect(n == 1, "bad add_exp spawns nothing");
     }
 
     printf("OK test_hurt\n");

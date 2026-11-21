@@ -54,6 +54,7 @@ static void (*g_fill_hard)(void);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
+static void (*g_exp_floater)(int slot, int num);
 static void (*g_blood)(int slot);
 static void (*g_hard_redraw)(void);
 static int g_hard_redraw_pending;
@@ -789,6 +790,11 @@ void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage))
     g_hurt = fn;
 }
 
+void dinkc_cmd_bind_exp_floater(void (*fn)(int slot, int num))
+{
+    g_exp_floater = fn;
+}
+
 void dinkc_cmd_bind_blood(void (*fn)(int slot))
 {
     g_blood = fn;
@@ -1324,13 +1330,25 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
         return 1;
     }
     if (is_cmd(name, "add_exp")) {
-        int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
-
-        exp += a0;
-        if (exp > 99999) {
-            exp = 99999;
+        /* FreeDink 1.08 dc_add_exp: STOP_IF_BAD_SPRITE (1..299), then
+         * add_exp_force, which does nothing when num <= 0 (no &exp
+         * change, no floater). */
+        if (a1 <= 0 || a1 >= 300) {
+            printf("dinkc add_exp: invalid sprite %d\n", a1);
+            return 1;
         }
-        dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
+        if (a0 > 0) {
+            int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
+
+            if (g_exp_floater != NULL) {
+                g_exp_floater(a1, a0);
+            }
+            exp += a0;
+            if (exp > 99999) {
+                exp = 99999;
+            }
+            dinkc_var_set("&exp", exp, DINKC_GLOBAL_SCOPE, 1);
+        }
         return 1;
     }
     if (is_cmd(name, "sp_exp")) {

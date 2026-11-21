@@ -82,6 +82,8 @@ void dinkc_cmd_bind_fiber(int fiber, int sprite);
 /* 1 if this cmd's first arg is &current_sprite (editor 1 smash, not Dink). */
 void dinkc_cmd_bind_arg0_current(int on);
 void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage));
+/* FreeDink add_exp_force floater. slot is the DinkC sprite, num the gain. */
+void dinkc_cmd_bind_exp_floater(void (*fn)(int slot, int num));
 void dinkc_cmd_bind_restart(void (*fn)(void));
 void dinkc_cmd_bind_kill_game(void (*fn)(void));
 void dinkc_cmd_bind_brain_lookup(int (*first)(int brain, int ignore, int start),
