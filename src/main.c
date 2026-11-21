@@ -202,6 +202,27 @@ static void on_blood(int slot)
     }
 }
 
+/* FreeDink human_brain draw_damage(1): Dink's frame is the one drawn last
+ * (getpic: pseq/pframe), held by pspr in *g_play_dfr, not the editor cache.
+ * *g_play_dfr must always be pspr's pinned g_last slot (never evicted). The
+ * floater's owner is 1 in FreeDink numbering (Dink), not g_b[1]; nothing
+ * reads brain_parm on text sprites. */
+static void on_dink_damage(const struct Player *p, int damage)
+{
+    const struct SpriteFrame *f =
+        g_play_dfr != NULL ? *g_play_dfr : NULL;
+
+    if (p == NULL) {
+        return;
+    }
+    if (f != NULL && f->w > 0 && f->h > 0) {
+        brains_draw_damage_box(p->x, p->y, f->w, f->h, f->cx, f->cy, damage,
+                               1);
+    } else {
+        brains_draw_damage_box(p->x, p->y, 0, 0, 0, 0, damage, 1);
+    }
+}
+
 /* FreeDink draw_damage reads k[].box (the bitmap) and xoffset/yoffset. */
 static int play_frame_box(int seq, int frame, int *w, int *h, int *cx, int *cy)
 {
@@ -1137,6 +1158,7 @@ int main(int argc, char **argv)
                 brains_bind_exp(game_add_exp);
                 brains_bind_player(&pl);
                 brains_bind_frame_box(play_frame_box);
+                player_bind_damage_draw(on_dink_damage);
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);

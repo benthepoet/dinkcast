@@ -3,6 +3,7 @@
 #include "saybox.h"
 #include "dinkc_cmd.h"
 #include "dinkc_var.h"
+#include "dinkc_vm.h"
 #include "hit.h"
 #include "hurt.h"
 #include "mapscr.h"
@@ -90,6 +91,18 @@ static void le_i32_put(uint8_t *p, int off, int32_t v)
     p[off + 1] = (uint8_t)((v >> 8) & 0xff);
     p[off + 2] = (uint8_t)((v >> 16) & 0xff);
     p[off + 3] = (uint8_t)((v >> 24) & 0xff);
+}
+
+static int g_dd_calls, g_dd_dmg, g_dd_life_seen;
+static const int *g_dd_life;
+
+/* Stands in for main.c on_dink_damage: a 60x70 Dink frame, offset 30,60. */
+static void dink_damage_hook(const struct Player *p, int damage)
+{
+    g_dd_calls++;
+    g_dd_dmg = damage;
+    g_dd_life_seen = g_dd_life != NULL ? *g_dd_life : -1;
+    brains_draw_damage_box(p->x, p->y, 60, 70, 30, 60, damage, 1);
 }
 
 int main(void)
@@ -603,6 +616,75 @@ int main(void)
         }
         expect(saw && fy == 0, "floater y clamped");
         brains_bind_frame_box(NULL);
+    }
+
+    /* FreeDink human_brain: draw_damage(1) before *plife -= damage, one
+     * floater per hit, placed from Dink's own frame (not editor sprites). */
+    {
+        struct Player dp;
+        int life = 20, i, fx = 0, fy = 0, fnum = 0, saw = 0;
+
+        brains_reset();
+        brains_bind_screen(NULL);
+        memset(&dp, 0, sizeof(dp));
+        dp.x = 300;
+        dp.y = 250;
+        dp.damage = 7;
+        g_dd_calls = 0;
+        g_dd_life = &life;
+        player_bind_damage_draw(dink_damage_hook);
+        expect(player_apply_life(&dp, &life) == 0, "dink survives");
+        expect(g_dd_calls == 1 && g_dd_dmg == 7, "one number per hit");
+        expect(g_dd_life_seen == 20 && life == 13,
+               "number drawn before life drops");
+        expect(player_apply_life(&dp, &life) == 0 && g_dd_calls == 1,
+               "no number when damage is 0");
+        for (i = 2; i <= 99; i++) {
+            if (brains_floater_num(i, &fx, &fy, &fnum)) {
+                saw = 1;
+                break;
+            }
+        }
+        expect(saw && fnum == 7, "dink floater 7");
+        expect(fx == 300 - 30 + 60 / 5 && fy == 250 - 60 - 70 / 3,
+               "dink floater from his frame");
+        brains_reset();
+        brains_draw_damage_box(300, 250, 0, 0, 0, 0, 3, 1);
+        saw = 0;
+        for (i = 2; i <= 99; i++) {
+            if (brains_floater_num(i, &fx, &fy, &fnum) && fnum == 3) {
+                saw = 1;
+                break;
+            }
+        }
+        expect(saw && fx == 300 && fy == 210, "unknown frame: 40 above");
+        /* DinkC hurt(1, n) on Dink: post-defense damage, one number. */
+        {
+            static const char hs[] = "void main(void)\n{\n  hurt(1, 5);\n}\n";
+            int lifev;
+
+            brains_reset();
+            dinkc_vm_reset();
+            /* make_global keeps an existing slot's value: set explicitly. */
+            dinkc_var_make_global("&life", 20);
+            dinkc_var_make_global("&defense", 3);
+            dinkc_var_set("&life", 20, DINKC_GLOBAL_SCOPE, 1);
+            dinkc_var_set("&defense", 3, DINKC_GLOBAL_SCOPE, 1);
+            memset(&dp, 0, sizeof(dp));
+            dp.x = 300;
+            dp.y = 250;
+            dinkc_cmd_bind_player(&dp);
+            g_dd_calls = 0;
+            g_dd_life = NULL;
+            (void)dinkc_vm_start(hs, strlen(hs), 0);
+            lifev = dinkc_var_get("&life", DINKC_GLOBAL_SCOPE, 1);
+            expect(g_dd_calls == 1 && g_dd_dmg == 2,
+                   "DinkC hurt(1,5) def 3: one number, 2");
+            expect(lifev == 18, "DinkC hurt took 2 life");
+            dinkc_cmd_bind_player(NULL);
+        }
+        player_bind_damage_draw(NULL);
+        g_dd_life = NULL;
     }
 
     printf("OK test_hurt\n");
