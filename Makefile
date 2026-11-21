@@ -103,8 +103,8 @@ tests/test_screen: tests/test_screen.c src/screen.c src/world.c src/mapscr.c src
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_screen.c src/screen.c src/world.c src/mapscr.c src/le.c src/fs.c src/residency.c src/ff.c src/hard.c src/audio.c
 	./$@
 
-tests/test_brains: tests/test_brains.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/world.c src/audio.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c src/pad.c src/edraw.c src/sprite.c src/bmp.c src/hit.c
-	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_brains.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/world.c src/audio.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c src/pad.c src/edraw.c src/sprite.c src/bmp.c src/hit.c
+tests/test_brains: tests/test_brains.c src/bgbake.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/world.c src/audio.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c src/pad.c src/edraw.c src/sprite.c src/bmp.c src/hit.c
+	$(HOSTCC) $(HOST_CFLAGS) -o $@ tests/test_brains.c src/bgbake.c src/brains.c src/hurt.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/le.c src/fs.c src/residency.c src/world.c src/audio.c src/dinkc_cmd.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c src/pad.c src/edraw.c src/sprite.c src/bmp.c src/hit.c
 	DINK_DATA="$(DINK_DATA)" ./$@
 
 tests/test_hurt: tests/test_hurt.c src/hurt.c src/hit.c src/brains.c src/player.c src/hard.c src/mapscr.c src/ini.c src/ff.c src/edraw.c src/sprite.c src/bmp.c src/le.c src/fs.c src/residency.c src/dinkc_cmd.c src/audio.c src/fade.c src/save.c src/dinkc_var.c src/dinkc_vm.c src/dinkc_lex.c src/saybox.c src/font.c src/mem.c
