@@ -15,6 +15,7 @@
 
 static const struct MapScreen *g_scr;
 static void (*g_note_script)(int slot, const char *name);
+static int (*g_slot_created)(int slot);
 static char g_log[96];
 static int g_dink_dying;
 static int start_main(const char *name, int sprite);
@@ -350,6 +351,11 @@ void script_enter_vision(void)
     }
 }
 
+void script_bind_slot_created(int (*fn)(int slot))
+{
+    g_slot_created = fn;
+}
+
 int script_attach_live(void)
 {
     int rank[100];
@@ -374,6 +380,14 @@ int script_attach_live(void)
         /* brains_apply stamps create_sprite as type 1. s2-auntp already
          * ran from screen MAIN; starting it again spawned a second Jack. */
         if (dinkc_vm_sprite_fiber(i) != 0) {
+            continue;
+        }
+        /* FreeDink draw_screen_game: lsm_kill_all_nonlive_sprites, then
+         * game_place_sprites starts scripts for editor rows only. A
+         * created sprite got its script from sp_script; if that script
+         * moved itself to 1000 (S1-LTR script_attach(1000)), the row has
+         * no fiber and must not start a second copy (issue #183). */
+        if (g_slot_created != NULL && g_slot_created(i)) {
             continue;
         }
         rank[nrank++] = i;

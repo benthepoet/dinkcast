@@ -7,6 +7,9 @@
 /* Bind editor screen so talk/hit stubs can print script[16]. */
 void script_bind_screen(const struct MapScreen *scr);
 void script_bind_note_script(void (*fn)(int slot, const char *name));
+/* brains_slot_created: script_attach_live skips created sprites (only
+ * editor rows get MAIN at place-sprites, FreeDink game_place_sprites). */
+void script_bind_slot_created(int (*fn)(int slot));
 
 /* Bite 10.3 stubs: log only. DinkC is 11. */
 void script_on_main(int script_id);
