@@ -50,6 +50,35 @@ master
         └── fix/title-letterbox    # stacked PR only if needed
 ```
 
+### Worktrees (several agents at once)
+
+Several agents (Claude, Grok, Kimi, subagents) work at the same time. **Each branch gets its own git worktree, with one owner.** Nobody switches branches or commits in someone else's tree.
+
+Below, `MAIN` is the main checkout (the clone the human uses) and worktrees live beside it in `MAIN-wt/`. Agent shells do not keep variables between calls, so **start every command block with**
+
+```
+MAIN=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)   # from inside any worktree of this repo
+```
+
+(or the literal path). It gives the same absolute path, with no trailing slash, from the main checkout or any worktree.
+
+- **The main checkout is the human's playtest tree.** Agents do not `checkout`, commit, stash, reset or clean there. Allowed against `MAIN`: `git -C "$MAIN" fetch`, `worktree add/remove/prune/list`, reading files, and reading `build/emu.log`.
+- **New work:**
+
+  ```
+  MAIN=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
+  git -C "$MAIN" fetch origin
+  git -C "$MAIN" worktree add -b <branch> "$MAIN-wt/<slug>" origin/master
+  cp "$MAIN/local.mk" "$MAIN-wt/<slug>/"    # gitignored DINK_DATA; make host fails without it
+  ```
+
+  Build (`make host`, `make docker-cdi`, `make emu`), commit and push only inside that worktree. Each worktree has its own `build/`, including its first-build `build/kos-iso` patched `libkallisti.a`. That is intended; do not point worktrees at a shared build dir.
+- **Reviewers** use a throwaway **detached** worktree of the PR head, in one shell call: set `MAIN`, `git -C "$MAIN" fetch origin`, `git -C "$MAIN" worktree add --detach "$MAIN-wt/review-<pr>" origin/<branch>`, and copy `local.mk` the same way. Remove the worktree when done.
+- **One branch, one worktree.** Git refuses a second checkout of a branch; do not `--force` it. To change someone else's PR, comment on the PR. Only its owner commits.
+- **Stage explicit paths** (`git add <files>`), never `git add -A` / `commit -a`: other agents' untracked files can sit in any tree.
+- **Human playtest of a branch:** the owner's worktree already holds the branch, so in `MAIN` run `git fetch && git checkout --detach origin/<branch>`, then `make docker-cdi && make emu`. `MAIN/build/emu.log` is then that branch's log. Before trusting that log, agents check that `MAIN` is at the PR head (`git -C "$MAIN" rev-parse HEAD`) and that `build/emu.log` is newer than `build/dinkcast.elf` (`ls -lt`). Otherwise, ask the human when they ran it.
+- **Clean up after merge:** the owner sets `MAIN` and runs `git -C "$MAIN" worktree remove "$MAIN-wt/<slug>"`, `git -C "$MAIN" branch -d <branch>` and `git -C "$MAIN" worktree prune`. Do not remove a worktree you do not own; list it and ask.
+
 ---
 
 ## Pull requests
@@ -130,7 +159,7 @@ Read GOTCHAS, the HUD, and **`build/emu.log` first** before proposing a patch. I
 
 ## How to run a review pass
 
-1. Check out the PR branch; do not review `master` by mistake.
+1. Review from a detached worktree of the PR head (see **Worktrees**); do not review `master` by mistake, and do not check the branch out in the main checkout.
 2. Read the PR description, then the diff, then the plan bites named in the PR.
 3. Adversarial leaves **one review** covering plan, break-it, memory, perf, and flaws. Severity:
 

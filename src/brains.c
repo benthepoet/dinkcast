@@ -93,6 +93,8 @@ static int g_unimpl;
 static void (*g_on_kill)(int slot, const char *proc);
 static int (*g_on_proc)(int slot, const char *proc);
 static void (*g_on_exp)(int num);
+static int (*g_frame_box)(int seq, int frame, int *w, int *h, int *cx,
+                          int *cy);
 static const struct SeqInfo *g_seqs;
 static struct Player *g_pl;
 
@@ -245,8 +247,9 @@ static void add_kill_sprite(struct BrainSpr *s, const struct SeqInfo *seqs)
 
 static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
 {
-    int slot, x, y, seq, fr, cx = 0, cy = 0, hl = 0, ht = 0, hr = 50, hb = 50;
+    int slot, x, y, seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
 
+    (void)seqs;
     if (s == NULL || s->damage <= 0) {
         return;
     }
@@ -254,15 +257,20 @@ static void draw_damage(struct BrainSpr *s, const struct SeqInfo *seqs)
     y = s->y;
     seq = s->pseq > 0 ? s->pseq : s->seq;
     fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
-    if (seqs != NULL && seq > 0 && seq < DINK_MAX_SEQ) {
-        ini_frame_geom(&seqs[seq], seq, fr, 50, 50, &cx, &cy, &hl, &ht, &hr,
-                       &hb);
-        y -= cy;
+    /* FreeDink draw_damage: xoffset/yoffset, then box.right/5 and
+     * box.bottom/3. box is the bitmap, not the hardbox. */
+    if (seq > 0 && g_frame_box != NULL &&
+        g_frame_box(seq, fr, &bw, &bh, &cx, &cy) && bw > 0 && bh > 0) {
         x -= cx;
-        y -= hb / 3;
-        x += hr / 5;
+        y -= cy;
+        x += bw / 5;
+        y -= bh / 3;
     } else {
         y -= 40;
+    }
+    /* FreeDink text_draw damage branch: y < 0 becomes 0. */
+    if (y < 0) {
+        y = 0;
     }
     slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
     if (slot < 1) {
@@ -2105,6 +2113,12 @@ void brains_bind_kill(void (*fn)(int slot, const char *proc))
 void brains_bind_exp(void (*fn)(int num))
 {
     g_on_exp = fn;
+}
+
+void brains_bind_frame_box(int (*fn)(int seq, int frame, int *w, int *h,
+                                      int *cx, int *cy))
+{
+    g_frame_box = fn;
 }
 
 void brains_bind_player(struct Player *p)

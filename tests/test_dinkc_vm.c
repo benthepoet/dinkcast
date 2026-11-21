@@ -9,6 +9,13 @@
 #include "saybox.h"
 #include "save.h"
 
+static int g_save_pumps;
+
+static void count_save_pump(void)
+{
+    g_save_pumps++;
+}
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -385,9 +392,12 @@ int main(void)
 
         (void)system("mkdir -p build/savetest2");
         save_set_dir(dir);
+        save_set_pump(count_save_pump);
+        g_save_pumps = 0;
         dinkc_vm_reset();
         dinkc_var_init();
         slot = dinkc_vm_start(loadc, strlen(loadc), 1);
+        expect(g_save_pumps == 1, "fiber savegameinfo pumps");
         expect(slot > 0 && dinkc_vm_waiting_choice(), "savegameinfo choice");
         expect(dinkc_vm_choice_n() == 2, "two lines");
         expect(strstr(dinkc_vm_choice_line(1), "Empty") != NULL ||
@@ -396,6 +406,8 @@ int main(void)
         expect(strcmp(dinkc_vm_choice_line(2), "Nevermind") == 0, "nevermind");
         dinkc_vm_choice_pick(2);
         dinkc_vm_choice_open_saves();
+        expect(g_save_pumps == 11, "ten more slot opens");
+        save_set_pump(NULL);
         expect(dinkc_vm_choice_n() == 11, "start-2 ten plus nevermind");
         expect(dinkc_vm_choice_cur() == 1, "save cur1");
         expect(strstr(dinkc_vm_choice_line(1), "Slot 1") != NULL, "slot1 line");

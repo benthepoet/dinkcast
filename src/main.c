@@ -202,6 +202,25 @@ static void on_blood(int slot)
     }
 }
 
+/* FreeDink draw_damage reads k[].box (the bitmap) and xoffset/yoffset. */
+static int play_frame_box(int seq, int frame, int *w, int *h, int *cx, int *cy)
+{
+    struct SpriteFrame *ef;
+
+    if (w == NULL || h == NULL || cx == NULL || cy == NULL) {
+        return 0;
+    }
+    ef = edraw_find(g_edg, g_ned, seq, frame);
+    if (ef == NULL || ef->w < 1 || ef->h < 1) {
+        return 0;
+    }
+    *w = ef->w;
+    *h = ef->h;
+    *cx = ef->cx;
+    *cy = ef->cy;
+    return 1;
+}
+
 static void stamp_one_editor(struct HardMask *mask, struct SeqInfo *seqs, int si)
 {
     struct SpriteFrame *ef;
@@ -900,6 +919,7 @@ int main(int argc, char **argv)
     snprintf(msg, sizeof(msg), "root %s", dink_fs_root());
     printf("dink_fs_root %s\n", dink_fs_root());
     (void)audio_init();
+    save_set_pump(audio_music_poll);
 
     if (dink_dat_size(&dat_sz) != 0) {
         vid_clear(0xC0, 0x00, 0x80);
@@ -1116,6 +1136,7 @@ int main(int argc, char **argv)
                 brains_bind_proc(script_try_proc);
                 brains_bind_exp(game_add_exp);
                 brains_bind_player(&pl);
+                brains_bind_frame_box(play_frame_box);
                 saybox_bind(&g_scr, &pl);
                 saybox_bind_live_xy(brains_live_xy);
                 script_bind_screen(&g_scr);

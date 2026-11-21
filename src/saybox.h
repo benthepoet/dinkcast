@@ -36,6 +36,8 @@ int saybox_line_x(const char *line);
 int saybox_color(void);
 /* FreeDink gfx_fonts_init_colors index 0–15 as 0xAARRGGBB. */
 uint32_t saybox_argb(int color);
+/* First glyph x: centered in the 50 px box, then 1 px left. */
+int saybox_num_x(int x, int num);
 
 #ifdef _arch_dreamcast
 int saybox_upload(void);
