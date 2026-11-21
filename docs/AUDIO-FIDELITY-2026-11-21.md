@@ -8,7 +8,7 @@ Analysis only. Compared Dinkcast at `origin/master` (`e26f732`) with GNU FreeDin
 
 FreeDink `dc_playmidi` handles a numeric name greater than 1000 by trying `N-1000.mid` and then the original name. `PlayMidi` checks that the requested file exists **before** `Mix_HaltMusic` (`bgm.cpp:104-152`). Thus, after `playmidi("1009")`, `9.mid` exists and starts, the extensionless `1009` lookup fails, and `9.mid` keeps playing.
 
-Dinkcast performs the same two calls (`src/dinkc_cmd.c:1552-1576`), but `audio_music_play` calls `music_stop_dc()` before `open_wav()` (`src/audio.c:719-753`). `midi_to_wav_name` does not add `.wav` to an extensionless name (`src/audio.c:289-326`). The second call therefore stops the successful fallback, fails to open `Sound/1009`, clears `g_midi`, and leaves no music.
+Dinkcast performs the same two calls (`src/dinkc_cmd.c:1552-1576`), but `audio_music_play` calls `music_stop_dc()` before `open_wav()` (`src/audio.c:719-753`). `midi_to_wav_name` does not add `.wav` to an extensionless name (`src/audio.c:289-326`). The second call therefore stops the successful fallback, fails to open `Sound/1009`, clears `g_midi`, and leaves no music. A four-digit name with `.mid` becomes `1009.wav`; when that file is also absent, it fails through the same stop-before-check path.
 
 This affects stock scripts, not just D-Mods:
 
@@ -16,6 +16,11 @@ This affects stock scripts, not just D-Mods:
 - `S5-FGUY.c:91`: `playmidi("1009")`
 - `S7-HELL.c:7,9`: `playmidi("1006")` / `playmidi("1018")`
 - `S7-MIL.c:103,105`: `playmidi("1004")` / `playmidi("1015")`
+- `S2-CAVE2.c:50` and `S3-CAMPS.c:65`: `playmidi("1004.mid")`
+- `S3-1ST.c:51`: `playmidi("1005.mid")`
+- `S3-MOG.c:5`: `playmidi("1009.mid")`
+
+Official `Sound/` contains `4.mid`, `5.mid`, and `9.mid`, but not `1004.mid`, `1005.mid`, or `1009.mid`, so the `.mid` spellings also lose a working fallback. `S7-MIL.c:105` is different: neither `15.mid` nor `1015` exists, so it exercises the general “missing new track preserves current music” rule rather than loss of a successful fallback.
 
 The general rule should be “a missing new track does not destroy the currently playing track,” not a special case for these IDs. A fix needs a host/DC test that starts `9.mid`, requests extensionless `1009`, and verifies that `9.mid` is still current and playing. Host `audio_music_play` currently performs no file lookup, so the existing host test cannot catch this.
 
@@ -43,11 +48,19 @@ Using the current converted official files, after applying the loader's truncati
 
 The logged counter is itself **44,642 bytes too low** for this bank. `wav_nframes` returns frames per channel, but `load_dc_fp` sets `out_bytes = (nfr + 1) / 2` for every 4-bit file without multiplying by channel count (`src/audio.c:171-176,217-220`). Untruncated stereo `ESCAPE`, `NONO`, `SEL2`, `SEL3`, and `SECRET` payloads are therefore counted at half size. Even the under-reported total is 9,810 bytes over cap.
 
-Long stereo ADPCM is also truncated to the wrong duration. For `HIGH2.WAV`, `wav_nframes` computes 75,702 frames per channel. The loader keeps `(65534 + 1) / 2 = 32,767` **total bytes** (`src/audio.c:198-215`), yielding 32,767 stereo frames per channel, about 1.49 s at 22050 Hz. Preserving 65,534 frames per channel requires 65,534 bytes across two ADPCM channels, about 2.97 s. Mono long files use the intended 32,767-byte truncation; the channel multiplier is the missing piece.
+Long stereo ADPCM is also truncated to the wrong duration. For `HIGH2.WAV`, `wav_nframes` computes 75,702 frames per channel. The loader keeps `(65534 + 1) / 2 = 32,767` **total bytes** (`src/audio.c:198-215`), yielding 32,767 stereo frames per channel, about 1.49 s at 22050 Hz. Preserving 65,534 frames per channel requires 65,534 bytes across two ADPCM channels, about 2.97 s. Mono long files use the intended 32,767-byte truncation; the channel multiplier is the missing piece. Because the encoder stores left and right ADPCM in separate channel blocks, today's 32,767-byte cut contains only left-channel source data; KOS splits that truncated buffer into two pseudo-channels rather than merely shortening valid stereo.
+
+Correcting the HIGH2 cut adds another 32,767 bytes. The budget decision must therefore use a corrected bank of **611,507 bytes**, or **87,219 bytes over cap**, not just today's accidentally smaller 578,740-byte payload.
 
 A future resource policy should first make byte accounting exact, then choose between an explicit larger AICA budget and a documented conversion/working-set policy. Arbitrarily dropping whichever slot crosses 512 KiB would silence campaign sounds and repeat the rejected one-off residency pattern. Host `test_audio` only checks a loose `< 2 MiB` raw-file counter (`tests/test_audio.c:55`), so it cannot enforce the DC budget.
 
-### 5. START, Continue, and inventory UI sounds are missing
+### 5. Stereo SFX use two AICA channels, but stops release only the left
+
+Dinkcast records one `g_v` entry per playback and starts SFX with `play.chn = -1` (`src/audio.c:618-655`). For stereo data, KOS `snd_sfx_play_ex` starts both `chn` and `chn + 1`; for mono it starts only `chn` (`snd_sfxmgr.c:765-797`). Sixteen stereo play records can therefore consume 32 hardware channels, so the 16-record bookkeeping cap is not a 16-hardware-channel cap.
+
+Voice stealing, `audio_halt_owner`, and `audio_halt_loops` call `snd_sfx_stop(g_v[i].ch)` only for the left channel (`src/audio.c:609-615,667-702`). KOS `snd_sfx_stop` stops exactly the channel passed (`snd_sfxmgr.c:802-817`). The right channel can remain audible after a stop or steal, indefinitely when it is repeating. Ownership, stealing, and cleanup need to retain the sample's channel count and stop every hardware channel it acquired; resource accounting must distinguish playback records from AICA channels. Stock S6/S7 warp loops are mono, so finding 2 does not depend on this separate stereo gap.
+
+### 6. START, Continue, and inventory UI sounds are missing
 
 The hand-written UI paths do not call the SFX backend:
 
@@ -57,7 +70,7 @@ The hand-written UI paths do not call the SFX backend:
 
 These are visible, stock interactions and should have host call-site tests, not just checks that slots 11/17/18/20/21 loaded. In-play choice navigation and confirmation already use sounds 11 and 17 correctly (`src/main.c:1444-1458`).
 
-### 6. Several DinkC sound commands are absent
+### 7. Several DinkC sound commands are absent
 
 The command table has `playsound`, `playmidi`, `stopmidi`, and `stopcd`, but no bindings for:
 
@@ -72,19 +85,19 @@ The command table has `playsound`, `playmidi`, `stopmidi`, and `stopcd`, but no 
 
 `loopmidi` is also absent, but is a normal-behavior discrepancy covered separately above. Unknown commands are logged by the VM, so these are explicit compatibility gaps, not silently skipped script files. Dynamic `load_sound` needs an ownership/eviction rule if supported later; it must not bypass the AICA budget.
 
-### 7. `sp_sound(..., 0)` does not stop the existing loop
+### 8. `sp_sound(..., 0)` does not stop the existing loop
 
 FreeDink `update_sound` stops a repeating owner channel when either `spr[owner].sound == 0` or the owner is inactive (`sfx.cpp:534-583`). Dinkcast checks only `!g_b[i].live` in `brains_tick` (`src/brains.c:1839-1854`). `sp_sound` starts a new loop for a positive value but does not halt the old voice for zero (`src/dinkc_cmd.c:1782-1790`). The old loop therefore continues until sprite death, a global loop halt, or shutdown.
 
 Stock `FIRE.c` and `SAVEBOT.c` only set positive sounds, so this is primarily a DinkC/D-Mod correctness gap. A robust fix should reproduce `update_sound`'s zero check and stop the owner voice when the id becomes zero; it should not invent a different positive-to-positive replacement policy.
 
-### 8. Music-bank failures can still produce a successful, incomplete disc build
+### 9. Music-bank failures can still produce a successful, incomplete disc build
 
 `tools/midi_bank.sh` counts conversion failures but exits 0 unconditionally (`tools/midi_bank.sh:31-32,81-105`). `make docker-cdi` consequently continues, and `stage_dink.sh` overlays whatever `build/music/*.wav` files happen to exist without checking the expected stock manifest (`tools/stage_dink.sh:83-102`). A FluidSynth, FFmpeg, or ADPCM failure can therefore yield a successful CDI with missing music.
 
 The current build directory contains 33 converted tracks, so this is a failure-path/build-integrity finding, not a claim that today's bank is incomplete. The build should fail on any conversion error and validate the required stock names before staging. Related freshness behavior is already deliberate: `AUDIO_FORCE=1` rebuilds outputs skipped as fresh.
 
-### 9. Smaller lifecycle and format gaps
+### 10. Smaller lifecycle and format gaps
 
 - `audio_music_play` accepts stereo ADPCM and passes `stereo=1` to `snd_stream_start`, but `music_fill_chunk` decodes every byte through one mono YMZ history (`src/audio.c:433-445,801-825`). The converter writes left and right ADPCM streams in separate channel blocks (`tools/wav_to_adpcm.c:283-304`), so stereo music would be decoded incorrectly. Official music is converted to mono (`tools/midi_bank.sh:86-89`), making this a robustness/D-Mod issue. Rejecting unsupported channel counts is safer than pretending to support them.
 - `audio_shutdown` clears pending playback only inside the Dreamcast branch and never clears `g_midi` (`src/audio.c:539-575`). On host, `audio_music_playing()` can remain true after shutdown (`src/audio.c:948-957`). Normal process teardown is unaffected, but reinit/tests can inherit stale state.
@@ -92,7 +105,7 @@ The current build directory contains 33 converted tracks, so this is a failure-p
 ## Confirmed aligned or intentionally deferred
 
 - START's 49 `load_sound` entries match `k_start`; the duplicate `CAVEENT.WAV` slots 25/32 share one loaded handle.
-- `playsound` uses the supplied base frequency and returns a nonzero KOS channel bank. Voice count 16 and oldest-voice stealing follow plan §12.3; FreeDink instead has 20 SDL channels. Random `plus` pitch and `sound3d` pan/attenuation are not implemented (`src/audio.c:618-655`), but plan §12.3 explicitly allows those to wait. Owner metadata is still needed for loop lifetime.
+- `playsound` uses the supplied base frequency and returns a nonzero KOS channel bank. The 16 playback-record limit and oldest-record stealing follow plan §12.3 at the engine bookkeeping level, but stereo hardware-channel ownership and stopping are incomplete (finding 5); FreeDink has 20 SDL channels. Random `plus` pitch and `sound3d` pan/attenuation are not implemented (`src/audio.c:618-655`), but plan §12.3 explicitly allows those to wait. Owner metadata is still needed for loop lifetime.
 - Melee/missile impact sounds, default/custom `attack_hit_sound`, player grunts, duck/pig vocals, warp OPEN/default editor sound, status ticks, and in-play choice sounds have real call sites.
 - Map music 0 and -1 preserve the current track, matching `check_midi`. Same-name playing tracks skip reopen. `load_game` stops current and pending music before applying the slot. These are covered by host tests.
 - `stopcd` stopping the stream is an intentional documented divergence; FreeDink's `dc_stopcd` is a no-op (`dinkc_bindings.cpp:1061-1064`, `docs/GOTCHAS.md`).
@@ -104,8 +117,8 @@ The current build directory contains 33 converted tracks, so this is a failure-p
 1. Preserve current music on a missing new file and lock numeric CD fallback behavior.
 2. Apply one ownership/survive policy to unowned and owned loops across draw, load, restart, and `kill_all_sounds`.
 3. Implement `loopmidi` default-off semantics and explicit end-of-track state.
-4. Correct stereo sample/byte math, then decide and enforce an AICA budget policy without arbitrary slot victims.
+4. Correct stereo sample/byte math and stop both hardware channels, then decide and enforce AICA channel/byte budget policies without arbitrary slot victims.
 5. Restore START/Continue/inventory cues and the remaining DinkC command routing.
-6. Make conversion/staging fail closed; add DC-side tests for missing files, stereo truncation/accounting, loop lifetime, and reinit. Host stubs alone cannot validate these paths.
+6. Make conversion/staging fail closed; add DC-side tests for missing files, stereo truncation/accounting, stereo stop/steal, loop lifetime, and reinit. Host stubs alone cannot validate these paths.
 
 No runtime RAM, VRAM, AICA, or disc budgets change under this documentation-only PR.
