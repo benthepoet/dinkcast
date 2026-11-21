@@ -25,6 +25,8 @@ const char *save_get_info(void);
 void save_info_line(int slot, char *dst, size_t n);
 
 void save_set_dir(const char *dir);
+/* Called after each save open, read, and write (VMU or host file). */
+void save_set_pump(void (*fn)(void));
 const char *save_host_path(int slot, char *dst, size_t n);
 
 #endif

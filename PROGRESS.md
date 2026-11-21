@@ -263,6 +263,7 @@ Git tags (`vMAJOR.MINOR.PATCH`) are product versions. Bite **0.1** is the repo s
 | 2026-11-20 | START Continue slot choice calls `audio_music_poll` each frame so `1003.mid` does not loop the AICA 16 KiB slice | #165 |
 | 2026-11-20 | `load_game` stops the music stream before the slot is applied (FreeDink `StopMidi`). `music==0` no longer keeps START `1003.mid` across the loaded screen | #166 |
 | 2026-11-20 | Inventory open polls the music stream between seq 423 frame loads. Overlay uploads only pump the AICA from RAM | #167 |
+| 2026-11-20 | Save open/read/write pumps the music stream (Continue, `&savegameinfo`, save and load) | #170 |
 | 2026-11-20 | Fast texture upload: `twiddle.c` (table + shifts, bit-for-bit KOS `pvr_txr_load_ex`, host-tested on 16 sizes) twiddles sprite frames ≤ 64 KB in a RAM scratch and copies with one store-queue `pvr_txr_load`; bigger textures (atlas, inventory background) twiddle straight into VRAM without per-pixel divides | #163 |
 | 2026-11-20 | Diagnostic: play-path stdout batched (16 KB, full buffering while `dink_io_play`, line-buffered in menus/boot) and drained once per tick inside the timed `dink_io_flush`, so every gameplay printf is excluded from `ioplay ticks` like ioplay's own lines; fatal `hud()` flushes | #164 |
 | 2026-11-20 | `test_iolog`: start a tick before the tick-work block (it inherited the drain of the flushes since the last tick, the summary's and an empty one, 0–1 µs on host, and failed ~3 in 20 runs after #164; 0/500 now). Test only | #168 |

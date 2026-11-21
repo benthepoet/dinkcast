@@ -9,6 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 
+static int g_pumps;
+
+static void count_pump(void)
+{
+    g_pumps++;
+}
+
 static void expect(int cond, const char *msg)
 {
     if (!cond) {
@@ -70,6 +77,8 @@ int main(void)
 
     (void)system("mkdir -p build/savetest");
     save_set_dir(dir);
+    save_set_pump(count_pump);
+    g_pumps = 0;
     expect(save_game_exist(1) == 0, "empty exist");
     expect(save_game_slot(1, &b) == 0, "host write");
     expect(save_game_exist(1) == 1, "exist");
@@ -84,6 +93,10 @@ int main(void)
     save_info_line(2, line, sizeof(line));
     expect(strstr(line, "Empty") != NULL || strstr(line, "empty") != NULL,
            "empty line");
+    /* exist miss, write open+write, exist hit, load open+read,
+     * info hit open+read, info miss. */
+    expect(g_pumps == 1 + 2 + 1 + 2 + 2 + 1, "pump per save io");
+    save_set_pump(NULL);
 
     {
         int ret = 0;

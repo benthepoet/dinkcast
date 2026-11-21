@@ -20,6 +20,29 @@
 
 static char g_info[80] = "Level &level";
 static char g_dir[256] = "build";
+static void (*g_pump)(void);
+
+void save_set_pump(void (*fn)(void))
+{
+    g_pump = fn;
+}
+
+static void save_pump(void)
+{
+    if (g_pump != NULL) {
+        g_pump();
+    }
+}
+
+#ifdef _arch_dreamcast
+static void vmu_log(int slot, const char *op, uint64_t t0_ms, size_t bytes)
+{
+    uint64_t ms = timer_ms_gettime64() - t0_ms;
+
+    printf("vmu slot %d op=%s ms=%llu bytes=%zu\n", slot, op,
+           (unsigned long long)ms, bytes);
+}
+#endif
 
 static int put_u8(uint8_t *d, size_t cap, size_t *o, unsigned v)
 {
@@ -412,10 +435,12 @@ static int save_read_blob(int slot, uint8_t *dst, size_t cap, size_t *outn)
         return -1;
     }
     fp = fopen(path, "rb");
+    save_pump();
     if (fp == NULL) {
         return -1;
     }
     n = fread(dst, 1, cap, fp);
+    save_pump();
     fclose(fp);
     *outn = n;
     return 0;
@@ -438,14 +463,17 @@ int save_game_slot(int slot, const struct Player *pl)
         return -1;
     }
     fp = fopen(path, "wb");
+    save_pump();
     if (fp == NULL) {
         printf("save_game no file %s\n", path);
         return -1;
     }
     if (fwrite(buf, 1, n, fp) != n) {
+        save_pump();
         fclose(fp);
         return -1;
     }
+    save_pump();
     fclose(fp);
     return 0;
 }
@@ -462,6 +490,7 @@ int save_game_exist(int slot)
         return 0;
     }
     fp = fopen(path, "rb");
+    save_pump();
     if (fp == NULL) {
         return 0;
     }
@@ -535,26 +564,41 @@ static int save_read_blob(int slot, uint8_t *dst, size_t cap, size_t *outn)
     }
     snprintf(path, sizeof(path), "/vmu/%c%d/DINK%02d", (char)('a' + dev->port),
              (int)dev->unit, slot);
-    fd = fs_open(path, O_RDONLY);
-    if (fd < 0) {
-        return -1;
-    }
-    n = fs_total(fd);
-    if (n < 1 || n > 128 * 1024) {
+    {
+        uint64_t t0 = timer_ms_gettime64();
+
+        fd = fs_open(path, O_RDONLY);
+        save_pump();
+        if (fd < 0) {
+            vmu_log(slot, "open-miss", t0, 0);
+            return -1;
+        }
+        n = fs_total(fd);
+        if (n < 1 || n > 128 * 1024) {
+            fs_close(fd);
+            save_pump();
+            vmu_log(slot, "read-bad", t0, 0);
+            return -1;
+        }
+        pkgbuf = (uint8_t *)malloc((size_t)n);
+        if (pkgbuf == NULL) {
+            fs_close(fd);
+            save_pump();
+            vmu_log(slot, "read-nomem", t0, 0);
+            return -1;
+        }
+        if (fs_read(fd, pkgbuf, (size_t)n) != n) {
+            free(pkgbuf);
+            fs_close(fd);
+            save_pump();
+            vmu_log(slot, "read-short", t0, 0);
+            return -1;
+        }
+        save_pump();
         fs_close(fd);
-        return -1;
+        save_pump();
+        vmu_log(slot, "read", t0, (size_t)n);
     }
-    pkgbuf = (uint8_t *)malloc((size_t)n);
-    if (pkgbuf == NULL) {
-        fs_close(fd);
-        return -1;
-    }
-    if (fs_read(fd, pkgbuf, (size_t)n) != n) {
-        free(pkgbuf);
-        fs_close(fd);
-        return -1;
-    }
-    fs_close(fd);
     /* This KOS hides the VMS header: fs_read is the payload. */
     if (blob_looks_ours(pkgbuf, (size_t)n) &&
         save_take_bytes(pkgbuf, (size_t)n, dst, cap, outn) == 0) {
@@ -603,21 +647,35 @@ int save_game_slot(int slot, const struct Player *pl)
     pkg.data = blob;
     snprintf(path, sizeof(path), "/vmu/%c%d/DINK%02d", (char)('a' + dev->port),
              (int)dev->unit, slot);
-    fd = fs_open(path, O_WRONLY | O_CREAT | O_TRUNC);
-    if (fd < 0) {
-        printf("save_game vmu open fail %s\n", path);
-        return -1;
-    }
-    if (fs_vmu_set_header(fd, &pkg) < 0) {
-        printf("save_game vmu header fail %s\n", path);
+    {
+        uint64_t t0 = timer_ms_gettime64();
+
+        fd = fs_open(path, O_WRONLY | O_CREAT | O_TRUNC);
+        save_pump();
+        if (fd < 0) {
+            printf("save_game vmu open fail %s\n", path);
+            vmu_log(slot, "write-open-miss", t0, 0);
+            return -1;
+        }
+        if (fs_vmu_set_header(fd, &pkg) < 0) {
+            printf("save_game vmu header fail %s\n", path);
+            fs_close(fd);
+            save_pump();
+            vmu_log(slot, "write-header", t0, 0);
+            return -1;
+        }
+        if (fs_write(fd, blob, n) != (ssize_t)n) {
+            save_pump();
+            fs_close(fd);
+            save_pump();
+            vmu_log(slot, "write-short", t0, 0);
+            return -1;
+        }
+        save_pump();
         fs_close(fd);
-        return -1;
+        save_pump();
+        vmu_log(slot, "write", t0, n);
     }
-    if (fs_write(fd, blob, n) != (ssize_t)n) {
-        fs_close(fd);
-        return -1;
-    }
-    fs_close(fd);
     return 0;
 }
 
@@ -636,11 +694,19 @@ int save_game_exist(int slot)
     }
     snprintf(path, sizeof(path), "/vmu/%c%d/DINK%02d", (char)('a' + dev->port),
              (int)dev->unit, slot);
-    fd = fs_open(path, O_RDONLY);
-    if (fd < 0) {
-        return 0;
+    {
+        uint64_t t0 = timer_ms_gettime64();
+
+        fd = fs_open(path, O_RDONLY);
+        save_pump();
+        if (fd < 0) {
+            vmu_log(slot, "exist-miss", t0, 0);
+            return 0;
+        }
+        fs_close(fd);
+        save_pump();
+        vmu_log(slot, "exist", t0, 0);
     }
-    fs_close(fd);
     return 1;
 }
 #endif

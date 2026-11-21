@@ -476,8 +476,11 @@ int startmenu_present_slots_pvr(struct SeqInfo *seqs)
     memset(&start, 0, sizeof(start));
     memset(cont, 0, sizeof(cont));
     (void)load_seq_fr(seqs, STARTMENU_SEQ_LOGO, 1, &logo);
+    audio_music_poll();
     (void)load_seq_fr(seqs, STARTMENU_SEQ_NEW, 1, &start);
+    audio_music_poll();
     (void)load_seq_fr(seqs, STARTMENU_SEQ_LOAD, 1, &cont[0]);
+    audio_music_poll();
     if (load_seq_fr(seqs, STARTMENU_SEQ_LOAD, 2, &cont[1]) == 0) {
         startmenu_highlight_center(cont[0].w, cont[0].h, cont[0].cx, cont[0].cy,
                                    cont[1].w, cont[1].h, &cont[1].cx,
@@ -486,9 +489,12 @@ int startmenu_present_slots_pvr(struct SeqInfo *seqs)
     } else {
         cont_fr = &cont[0];
     }
+    audio_music_poll();
     if (choice_frame(DINK_CHOICE_SEQ, 2) == NULL) {
         (void)choice_load(seqs);
+        audio_music_poll();
         (void)choice_upload_pvr();
+        audio_music_poll();
     }
     dinkc_vm_choice_open_saves();
     /* start-2 load() is a choice. Continue A is still down. */

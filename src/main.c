@@ -888,6 +888,7 @@ int main(int argc, char **argv)
     snprintf(msg, sizeof(msg), "root %s", dink_fs_root());
     printf("dink_fs_root %s\n", dink_fs_root());
     (void)audio_init();
+    save_set_pump(audio_music_poll);
 
     if (dink_dat_size(&dat_sz) != 0) {
         vid_clear(0xC0, 0x00, 0x80);
