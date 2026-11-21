@@ -182,9 +182,57 @@ static void change_dir_to_diag(int *dir)
     }
 }
 
+static void spawn_exp_at(int x, int y, int w, int h, int cx, int cy, int num)
+{
+    int slot;
+
+    if (num <= 0) {
+        return;
+    }
+    if (w > 0 && h > 0) {
+        x -= cx;
+        y -= cy;
+        x += w / 5;
+        y -= h / 3;
+    } else {
+        y -= 40;
+    }
+    /* add_exp_force: another 30 px above the damage anchor. */
+    y -= 30;
+    if (y < 0) {
+        y = 0;
+    }
+    slot = brains_create(x, y, DINK_BRAIN_TEXT, 0, 0);
+    if (slot < 1) {
+        return;
+    }
+    g_b[slot].speed = 1;
+    g_b[slot].hard = 1;
+    g_b[slot].brain_parm = 5000;
+    g_b[slot].my = -1;
+    g_b[slot].mx = 0;
+    g_b[slot].kill_ttl = 1000;
+    g_b[slot].dir = 8;
+    g_b[slot].damage = num;
+    g_b[slot].seq = 0;
+    g_b[slot].pseq = 0;
+}
+
 static void add_exp_if_player(struct BrainSpr *s)
 {
-    if (s->last_hit == 1 && g_on_exp != NULL && s->exp > 0) {
+    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+
+    if (s->last_hit != 1 || s->exp <= 0) {
+        return;
+    }
+    seq = s->pseq > 0 ? s->pseq : s->seq;
+    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
+    if (!(seq > 0 && g_frame_box != NULL &&
+          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
+        bw = 0;
+    }
+    spawn_exp_at(s->x, s->y, bw, bh, cx, cy, s->exp);
+    if (g_on_exp != NULL) {
         g_on_exp(s->exp);
     }
 }
@@ -2365,6 +2413,32 @@ int brains_slot_nodraw(int slot)
         return 0;
     }
     return g_b[slot].nodraw != 0;
+}
+
+void brains_spawn_exp(int slot, int num)
+{
+    struct BrainSpr *s;
+    int seq, fr, cx = 0, cy = 0, bw = 0, bh = 0;
+
+    if (slot < 1 || slot > 100 || !g_b[slot].live || num <= 0) {
+        return;
+    }
+    s = &g_b[slot];
+    seq = s->pseq > 0 ? s->pseq : s->seq;
+    fr = s->pframe > 0 ? s->pframe : (s->frame > 0 ? s->frame : 1);
+    if (!(seq > 0 && g_frame_box != NULL &&
+          g_frame_box(seq, fr, &bw, &bh, &cx, &cy))) {
+        bw = 0;
+    }
+    spawn_exp_at(s->x, s->y, bw, bh, cx, cy, num);
+}
+
+int brains_floater_exp(int slot)
+{
+    if (!brains_floater_num(slot, NULL, NULL, NULL)) {
+        return 0;
+    }
+    return g_b[slot].brain_parm == 5000;
 }
 
 int brains_floater_num(int slot, int *x, int *y, int *num)

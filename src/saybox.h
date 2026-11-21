@@ -38,14 +38,18 @@ int saybox_color(void);
 uint32_t saybox_argb(int color);
 /* First glyph x: centered in the 50 px box, then 1 px left. */
 int saybox_num_x(int x, int num);
+/* FreeDink text_draw: damage is white, experience (brain_parm 5000) is
+ * color 14. brightness < 256 forces color 15. */
+uint32_t saybox_num_argb(int exp, int bright);
+/* Dialogue fg. brightness < 256 forces color 15 (text_draw). */
+uint32_t saybox_text_argb(int color, int bright);
 
 #ifdef _arch_dreamcast
 int saybox_upload(void);
 void saybox_evict(void);
 void saybox_draw_pvr(float z);
 void saybox_draw_choices_pvr(float z);
-/* FreeDink text_draw damage/exp number (brain 8, damage != -1). */
-void saybox_draw_num_pvr(int x, int y, int num, float z);
+void saybox_draw_num_pvr(int x, int y, int num, float z, int exp);
 #endif
 
 #endif

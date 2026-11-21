@@ -3,6 +3,7 @@
 
 #include "choice.h"
 #include "dinkc_vm.h"
+#include "fade.h"
 #include "font.h"
 #include "sprite.h"
 
@@ -49,6 +50,24 @@ uint32_t saybox_argb(int color)
         color = 14;
     }
     return g_font_argb[color];
+}
+
+uint32_t saybox_num_argb(int exp, int bright)
+{
+    /* text_draw: color 0 is not a palette index; it becomes white.
+     * brain_parm 5000 sets color 14. brightness < 256 forces 15. */
+    if (bright < 256 || !exp) {
+        return 0xFFFFFFFFu;
+    }
+    return saybox_argb(14);
+}
+
+uint32_t saybox_text_argb(int color, int bright)
+{
+    if (bright < 256) {
+        return saybox_argb(15);
+    }
+    return saybox_argb(color);
 }
 
 #ifdef _arch_dreamcast
@@ -408,7 +427,7 @@ void saybox_draw_pvr(float z)
     saybox_place();
     p = g_text;
     y = (float)g_y;
-    fg = saybox_argb(g_color);
+    fg = saybox_text_argb(g_color, fade_brightness());
     bg = 0xFF080E15u;
     while (*p != '\0') {
         x = (float)saybox_line_x(p);
@@ -428,7 +447,7 @@ void saybox_draw_pvr(float z)
     }
 }
 
-void saybox_draw_num_pvr(int x, int y, int num, float z)
+void saybox_draw_num_pvr(int x, int y, int num, float z, int exp)
 {
     char buf[16];
     const char *p;
@@ -443,7 +462,7 @@ void saybox_draw_num_pvr(int x, int y, int num, float z)
         y = 0;
     }
     cx = (float)saybox_num_x(x, num);
-    fg = saybox_argb(14);
+    fg = saybox_num_argb(exp, fade_brightness());
     bg = 0xFF080E15u;
     for (p = buf; *p != '\0'; p++) {
         draw_ch(cx - 1.0f, (float)y, z, (unsigned char)*p, bg);

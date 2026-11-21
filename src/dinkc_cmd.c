@@ -54,6 +54,7 @@ static void (*g_fill_hard)(void);
 static int (*g_callback)(const char *proc, int base, int range, int fiber,
                          int sprite);
 static int (*g_hurt)(int slot, int damage);
+static void (*g_exp_floater)(int slot, int num);
 static void (*g_blood)(int slot);
 static void (*g_hard_redraw)(void);
 static int g_hard_redraw_pending;
@@ -789,6 +790,11 @@ void dinkc_cmd_bind_hurt(int (*fn)(int slot, int damage))
     g_hurt = fn;
 }
 
+void dinkc_cmd_bind_exp_floater(void (*fn)(int slot, int num))
+{
+    g_exp_floater = fn;
+}
+
 void dinkc_cmd_bind_blood(void (*fn)(int slot))
 {
     g_blood = fn;
@@ -1326,6 +1332,10 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
     if (is_cmd(name, "add_exp")) {
         int exp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
 
+        /* FreeDink 1.08 dc_add_exp: add_exp_force, any live sprite. */
+        if (a0 > 0 && g_exp_floater != NULL) {
+            g_exp_floater(a1, a0);
+        }
         exp += a0;
         if (exp > 99999) {
             exp = 99999;

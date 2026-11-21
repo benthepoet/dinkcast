@@ -1232,6 +1232,7 @@ int main(int argc, char **argv)
                 dinkc_vm_bind_sprite_alive(script_sprite_alive);
                 brains_bind_proc(script_try_proc);
                 brains_bind_exp(game_add_exp);
+                dinkc_cmd_bind_exp_floater(brains_spawn_exp);
                 brains_bind_player(&pl);
                 brains_bind_frame_box(play_frame_box);
                 player_bind_damage_draw(on_dink_damage);
@@ -1970,7 +1971,8 @@ int main(int argc, char **argv)
 
                             for (fi = 1; fi <= 99; fi++) {
                                 if (brains_floater_num(fi, &fx, &fy, &fnum)) {
-                                    saybox_draw_num_pvr(fx, fy, fnum, 3.6f);
+                                    saybox_draw_num_pvr(fx, fy, fnum, 3.6f,
+                                                        brains_floater_exp(fi));
                                 }
                             }
                         }

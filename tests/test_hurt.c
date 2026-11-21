@@ -152,11 +152,17 @@ int main(void)
     expect(!brains_slot_live(5), "npc gone");
     expect(g_exp_add == 7, "exp last_hit 1");
     {
-        int i, corpse = 0, fx, fy, fnum, dmg = 0;
+        int i, corpse = 0, fx, fy, fnum, dmg = 0, dmgy = 0, expn = 0, expy = 0;
 
         for (i = 2; i <= 99; i++) {
             if (brains_floater_num(i, &fx, &fy, &fnum)) {
-                dmg = fnum;
+                if (brains_floater_exp(i)) {
+                    expn = fnum;
+                    expy = fy;
+                } else {
+                    dmg = fnum;
+                    dmgy = fy;
+                }
             }
             if (brains_slot_created(i) && brains_slot_live(i) &&
                 brains_slot_brain(i) != 8) {
@@ -164,6 +170,8 @@ int main(void)
             }
         }
         expect(dmg == 5, "draw_damage number");
+        expect(expn == 7, "exp floater 7");
+        expect(expy == dmgy - 30, "exp 30 above damage");
         expect(corpse != 0, "corpse created");
     }
 
@@ -611,6 +619,11 @@ int main(void)
         /* text_draw: 50 px box, hcenter, glyph 1 px left. Cell is 8. */
         expect(saybox_num_x(fx, 5) == fx + 25 - 8 / 2 - 1, "one digit");
         expect(saybox_num_x(fx, 10) == fx + 25 - 16 / 2 - 1, "two digits");
+        expect(saybox_num_argb(0, 256) == 0xFFFFFFFFu, "damage white");
+        expect(saybox_num_argb(1, 256) == 0xFFFFFF02u, "exp yellow");
+        expect(saybox_num_argb(1, 255) == 0xFFFFFFFFu, "fade forces white");
+        expect(saybox_text_argb(14, 256) == 0xFFFFFF02u, "speech yellow");
+        expect(saybox_text_argb(3, 100) == 0xFFFFFFFFu, "speech fade white");
         brains_bind_frame_box(frame_box_tall);
         slot = brains_create(10, 10, 16, 41, 1);
         expect(brains_hurt(slot, 1) == 1, "clamp damage");
