@@ -1260,28 +1260,37 @@ int main(void)
         expect(dinkc_vm_state(a) == DINKC_WAIT_CHOICE, "A not resumed");
     }
 
-    /* Campaign bindings (review §4.1): DAM-FIRE is_script_attached +
-     * run_script_by_number "DIE"; S4-ROCK compare_sprite_script against
-     * the bomb's script name; S1-NTREE scripts_used; S6-VEND free_magic;
-     * S7-HELL get_burn. */
+    /* Campaign bindings (review §4.1), on the stock shapes:
+     * - DAM-BOMN has no main (only damage()); sp_script still attaches it,
+     *   so S4-ROCK's compare_sprite_script(&missle_source, "dam-bomn") sees it;
+     * - DAM-FIRE: is_script_attached(&tree) then run_script_by_number(&junk,
+     *   "DIE") on a tree whose main is waiting; DIE waits and uses
+     *   &current_sprite (S2-SEC1 shape);
+     * - S1-NTREE scripts_used, S6-VEND free_magic, S7-HELL get_burn. */
     {
         static const char bomb[] =
-            "void main(void)\n{\n  wait(100);\n}\n"
-            "void die(void)\n{\n  &gd = 5;\n}\n";
+            "//Bomb noise\n\nvoid damage ( void )\n{\n"
+            "playsound(6, 32050, 0,0,0);\n}\n";
+        static const char tree[] =
+            "void main(void)\n{\n  wait(5000);\n}\n"
+            "void die(void)\n{\n  &gd = &current_sprite;\n  wait(500);\n"
+            "  &ge = 6;\n}\n";
         static const char rock[] =
             "void main(void)\n{\n"
             "  &gr = compare_sprite_script(7, \"DAM-BOMN\");\n"
             "  &gn = compare_sprite_script(7, \"dam-bom\");\n"
-            "  &gs = is_script_attached(7);\n"
-            "  &gz = is_script_attached(9);\n"
+            "  &gs = is_script_attached(9);\n"
+            "  &gz = is_script_attached(11);\n"
             "  &gu = scripts_used();\n"
             "  &gb = get_burn();\n"
             "  &gm = free_magic();\n"
-            "  run_script_by_number(&gs, \"die\");\n"
+            "  run_script_by_number(&gs, \"DIE\");\n"
             "}\n";
-        int sb;
+        static const char hitf[] = "void hit(void)\n{\n  wait(100);\n}\n";
+        int sb, st, sh;
 
         dinkc_vm_reset();
+        dinkc_vm_tick(0); /* VM and command clocks at 0 */
         dinkc_var_make_global("&gr", -1);
         dinkc_var_make_global("&gn", -1);
         dinkc_var_make_global("&gs", -1);
@@ -1290,24 +1299,59 @@ int main(void)
         dinkc_var_make_global("&gb", -1);
         dinkc_var_make_global("&gm", -1);
         dinkc_var_make_global("&gd", 0);
+        dinkc_var_make_global("&ge", 0);
         dinkc_vm_name_next("dam-bomn");
-        sb = dinkc_vm_start_keep(bomb, strlen(bomb), 7, "main");
-        expect(sb > 0 && strcmp(dinkc_vm_name(sb), "dam-bomn") == 0,
-               "script keeps its file name");
+        sb = dinkc_vm_attach(bomb, strlen(bomb), 7);
+        expect(sb > 0 && dinkc_vm_state(sb) == DINKC_IDLE &&
+                   strcmp(dinkc_vm_name(sb), "dam-bomn") == 0,
+               "main-less script stays attached, named");
+        expect(dinkc_vm_sprite_keep(7) == sb, "bomb sprite has its script");
+        expect(dinkc_vm_locate(sb, "damage") == sb, "damage locates on it");
+        dinkc_vm_name_next("tree");
+        st = dinkc_vm_attach(tree, strlen(tree), 9);
+        expect(st > 0 && dinkc_vm_state(st) == DINKC_WAIT_MS,
+               "tree main waiting");
+        /* A transient hit fiber on sprite 11 is not "attached". */
+        sh = dinkc_vm_start_proc(hitf, strlen(hitf), 11, "hit");
+        expect(sh > 0, "transient hit fiber");
         dinkc_vm_name_next("s4-rock");
         expect(dinkc_vm_start_keep(rock, strlen(rock), 8, "main") > 0,
                "rock runs");
 #define G(n) dinkc_var_get(n, DINKC_GLOBAL_SCOPE, 1)
-        expect(G("&gr") == 1, "compare_sprite_script match (any case)");
+        expect(G("&gr") == 1, "compare_sprite_script: main-less bomb, any case");
         expect(G("&gn") == 0, "compare_sprite_script other name");
-        expect(G("&gs") == sb, "is_script_attached = script number");
-        expect(G("&gz") == 0, "is_script_attached none");
-        expect(G("&gu") == 2, "scripts_used");
+        expect(G("&gs") == st, "is_script_attached = tree's script");
+        expect(G("&gz") == 0, "transient fiber is not attached");
+        expect(G("&gu") == 4, "scripts_used");
         expect(G("&gb") == 1, "get_burn is 1");
         expect(G("&gm") == 8, "free_magic: 8 empty slots");
-        expect(G("&gd") == 5, "run_script_by_number ran die()");
+        expect(G("&gd") == 9, "\"DIE\" ran on the tree, &current_sprite 9");
+        expect(G("&ge") == 0 && dinkc_vm_state(st) == DINKC_WAIT_MS,
+               "DIE waits (replaced main's wait)");
+        dinkc_vm_tick(600);
+        expect(G("&ge") == 6, "DIE resumes after its wait");
 #undef G
         expect(dinkc_vm_name(999) == NULL, "dead slot has no name");
+    }
+
+    /* run_script_by_number must not rewind a fiber running up the stack:
+     * a parent waiting on its same-file child locates the parent. */
+    {
+        static const char par[] =
+            "void main(void)\n{\n  &gp = 1;\n  kid();\n  &gp = 2;\n}\n"
+            "void kid(void)\n{\n  run_script_by_number(&gself, \"other\");\n}\n"
+            "void other(void)\n{\n  &gp = 99;\n}\n";
+        int p;
+
+        dinkc_vm_reset();
+        dinkc_var_make_global("&gp", 0);
+        dinkc_var_make_global("&gself", 0);
+        /* Slot numbers are assigned in order after reset: parent is 1. */
+        dinkc_var_set("&gself", 1, DINKC_GLOBAL_SCOPE, 1);
+        p = dinkc_vm_start_keep(par, strlen(par), 5, "main");
+        expect(p == 1, "parent is slot 1");
+        expect(dinkc_var_get("&gp", DINKC_GLOBAL_SCOPE, 1) == 2,
+               "running parent not rewound by its child");
     }
 
     printf("OK test_dinkc_vm\n");

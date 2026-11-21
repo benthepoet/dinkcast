@@ -721,7 +721,39 @@ static void fiber_kill(struct Fiber *f)
     memset(f, 0, sizeof(*f));
 }
 
+static void run_fiber_body(struct Fiber *f, int now_ms);
+
+/* Slots of fibers currently executing on the C stack (nested runs:
+ * same-file child, run_script_by_number, callbacks from a command). A
+ * fiber in here must not be re-located: its caller frame would resume
+ * over the new ip. */
+#define RUN_STACK 32
+static int g_run_stack[RUN_STACK];
+static int g_run_depth;
+
+static int fiber_on_stack(int slot)
+{
+    int i;
+
+    for (i = 0; i < g_run_depth && i < RUN_STACK; i++) {
+        if (g_run_stack[i] == slot) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void run_fiber(struct Fiber *f, int now_ms)
+{
+    if (g_run_depth < RUN_STACK) {
+        g_run_stack[g_run_depth] = fiber_slot(f);
+    }
+    g_run_depth++;
+    run_fiber_body(f, now_ms);
+    g_run_depth--;
+}
+
+static void run_fiber_body(struct Fiber *f, int now_ms)
 {
     int ops = 0;
 
@@ -1258,12 +1290,12 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
                             int nargs)
 {
     char fname[32];
+    int s, ip;
+    struct Fiber *f;
 
     /* Take the pending name now so a failed start cannot leak it. */
     snprintf(fname, sizeof(fname), "%s", g_name_next);
     g_name_next[0] = '\0';
-    int s, ip;
-    struct Fiber *f;
 
     if (src == NULL || n == 0) {
         return -1;
@@ -1295,6 +1327,15 @@ static int start_fiber_args(const char *src, size_t n, int sprite,
     f->keep = keep ? 1 : 0;
     f->depth = 1;
     ip = find_proc(f, proc);
+    if (ip < 0 && keep == 2) {
+        /* FreeDink load_script keeps a script with no MAIN loaded and
+         * attached (DAM-BOMN has only damage()); procs locate on it. */
+        snprintf(f->name, sizeof(f->name), "%s",
+                 fname[0] != '\0' ? fname : "resident");
+        f->keep = 1;
+        f->state = DINKC_IDLE;
+        return s;
+    }
     if (ip < 0) {
         printf("dinkc vm no %s\n", proc != NULL ? proc : "main");
         fiber_kill(f);
@@ -1332,6 +1373,28 @@ int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
 int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc)
 {
     return start_fiber(src, n, sprite, proc, 1);
+}
+
+int dinkc_vm_attach(const char *src, size_t n, int sprite)
+{
+    return start_fiber(src, n, sprite, "main", 2);
+}
+
+int dinkc_vm_sprite_keep(int sprite)
+{
+    int i;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        if (g_f[i].used && g_f[i].keep && g_f[i].sprite == sprite) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+int dinkc_vm_running(int slot)
+{
+    return fiber_on_stack(slot);
 }
 
 int dinkc_vm_locate(int slot, const char *proc)

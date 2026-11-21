@@ -140,8 +140,8 @@ static int start_main(const char *name, int sprite)
         return -1;
     }
     dinkc_vm_name_next(name);
-    if (dinkc_vm_start_keep(buf, n, sprite, "main") < 0) {
-        printf("dinkc attach no main %s spr=%d\n", name, sprite);
+    if (dinkc_vm_attach(buf, n, sprite) < 0) {
+        printf("dinkc attach fail %s spr=%d\n", name, sprite);
         dinkc_free(buf);
         return -1;
     }

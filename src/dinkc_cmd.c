@@ -1393,7 +1393,7 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("dinkc compare_sprite_script: invalid sprite %d\n", a0);
             return 1;
         }
-        slot = dinkc_vm_sprite_fiber(a0);
+        slot = dinkc_vm_sprite_keep(a0);
         if (slot == 0) {
             printf("dinkc compare_sprite_script: sprite %d has no script\n",
                    a0);
@@ -1412,18 +1412,20 @@ int dinkc_cmd(const char *name, int *args, int nargs, const char *str,
             printf("dinkc is_script_attached: invalid sprite %d\n", a0);
             return 1;
         }
-        /* FreeDink: spr[sprite].script (0 = none). */
+        /* FreeDink: spr[sprite].script (0 = none): the attached script
+         * only, never a transient hit/talk/external fiber. */
         if (ret != NULL) {
-            *ret = dinkc_vm_sprite_fiber(a0);
+            *ret = dinkc_vm_sprite_keep(a0);
         }
         return 1;
     }
     if (is_cmd(name, "run_script_by_number")) {
-        /* FreeDink: if (locate(n, proc)) run_script(n). Locating the
-         * caller itself would rewind the running fiber under us. */
-        if (a0 == g_fiber) {
-            printf("dinkc run_script_by_number: self %d %s skipped\n", a0,
-                   str != NULL ? str : "");
+        /* FreeDink: if (locate(n, proc)) run_script(n). Locating a fiber
+         * that is executing up the C stack (the caller, or a parent
+         * waiting on it) would rewind it under its own frame. */
+        if (a0 == g_fiber || dinkc_vm_running(a0)) {
+            printf("dinkc run_script_by_number: %d %s is running, skipped\n",
+                   a0, str != NULL ? str : "");
         } else if (str != NULL && dinkc_vm_used(a0)) {
             (void)dinkc_vm_locate(a0, str);
         }

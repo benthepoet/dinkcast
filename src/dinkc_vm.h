@@ -31,6 +31,14 @@ int dinkc_vm_start_proc(const char *src, size_t n, int sprite, const char *proc)
 int dinkc_vm_start_keep(const char *src, size_t n, int sprite, const char *proc);
 /* Run proc on a keep fiber (FreeDink locate). */
 int dinkc_vm_locate(int slot, const char *proc);
+/* FreeDink load_script + spr.script: the sprite's resident script. Runs
+ * MAIN if present; with no MAIN it stays attached IDLE so procs locate on
+ * it and compare_sprite_script sees it. */
+int dinkc_vm_attach(const char *src, size_t n, int sprite);
+/* FreeDink spr[sprite].script: the attached (keep) script only, 0 if none. */
+int dinkc_vm_sprite_keep(int sprite);
+/* 1 while the slot's fiber is executing somewhere up the C stack. */
+int dinkc_vm_running(int slot);
 void dinkc_vm_set_args(int slot, const int *args, int n);
 int dinkc_vm_arg(int slot, int n1);
 int dinkc_vm_used(int slot);
