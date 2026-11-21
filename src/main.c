@@ -859,8 +859,9 @@ static void game_add_exp(int num)
 }
 
 /* FreeDink spr[].active for kill_scripts_with_inactive_sprites: Dink (1)
- * is always active; brain slots 2..100 are live or not; other ids (item
- * 1000 is exempt in the VM) are not ours to judge. */
+ * is always active; brain slots 2..100 are live or not. Ids 101..999 are
+ * treated as alive (FreeDink would sweep them; Dinkcast has no sprites
+ * there, so only a script on a bogus id is spared). 1000 is exempt. */
 static int script_sprite_alive(int sprite)
 {
     if (sprite == 1 || sprite > 100) {
