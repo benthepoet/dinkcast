@@ -126,16 +126,27 @@ int main(void)
     dinkc_var_set("&exp", 60, DINKC_GLOBAL_SCOPE, 1);
     status_update(2600, 1);
     expect(status_fexp() == 30, "held exp still climbs far below raise");
+    /* Boundary: fexp + 10 < fraise is strict (raise 100). */
+    dinkc_var_set("&exp", 90, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 99, DINKC_GLOBAL_SCOPE, 1);
+    status_update(2700, 1);
+    expect(status_fexp() == 90, "held at fexp + 10 == fraise");
+    dinkc_var_set("&exp", 89, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 99, DINKC_GLOBAL_SCOPE, 1);
+    status_update(2800, 1);
+    expect(status_fexp() == 99, "climbs at fexp + 10 < fraise");
     dinkc_var_set("&exp", 95, DINKC_GLOBAL_SCOPE, 1);
     status_draw_all();
     dinkc_var_set("&exp", 150, DINKC_GLOBAL_SCOPE, 1);
     for (i = 0; i < 5; i++) {
-        status_update(2700 + i * 100, 1);
+        status_update(2900 + i * 100, 1);
     }
     expect(status_fexp() == 95 &&
                dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 150,
            "no level-up while held");
-    status_update(3200, 0);
+    status_update(3400, 0);
     expect(status_fexp() == 0 &&
                dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 50,
            "level-up once released");
