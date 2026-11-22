@@ -382,11 +382,13 @@ int script_attach_live(void)
         if (dinkc_vm_sprite_fiber(i) != 0) {
             continue;
         }
-        /* FreeDink draw_screen_game: lsm_kill_all_nonlive_sprites, then
-         * game_place_sprites starts scripts for editor rows only. A
-         * created sprite got its script from sp_script; if that script
-         * moved itself to 1000 (S1-LTR script_attach(1000)), the row has
-         * no fiber and must not start a second copy (issue #183). */
+        /* FreeDink: game_place_sprites loads scripts for editor rows only;
+         * a created sprite's one script comes from dc_sp_script (its MAIN
+         * deferred to game_screen_init_scripts, once per script). Here a
+         * sprite created by screen MAIN (S1-H1-S's letter) is mirrored as
+         * a type-1 row with that script; if the script moved away
+         * (S1-LTR script_attach(1000)) or finished, the slot has no fiber
+         * and must not get a second copy in the same draw_screen (#183). */
         if (g_slot_created != NULL && g_slot_created(i)) {
             continue;
         }

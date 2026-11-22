@@ -10,6 +10,7 @@
 #include "player.h"
 #include "script.h"
 #include "start_map.h"
+#include "world.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +45,20 @@ static int has_item(const char *name)
         }
     }
     return 0;
+}
+
+static int count_ltr(void)
+{
+    int i, n = 0;
+
+    for (i = 1; i <= DINKC_MAX_LIVE; i++) {
+        const char *nm = dinkc_vm_name(i);
+
+        if (nm != NULL && strstr(nm, "s1-ltr") != NULL) {
+            n++;
+        }
+    }
+    return n;
 }
 
 int main(void)
@@ -162,6 +177,45 @@ int main(void)
         dinkc_cmd_apply_spmap(&barrel, DINK_START_PLAYER_MAP);
         expect(barrel.sprite[4].type == 0 && barrel.sprite[4].hard == 1,
                "type 3 is bg not hard");
+    }
+
+    /* #183, the real chain: in Dink's house with &story 4 / &letter 1,
+     * S1-H1-S (screen MAIN) creates the letter and sp_scripts s1-ltr,
+     * which script_attach(1000)s. In the same draw_screen, brains_apply
+     * mirrors the created sprite (type 1, script s1-ltr) and
+     * script_attach_live must not start a second copy. */
+    {
+        static struct MapScreen house;
+        struct World w;
+
+        if (dink_fs_init() == 0 && world_load(&w) == 0 &&
+            map_load_record((int)w.loc[DINK_START_PLAYER_MAP], &house) == 0) {
+            dinkc_vm_reset();
+            dinkc_cmd_bind_create(brains_create);
+            dinkc_cmd_bind_slot_created(brains_slot_created);
+            script_bind_screen(&house);
+            script_bind_note_script(brains_set_script);
+            script_bind_slot_created(brains_slot_created);
+            brains_bind_screen(&house);
+            dinkc_var_set("&story", 4, DINKC_GLOBAL_SCOPE, 1);
+            dinkc_var_set("&letter", 1, DINKC_GLOBAL_SCOPE, 1);
+            dinkc_vm_kill_all();
+            brains_reset();
+            script_enter_vision();
+            expect(count_ltr() == 1, "S1-H1-S starts one letter script");
+            brains_enter(&house, script_play_vision());
+            brains_apply(&house);
+            (void)script_attach_live();
+            expect(count_ltr() == 1,
+                   "draw_screen attach does not start a second s1-ltr");
+            script_bind_slot_created(NULL);
+            dinkc_cmd_bind_slot_created(NULL);
+            brains_reset();
+            brains_bind_screen(NULL);
+            dinkc_vm_reset();
+        } else {
+            printf("skip #183 house chain (no DINK_DATA)\n");
+        }
     }
 
     printf("OK test_touch\n");
