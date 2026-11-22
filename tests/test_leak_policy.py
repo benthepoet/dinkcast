@@ -29,6 +29,21 @@ def main() -> int:
         bad.append("restart does not reset swap_n")
     if "4096" not in mem_h:
         bad.append("mem.h missing 4 KB cap")
+    # Game clock (#191): one tick per frame right after pvr_wait_ready, and
+    # a resync in play_draw_screen before its sprites' scripts start.
+    tick = main_c.find("now_ms = gameclock_tick(&g_clk")
+    wait = main_c.rfind("pvr_wait_ready();", 0, tick if tick >= 0 else 0)
+    if tick < 0 or wait < 0 or tick - wait > 800:
+        bad.append("gameclock_tick not right after pvr_wait_ready")
+    if main_c.count("gameclock_tick(") != 1:
+        bad.append("gameclock_tick must run once per frame")
+    draw = main_c.find("static int play_draw_screen(")
+    end = main_c.find("\n}\n", draw)
+    body = main_c[draw:end] if draw >= 0 and end > draw else ""
+    rs = body.find("gameclock_resync(&g_clk")
+    at = body.find("script_attach_live();")
+    if rs < 0 or at < 0 or rs > at:
+        bad.append("play_draw_screen must resync before script_attach_live")
     if bad:
         print("FAIL 14.3 policy:", "; ".join(bad))
         return 1
