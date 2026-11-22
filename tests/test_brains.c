@@ -579,6 +579,36 @@ int main(void)
         }
     }
 
+    /* #182: a created sprite (damage/exp floater, brain 8, pseq 0) in a
+     * slot whose row still holds a dead sprite's or a baked background
+     * row's seq, alt clip and que must not inherit them. */
+    {
+        static struct MapScreen ms;
+        int sl;
+
+        memset(&ms, 0, sizeof(ms));
+        brains_bind_screen(&ms);
+        brains_reset();
+        sl = brains_create(100, 100, 8, 0, 0);
+        expect(sl > 1, "floater slot");
+        ms.sprite[sl].seq = 173;      /* stale: dead pillbug / house piece */
+        ms.sprite[sl].frame = 4;
+        ms.sprite[sl].alt_r = 40;
+        ms.sprite[sl].que = 9;
+        strcpy(ms.sprite[sl].script, "bgrow");
+        brains_apply(&ms);
+        expect(ms.sprite[sl].active && ms.sprite[sl].brain == 8,
+               "floater mirrored");
+        expect(ms.sprite[sl].seq == 0 && ms.sprite[sl].alt_r == 0 &&
+                   ms.sprite[sl].que == 0 && ms.sprite[sl].script[0] == '\0',
+               "floater row carries no stale seq, clip, que or script");
+        (void)brains_change_prop(sl, DINKC_SP_QUE, 55);
+        brains_apply(&ms);
+        expect(ms.sprite[sl].que == 55, "created sprite's own que mirrored");
+        brains_reset();
+        brains_bind_screen(NULL);
+    }
+
     printf("OK test_brains\n");
     return 0;
 }

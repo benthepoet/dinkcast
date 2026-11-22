@@ -1902,10 +1902,15 @@ int main(int argc, char **argv)
                             int seq, fr;
                             struct SpriteFrame *ef;
 
+                            /* FreeDink draw_sprite_game: brain 8 (text,
+                             * damage and exp numbers) is never drawn as a
+                             * sprite; text_draw paints it. */
                             if (!editor_sprite_draw(&g_scr.sprite[si],
                                                     script_play_vision()) ||
                                 brains_slot_disabled(si) ||
-                                brains_slot_nodraw(si)) {
+                                brains_slot_nodraw(si) ||
+                                (brains_slot_live(si) &&
+                                 brains_slot_brain(si) == 8)) {
                                 continue;
                             }
                             seq = (int)g_scr.sprite[si].seq;
