@@ -61,9 +61,10 @@ int player_walk_speed(void);
 #define DINK_FRAME_MS_MIN 12
 #define DINK_FRAME_MS_MAX 68
 struct GameClock {
-    unsigned last_real; /* real ms at the previous tick */
+    unsigned last_real; /* real ms at the previous tick or resync */
     int now;            /* game ms: what wait(), delays and timers see */
-    int frame_ms;       /* clamped fps_final of the last tick */
+    int frame_ms;       /* fps_final of the last tick (clamped 12..68) */
+    int added_ms;       /* game ms the last tick added (capped at 68) */
     int started;
 };
 /* One frame: advance the game clock by the real time since the last tick
@@ -72,6 +73,13 @@ struct GameClock {
  * frame does not expire waits and talk lines. Sets base_timing. Returns
  * the new game time. */
 int gameclock_tick(struct GameClock *c, unsigned real_ms);
+/* FreeDink draw_screen_game: thisTickCount = game_GetTicks() after the
+ * screen is built, so the load is not the next frame's fps_final. Adds no
+ * game time. */
+void gameclock_resync(struct GameClock *c, unsigned real_ms);
+/* Game ms the last tick added (16 before the first tick). Dink's frame
+ * delays advance by this, as live_sprite_animate compares to the clock. */
+int player_frame_game_ms(void);
 int player_base_timing(void);
 void player_set_base_timing(int base_timing);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */

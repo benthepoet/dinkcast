@@ -461,6 +461,38 @@ int main(void)
         brains_tick(&hit, seqs, &mask, 16, DINK_VISION_DEFAULT);
         expect(brains_change_prop(c, DINKC_SP_X, -1) == x1 + 4,
                "dc_sp_speed changedir mx");
+        /* FreeDink changedir: speed * (base_timing / 4); a 33 ms frame
+         * (base_timing 11) doubles the step. */
+        player_set_base_timing(11);
+        expect(brains_change_prop(c, DINKC_SP_SPEED, 4) == 4, "speed 4 @2x");
+        x1 = brains_change_prop(c, DINKC_SP_X, -1);
+        brains_tick(&hit, seqs, &mask, 49, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, DINKC_SP_X, -1) == x1 + 8,
+               "changedir mx scales by base_timing / 4");
+        player_set_base_timing(5);
+        brains_reset();
+    }
+    {
+        /* FreeDink scale_brain: num = 5 * (base_timing / 4). */
+        int c;
+        struct MapScreen sc;
+
+        memset(&sc, 0, sizeof(sc));
+        brains_bind_screen(&sc);
+        brains_reset();
+        c = brains_create(200, 200, 0, 20, 1);
+        expect(c >= 2, "scale sprite");
+        (void)brains_change_prop(c, DINKC_SP_SIZE, 100);
+        (void)brains_change_prop(c, DINKC_SP_BRAIN_PARM, 200);
+        (void)brains_change_prop(c, DINKC_SP_BRAIN, 12);
+        brains_tick(&sc, seqs, &mask, 0, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, DINKC_SP_SIZE, -1) == 105,
+               "scale_brain 5 per tick at 60 Hz");
+        player_set_base_timing(11);
+        brains_tick(&sc, seqs, &mask, 33, DINK_VISION_DEFAULT);
+        expect(brains_change_prop(c, DINKC_SP_SIZE, -1) == 115,
+               "scale_brain 10 per tick at base_timing 11");
+        player_set_base_timing(5);
         brains_reset();
     }
     /* FreeDink game_place_sprites removes type 0/2 rows after drawing and

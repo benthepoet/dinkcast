@@ -62,9 +62,21 @@ int main(void)
             fprintf(stderr, "FAIL clock load now=%d\n", c.now);
             return 1;
         }
+        /* FreeDink draw_screen_game resets thisTickCount: after a resync
+         * the load is not the next frame's fps_final (no 5x frame). */
+        real += 700;
+        gameclock_resync(&c, real);
+        real += 17;
+        if (gameclock_tick(&c, real) != 16 + 1001 + 33 + 68 + 17 ||
+            c.added_ms != 17 || player_base_timing() != 5 ||
+            player_walk_speed() != 3 || player_frame_game_ms() != 17) {
+            fprintf(stderr, "FAIL clock resync bt=%d add=%d\n",
+                    player_base_timing(), c.added_ms);
+            return 1;
+        }
         /* A short frame clamps to 12 for speed (base_timing floor 4). */
         real += 5;
-        if (gameclock_tick(&c, real) != 16 + 1001 + 33 + 68 + 5 ||
+        if (gameclock_tick(&c, real) != 16 + 1001 + 33 + 68 + 17 + 5 ||
             c.frame_ms != DINK_FRAME_MS_MIN || player_base_timing() != 4) {
             fprintf(stderr, "FAIL clock short bt=%d\n", player_base_timing());
             return 1;
@@ -76,7 +88,13 @@ int main(void)
             fprintf(stderr, "FAIL clock wrap now=%d\n", c.now);
             return 1;
         }
-        player_set_base_timing(5);
+        /* Back to a 16 ms frame for the fixed-step tests below. */
+        memset(&c, 0, sizeof(c));
+        (void)gameclock_tick(&c, 0);
+        if (player_frame_game_ms() != 16 || player_base_timing() != 5) {
+            fprintf(stderr, "FAIL clock reset\n");
+            return 1;
+        }
     }
     memset(&seqs, 0, sizeof(seqs));
     for (i = 1; i < DINK_MAX_SEQ; i++) {
@@ -202,6 +220,27 @@ int main(void)
             fprintf(stderr, "FAIL idle ping 6->1 got %d\n", p.frame);
             hard_mask_free(&mask);
             return 1;
+        }
+        {
+            /* FreeDink live_sprite_animate runs on the clock: a 33 ms
+             * frame advances Dink's delay by 33, not a fixed 16. */
+            struct GameClock c;
+
+            memset(&c, 0, sizeof(c));
+            (void)gameclock_tick(&c, 1000);
+            (void)gameclock_tick(&c, 1033);
+            p.frame = 4;
+            p.acc = 20;
+            player_step(&p, 0, &mask, seqs, 0, NULL);
+            memset(&c, 0, sizeof(c));
+            (void)gameclock_tick(&c, 0);
+            player_set_base_timing(5);
+            if (p.frame != 5) {
+                fprintf(stderr, "FAIL dink anim by game ms got %d\n",
+                        p.frame);
+                hard_mask_free(&mask);
+                return 1;
+            }
         }
     }
     {

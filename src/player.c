@@ -92,6 +92,12 @@ int player_dink_speed(void)
 }
 
 static int g_base_timing = 5; /* fps_final 16 / 3 at 60 Hz */
+static int g_frame_game_ms = 16;
+
+int player_frame_game_ms(void)
+{
+    return g_frame_game_ms;
+}
 
 int player_base_timing(void)
 {
@@ -121,12 +127,23 @@ int gameclock_tick(struct GameClock *c, unsigned real_ms)
     }
     frame = d > DINK_FRAME_MS_MAX ? DINK_FRAME_MS_MAX : (int)d;
     c->now += frame;
+    c->added_ms = frame;
+    g_frame_game_ms = frame;
     if (frame < DINK_FRAME_MS_MIN) {
         frame = DINK_FRAME_MS_MIN;
     }
     c->frame_ms = frame;
     player_set_base_timing(frame / 3);
     return c->now;
+}
+
+void gameclock_resync(struct GameClock *c, unsigned real_ms)
+{
+    if (c == NULL) {
+        return;
+    }
+    c->last_real = real_ms;
+    c->started = 1;
 }
 
 /* FreeDink game_compute_speed: dinkspeed -> spr[1].speed (pixels per
@@ -327,7 +344,7 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         if (nfr < 1) {
             nfr = 1;
         }
-        p->acc += 16;
+        p->acc += g_frame_game_ms;
         if (p->acc >= delay) {
             int dseq, dfr;
 
@@ -487,7 +504,7 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (nfr < 1) {
         nfr = 1;
     }
-    p->acc += 16;
+    p->acc += g_frame_game_ms;
     if (p->acc >= delay) {
         int dseq, dfr;
 
