@@ -660,6 +660,7 @@ static int play_load_screen(int map)
     /* Prev pack fclose (498) then SEEK_SET this FILE* wedged shop 35. */
     hard_fp_release();
     dink_cd_settle();
+    hard_cache_new_visit();
     printf("load_screen stamp map %d\n", map);
     if (g_play_mask != NULL &&
         hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {

@@ -38,8 +38,15 @@ size_t hard_cache_bytes(void);
 int hard_cache_recs(void);
 /* Record read failed and is not retried while its screen is current. */
 int hard_rec_failed(int hid);
+/* load_screen: a new visit retries records whose read failed before. */
+void hard_cache_new_visit(void);
+/* Records read from disc since boot (diagnostic and host tests). */
+int hard_cache_reads(void);
 /* Host test: treat hid as a failed read (as after dink_pread fails). */
 void hard_test_mark_failed(int hid);
+/* Host test: make hard.dat opens fail; count open attempts. */
+void hard_test_open_fail(int on);
+int hard_test_open_tries(void);
 /* Test/teardown: free every record and forget failures. */
 void hard_cache_drop_all(void);
 int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
