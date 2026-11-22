@@ -1621,9 +1621,16 @@ int main(int argc, char **argv)
                         }
                     }
                     prev_buttons = have ? buttons : 0;
-                    if (dinkc_var_get("&update_status", DINKC_GLOBAL_SCOPE, 1) ==
+                    /* FreeDink update_frame: show_bmp returns before the
+                     * 1/10 s status block. */
+                    if (!status_map_active() &&
+                        dinkc_var_get("&update_status", DINKC_GLOBAL_SCOPE, 1) ==
                         1) {
-                        status_update(now_ms);
+                        /* game_choice.active: a script choice or the
+                         * native pause (ESCAPE.c's choice in FreeDink). */
+                        status_update(now_ms,
+                                      dinkc_vm_choice_n() > 0 ||
+                                          inv_showing() || pl.freeze != 0);
                     }
                     /* FreeDink update_frame: while stop_entire_game is set
                      * and a choice is up, only the choice runs (no

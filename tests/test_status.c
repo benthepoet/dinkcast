@@ -99,14 +99,58 @@ int main(void)
     expect(status_fgold() == 80, "draw_all gold");
     dinkc_var_set("&gold", 0, DINKC_GLOBAL_SCOPE, 1);
     for (i = 0; i < 10; i++) {
-        status_update(i * 100);
+        status_update(i * 100, 0);
     }
     expect(status_fgold() == 0, "gold tick down");
     for (i = 0; i < 6; i++) {
-        status_update(1000 + i * 100);
+        status_update(1000 + i * 100, 0);
     }
     expect(dinkc_var_get("&magic_level", DINKC_GLOBAL_SCOPE, 1) == 100,
            "magic fill");
+
+    /* FreeDink update_status_all: exp holds while a choice, the
+     * inventory or Dink's freeze is up, unless fexp + 10 < fraise. */
+    dinkc_var_set("&level", 1, DINKC_GLOBAL_SCOPE, 1);
+    dinkc_var_set("&exp", 92, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    expect(status_fexp() == 92, "exp synced");
+    dinkc_var_set("&exp", 99, DINKC_GLOBAL_SCOPE, 1);
+    for (i = 0; i < 5; i++) {
+        status_update(2000 + i * 100, 1);
+    }
+    expect(status_fexp() == 92, "exp held near raise");
+    status_update(2500, 0);
+    expect(status_fexp() == 99, "exp climbs when released");
+    dinkc_var_set("&exp", 20, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 60, DINKC_GLOBAL_SCOPE, 1);
+    status_update(2600, 1);
+    expect(status_fexp() == 30, "held exp still climbs far below raise");
+    /* Boundary: fexp + 10 < fraise is strict (raise 100). */
+    dinkc_var_set("&exp", 90, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 99, DINKC_GLOBAL_SCOPE, 1);
+    status_update(2700, 1);
+    expect(status_fexp() == 90, "held at fexp + 10 == fraise");
+    dinkc_var_set("&exp", 89, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 99, DINKC_GLOBAL_SCOPE, 1);
+    status_update(2800, 1);
+    expect(status_fexp() == 99, "climbs at fexp + 10 < fraise");
+    dinkc_var_set("&exp", 95, DINKC_GLOBAL_SCOPE, 1);
+    status_draw_all();
+    dinkc_var_set("&exp", 150, DINKC_GLOBAL_SCOPE, 1);
+    for (i = 0; i < 5; i++) {
+        status_update(2900 + i * 100, 1);
+    }
+    expect(status_fexp() == 95 &&
+               dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 150,
+           "no level-up while held");
+    status_update(3400, 0);
+    expect(status_fexp() == 0 &&
+               dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) == 50,
+           "level-up once released");
+    dinkc_vm_reset();
 
     expect(dinkc_cmd("draw_status", NULL, 0, "", "", &yld, &rv) == 1, "draw known");
     memset(args, 0, sizeof(args));
