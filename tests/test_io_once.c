@@ -5,6 +5,7 @@
 #include "hard.h"
 #include "ini.h"
 #include "mapscr.h"
+#include "mem.h"
 #include "tiles.h"
 #include "world.h"
 
@@ -248,6 +249,80 @@ int main(void)
                 return 1;
             }
             printf("hard stamp disc_opens_hold %d\n", opens);
+            {
+                /* Screen class (plan §1.2 hard_cache): the cache holds
+                 * exactly this screen's distinct tile records. */
+                static uint8_t seen[DINK_HARD_TILES];
+                struct MapScreen two;
+                int t, want = 0, recs, solid = 1, lx, ly;
+
+                memset(seen, 0, sizeof(seen));
+                for (t = 0; t < DINK_SCREEN_TILES; t++) {
+                    int hid = hard_id_for_tile(&hm, scr.t[t].square_full_idx0,
+                                               scr.t[t].althard);
+
+                    if (hid >= 0 && hid < DINK_HARD_TILES && !seen[hid]) {
+                        seen[hid] = 1;
+                        want++;
+                    }
+                }
+                recs = hard_cache_recs();
+                if (recs != want ||
+                    hard_cache_bytes() != (size_t)want * DINK_HARD_REC ||
+                    hard_cache_bytes() > (size_t)DINK_MEM_HARD_CACHE) {
+                    fprintf(stderr, "FAIL hard cache recs=%d want=%d bytes=%u\n",
+                            recs, want, (unsigned)hard_cache_bytes());
+                    hard_mask_free(&mask);
+                    return 1;
+                }
+                /* A screen of one hardness tile drops the rest. */
+                memcpy(&two, &scr, sizeof(two));
+                for (t = 0; t < DINK_SCREEN_TILES; t++) {
+                    two.t[t].althard = 5;
+                }
+                if (hard_stamp_tiles(&hm, &two, &mask) != 0 ||
+                    hard_cache_recs() != 1 ||
+                    hard_cache_bytes() != (size_t)DINK_HARD_REC) {
+                    fprintf(stderr, "FAIL hard cache prune recs=%d\n",
+                            hard_cache_recs());
+                    hard_mask_free(&mask);
+                    return 1;
+                }
+                /* A failed record is stamped solid, never retried and not
+                 * held; it is forgotten once the screen stops using it. */
+                hard_test_mark_failed(7);
+                two.t[13].althard = 7;
+                if (hard_stamp_tiles(&hm, &two, &mask) != 0 ||
+                    hard_cache_recs() != 1 || !hard_rec_failed(7)) {
+                    fprintf(stderr, "FAIL hard fail stamp recs=%d\n",
+                            hard_cache_recs());
+                    hard_mask_free(&mask);
+                    return 1;
+                }
+                for (ly = 0; ly < DINK_TILE_PX; ly++) {
+                    for (lx = 0; lx < DINK_TILE_PX; lx++) {
+                        if (!hard_get(&mask, DINK_PLAY_LEFT + 50 + lx,
+                                      DINK_PLAY_TOP + 50 + ly)) {
+                            solid = 0;
+                        }
+                    }
+                }
+                if (!solid) {
+                    fprintf(stderr, "FAIL hard failed tile not solid\n");
+                    hard_mask_free(&mask);
+                    return 1;
+                }
+                two.t[13].althard = 5;
+                if (hard_stamp_tiles(&hm, &two, &mask) != 0 ||
+                    hard_rec_failed(7)) {
+                    fprintf(stderr, "FAIL hard fail not forgotten\n");
+                    hard_mask_free(&mask);
+                    return 1;
+                }
+                printf("hard cache screen recs=%d bytes=%u\n", want,
+                       (unsigned)((size_t)want * DINK_HARD_REC));
+                hard_cache_drop_all();
+            }
             hard_mask_free(&mask);
         }
         {

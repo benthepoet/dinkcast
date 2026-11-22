@@ -32,6 +32,16 @@ int hard_id_for_tile(const struct HardMap *h, int32_t square_full_idx0,
                      int32_t althard);
 int hard_sample(const struct HardMap *h, int hid, int lx, int ly);
 void hard_mask_free(struct HardMask *m);
+/* Tile records held (Screen class: only the last stamped screen's, at most
+ * 96 x DINK_HARD_REC). Counted in mem_log as hard_cache. */
+size_t hard_cache_bytes(void);
+int hard_cache_recs(void);
+/* Record read failed and is not retried while its screen is current. */
+int hard_rec_failed(int hid);
+/* Host test: treat hid as a failed read (as after dink_pread fails). */
+void hard_test_mark_failed(int hid);
+/* Test/teardown: free every record and forget failures. */
+void hard_cache_drop_all(void);
 int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
                      struct HardMask *out);
 /* FreeDink get_hard(x-playl, y). Sprite origin, not a box. */

@@ -45,10 +45,16 @@ void mem_swap_reset(void)
 }
 
 static size_t g_atlas_extra;
+static size_t g_hard_cache;
 
 void mem_set_atlas_extra(size_t n)
 {
     g_atlas_extra = n;
+}
+
+void mem_set_hard_cache(size_t n)
+{
+    g_hard_cache = n;
 }
 
 void mem_note_peak(size_t n)
@@ -94,7 +100,7 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
         nblob++;
     }
     mem_note_peak(blob + cpu_pixels + ts_rgb + (size_t)DINK_MEM_ATLAS_BSS +
-                  g_atlas_extra);
+                  g_atlas_extra + g_hard_cache);
     if (strcmp(where, "swap") == 0) {
         g_swap_n++;
         if (g_swap_n == DINK_MEM_LEAK_WARM) {
@@ -106,12 +112,13 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
     }
     printf("mem %s file_blob=%u n=%d cpu_pixels=%u frames=%d ts_rgb=%u "
            "sheets=%d atlas_bss=%u peak=%u always=%u screen=%u prev=%u "
-           "sticky_in_cpu=%u vram_free=%u swap_n=%d\n",
+           "sticky_in_cpu=%u vram_free=%u swap_n=%d hard_cache=%u\n",
            where, (unsigned)blob, nblob, (unsigned)cpu_pixels, frames,
            (unsigned)ts_rgb, sheets,
            (unsigned)(DINK_MEM_ATLAS_BSS + g_atlas_extra),
            (unsigned)g_peak, (unsigned)always, (unsigned)screen,
-           (unsigned)prev, (unsigned)cpu_pixels, (unsigned)vram, g_swap_n);
+           (unsigned)prev, (unsigned)cpu_pixels, (unsigned)vram, g_swap_n,
+           (unsigned)g_hard_cache);
     if (strcmp(where, "swap") == 0 && g_swap_n == DINK_MEM_LEAK_N) {
         long db = (long)blob - (long)g_warm_blob;
         long da = (long)always - (long)g_warm_always;
@@ -130,6 +137,10 @@ void mem_log(const char *tag, size_t cpu_pixels, int frames, size_t ts_rgb,
     if (cpu_pixels > (size_t)DINK_MEM_CPU_PIXELS) {
         printf("14.5: needed pool=cpu_pixels bytes=%u cap=%u\n",
                (unsigned)cpu_pixels, (unsigned)DINK_MEM_CPU_PIXELS);
+    }
+    if (g_hard_cache > (size_t)DINK_MEM_HARD_CACHE) {
+        printf("14.5: needed pool=hard_cache bytes=%u cap=%u\n",
+               (unsigned)g_hard_cache, (unsigned)DINK_MEM_HARD_CACHE);
     }
     if (ts_rgb > (size_t)DINK_MEM_TS_RGB) {
         printf("14.5: needed pool=ts_rgb bytes=%u cap=%u\n", (unsigned)ts_rgb,
