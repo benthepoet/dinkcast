@@ -1626,8 +1626,10 @@ int main(int argc, char **argv)
                     if (!status_map_active() &&
                         dinkc_var_get("&update_status", DINKC_GLOBAL_SCOPE, 1) ==
                         1) {
+                        /* game_choice.active: a script choice or the
+                         * native pause (ESCAPE.c's choice in FreeDink). */
                         status_update(now_ms,
-                                      dinkc_vm_waiting_choice() ||
+                                      dinkc_vm_choice_n() > 0 ||
                                           inv_showing() || pl.freeze != 0);
                     }
                     /* FreeDink update_frame: while stop_entire_game is set
