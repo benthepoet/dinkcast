@@ -1356,9 +1356,11 @@ int main(int argc, char **argv)
                     uint32_t prev_buttons = 0;
                     int have_scene = 0;
                     int now_ms = 0;
+                    struct GameClock clk;
                     int need_menu = 1;
 
                     g_play_have_scene = &have_scene;
+                    memset(&clk, 0, sizeof(clk));
                     startpause_reset();
                     for (;;) {
                         uint32_t buttons = 0;
@@ -1700,7 +1702,10 @@ int main(int argc, char **argv)
                             edraw_reap_unused(g_edg, &g_ned, seqs);
                         }
                     }
-                    now_ms += DINKC_TICK_MS;
+                    /* FreeDink game_compute_speed: real time, not a
+                     * fixed 16 ms (59.94 Hz NTSC ran ~4% slow and slow
+                     * frames dragged game time). */
+                    now_ms = gameclock_tick(&clk, mem_now_ms());
                     if (dinkc_vm_choice_n() > 0) {
                         choice_tick(now_ms);
                     }

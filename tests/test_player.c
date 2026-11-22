@@ -23,6 +23,61 @@ int main(void)
         fprintf(stderr, "FAIL pad dir\n");
         return 1;
     }
+    {
+        /* FreeDink game_compute_speed: game time is real time; the frame
+         * delta is clamped to 12..68 ms and base_timing = max(4, d / 3). */
+        struct GameClock c;
+        unsigned real = 1000000u;
+        int f;
+
+        memset(&c, 0, sizeof(c));
+        if (gameclock_tick(&c, real) != 16 || player_base_timing() != 5 ||
+            player_walk_speed() != 3) {
+            fprintf(stderr, "FAIL clock start\n");
+            return 1;
+        }
+        /* NTSC 59.94 Hz: 1 000 real ms is 1 000 game ms (was 960). */
+        for (f = 1; f <= 60; f++) {
+            (void)gameclock_tick(&c, real + (unsigned)(f * 1001 / 60));
+        }
+        if (c.now != 16 + 1001 || player_base_timing() / 4 != 1 ||
+            player_walk_speed() != 3) {
+            fprintf(stderr, "FAIL clock ntsc now=%d bt=%d\n", c.now,
+                    player_base_timing());
+            return 1;
+        }
+        real += 1001;
+        /* A 33 ms frame (30 FPS): Dink and changedir speeds double. */
+        real += 33;
+        if (gameclock_tick(&c, real) != 16 + 1001 + 33 ||
+            player_base_timing() != 11 || player_walk_speed() != 6) {
+            fprintf(stderr, "FAIL clock 30fps bt=%d sp=%d\n",
+                    player_base_timing(), player_walk_speed());
+            return 1;
+        }
+        /* A 900 ms load inside one frame adds only 68 ms of game time. */
+        real += 900;
+        if (gameclock_tick(&c, real) != 16 + 1001 + 33 + 68 ||
+            c.frame_ms != DINK_FRAME_MS_MAX || player_base_timing() != 22) {
+            fprintf(stderr, "FAIL clock load now=%d\n", c.now);
+            return 1;
+        }
+        /* A short frame clamps to 12 for speed (base_timing floor 4). */
+        real += 5;
+        if (gameclock_tick(&c, real) != 16 + 1001 + 33 + 68 + 5 ||
+            c.frame_ms != DINK_FRAME_MS_MIN || player_base_timing() != 4) {
+            fprintf(stderr, "FAIL clock short bt=%d\n", player_base_timing());
+            return 1;
+        }
+        /* The real ms counter wrapping does not jump game time. */
+        memset(&c, 0, sizeof(c));
+        (void)gameclock_tick(&c, 0xfffffff0u);
+        if (gameclock_tick(&c, 0x00000000u) != 16 + 16) {
+            fprintf(stderr, "FAIL clock wrap now=%d\n", c.now);
+            return 1;
+        }
+        player_set_base_timing(5);
+    }
     memset(&seqs, 0, sizeof(seqs));
     for (i = 1; i < DINK_MAX_SEQ; i++) {
         seqs[i].delay = 50;

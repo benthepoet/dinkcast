@@ -54,6 +54,26 @@ void player_set_dink_speed(int speed);
 void player_reset_dink_speed(void);
 int player_dink_speed(void);
 int player_walk_speed(void);
+
+/* FreeDink game_compute_speed: the frame delta fps_final is clamped to
+ * 12..68 ms and base_timing = max(4, fps_final / 3). Speeds scale by
+ * base_timing / 4 (1 at 60 Hz, 2 at 30 FPS). */
+#define DINK_FRAME_MS_MIN 12
+#define DINK_FRAME_MS_MAX 68
+struct GameClock {
+    unsigned last_real; /* real ms at the previous tick */
+    int now;            /* game ms: what wait(), delays and timers see */
+    int frame_ms;       /* clamped fps_final of the last tick */
+    int started;
+};
+/* One frame: advance the game clock by the real time since the last tick
+ * (thisTickCount = game_GetTicks()). Dreamcast exception: one frame adds at
+ * most DINK_FRAME_MS_MAX, so a GD-ROM load or a blocking menu inside a
+ * frame does not expire waits and talk lines. Sets base_timing. Returns
+ * the new game time. */
+int gameclock_tick(struct GameClock *c, unsigned real_ms);
+int player_base_timing(void);
+void player_set_base_timing(int base_timing);
 /* human_brain: *plife -= damage, clamp 0. Writes *life. Returns 1 if life < 1. */
 int player_apply_life(struct Player *p, int *life);
 /* FreeDink getpic(1): seq if >0 else pseq / pframe. */
