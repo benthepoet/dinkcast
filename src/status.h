@@ -21,7 +21,9 @@ int status_next_raise(int level);
 int status_load(struct SeqInfo *seqs);
 void status_free(void);
 void status_draw_all(void);
-void status_update(int now_ms);
+/* hold_exp: a choice, the inventory or Dink's freeze is up (FreeDink
+ * game_choice.active / show_inventory / spr[1].freeze). */
+void status_update(int now_ms, int hold_exp);
 int status_flife(void);
 int status_fgold(void);
 int status_fexp(void);

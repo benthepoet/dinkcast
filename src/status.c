@@ -528,7 +528,7 @@ void status_draw_all(void)
     g_inited = 1;
 }
 
-void status_update(int now_ms)
+void status_update(int now_ms, int hold_exp)
 {
     int next, drawexp = 0, cost, lv, mg;
     int life, lifemax;
@@ -549,7 +549,11 @@ void status_update(int now_ms)
         drawexp = 1;
         (void)audio_playsound(13, 15050, 0, 0, 0);
     }
-    if (dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) != g_fexp) {
+    /* FreeDink update_status_all: the shown exp only climbs (and lraise
+     * only runs) while no choice, inventory or Dink freeze is up, unless
+     * it is more than 10 below the next raise. */
+    if (dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1) != g_fexp &&
+        (!hold_exp || g_fexp + 10 < g_fraise)) {
         g_fexp += 10;
         if (g_fexp > dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1)) {
             g_fexp = dinkc_var_get("&exp", DINKC_GLOBAL_SCOPE, 1);
