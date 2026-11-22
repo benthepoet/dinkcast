@@ -705,6 +705,7 @@ static int play_draw_screen(int sprite)
     spr_unbake("draw_screen");
     script_bind_screen(&g_scr);
     script_bind_note_script(brains_set_script);
+    script_bind_slot_created(brains_slot_created);
     if (g_play_pl != NULL) {
         saybox_bind(&g_scr, g_play_pl);
     }
@@ -1241,6 +1242,7 @@ int main(int argc, char **argv)
                 saybox_bind_alive(script_sprite_alive);
                 script_bind_screen(&g_scr);
                 script_bind_note_script(brains_set_script);
+                script_bind_slot_created(brains_slot_created);
                 mem_vram_note("pre-font");
                 if (font_init() == 0) {
                     printf("font atlas %dx%d bytes=%d\n", font_atlas_w(),

@@ -19,6 +19,13 @@ static void expect(int cond, const char *msg)
     }
 }
 
+static int g_fake_created;
+
+static int fake_created(int slot)
+{
+    return slot == g_fake_created;
+}
+
 int main(void)
 {
     struct MapScreen scr;
@@ -127,6 +134,31 @@ int main(void)
                 expect(strcmp(duck.script, "findduck") == 0, "findduck script");
             }
         }
+    }
+
+    /* #183: a created sprite whose script moved to 1000 (S1-LTR
+     * script_attach(1000)) has no fiber on its slot; a later draw_screen
+     * must not start a second copy. Editor rows still get MAIN. */
+    {
+        static struct MapScreen m;
+
+        memset(&m, 0, sizeof(m));
+        m.sprite[4].active = 1;
+        m.sprite[4].type = 1;
+        strcpy(m.sprite[4].script, "s1-gg");
+        script_bind_screen(&m);
+        dinkc_vm_reset();
+        g_fake_created = 4;
+        script_bind_slot_created(fake_created);
+        (void)script_attach_live();
+        expect(dinkc_vm_sprite_fiber(4) == 0,
+               "created sprite's script not restarted");
+        script_bind_slot_created(NULL);
+        g_fake_created = 0;
+        (void)script_attach_live();
+        expect(dinkc_vm_sprite_fiber(4) != 0, "editor row still attaches");
+        dinkc_vm_reset();
+        script_bind_screen(NULL);
     }
 
     printf("OK test_script\n");
