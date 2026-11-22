@@ -614,6 +614,9 @@ static void edraw_mark_created(void)
 /* FreeDink game_load_screen: record + thaw + screenlock=0. No kill_all. */
 static int g_io_map;
 
+/* Game clock (FreeDink thisTickCount / fps_final); see gameclock_tick. */
+static struct GameClock g_clk;
+
 static int play_load_screen(int map)
 {
     int rec, rc = -1;
@@ -799,6 +802,10 @@ static int play_draw_screen(int sprite)
         }
     }
     audio_music_pump();
+    /* FreeDink draw_screen_game: thisTickCount = game_GetTicks() before
+     * the sprites' scripts start, so the load is not the next frame's
+     * fps_final (one frame at base_timing 22 otherwise). */
+    gameclock_resync(&g_clk, mem_now_ms());
     script_attach_live();
     audio_music_disc_hold(0);
     /* Script draw_screen mid-tick: the fiber's work after it is play. */
@@ -1359,6 +1366,7 @@ int main(int argc, char **argv)
                     int need_menu = 1;
 
                     g_play_have_scene = &have_scene;
+                    memset(&g_clk, 0, sizeof(g_clk));
                     startpause_reset();
                     for (;;) {
                         uint32_t buttons = 0;
@@ -1468,6 +1476,11 @@ int main(int argc, char **argv)
                          * wait again on an idle GPU (bar map 34 lock). */
                         have_scene = 0;
                     }
+                    /* FreeDink updateFrame → game_compute_speed first:
+                     * real time, not a fixed 16 ms (59.94 Hz NTSC ran ~4%
+                     * slow and slow frames dragged game time). Every
+                     * system this frame sees the same now_ms. */
+                    now_ms = gameclock_tick(&g_clk, mem_now_ms());
                     /* Diagnostic: per-tick pacing and VRAM low-water mark
                      * (one pvr_mem_available + a 128-slot sum per tick). */
                     g_tick_t0 = dink_io_now_us();
@@ -1700,7 +1713,6 @@ int main(int argc, char **argv)
                             edraw_reap_unused(g_edg, &g_ned, seqs);
                         }
                     }
-                    now_ms += DINKC_TICK_MS;
                     if (dinkc_vm_choice_n() > 0) {
                         choice_tick(now_ms);
                     }

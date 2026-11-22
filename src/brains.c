@@ -35,8 +35,6 @@
 #define DINK_PLAYX (DINK_PLAY_LEFT + DINK_PLAY_W)
 #define DINK_PLAYY DINK_PLAY_H
 
-/* FreeDink game_compute_speed at 60 Hz: fps_final clamped to 12 → 4. */
-#define DINK_BASE_TIMING 4
 
 struct BrainSpr {
     int live;
@@ -455,7 +453,7 @@ static void changedir(int dir1, struct BrainSpr *s, int base,
     }
     hold = s->speed;
     if (s->brain != DINK_BRAIN_PILL && s->brain != DINK_BRAIN_DRAGON) {
-        hspeed = s->speed * (DINK_BASE_TIMING / 4);
+        hspeed = s->speed * (player_base_timing() / 4);
         if (hspeed > 49) {
             s->speed = 49;
         } else {
@@ -1446,7 +1444,7 @@ static void missile_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
 static void scale_brain(struct BrainSpr *s, const struct SeqInfo *seqs,
                         const struct HardMask *mask)
 {
-    int num = 5 * (DINK_BASE_TIMING / 4);
+    int num = 5 * (player_base_timing() / 4);
 
     if (s->size == s->brain_parm) {
         s->live = 0;

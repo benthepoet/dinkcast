@@ -18,7 +18,7 @@
 
 **Input (binding decision):** **Play the game with the Dreamcast controller only** (Maple pad). D-pad walk (8-way, same as Dink’s keypad dirs), A talk/confirm, B hit/cancel, X magic, Y inventory, Start title/pause. Choice menus and inventory are pad-driven, not number keys. Saves are VMU slots — no name typing. Do **not** require a PC keyboard in Flycast or a Dreamcast keyboard to finish the campaign. Maple keyboard / emulator keys are optional later for debug and are **deferred**. Original Dink’s extra PC keys (quick-save, editor, cheats) stay unmapped unless a later bite names them.
 
-**Frame rate (binding decision):** **60 FPS / 60 Hz logic** is the target (VGA and 480p-class). DinkC `wait`, walk speed, and `dink.ini` delays are converted against that tick so they match FreeDink. **30 FPS is the floor**, not the design: if a busy indoor or 480i cannot hold 60, drop *presentation* to 30 but keep **one 60 Hz simulation step** (or two ticks per displayed frame) — do not retune the whole game to 30 or walk/talk will desync. 96 tiles + a few dozen quads is not a 30 Hz problem on PowerVR2; if you miss 60, profile upload/disc/CPU blit, not “the DC cannot do 60.”
+**Frame rate (binding decision):** **60 FPS / 60 Hz logic** is the target (VGA and 480p-class). **Game time is real time**, as FreeDink's `game_compute_speed` (`thisTickCount = game_GetTicks()`): DinkC `wait`, `dink.ini` delays, callbacks, TTLs and the 100 ms status tick run on elapsed milliseconds, not a fixed 16 ms per frame (59.94 Hz NTSC ran ~4% slow under a fixed step). Animation delays (Dink's included) advance by the game ms each frame adds. Movement per frame scales by `base_timing / 4` (`fps_final` clamped 12..68 ms, `base_timing = max(4, fps_final / 3)`): 1 at 60 Hz and about 2 at 30 FPS, which is the movement half of "two ticks per displayed frame". As FreeDink `draw_screen_game` does, `fps_final` is re-measured from the end of a screen build, so a load never inflates the next frame's movement. **Dreamcast exceptions** (FreeDink on a PC loads and stalls in a few ms; a GD-ROM takes hundreds): (1) the screen build itself adds **0 ms** of game time (FreeDink lets the load's real time into `thisTickCount`); (2) any other stall inside one frame (a GD-ROM read, VMU save, blocking overlay upload) adds at most 68 ms. Neither expires waits and talk lines during a load. **30 FPS is the floor**, not the design: if a busy indoor or 480i cannot hold 60, presentation drops but game time and walk distance keep real-time pace — do not retune the whole game to 30 or walk/talk will desync. 96 tiles + a few dozen quads is not a 30 Hz problem on PowerVR2; if you miss 60, profile upload/disc/CPU blit, not “the DC cannot do 60.”
 
 **Screen-to-screen delay (binding):** Flycast will look instant (host disk). **Real CDI/CD-ROM** is seek-bound, not SH-4. Keep the **current tileset** (and neighbor screens if they fit §1.2) resident so most edge walks are parse + a few sprites, **not** a loading screen.
 
@@ -157,7 +157,7 @@ If `file_blob` peak or `cpu_pixels`/`ts_rgb` would exceed caps, **refuse the new
 | Start | Pause / leave title |
 | L/R | Unused in v1 (do not bind map-cheat) |
 
-Logic tick: **60 Hz** on VGA. Tie animation delays from `dink.ini` to that tick (FreeDink frame delay is ms-ish — convert: `frames = max(1, delay_ms * 60 / 1000)` and then **diff against FreeDink** on one walk cycle).
+Logic tick: one game frame per displayed frame (**60 Hz** on VGA). `dink.ini` delays, `wait` and timers are **milliseconds on the real game clock** (FreeDink `thisTickCount`), not frame counts — see **Frame rate** above; **diff against FreeDink** on one walk cycle.
 
 ### 1.4 Texture rules
 
@@ -468,7 +468,7 @@ These **are** the FreeDink systems needed to finish the retail freeware campaign
 | Inventory + HUD | `status`, items | **16** | V6; `draw_status` |
 | Map graphic | `process_show_bmp`, seq 165 | **16.3** | Y / map button |
 | VMU save | `savegame` → Maple VMU | **17** | include `play.spmap` + globals |
-| 60 Hz vs `dink.ini` delays | `ThinkSprite`, `game_compute_speed` | keep 60 Hz tick; convert `wait`/seq delay | not a 30 Hz retune |
+| 60 Hz vs `dink.ini` delays | `ThinkSprite`, `game_compute_speed` | real ms clock for `wait`/seq delay; movement × `base_timing / 4` (see Frame rate) | not a 30 Hz retune |
 
 **Do not skip** a row because the start house does not use it. Graft when that bite is open.
 
@@ -537,9 +537,9 @@ DinkC is **concurrent**. Each attached script is a fiber:
 
 - `struct Script { ip; wait_until; sprite; state; code; }`: locals live in the shared `dinkc_var` table (FreeDink `MAX_VARS` 250, globals and every script's locals), not in the script.
 - **199 live scripts** (FreeDink `MAX_SCRIPTS` 200, slot 0 unused) and **100 callbacks** (`MAX_CALLBACKS`). Instances share one refcounted copy of each script's source and tokens (#169): map 536 runs 30 scripts from 4 distinct files. One global choice menu, owned by the latest `choice_start`.
-- 60 Hz: tick all runnable scripts, budget **2 ms** SH-4; overflow → log.
+- Every frame (60 Hz target): tick all runnable scripts against the game clock (ms), budget **2 ms** SH-4; overflow → log.
 
-**Host check:** script `void main(void) { wait(1); }` completes in a fake 60 Hz loop.
+**Host check:** script `void main(void) { wait(1); }` completes in a fake fixed-step loop (host tests pass `now_ms`).
 
 #### Bite 11.4 — Variables
 
@@ -595,7 +595,7 @@ Make **real** (no silent `return 1`):
 
 Leave **`playsound`** stub until **12.3**. Combat XP/death (`sp_exp`, `sp_base_death` / `sp_base_die`, `hurt` applying) stays **15.2**. `sp_sound` is sprite SFX — not this bite (no AICA until 12).
 
-**Host check:** NPC `sp_x` write moves `BrainSpr`; `create_sprite` returns a live slot; `move_stop` does not complete in one 16 ms tick unless already at dest.
+**Host check:** NPC `sp_x` write moves `BrainSpr`; `create_sprite` returns a live slot; `move_stop` does not complete in one 60 Hz frame (~16 ms of game time) unless already at dest.
 
 **Done when:** a stock script that `create_sprite`s or `move_stop`s an NPC does that on Flycast/hardware (not only “no unimplemented log”).
 

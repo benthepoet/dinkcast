@@ -91,6 +91,61 @@ int player_dink_speed(void)
     return g_dinkspeed;
 }
 
+static int g_base_timing = 5; /* fps_final 16 / 3 at 60 Hz */
+static int g_frame_game_ms = 16;
+
+int player_frame_game_ms(void)
+{
+    return g_frame_game_ms;
+}
+
+int player_base_timing(void)
+{
+    return g_base_timing;
+}
+
+void player_set_base_timing(int base_timing)
+{
+    g_base_timing = base_timing < 4 ? 4 : base_timing;
+}
+
+int gameclock_tick(struct GameClock *c, unsigned real_ms)
+{
+    unsigned d;
+    int frame;
+
+    if (c == NULL) {
+        return 0;
+    }
+    if (!c->started) {
+        c->started = 1;
+        c->last_real = real_ms;
+        d = 16;
+    } else {
+        d = real_ms - c->last_real;
+        c->last_real = real_ms;
+    }
+    frame = d > DINK_FRAME_MS_MAX ? DINK_FRAME_MS_MAX : (int)d;
+    c->now += frame;
+    c->added_ms = frame;
+    g_frame_game_ms = frame;
+    if (frame < DINK_FRAME_MS_MIN) {
+        frame = DINK_FRAME_MS_MIN;
+    }
+    c->frame_ms = frame;
+    player_set_base_timing(frame / 3);
+    return c->now;
+}
+
+void gameclock_resync(struct GameClock *c, unsigned real_ms)
+{
+    if (c == NULL) {
+        return;
+    }
+    c->last_real = real_ms;
+    c->started = 1;
+}
+
 /* FreeDink game_compute_speed: dinkspeed -> spr[1].speed (pixels per
  * frame), times base_timing / 4 (1 at 60 Hz). 2 (herb boots) is 6. */
 int player_walk_speed(void)
@@ -108,7 +163,7 @@ int player_walk_speed(void)
     } else {
         sp = 1;
     }
-    return sp;
+    return sp * (g_base_timing / 4);
 }
 
 int player_hurt(struct Player *p, int damage)
@@ -289,7 +344,7 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
         if (nfr < 1) {
             nfr = 1;
         }
-        p->acc += 16;
+        p->acc += g_frame_game_ms;
         if (p->acc >= delay) {
             int dseq, dfr;
 
@@ -449,7 +504,7 @@ void player_step(struct Player *p, int pad_dir, const struct HardMask *mask,
     if (nfr < 1) {
         nfr = 1;
     }
-    p->acc += 16;
+    p->acc += g_frame_game_ms;
     if (p->acc >= delay) {
         int dseq, dfr;
 
