@@ -10,6 +10,14 @@
 
 static FILE *g_fp;
 static uint8_t *g_rec[DINK_HARD_TILES];
+/* A record that failed to read stays failed while this screen uses it:
+ * one disc attempt per screen, not one per pixel (review §2.2). */
+static uint8_t g_fail[DINK_HARD_TILES];
+static size_t g_rec_bytes;
+static int g_rec_n;
+static int g_rec_reads;
+static int g_test_open_fail;
+static int g_open_tries;
 static uint16_t g_def[DINK_BTILE_MAX];
 static int g_def_ok;
 static int g_screenlock;
@@ -72,6 +80,11 @@ static int hard_fp_ensure(void)
     if (g_fp != NULL) {
         return 0;
     }
+    g_open_tries++;
+    if (g_test_open_fail) {
+        printf("hard fp open fail (test)\n");
+        return -1;
+    }
     g_fp = dink_fopen("hard.dat", "rb");
     if (g_fp == NULL) {
         printf("hard fp open fail\n");
@@ -94,11 +107,15 @@ static int hard_ensure_rec(int hid)
     if (g_rec[hid] != NULL) {
         return 0;
     }
+    if (g_fail[hid]) {
+        return -1;
+    }
     if (hard_fp_ensure() != 0) {
         return -1;
     }
     p = (uint8_t *)malloc((size_t)DINK_HARD_REC);
     if (p == NULL) {
+        printf("hard rec fail hid=%d (malloc)\n", hid);
         return -1;
     }
     off = (long)hid * (long)DINK_HARD_REC;
@@ -113,12 +130,71 @@ static int hard_ensure_rec(int hid)
     if (dink_pread(g_fp, off, p, (size_t)DINK_HARD_REC) != 0) {
         dink_io_ctx(outer);
         free(p);
+        g_fail[hid] = 1;
         printf("hard rec fail hid=%d\n", hid);
         return -1;
     }
     dink_io_ctx(outer);
     g_rec[hid] = p;
+    g_rec_bytes += (size_t)DINK_HARD_REC;
+    g_rec_n++;
+    g_rec_reads++;
     return 0;
+}
+
+void hard_cache_new_visit(void)
+{
+    memset(g_fail, 0, sizeof(g_fail));
+}
+
+int hard_cache_reads(void)
+{
+    return g_rec_reads;
+}
+
+size_t hard_cache_bytes(void)
+{
+    return g_rec_bytes;
+}
+
+int hard_cache_recs(void)
+{
+    return g_rec_n;
+}
+
+int hard_rec_failed(int hid)
+{
+    return hid >= 0 && hid < DINK_HARD_TILES && g_fail[hid];
+}
+
+void hard_test_open_fail(int on)
+{
+    g_test_open_fail = on;
+}
+
+int hard_test_open_tries(void)
+{
+    return g_open_tries;
+}
+
+void hard_test_mark_failed(int hid)
+{
+    if (hid >= 0 && hid < DINK_HARD_TILES && g_rec[hid] == NULL) {
+        g_fail[hid] = 1;
+    }
+}
+
+void hard_cache_drop_all(void)
+{
+    int i;
+
+    for (i = 0; i < DINK_HARD_TILES; i++) {
+        free(g_rec[i]);
+        g_rec[i] = NULL;
+        g_fail[i] = 0;
+    }
+    g_rec_bytes = 0;
+    g_rec_n = 0;
 }
 
 int hard_load(struct HardMap *out)
@@ -219,7 +295,8 @@ void hard_mask_free(struct HardMask *m)
 int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
                      struct HardMask *out)
 {
-    int i, lx, ly;
+    static uint8_t need[DINK_HARD_TILES];
+    int i, lx, ly, nneed = 0, nread = 0, nfail = 0, ndrop = 0, noio = 0;
 
     if (h == NULL || scr == NULL || out == NULL) {
         return -1;
@@ -229,21 +306,75 @@ int hard_stamp_tiles(const struct HardMap *h, const struct MapScreen *scr,
     if (out->pix == NULL) {
         return -1;
     }
+    if (!h->ready) {
+        /* No hard.dat defaults (load_screen / boot already logged the
+         * failure): tiles are walkable and no record read is tried. */
+        printf("hard stamp no hard.dat: tiles walkable\n");
+        return 0;
+    }
+    memset(need, 0, sizeof(need));
     for (i = 0; i < DINK_SCREEN_TILES; i++) {
         int hid = hard_id_for_tile(h, scr->t[i].square_full_idx0, scr->t[i].althard);
 
-        if (hid > 0 && hid < DINK_HARD_TILES && hard_ensure_rec(hid) != 0) {
-            printf("hard rec fail hid=%d\n", hid);
+        if (hid >= 0 && hid < DINK_HARD_TILES && !need[hid]) {
+            need[hid] = 1;
+            nneed++;
+            if (g_rec[hid] == NULL && !g_fail[hid] && !noio) {
+                nread++;
+                /* No handle or no RAM: stop trying this stamp (one
+                 * attempt, not one per tile); those tiles stay walkable. */
+                if (hard_ensure_rec(hid) != 0 && !g_fail[hid]) {
+                    noio = 1;
+                }
+            }
+            if (g_fail[hid]) {
+                nfail++;
+            }
         }
     }
+    /* Screen class: keep only the records this screen's tiles use, so the
+     * cache is at most 96 records and a draw_hard_map re-stamp in play
+     * never reads the disc. A failure is forgotten with its record, and
+     * load_screen forgets all of them (hard_cache_new_visit). */
+    for (i = 0; i < DINK_HARD_TILES; i++) {
+        if (need[i]) {
+            continue;
+        }
+        if (g_rec[i] != NULL) {
+            free(g_rec[i]);
+            g_rec[i] = NULL;
+            g_rec_bytes -= (size_t)DINK_HARD_REC;
+            g_rec_n--;
+            ndrop++;
+        }
+        g_fail[i] = 0;
+    }
+    if (nread > 0 || ndrop > 0 || nfail > 0 || noio) {
+        printf("hard cache recs=%d bytes=%u read=%d drop=%d fail=%d noio=%d\n",
+               g_rec_n, (unsigned)g_rec_bytes, nread, ndrop, nfail, noio);
+    }
+    (void)nneed;
     for (i = 0; i < DINK_SCREEN_TILES; i++) {
         int hid = hard_id_for_tile(h, scr->t[i].square_full_idx0, scr->t[i].althard);
         int tx = (i % 12) * DINK_TILE_PX;
         int ty = (i / 12) * DINK_TILE_PX;
+        const uint8_t *rec;
 
+        if (hid < 0 || hid >= DINK_HARD_TILES) {
+            continue;
+        }
+        rec = g_rec[hid];
+        /* A record whose read failed is stamped solid: FreeDink would have
+         * it, and a wall walked through is worse than one blocked tile. A
+         * record we could not even try (no handle, no RAM) stays walkable
+         * and is tried again at the next stamp, never once per pixel. */
+        if (rec == NULL && !g_fail[hid]) {
+            continue;
+        }
         for (ly = 0; ly < DINK_TILE_PX; ly++) {
             for (lx = 0; lx < DINK_TILE_PX; lx++) {
-                if (hard_sample(h, hid, lx, ly)) {
+                if (rec == NULL ||
+                    rec[(size_t)lx * (size_t)DINK_HARD_PX + (size_t)ly] != 0) {
                     out->pix[(ty + ly) * DINK_PLAY_W + (tx + lx)] = 1;
                 }
             }

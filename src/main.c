@@ -660,6 +660,7 @@ static int play_load_screen(int map)
     /* Prev pack fclose (498) then SEEK_SET this FILE* wedged shop 35. */
     hard_fp_release();
     dink_cd_settle();
+    hard_cache_new_visit();
     printf("load_screen stamp map %d\n", map);
     if (g_play_mask != NULL &&
         hard_stamp_tiles(&g_hard, &g_scr, g_play_mask) != 0) {
@@ -1279,6 +1280,7 @@ int main(int argc, char **argv)
                     /* memset(g_edg) smashes g_scr; scripts/talk read g_scr. */
                     spr_restore("post-edraw");
                     printf("edraw unique %d\n", g_ned);
+                    mem_set_hard_cache(hard_cache_bytes());
                     mem_log("play",
                             edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes() +
                                 status_cpu_bytes(),
@@ -1438,6 +1440,7 @@ int main(int argc, char **argv)
                             continue;
                         }
                         audio_music_disc_hold(0);
+                        mem_set_hard_cache(hard_cache_bytes());
                         mem_log("swap",
                                 edraw_cpu_bytes(g_edg, g_ned) + inv_cpu_bytes() +
                                     status_cpu_bytes(),
